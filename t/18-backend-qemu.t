@@ -414,15 +414,6 @@ subtest 'saving memory dump' => sub {
     is $runcmd, 'bzip2 -v6 ulogs/foo-vm-memory-dump', 'expected compression fallback command invoked';
 };
 
-subtest 'saving storage drives' => sub {
-    my @extract_args;
-    my @expected_args = ([$backend, {hdd_num => 42, name => 'foo-42-vm_disk_file.qcow2', dir => 'ulogs', format => 'qcow2'}]);
-    $backend_mock->redefine(do_extract_assets => sub (@args) { push @extract_args, \@args });
-    combined_like { $backend->save_storage_drives({disk => 42, filename => 'foo'}) }
-    qr/Attempting to extract disk #42.*Successfully extracted disk #42/s, 'extraction logged';
-    is_deeply \@extract_args, \@expected_args, 'expected assets extracted' or diag explain \@extract_args;
-};
-
 subtest '"balloon" handling' => sub {
     $fake_qmp_answer = {return => {actual => 1}};
     $$invoked_qmp_cmds = undef;

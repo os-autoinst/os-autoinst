@@ -1072,7 +1072,6 @@ subtest 'assert/check recorded sound' => sub {
 
 lives_ok { power('on') } 'power can be called';
 lives_ok { save_memory_dump } 'save_memory_dump can be called';
-like(exception { save_storage_drives }, qr/should be called.*post_fail_hook/, 'save_storage_drives should be called special');
 lives_ok { freeze_vm } 'freeze_vm can be called';
 lives_ok { resume_vm } 'resume_vm can be called';
 
