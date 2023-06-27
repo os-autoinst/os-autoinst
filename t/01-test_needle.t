@@ -434,10 +434,24 @@ subtest 'click point' => sub {
     $needle = needle->new('click-point-center.json');
     is_deeply($needle->{area}->[0]->{click_point}, 'center', 'click point "center" parsed');
 
+    $needle = needle->new('click-point-multiple-ids.json');
+    is_deeply($needle->{area}->[0]->{click_point}, {xpos => 2, ypos => 4, id => "first"}, 'first click point parsed');
+    is_deeply($needle->{area}->[1]->{click_point}, {xpos => 1, ypos => 3, id => "second"}, 'second click point parsed');
+
     like(warning {
             $needle = needle->new('click-point-multiple.json');
-    }, qr/click-point-multiple\.json has more than one area with a click point/, 'warning shown');
-    is_deeply($needle, undef, 'multiple click points not accepted');
+    }, qr/click-point-multiple\.json has more than one area with a click point without assigning IDs to each/, 'warning shown');
+    is_deeply($needle, undef, 'multiple click points without IDs not accepted');
+
+    like(warning {
+            $needle = needle->new('click-point-multiple-mixed-1.json');
+    }, qr/click-point-multiple-mixed-1\.json has more than one area with a click point without assigning IDs to each/, 'warning shown');
+    is_deeply($needle, undef, 'multiple click points without IDs not accepted');
+
+    like(warning {
+            $needle = needle->new('click-point-multiple-mixed-2.json');
+    }, qr/click-point-multiple-mixed-2\.json has more than one area with a click point without assigning IDs to each/, 'warning shown');
+    is_deeply($needle, undef, 'multiple click points without IDs not accepted');
 };
 
 subtest 'workaround property' => sub {

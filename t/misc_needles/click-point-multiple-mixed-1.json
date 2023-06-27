@@ -1,0 +1,35 @@
+{
+    "area": [
+        {
+            "height": 250,
+            "match": 95,
+            "max_offset": 0,
+            "processing_flags": "t",
+            "type": "match",
+            "width": 800,
+            "xpos": 5,
+            "ypos": 10,
+            "click_point": {
+                "xpos": 2,
+                "ypos": 4,
+                "id": "first"
+            }
+        },
+        {
+            "height": 250,
+            "match": 95,
+            "max_offset": 0,
+            "processing_flags": "t",
+            "type": "match",
+            "width": 800,
+            "xpos": 5,
+            "ypos": 10,
+            "click_point": {
+                "xpos": 1,
+                "ypos": 3
+            }
+        }
+    ],
+    "tags": ["click-point"],
+    "properties": ["glossy"]
+}
