@@ -1,5 +1,15 @@
-#!BuildTag: isotovideo:qemu-x86
-
+# SPDX-License-Identifier: MIT
+#!BuildTag: isotovideo:qemu-x86 opensuse/isotovideo-qemu-x86:latest opensuse/isotovideo-qemu-x86:%PKG_VERSION% opensuse/isotovideo-qemu-x86:%PKG_VERSION%.%RELEASE%
 FROM opensuse/tumbleweed
+
+# labelprefix=org.opensuse.isotovideo-qemu-x86
+LABEL org.opencontainers.image.title="isotovideo with qemu-x86"
+LABEL org.opencontainers.image.description="Standalone isotovideo with qemu-x86"
+LABEL org.opencontainers.image.version="%PKG_VERSION%.%RELEASE%"
+LABEL org.opensuse.reference="registry.opensuse.org/opensuse/isotovideo-qemu-x86:%PKG_VERSION%.%RELEASE%"
+LABEL org.openbuildservice.disturl="%DISTURL%"
+LABEL org.opencontainers.image.created="%BUILDTIME%"
+# endlabelprefix
+
 RUN zypper -n in os-autoinst-qemu-x86 && zypper clean
 ENTRYPOINT ["/usr/bin/isotovideo"]

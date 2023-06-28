@@ -1,6 +1,16 @@
-#!BuildTag: isotovideo:qemu-kvm-jq
-
+# SPDX-License-Identifier: MIT
+#!BuildTag: isotovideo:qemu-kvm-jq opensuse/isotovideo-qemu-kvm-jq:latest opensuse/isotovideo-qemu-kvm-jq:%PKG_VERSION% opensuse/isotovideo-qemu-kvm-jq:%PKG_VERSION%.%RELEASE%
 FROM opensuse/tumbleweed
+
+# labelprefix=org.opensuse.isotovideo-qemu-kvm-jq
+LABEL org.opencontainers.image.title="isotovideo with qemu-kvm and jq"
+LABEL org.opencontainers.image.description="Standalone isotovideo with qemu-kvm and jq"
+LABEL org.opencontainers.image.version="%PKG_VERSION%.%RELEASE%"
+LABEL org.opensuse.reference="registry.opensuse.org/opensuse/isotovideo-qemu-kvm-jq:%PKG_VERSION%.%RELEASE%"
+LABEL org.openbuildservice.disturl="%DISTURL%"
+LABEL org.opencontainers.image.created="%BUILDTIME%"
+# endlabelprefix
+
 # Provide "jq" as convenience to work with the os-autoinst output
 RUN zypper -n in os-autoinst-qemu-kvm jq && zypper clean
 ENTRYPOINT ["/usr/bin/isotovideo"]

@@ -1,5 +1,15 @@
-#!BuildTag: os-autoinst_dev
+# SPDX-License-Identifier: MIT
+#!BuildTag: os-autoinst_dev:latest opensuse/os-autoinst-dev:latest opensuse/os-autoinst-dev:%PKG_VERSION% opensuse/os-autoinst-dev:%PKG_VERSION%.%RELEASE%
 FROM opensuse/tumbleweed
+
+# labelprefix=org.opensuse.os-autoinst-dev
+LABEL org.opencontainers.image.title="os-autoinst test container"
+LABEL org.opencontainers.image.description="Container for CI testing os-autoinst"
+LABEL org.opencontainers.image.version="%PKG_VERSION%.%RELEASE%"
+LABEL org.opensuse.reference="registry.opensuse.org/opensuse/os-autoinst-dev:%PKG_VERSION%.%RELEASE%"
+LABEL org.openbuildservice.disturl="%DISTURL%"
+LABEL org.opencontainers.image.created="%BUILDTIME%"
+# endlabelprefix
 
 # Define environment variable
 ENV NAME openQA test environment
