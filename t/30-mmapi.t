@@ -7,6 +7,7 @@
 # threads upfront.
 
 use Test::Most;
+use Test::Mock::Time;
 use Mojo::Base -strict, -signatures;
 
 BEGIN {
@@ -117,8 +118,12 @@ $fake_api->post('/barrier' => sub {
 });
 $fake_api->post('/barrier/#name' => sub {
         my ($self) = @_;
+        state $counter = 0;
         my $name = $self->param('name') // '';
+        return $self->render(status => (++$counter % 3 == 0) == 0 ? 200 : 409, text => 'ok') if $name eq 'unblocked_next';
         return $self->render(status => 200, text => 'ok') if $name eq 'unblocked';
+        return $self->render(status => 409, text => 'ok') if $name eq 'blocked';
+        return $self->render(status => 410, text => 'ok') if $name eq 'not-exists';
         return $self->render(status => 200, text => 'ok') if $name eq 'check_dead_job_barrier' && ($self->param('check_dead_job') // '' eq '1');
         return $self->render_mutex;
 });
@@ -191,14 +196,29 @@ subtest 'lockapi: successful use' => sub {
         is lockapi::mutex_try_lock('lockable'), 1, 'mutex locked (try)';
         is lockapi::mutex_unlock('unlockable'), 1, 'mutex unlocked';
         is lockapi::barrier_create('lucky_barrier', 41), 1, 'barrier created';
-        is lockapi::barrier_wait('unblocked'), 1, 'waited for barrier';
-        is $recorded_info[0]->[1], 'Wait for unblocked (on parent job)', 'info recorded by waited for barrier';
+        is lockapi::barrier_wait('unblocked_next'), 1, 'waited for barrier';
+        is $recorded_info[0]->[1], 'Wait for unblocked_next (on parent job)', 'info recorded by waited for barrier';
         is lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1, 'waited for barrier with check_dead_job flag';
         is $recorded_info[1]->[1], 'Wait for check_dead_job_barrier (on parent job)', 'different info recorded with check_dead_job flag';
         is lockapi::barrier_try_wait('unblocked'), 1, 'tried waiting for barrier';
         is lockapi::barrier_destroy('deletable'), 1, 'barrier destroyed';
     } qr/mutex create.*mutex lock.*mutex try lock.*mutex unlock.*barrier create.*barrier wait.*barrier try wait.*barrier destroy/s, 'logging';
     is scalar @recorded_info, 2, 'record info called expected number of times' or diag explain \@recorded_info;
+};
+
+subtest 'lockapi::barrier_wait() failures' => sub {
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'not-exists'}) } qr/mydie/, "die() on not-exists" } qr/lock owner already finished/, "Throw exception if lock doesn't exists or already finished";
+    my $start = time;
+    my $timeout = lockapi::POLL_INTERVAL - 1;
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    is(time - $start, $timeout, "Wait $timeout seconds, for timeout < POLL_INTERVAL");
+    $start = time;
+    $timeout = lockapi::POLL_INTERVAL + 1;
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    is(time - $start, $timeout, "Wait $timeout seconds, for timeout > POLL_INTERVAL");
+    $start = time;
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => 0}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    is(time - $start, 0, "Don't wait for timeout == 0");
 };
 
 subtest 'mmapi: wait functions' => sub {

@@ -6,6 +6,7 @@ package lockapi;
 
 use Mojo::Base 'Exporter', -signatures;
 use Scalar::Util 'looks_like_number';
+use List::Util qw(min);
 use Time::Seconds;
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
@@ -126,8 +127,9 @@ sub barrier_try_wait ($name, $where = undef, @) {
 }
 
 sub barrier_wait (@args) {
-    my ($name, $where, $check_dead_job) = ref $args[0] eq 'HASH' ? (@{$args[0]}{qw(name where check_dead_job)}) : @args;
+    my ($name, $where, $check_dead_job, $timeout) = ref $args[0] eq 'HASH' ? (@{$args[0]}{qw(name where check_dead_job timeout)}) : @args;
     $check_dead_job = looks_like_number($check_dead_job) && $check_dead_job ? 1 : 0;
+    $timeout = looks_like_number($timeout) && $timeout >= 0 ? $timeout : -1;
 
     bmwqemu::mydie('missing barrier name') unless $name;
     bmwqemu::diag("barrier wait '$name'");
@@ -141,8 +143,17 @@ sub barrier_wait (@args) {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
-        sleep POLL_INTERVAL;    # uncoverable statement
+        my $poll_interval = POLL_INTERVAL;
+        if ($timeout != -1) {
+            my $elapsed_time = time - $start;
+            if ($elapsed_time >= $timeout) {
+                bmwqemu::mydie "barrier '$name' timeout after $elapsed_time seconds";
+            } else {
+                $poll_interval = min($timeout - $elapsed_time, $poll_interval);
+            }
+        }
+        bmwqemu::diag("barrier '$name' not released, sleeping " . $poll_interval . ' seconds');
+        sleep $poll_interval;
     }
 }
 
