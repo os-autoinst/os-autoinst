@@ -13,11 +13,11 @@ use bmwqemu;
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
 
-# root-sut-serial (console for root login)
+# root-sut-serial (ssh-virtsh-serial for root)
 use constant SERIAL_TERMINAL_DEFAULT_PORT => 1;
 use constant SERIAL_TERMINAL_DEFAULT_DEVICE => 'console';
 
-# sut-serial (console for user login)
+# user-sut-serial (ssh-virtsh-serial for user)
 use constant SERIAL_USER_TERMINAL_DEFAULT_PORT => 2;
 use constant SERIAL_USER_TERMINAL_DEFAULT_DEVICE => 'console';
 

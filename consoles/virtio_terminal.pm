@@ -37,6 +37,14 @@ uses two pipes to communicate with virtio_consoles from qemu.
 
 =head1 SUBROUTINES/METHODS
 
+=head1 TESTING
+
+For testing you can use:
+
+https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/tests/kernel/virtio_console.pm
+https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/tests/kernel/virtio_console_long_output.pm
+https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/tests/kernel/virtio_console_user.pm
+
 =cut
 
 sub new ($class, $testapi_console, $args) {

@@ -41,11 +41,12 @@ is_deeply({$svirt->get_ssh_credentials()}, {
 }, 'read credentials');
 
 $svirt->do_start_vm;
-$distri->add_console('sut-serial', 'ssh-virtsh-serial', {});
+$distri->add_console('root-sut-serial', 'ssh-virtsh-serial', {});
+$distri->add_console('user-sut-serial', 'ssh-virtsh-serial', {});
 
 my $consoles = $distri->{consoles};
 my $svirt_console = $consoles->{svirt};
-my $svirt_sut_console = $consoles->{'sut-serial'};
+my $svirt_sut_console = $consoles->{'root-sut-serial'};
 
 subtest 'svirt console correctly initialized' => sub {
     ok($svirt_console);
@@ -65,7 +66,7 @@ is_deeply($svirt_sut_console, {
         console_hotkey => 'ctrl-alt-f',
         libvirt_domain => 'openQA-SUT-1',
         serial_port_no => 1,
-        testapi_console => 'sut-serial',
+        testapi_console => 'root-sut-serial',
         pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
 }, 'SUT serial console correctly initialized') or diag explain $consoles;
 
