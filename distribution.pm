@@ -127,7 +127,8 @@ sub script_run ($self, $cmd, @args) {
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
+            die 'Command was mistyped'
+              unless testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
             testapi::type_string("\n");
         }
         else {
