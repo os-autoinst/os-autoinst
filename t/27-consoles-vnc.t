@@ -84,7 +84,7 @@ subtest 'setting socket timeout' => sub {
     $inet_mock->redefine(new => sub ($class, @args) { %socket_args = @args; $s });
     $c->hostname('10.161.145.95');
     combined_like { throws_ok { $c->login } qr/unexpected end of data/, 'login dies on unexpected end of data' }
-    qr/warn.*login.*Unable to set VNC socket timeout: .+/, 'timeout would have been passed to socket';
+      qr/warn.*login.*Unable to set VNC socket timeout: .+/, 'timeout would have been passed to socket';
     is $socket_args{Timeout}, 6, 'remote timeout passed to socket constructor' or diag explain \%socket_args;
     @printed = ();
 };
@@ -99,7 +99,7 @@ subtest 'handling connect timeout' => sub {
     _setup_rfb_magic;
     combined_like {
         throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout' }
-    qr/.*Error connecting to.*/, 'error logged';
+      qr/.*Error connecting to.*/, 'error logged';
     is $attempts, 7, 'login attempts for local hostname';
     $attempts = 0;
     $c->hostname('10.161.145.95');

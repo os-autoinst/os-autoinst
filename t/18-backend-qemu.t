@@ -589,24 +589,24 @@ subtest 'special cases when starting QEMU' => sub {
     subtest 'various error cases' => sub {
         $bmwqemu::vars{NICTYPE} = 'foo';
         combined_like { throws_ok { $backend->start_qemu } qr/unknown NICTYPE foo/, 'dies on unknown NICTYPE' }
-        qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
+          qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
         $bmwqemu::vars{BOOTFROM} = 'punch-card';
         combined_like { throws_ok { $backend->start_qemu } qr{unsupported boot order: punch-card}, 'dies on unsupported boot order' }
-        qr/qemu version/si, 'expected logs until exception thrown (2)';
+          qr/qemu version/si, 'expected logs until exception thrown (2)';
         $bmwqemu::vars{LAPTOP} = '..';
         combined_like { throws_ok { $backend->start_qemu } qr{invalid characters in LAPTOP}, 'dies on invalid characters in LAPTOP' }
-        qr/qemu version/si, 'expected logs until exception thrown (3)';
+          qr/qemu version/si, 'expected logs until exception thrown (3)';
         $bmwqemu::vars{LAPTOP} = 'auslaufmoDELL';
         combined_like { throws_ok { $backend->start_qemu } qr{no dmi data for 'auslaufmoDELL'}, 'dies on unknown LAPTOP' }
-        qr/qemu version/si, 'expected logs until exception thrown (4)';
+          qr/qemu version/si, 'expected logs until exception thrown (4)';
         $bmwqemu::vars{KERNEL} = 'does-not-exist';
         combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
-        qr/qemu version/si, 'expected logs until exception thrown (5)';
+          qr/qemu version/si, 'expected logs until exception thrown (5)';
         $bmwqemu::vars{UEFI_PFLASH} = 0;
         $bmwqemu::vars{UEFI} = 1;
         $bmwqemu::vars{UEFI_PFLASH_CODE} = 0;
         combined_like { throws_ok { $backend->start_qemu } qr{No UEFI firmware can be found}, 'dies if UEFI firmware not found' }
-        qr/qemu version/si, 'expected logs until exception thrown (6)';
+          qr/qemu version/si, 'expected logs until exception thrown (6)';
     };
 };
 

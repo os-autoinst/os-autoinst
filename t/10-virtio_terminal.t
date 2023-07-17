@@ -124,7 +124,7 @@ subtest "Test open_pipe() error condition" => sub {
 
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
-    qr/\[debug\].*open_pipe/, 'log for open_pipe on non-existent pipe';
+      qr/\[debug\].*open_pipe/, 'log for open_pipe on non-existent pipe';
 
     $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
     $vterminal_mock->redefine("get_pipe_sz", sub { 1 });
