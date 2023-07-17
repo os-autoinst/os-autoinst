@@ -29,7 +29,7 @@ like warning {
   qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 
-sub loadtest ($test, $msg = undef) {
+sub loadtest ($test, $msg = "loadtest($test)") {
     my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
     $test =~ s/\.p[my]//;
     stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
@@ -315,14 +315,23 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
     like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
 };
 
-stderr_like {
-    lives_ok { autotest::loadtest('tests/test.py') } 'can load test module'
-} qr{scheduling test tests/test.py}, 'python test module referenced';
-loadtest 'test.py', 'we can also parse python test modules';
+subtest python => sub {
+    stderr_like {
+        lives_ok { autotest::loadtest('tests/pythontest.py') } 'can load test module'
+    } qr{scheduling pythontest tests/pythontest.py}, 'python pythontest module referenced';
+    %autotest::tests = ();
+    loadtest 'pythontest.py';
+    loadtest 'morepython.py';
+    my $p1 = $autotest::tests{'tests-pythontest'};
+    my $p2 = $autotest::tests{'tests-morepython'};
+    stderr_like { $p1->runtest } qr{This is pythontest.py}, 'Expected output from pythontest.py';
+    stderr_like { $p2->runtest } qr{This is morepython.py}, 'Expected output from morepython.py';
+    is $bmwqemu::vars{HELP}, 'I am a python script trapped in a perl script!', 'set_var() works';
 
-stderr_like {
-    throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
-} qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
+    stderr_like {
+        throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
+    } qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
+};
 
 subtest 'pausing on failure' => sub {
     my $autotest_mock = Test::MockModule->new('autotest');
