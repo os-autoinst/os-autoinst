@@ -2,4 +2,4 @@ from testapi import *
 
 
 def run(self):
-    pass
+    diag("This is morepython.py")

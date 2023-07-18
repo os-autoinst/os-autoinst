@@ -114,12 +114,22 @@ sub loadtest ($script, %args) {
     elsif ($script =~ m/\.py$/) {
         # Adding the include path of os-autoinst into python context
         my $inc = File::Basename::dirname(__FILE__);
-        $code .= "
+        my $script_dir = path(File::Basename::dirname($script_path))->to_abs;
+        $code .= <<~"EOM";
             use base 'basetest';
-            use Mojo::File 'path';
-            use Inline Python => 'import sys; sys.path.append(\"$inc\")';
-            use Inline Python => path('$casedir/$script')->slurp;
-            ";
+            use Inline::Python qw(py_eval py_bind_func py_study_package);
+            py_eval(<<'END_OF_PYTHON_CODE');
+            import sys
+            sys.path.append("$inc")
+            sys.path.append("$script_dir")
+            import $name
+            END_OF_PYTHON_CODE
+            # Bind the python functions to the perl $name package
+            my %info = py_study_package("$name");
+            for my \$func (\@{ \$info{functions} }) {
+                py_bind_func("${name}::\$func", "$name", \$func);
+            }
+            EOM
         $is_python = 1;
     }
     eval $code;
