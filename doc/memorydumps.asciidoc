@@ -8,11 +8,11 @@ IMPORTANT: Currently only the QEMU backend is supported.
 
 == How to use
 
-Two methods are available to the test writer, `freeze_vm` and `save_memory_dump`
+Three methods are available to the test writer, `freeze_vm`, `save_memory_dump` and `save_storage`.
 
 The feature is enabled by calling the aforementioned methods, using
-a https://github.com/os-autoinst/openQA/blob/master/docs/WritingTests.asciidoc#how-to-write-tests[post_fail_hook] and setting the test's flags as fatal. The `save_memory_dump` method can be however
-called at any point within the test.
+a https://github.com/os-autoinst/openQA/blob/master/docs/WritingTests.asciidoc#how-to-write-tests[post_fail_hook] and setting the test's flags as fatal.
+The `save_memory_dump`  and `save_storage` methods can be however called at any point within the test.
 
 === save_memory_dump
 
@@ -29,6 +29,15 @@ without any risk of data changing.
 
 NOTE: Call this method to ensure memory and disk dump refer to the same machine state.
 
+
+=== save_storage
+
+If it is supported by the backend `save_storage` will save all storage devices into backup.
+This can be called from anywhere within a test. For multiple calls within a test module
+a filename needs to be specified. By default it uses the test module name.
+
+NOTE: This method is time-consuming and requires a lot of space.
+
 == Examples
 
 A very simple way to use this helpful feature is the following:
@@ -41,4 +50,9 @@ sub post_fail_hook ($self) {
 }
 
 sub test_flags ($) { { fatal => 1 } }
+----------------------------------------
+
+[source,perl]
+----------------------------------------
+    save_storage(filename => 'my-backup');
 ----------------------------------------
