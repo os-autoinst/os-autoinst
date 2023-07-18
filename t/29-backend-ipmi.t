@@ -57,7 +57,7 @@ subtest 'cold reset' => sub {
 
     $ipmi->redefine(ipmitool => sub { die 'fake error' });
     throws_ok { combined_like { $backend->do_mc_reset } qr/IPMI mc reset failure: fake error/, 'error logged' }
-    qr/IPMI mc reset failure after 3 tries/, 'dies when retries exhausted';
+      qr/IPMI mc reset failure after 3 tries/, 'dies when retries exhausted';
 };
 
 subtest 'dell sleep' => sub {

@@ -230,7 +230,7 @@ sub gen_qemu_img_cmdlines ($self) { map { $_->gen_qemu_img_cmdlines() } @{$self-
 
 sub gen_qemu_img_convert ($self, $filter, $img_dir, $name, $qemu_compress_qcow) {
     map { $_->gen_qemu_img_convert($img_dir, $name, $qemu_compress_qcow) }
-      grep { $_->id =~ $filter } @{$self->_drives};
+    grep { $_->id =~ $filter } @{$self->_drives};
 }
 
 =head3 gen_unlink_list
