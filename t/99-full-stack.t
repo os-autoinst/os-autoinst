@@ -8,7 +8,7 @@ use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '300';
+use OpenQA::Test::TimeLimit '450';
 use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;
@@ -44,6 +44,7 @@ path('vars.json')->spurt(<<EOV);
    "VERSION" : "1",
    "SSH_CONNECT_RETRY"  : "2",
    "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
+   "NAME" : "00001-1-i386@32bit",
 }
 EOV
 # create screenshots
@@ -62,6 +63,8 @@ like $log, qr/wait_still_screen: detected same image for 1 seconds/, 'test type 
 like $log, qr/wait_still_screen: detected same image for 0\.1 seconds/, 'test type string and wait for .1 seconds';
 like $log, qr/.*event.*STOP/, 'Machine properly paused';
 like $log, qr/.*event.*RESUME/, 'Machine properly resumed';
+like $log, qr/Saving storage devices \(current VM state is running\)/, 'save_storage started';
+like $log, qr/Saving storage complete/, 'save_storage done';
 like $log, qr/get_test_data returned expected file/, 'get_test_data test';
 like $log, qr/save_tmp_file returned expected file/, 'save_tmp_file test';
 unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected termination';
