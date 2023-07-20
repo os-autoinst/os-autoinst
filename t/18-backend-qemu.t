@@ -486,6 +486,67 @@ subtest 'snapshot handling' => sub {
     ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
 };
 
+subtest 'save storage' => sub {
+    $bmwqemu::vars{QEMU_BALLOON_TARGET} = undef;
+    $bmwqemu::vars{NAME} = 'FAKE_TEST';
+    my $i = 0;
+    my %running = (return => {status => 'running'});
+    my %done = (return => []);
+    my @fake_qmp_answer = (\%running, \%done, \%done, \%done, \%done, \%done, \%done, \%done);
+    $backend_mock->unmock('handle_qmp_command');
+    $mock_bmwqemu->unmock('diag');
+    $backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1]; $fake_qmp_answer[$i++] });
+    $$invoked_qmp_cmds = undef;
+    combined_like { $backend->save_storage({filename => 'fakevm'}) } qr/Saving storage complete/i, 'completion logged (1)';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'},
+        {execute => 'stop'},
+        {arguments => {
+                driver => 'qcow2',
+                file => {
+                    driver => 'file',
+                    filename => 'assets_public/hd0-overlay2-fakevm-FAKE_TEST.qcow2'
+                },
+                'node-name' => 'hd0-overlay2-fakevm'
+            },
+            execute => 'blockdev-add'
+        },
+        {arguments => {
+                device => 'hd0-overlay2',
+                'job-id' => 'hd0-backup-fakevm',
+                sync => 'full',
+                target => 'hd0-overlay2-fakevm'
+            },
+            execute => 'blockdev-backup'
+        },
+        {execute => 'query-jobs'},
+        {arguments => {
+                driver => 'qcow2',
+                file => {
+                    driver => 'file',
+                    filename => 'assets_public/some-id-overlay2-fakevm-FAKE_TEST.qcow2'
+                },
+                'node-name' => 'some-id-overlay2-fakevm'
+            },
+            execute => 'blockdev-add'
+        },
+        {arguments => {
+                device => 'some-id-overlay2',
+                'job-id' => 'some-id-backup-fakevm',
+                sync => 'full',
+                target => 'some-id-overlay2-fakevm'
+            },
+            execute => 'blockdev-backup'},
+        {execute => 'query-jobs'},
+        {execute => 'cont'}], 'excepted QMP commands when saving storage' or diag explain $$invoked_qmp_cmds;
+    # timeout exceeded
+    $bmwqemu::vars{SAVE_STORAGE_TIMEOUT} = 2;
+    $i = 0;
+    my %working = (return => [{s => 'r'}]);
+    @fake_qmp_answer = (\%running, \%working, \%working, \%working, \%working, \%working, \%working, \%working);
+    combined_like { throws_ok { $backend->save_storage({filename => 'failvm'}) } qr/Saving volume hd0-overlay2 exceeded the timeout/, 'die on timeout exceeed' } qr/current VM state is running/, 'exception happended in save_storage sub';
+};
+
 subtest 'special cases when starting QEMU' => sub {
     # set certain variables to test special handling for them that is not otherwise tested
     $bmwqemu::scriptdir = "$Bin/..";    # for dmi data
@@ -513,7 +574,6 @@ subtest 'special cases when starting QEMU' => sub {
     $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
     $proc->redefine(load_state => sub ($self) { ++$load_state });
     $proc->redefine(static_param => sub ($self, @params) { push @qemu_params, @params });
-    $mock_bmwqemu->unmock('diag');
     $backend_mock->redefine(requires_audiodev => 0);
 
     my @invoked_cmds;

@@ -83,6 +83,7 @@ subtest 'not implemented' => sub {
         [do_extract_assets => 23],
         [switch_network => 23],
         [save_memory_dump => 23],
+        [save_storage => 23]
     );
     for my $test (@tests) {
         my ($m, @args) = @$test;
