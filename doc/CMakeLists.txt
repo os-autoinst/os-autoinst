@@ -1,5 +1,5 @@
 project(doc CXX)
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.17.0)
 
 find_program(POD2HTML_PATH pod2html)
 if (NOT POD2HTML_PATH)

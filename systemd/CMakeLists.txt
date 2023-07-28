@@ -1,5 +1,5 @@
 project(systemd)
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.17.0)
 
 set(pkglibexecdir "${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}")
 configure_file(
