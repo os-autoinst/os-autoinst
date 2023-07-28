@@ -1,5 +1,5 @@
 project(ppmclibs CXX)
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.17.0)
 
 # find perl
 find_program(PERL_PATH perl)
