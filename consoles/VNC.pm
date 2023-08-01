@@ -588,6 +588,10 @@ sub shift_keys () {
 
 ## use critic
 
+sub die_on_invalid_mapping ($key) {
+    die decode_utf8 "No map for '$key' - layouts other than en-us are not supported\n";
+}
+
 sub init_x11_keymap ($self) {
     return if $self->keymap;
     # create a deep copy - we want to reuse it in other instances
@@ -606,7 +610,7 @@ sub init_x11_keymap ($self) {
     }
     # VNC doesn't use the unshifted values, only prepends a shift key
     for my $key (keys %{shift_keys()}) {
-        die "no map for $key" unless $keymap{$key};
+        die_on_invalid_mapping($key) unless $keymap{$key};
         $keymap{$key} = [$keymap{shift}, $keymap{$key}];
     }
     $self->keymap(\%keymap);
@@ -628,7 +632,7 @@ sub init_ikvm_keymap ($self) {
     }
     my %map = %{shift_keys()};
     while (my ($key, $shift) = each %map) {
-        die "no map for $key" unless $keymap{$shift};
+        die_on_invalid_mapping($key) unless $keymap{$shift};
         $keymap{$key} = [$keymap{shift}, $keymap{$shift}];
     }
     $self->keymap(\%keymap);
@@ -658,7 +662,7 @@ sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
             next;
         }
         else {
-            die decode_utf8 "No map for '$key'";
+            die_on_invalid_mapping($key);
         }
     }
 
