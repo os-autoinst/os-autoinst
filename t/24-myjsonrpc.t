@@ -25,7 +25,7 @@ socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC);
 $child->autoflush(1);
 $isotovideo->autoflush(1);
 
-my $send1 = {a => 1};
+my $send1 = {a => 1, umlaut => "testä"};
 my $send2 = {b => 12, json_cmd_token => 'dummy'};
 
 subtest single_json => sub {

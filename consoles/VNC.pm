@@ -11,6 +11,7 @@ use Compress::Raw::Zlib;
 use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use Scalar::Util 'blessed';
+use Encode;
 use OpenQA::Exceptions;
 use consoles::VMWare;
 
@@ -657,7 +658,7 @@ sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
             next;
         }
         else {
-            die "No map for '$key'";
+            die decode_utf8 "No map for '$key'";
         }
     }
 

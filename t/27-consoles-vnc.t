@@ -133,7 +133,7 @@ subtest 'sending key events' => sub {
     @printed = ();
     $c->keymap(undef);
     $c->ikvm(1);
-    throws_ok { $c->map_and_send_key('ä', 1, 0.0001) } qr/No map for/, 'dies on missing key mapping';
+    throws_ok { $c->map_and_send_key('ä', 1, 0.0001) } qr/No map for 'ä'/, 'dies on missing key mapping';
     $c->map_and_send_key('a', 1, 0.0001);
     $c->ikvm(0);
     $c->keymap(undef);
