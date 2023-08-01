@@ -215,6 +215,12 @@ install(
     COMPONENT "openvswitch" EXCLUDE_FROM_ALL
 )
 install(
+    FILES "script/os-autoinst-setup-multi-machine"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    PERMISSIONS ${EXECUTABLE_PERMISSIONS}
+    COMPONENT "openvswitch" EXCLUDE_FROM_ALL
+)
+install(
     FILES "etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
     DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d"
     COMPONENT "openvswitch"
