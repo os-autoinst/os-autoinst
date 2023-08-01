@@ -36,6 +36,8 @@ my %options;
 GetOptions(\%options, 'help|h|?') or usage(1);
 usage(0) if $options{help};
 
+use constant INIT_TIMEOUT => $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // (5 * ONE_MINUTE);
+
 sub new ($class, $service) {
     my $self = $class->SUPER::new($service, '/switch');
     bless $self, $class;
@@ -53,7 +55,7 @@ sub init_switch ($self) {
     }
     system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
-    for (my $timeout = $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // ONE_MINUTE; $timeout > 0; --$timeout) {
+    for (my $timeout = INIT_TIMEOUT; $timeout > 0; --$timeout) {
         my $bridge_conf = qx{ip addr show $self->{BRIDGE}};
         $self->{MAC} = $1 if $bridge_conf =~ /ether\s+(([0-9a-f]{2}:){5}[0-9a-f]{2})\s/;
         $self->{IP} = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
