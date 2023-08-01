@@ -2,7 +2,7 @@
 set -euo pipefail
 instances="${instances:-20}"
 bridge="${bridge:-"br1"}"
-ethernet="${ethernet:-"eth0"}"
+ethernet="${ethernet:-"br0"}"
 zone="${zone:-"trusted"}"
 
 ensure_ip_forwarding() {
