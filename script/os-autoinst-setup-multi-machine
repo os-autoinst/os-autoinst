@@ -9,8 +9,20 @@ ensure_ip_forwarding() {
     grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
 }
 
+install_packages() {
+    zypper -n in openvswitch os-autoinst-openvswitch firewalld libcap-progs
+}
+
+configure_firewall() {
+    systemctl enable --now firewalld
+    firewall-cmd --permanent --new-service isotovideo
+    for i in $(seq 1 $instances); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp ; done
+    firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
+    firewall-cmd --set-default-zone="$zone"
+    systemctl reload firewalld
+}
+
 setup_multi_machine() {
-    zypper -n in openvswitch os-autoinst-openvswitch firewalld
     ovs-vsctl add-br $bridge
     echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
     cat > /etc/sysconfig/network/ifcfg-$bridge <<EOF
@@ -45,8 +57,6 @@ EOF
   <masquerade/>
 </zone>
 EOF
-    zypper -n in libcap-progs
-    setcap CAP_NET_ADMIN=ep /usr/bin/qemu-system-x86_64
     cat > /etc/wicked/scripts/gre_tunnel_preup.sh <<EOF
 #!/bin/sh
 action="\$1"
@@ -56,22 +66,15 @@ ovs-vsctl set bridge \$bridge stp_enable=true
 #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
 EOF
     chmod +x /etc/wicked/scripts/gre_tunnel_preup.sh
+    setcap CAP_NET_ADMIN=ep /usr/bin/qemu-system-x86_64
     systemctl enable --now openvswitch os-autoinst-openvswitch
-}
-
-configure_firewall() {
-    systemctl enable --now firewalld
-    firewall-cmd --permanent --new-service isotovideo
-    for i in $(seq 1 $instances); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp ; done
-    firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
-    firewall-cmd --set-default-zone="$zone"
-    systemctl reload firewalld
 }
 
 main() {
     ensure_ip_forwarding
-    setup_multi_machine
+    install_packages
     configure_firewall
+    setup_multi_machine
 }
 
 caller 0 >/dev/null || main "$@"
