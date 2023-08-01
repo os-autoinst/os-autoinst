@@ -51,7 +51,7 @@ our $sockets;
 
 # utility function
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
-    my $cjx = Cpanel::JSON::XS->new;
+    my $cjx = Cpanel::JSON::XS->new->utf8;
 
     my $fd = fileno($socket);
     bmwqemu::diag("read_json($fd)") if DEBUG_JSON || $bmwqemu::vars{DEBUG_JSON_RPC};
