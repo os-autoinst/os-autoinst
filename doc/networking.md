@@ -27,6 +27,10 @@ e.g. "tunctl -u _openqa-worker -p -t tap0".
 Some configuration can also be configured by environment variables as defined
 in the script `os-autoinst-openvswitch`.
 
+The script `script/os-autoinst-setup-multi-machine` can be used to setup
+common dependencies for that setup to work including firewalld configuration
+and TAP and bridge device setup.
+
 ## Multiple network devices
 To create multiple network devices, one can set multiple, comma-separated MAC addresses
 via NICMAC. The TAPDEV variable supports multiple, comma-separated values, too.
