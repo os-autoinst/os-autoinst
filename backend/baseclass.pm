@@ -488,6 +488,8 @@ sub switch_network ($self, $args) { $self->notimplemented }
 
 sub save_memory_dump ($self, $args) { $self->notimplemented }
 
+sub save_storage ($self, $args) { $self->notimplemented }
+
 ## MAY be overwritten:
 
 # vm's would return

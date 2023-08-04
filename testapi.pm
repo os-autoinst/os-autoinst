@@ -53,7 +53,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   become_root x11_start_program ensure_installed eject_cd power
 
   switch_network
-  save_memory_dump freeze_vm resume_vm
+  save_memory_dump freeze_vm resume_vm save_storage
 
   diag hashed_string
 
@@ -1928,6 +1928,23 @@ sub save_memory_dump (%nargs) {
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
 }
+
+=head2 save_storage
+
+  save_storage(filename => undef);
+
+Saves all of the SUT volumes using C<$filename> as part of the final filename,
+the default will be the current test's name.
+
+I<Currently only qemu backend is supported.>
+
+=cut
+
+sub save_storage (%nargs) {
+    $nargs{filename} ||= $autotest::current_test->{name};
+    query_isotovideo('backend_save_storage', \%nargs);
+}
+
 
 =head2 freeze_vm
 

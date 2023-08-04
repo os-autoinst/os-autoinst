@@ -9,6 +9,7 @@ use File::Basename 'dirname';
 use File::Path 'mkpath';
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
+use Time::Seconds;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
@@ -344,6 +345,55 @@ sub deflate_balloon ($self) {
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $ram_bytes = $vars->{QEMURAM} * 1048576;
     $self->handle_qmp_command({execute => 'balloon', arguments => {value => $ram_bytes}}, fatal => 1);
+}
+
+sub save_storage ($self, $args) {
+    my $vars = \%bmwqemu::vars;
+    my $bdc = $self->{proc}->blockdev_conf;
+    my $fname = $args->{filename};
+    my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    bmwqemu::diag("Saving storage devices (current VM state is $rsp->{return}->{status})");
+    my $was_running = $rsp->{return}->{status} eq 'running';
+    if ($was_running) {
+        $self->inflate_balloon();
+        $self->freeze_vm();
+    }
+    mkpath("assets_public");
+    $bdc->for_each_drive(sub ($drive) {
+            my $size = $drive->{drive}->{size};
+            my $id = "$drive->{id}-backup-$fname";
+            my $node = $drive->{drive}->{node_name};
+            # no need to save CDs
+            return if ($node =~ qr/cd[0-9]-overlay/);
+            my $my_node = "$node-$fname";
+            my $bck_file = "assets_public/$my_node-$vars->{NAME}.qcow2";
+            # create disk
+            runcmd('qemu-img', 'create', '-f', 'qcow2', "$bck_file", $size);
+            my $req = {execute => 'blockdev-add',
+                arguments => {driver => 'qcow2', 'node-name' => $my_node,
+                    file => {driver => 'file', filename => $bck_file}
+                }};
+            $self->handle_qmp_command($req, fatal => 1);
+            $req = {execute => 'blockdev-backup',
+                arguments => {device => $node, target => $my_node,
+                    sync => 'full', 'job-id' => $id}};
+            $self->handle_qmp_command($req, fatal => 1);
+            my $return;
+            my $timeout = $vars->{SAVE_STORAGE_TIMEOUT} // (ONE_MINUTE * 15);
+            # wait for background job to finish before we continue
+            do {
+                die "Saving volume $node exceeded the timeout" if $timeout == 0;
+                my $query = {execute => 'query-jobs'};
+                $return = $self->handle_qmp_command($query, fatal => 1)->{return};
+                sleep 1;
+                --$timeout;
+            } while (@$return);
+    });
+    bmwqemu::diag("Saving storage complete");
+    if ($was_running) {
+        $self->cont_vm();
+        $self->deflate_balloon();
+    }
 }
 
 sub save_snapshot ($self, $args) {

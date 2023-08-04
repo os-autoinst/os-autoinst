@@ -23,7 +23,7 @@ use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 my @backend_blocklist = qw();
 # blocklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blocklist = (
-    QEMU => ['WORKER_ID', 'WORKER_INSTANCE'],
+    QEMU => ['WORKER_ID', 'WORKER_INSTANCE', 'NAME'],
     VAGRANT => ['QEMUCPUS', 'QEMURAM'],
     GENERALHW => ['HDD_1'],
     SVIRT => ['JOBTOKEN'],
