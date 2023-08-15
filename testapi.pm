@@ -2010,7 +2010,7 @@ Upload log file from SUT (calls upload_logs internally). The uploaded
 file is then parsed as the format supplied, that can be understood by OpenQA::Parser
  and extra test results are created from it.
 
- Formats currently supported are: JUnit, XUnit, LTP
+ Formats currently supported are: JUnit, XUnit, LTP, IPA, TAP
 
 =cut
 
