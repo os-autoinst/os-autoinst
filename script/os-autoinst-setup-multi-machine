@@ -23,6 +23,7 @@ configure_firewall() {
 }
 
 setup_multi_machine() {
+    systemctl enable --now openvswitch
     ovs-vsctl add-br $bridge
     echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
     cat > /etc/sysconfig/network/ifcfg-$bridge <<EOF
@@ -67,7 +68,8 @@ ovs-vsctl set bridge \$bridge stp_enable=true
 EOF
     chmod +x /etc/wicked/scripts/gre_tunnel_preup.sh
     setcap CAP_NET_ADMIN=ep /usr/bin/qemu-system-x86_64
-    systemctl enable --now openvswitch os-autoinst-openvswitch
+    systemctl enable os-autoinst-openvswitch
+    systemctl restart openvswitch os-autoinst-openvswitch
 }
 
 main() {
