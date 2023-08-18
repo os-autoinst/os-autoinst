@@ -15,15 +15,17 @@ install_packages() {
 
 configure_firewall() {
     systemctl enable --now firewalld
+    firewall-cmd --permanent --get-services | grep -q isotovideo && firewall-cmd --permanent --delete-service=isotovideo
     firewall-cmd --permanent --new-service isotovideo
     for i in $(seq 1 $instances); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp ; done
     firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
-    firewall-cmd --set-default-zone="$zone"
+    firewall-cmd --set-default-zone="$zone" ||:
     systemctl reload firewalld
 }
 
 setup_multi_machine() {
     systemctl enable --now openvswitch
+    ovs-vsctl list-br | grep -q $bridge && ovs-vsctl del-br $bridge
     ovs-vsctl add-br $bridge
     echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
     cat > /etc/sysconfig/network/ifcfg-$bridge <<EOF
