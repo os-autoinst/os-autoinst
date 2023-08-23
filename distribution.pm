@@ -116,6 +116,7 @@ sub script_run ($self, $cmd, @args) {
             quiet => undef
         }, ['timeout'], @args);
 
+    die "Multiline commands are not supported:\n$cmd;\n" if $cmd =~ m/\n/;
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
@@ -127,7 +128,8 @@ sub script_run ($self, $cmd, @args) {
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
+            die 'Command was mistyped'
+              unless testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
             testapi::type_string("\n");
         }
         else {
