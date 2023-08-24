@@ -44,7 +44,7 @@ db="$build_directory/cover_db"
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    ignore="external/|tools/|t/data/tests/tests/|/tmp|/CheckGitStatus.pm|$prove_path"
+    ignore="external/|tools/|t/data/tests/tests/|t/data/wheels_dir|/tmp|/CheckGitStatus.pm|$prove_path"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
     export PERL5OPT="-I$source_directory/t/lib -I$source_directory/external/os-autoinst-common/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-ignore,$ignore,-coverage,statement"
 fi

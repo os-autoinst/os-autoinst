@@ -214,8 +214,7 @@ sub checkout_code ($self) {
 
     $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
-    $bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
-    checkout_wheels($bmwqemu::vars{WHEELS_DIR});
+    checkout_wheels($bmwqemu::vars{CASEDIR}, $bmwqemu::vars{WHEELS_DIR});
 }
 
 sub _flush_std ($) {
