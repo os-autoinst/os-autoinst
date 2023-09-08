@@ -364,7 +364,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
         $self->run_cmd("rsync -av '$file' '$basedir/$file_basename'") && die 'rsync failed';
     }
     if ($file_basename =~ /(.*)\.xz$/) {
-        $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
+        $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
         $file_basename = $1;
     }
 }
