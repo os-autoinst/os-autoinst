@@ -110,6 +110,8 @@ Recommends:     perl(Inline::Python)
 Recommends:     python3-Pillow-tk
 # Optional dependency for QEMU's built-in samba service (enabled via QEMU_ENABLE_SMBD=1)
 Recommends:     samba
+# More efficient video encoding is done automatically if ffmpeg is present
+Recommends:     ffmpeg >= 4
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
