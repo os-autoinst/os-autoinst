@@ -430,7 +430,7 @@ sub next_resultname ($self, $type, $name = undef) {
 }
 
 sub write_resultfile ($self, $filename, $output) {
-    path(bmwqemu::result_dir(), $filename)->spurt($output);
+    path(bmwqemu::result_dir(), $filename)->spew($output);
 }
 
 =head2 record_resultfile

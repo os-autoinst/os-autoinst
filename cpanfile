@@ -44,7 +44,7 @@ requires 'Mojo::JSON';
 requires 'Mojo::Log';
 requires 'Mojo::URL';
 requires 'Mojo::UserAgent';
-requires 'Mojolicious', '>= 8.42';
+requires 'Mojolicious', '>= 9.34';
 requires 'Mojolicious::Lite';
 requires 'Net::DBus';
 requires 'Net::Domain';

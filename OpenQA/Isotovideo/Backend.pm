@@ -13,7 +13,7 @@ sub new ($class, @args) {
     $bmwqemu::vars{BACKEND} ||= "qemu";
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
 
-    path('os-autoinst.pid')->spurt("$$");
+    path('os-autoinst.pid')->spew("$$");
     # might throw an exception
     $bmwqemu::backend->start_vm;
     $class->SUPER::new(@args);

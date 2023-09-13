@@ -454,7 +454,7 @@ Save our object model of QEMU to a file.
 sub save_state ($self) {
     if ($self->has_state) {
         bmwqemu::fctinfo('Saving QEMU state to ' . STATE_FILE);
-        path(STATE_FILE)->spurt($self->serialise_state());
+        path(STATE_FILE)->spew($self->serialise_state());
     } else {
         bmwqemu::fctinfo('Refusing to save an empty state file to avoid overwriting a useful one');
     }

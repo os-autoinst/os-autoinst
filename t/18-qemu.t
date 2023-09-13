@@ -159,7 +159,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drives on multipa
 
 path(TMPPATH)->make_path();
 my $path = TMPPATH . '/multipath.json';
-path($path)->spurt($proc->serialise_state());
+path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-foo'])
   ->qemu_bin('qemu-kvm');
@@ -196,7 +196,7 @@ $proc = qemu_proc('-static-args', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drive and cdrom using vars');
 
-path('/tmp/18-qemu.t/new-drive-and-cdrom.json')->spurt($proc->serialise_state);
+path('/tmp/18-qemu.t/new-drive-and-cdrom.json')->spew($proc->serialise_state);
 
 my $ssc;
 my $ss;
@@ -233,7 +233,7 @@ $bdc->for_each_drive(sub {
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after reverting a snapshot');
 
 $path = TMPPATH . '/reverted-snapshot.json';
-path($path)->spurt($proc->serialise_state());
+path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
   ->qemu_bin('qemu-kvm')
@@ -280,7 +280,7 @@ for my $i (1 .. 10) {
 $bdc->mark_all_created();
 
 $path = TMPPATH . '/many-snapshots.json';
-path($path)->spurt($proc->serialise_state());
+path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
   ->qemu_bin('qemu-kvm');
@@ -336,7 +336,7 @@ for my $i (1 .. 11) {
 $bdc->mark_all_created();
 
 $path = TMPPATH . '/many-snapshots-pflash.json';
-path($path)->spurt($proc->serialise_state());
+path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
   ->qemu_bin('qemu-kvm');
@@ -396,7 +396,7 @@ subtest 'relative assets' => sub {
     $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 UEFI_PFLASH_VARS);
     $vars{$_} = "some.qcow2" for qw(HDD_1 UEFI_PFLASH_VARS);
     symlink("$Bin/data/Core-7.2.iso", "./Core-7.2.iso");
-    path('./some.qcow2')->spurt('123');
+    path('./some.qcow2')->spew('123');
     $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
     @cmdl = (
@@ -467,7 +467,7 @@ subtest 'configure_blockdevs xz' => sub {
     my $proc = OpenQA::Qemu::Proc->new;
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
     my %vars = (NUMDISKS => 1, HDD_1 => 'foo.xz', HDDMODEL => 'model');
-    path('foo.xz')->spurt('123');
+    path('foo.xz')->spew('123');
     $mock_proc->redefine(runcmd => sub (@args) {
             move 'foo.xz', 'foo';
     });
@@ -578,7 +578,7 @@ subtest revert_to_snapshot => sub {
     my @diag;
     $mock_bmwqemu->redefine(diag => sub ($msg) { push @diag, $msg });
 
-    path('foo')->spurt('123');
+    path('foo')->spew('123');
     $proc->revert_to_snapshot('foo');
     is $scname, 'foo', 'SnapshotConf->revert_to_snapshot called';
     is $bdcname, 'foo', 'BlockDevConf->revert_to_snapshot called';

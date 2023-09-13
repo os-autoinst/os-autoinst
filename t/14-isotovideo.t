@@ -132,28 +132,28 @@ subtest 'isotovideo with wheels' => sub {
     $bmwqemu::scriptdir = "$Bin/..";
     my $wheels_dir = "$data_dir";
     my $specfile = path("$wheels_dir/wheels.yaml");
-    $specfile->spurt("wheels: [foo/bar]");
+    $specfile->spew("wheels: [foo/bar]");
     throws_ok { checkout_wheels(
             "$wheels_dir") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
-    $specfile->spurt("version: v99\nwheels: [foo/bar]");
+    $specfile->spew("version: v99\nwheels: [foo/bar]");
     throws_ok { checkout_wheels(
             "$wheels_dir") } qr@Unsupported version@, 'unsupported version';
-    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
+    $specfile->spew("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my @repos;
     $utils_mock->redefine(checkout_git_repo_and_branch => sub ($dir_variable, %args) { push @repos, $args{repo} });
     checkout_wheels("$wheels_dir");
     is($repos[0], 'https://github.com/foo/bar.git', 'repo with full URL');
     is(scalar @repos, 1, 'one wheel');
-    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git#branch]");
+    $specfile->spew("version: v0.1\nwheels: [https://github.com/foo/bar.git#branch]");
     checkout_wheels("$wheels_dir");
     is($repos[1], 'https://github.com/foo/bar.git#branch', 'repo URL with branch');
     is(scalar @repos, 2, 'one wheel');
-    $specfile->spurt("version: v0.1\nwheels: [foo/bar]");
+    $specfile->spew("version: v0.1\nwheels: [foo/bar]");
     checkout_wheels("$wheels_dir");
     is(scalar @repos, 3, 'one wheel');
     is($repos[2], 'https://github.com/foo/bar.git', 'only wheel');
-    $specfile->spurt("version: v0.1\nwheels: [foo/bar, spam/eggs]");
+    $specfile->spew("version: v0.1\nwheels: [foo/bar, spam/eggs]");
     checkout_wheels("$wheels_dir");
     is($repos[4], 'https://github.com/spam/eggs.git', 'second wheel');
     is(scalar @repos, 5, 'two wheels');
@@ -163,9 +163,9 @@ subtest 'isotovideo with wheels' => sub {
 
     # also verify that isotovideo invokes the wheel code correctly
     $bmwqemu::vars{CASEDIR} = "$data_dir/tests";
-    $specfile->spurt("version: v0.1\nwheels: [copy/writer]");
-    path($pool_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child('Content.pm')->spurt("package Copy::Writer::Content; use Mojo::Base 'Exporter'; our \@EXPORT_OK = qw(write); sub write {}; 1");
-    path($pool_dir, 'writer', 'tests', 'pen')->make_path->child('ink.pm')->spurt("use Mojo::Base 'basetest'; use Copy::Writer::Content 'write'; sub run {}; 1");
+    $specfile->spew("version: v0.1\nwheels: [copy/writer]");
+    path($pool_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child('Content.pm')->spew("package Copy::Writer::Content; use Mojo::Base 'Exporter'; our \@EXPORT_OK = qw(write); sub write {}; 1");
+    path($pool_dir, 'writer', 'tests', 'pen')->make_path->child('ink.pm')->spew("use Mojo::Base 'basetest'; use Copy::Writer::Content 'write'; sub run {}; 1");
     my $log = combined_from { isotovideo(
             opts => "wheels_dir=$wheels_dir casedir=$data_dir/tests schedule=pen/ink _exit_after_schedule=1") };
     like $log, qr@Skipping to clone.+copy/writer@, 'already cloned wheel picked up';

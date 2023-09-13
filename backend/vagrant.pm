@@ -80,7 +80,7 @@ END
 end
 END
 
-    $self->{vagrantfile}->spurt($vagrant_file_contents);
+    $self->{vagrantfile}->spew($vagrant_file_contents);
 
     return $self;
 }
