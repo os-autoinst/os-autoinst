@@ -90,7 +90,7 @@ $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
-        return ${$self->{error}}[0] if ((caller(0))[5]);
+        return ${$self->{error}}[0] unless ((caller(0))[5]);
         # uncoverable statement count:1
         # uncoverable statement count:2
         return @{$self->{error}};
