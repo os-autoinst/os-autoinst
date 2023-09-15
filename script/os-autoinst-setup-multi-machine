@@ -69,7 +69,6 @@ ovs-vsctl set bridge \$bridge stp_enable=true
 #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
 EOF
     chmod +x /etc/wicked/scripts/gre_tunnel_preup.sh
-    setcap CAP_NET_ADMIN=ep /usr/bin/qemu-system-x86_64
     systemctl enable os-autoinst-openvswitch
     systemctl restart openvswitch os-autoinst-openvswitch
 }
