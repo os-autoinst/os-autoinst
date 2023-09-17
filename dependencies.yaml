@@ -70,8 +70,9 @@ python_style_requires:
   python3-black:
 
 ocr_requires:
-  tesseract-ocr:
-  tesseract-ocr-traineddata-english:
+  gocr:
+  netpbm:
+  perl(Text::Levenshtein):
 
 test_base_requires:
   '%main_requires':

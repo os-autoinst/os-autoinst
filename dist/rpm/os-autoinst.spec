@@ -80,7 +80,7 @@ Source0:        %{name}-%{version}.tar.xz
 %endif
 %if %{with ocr}
 # The following line is generated from dependencies.yaml
-%define ocr_requires tesseract-ocr tesseract-ocr-traineddata-english
+%define ocr_requires gocr netpbm perl(Text::Levenshtein)
 %else
 %define ocr_requires %{nil}
 %endif
@@ -99,7 +99,9 @@ BuildRequires:  %test_requires %test_version_only_requires
 BuildRequires:  expect
 Requires:       %main_requires
 %if %{with ocr}
-Recommends:     tesseract-ocr
+Recommends:     gocr
+Recommends:     netpbm
+Recommends:     perl(Text::Levenshtein)
 %endif
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
@@ -232,8 +234,6 @@ export NO_BRP_STALE_LINK_ERROR=yes
 
 %check
 export CI=1
-# set TESSDATA_PREFIX for 02-ocr.t
-export TESSDATA_PREFIX="%{_datadir}/tessdata/"
 # account for sporadic slowness in build environments
 # https://progress.opensuse.org/issues/89059
 export OPENQA_TEST_TIMEOUT_SCALE_CI=20
