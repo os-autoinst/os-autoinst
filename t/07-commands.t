@@ -120,7 +120,7 @@ subtest 'data api (directory download)' => sub {
     $t->get_ok("$base_url/$job/data")->status_is(200)->content_type_is('application/x-cpio');
     my $tmpdir = tempdir;
     my $outfile = path($tmpdir . '/data_full.cpio');
-    $outfile->spurt($t->tx->res->body);
+    $outfile->spew($t->tx->res->body);
     ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
     ok(-d $tmpdir . '/data/mod1', 'Recursive directory download 1.1');
     ok(-d $tmpdir . '/data/mod1/sub', 'Recursive directory download 1.2');
@@ -135,7 +135,7 @@ subtest 'data api (directory download)' => sub {
     $t->content_type_is("application/x-cpio");
     $tmpdir = tempdir;
     $outfile = path($tmpdir . '/data_full.cpio');
-    $outfile->spurt($t->tx->res->body);
+    $outfile->spew($t->tx->res->body);
     ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
     ok(-d $tmpdir . '/data/sub', 'Recursive directory download 2.1');
     ok(-f $tmpdir . '/data/test1.txt', 'Recursive directory download 2.2');

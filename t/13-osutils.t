@@ -120,11 +120,11 @@ subtest find_bin => sub {
 
     my $sandbox = tempdir;
 
-    my $test_file = path($sandbox, "test")->spurt("testfile");
+    my $test_file = path($sandbox, "test")->spew("testfile");
     chmod 0755, $test_file;
     is find_bin($sandbox, qw(test)), $test_file, "Executable file found";
 
-    $test_file = path($sandbox, "test2")->spurt("testfile");
+    $test_file = path($sandbox, "test2")->spew("testfile");
     is find_bin($sandbox, qw(test2)), undef, "Executable file found but not executable";
     is find_bin($sandbox, qw(test3)), undef, "Executable file not found";
 

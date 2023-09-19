@@ -66,13 +66,13 @@ $mock_base->redefine('check_socket', sub ($self, $fh, $write) {
 my $mock_run = Test::MockModule->new("IPC::Run");
 my $mock_file = Test::MockModule->new("File::chdir");
 
-my $expected_spurt_str = undef;
+my $expected_spew_str = undef;
 my $mock_path = Test::MockObject->new();
 $mock_path->mock('make_path', sub ($self, %opts) { return $self; });
 $mock_path->mock('child', sub ($self, $child_name) { return $self; });
-$mock_path->mock('spurt', sub ($self, $str) {
-        if (defined($expected_spurt_str)) {
-            die "Invalid spurt contents '$str', expected '$expected_spurt_str'" unless $str eq $expected_spurt_str;
+$mock_path->mock('spew', sub ($self, $str) {
+        if (defined($expected_spew_str)) {
+            die "Invalid spew contents '$str', expected '$expected_spew_str'" unless $str eq $expected_spew_str;
         }
         return $self;
 });
@@ -115,7 +115,7 @@ subtest 'Vagrantfile for the libvirt provider' => sub {
     $backend_vars->{QEMUCPUS} = 3;
     $backend_vars->{QEMURAM} = 3072;
 
-    $expected_spurt_str = <<'END';
+    $expected_spew_str = <<'END';
 Vagrant.configure("2") do |config|
   config.vm.box = "foobar"
   config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -130,7 +130,7 @@ END
     is($libvirt_vagrant->{box_name}, $backend_vars->{VAGRANT_BOX}, 'Backend variable matches box_name class variable');
     is($libvirt_vagrant->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
 
-    $expected_spurt_str = undef;
+    $expected_spew_str = undef;
 };
 
 subtest 'Vagrantfile for the virtualbox provider' => sub {
@@ -139,7 +139,7 @@ subtest 'Vagrantfile for the virtualbox provider' => sub {
     $backend_vars->{QEMUCPUS} = 18;
     $backend_vars->{QEMURAM} = 2042;
 
-    $expected_spurt_str = <<'END';
+    $expected_spew_str = <<'END';
 Vagrant.configure("2") do |config|
   config.vm.box = "barBaz"
   config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -153,7 +153,7 @@ END
     is($virtualbox_backend->{box_name}, $backend_vars->{VAGRANT_BOX}, 'Backend variable matches box_name class variable');
     is($virtualbox_backend->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
 
-    $expected_spurt_str = undef;
+    $expected_spew_str = undef;
 };
 
 subtest 'Vagrantfile with a box url' => sub {
@@ -164,7 +164,7 @@ subtest 'Vagrantfile with a box url' => sub {
     $backend_vars->{QEMURAM} = 1024;
 
 
-    $expected_spurt_str = <<'END';
+    $expected_spew_str = <<'END';
 Vagrant.configure("2") do |config|
   config.vm.box = "Leap-15.2.x86_64"
   config.vm.box_url = "http://download.opensuse.org/distribution/leap/15.2/appliances/boxes/Leap-15.2.x86_64.json"
@@ -181,7 +181,7 @@ END
     is($provider_with_url->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
     is($provider_with_url->{box_url}, $backend_vars->{VAGRANT_BOX_URL}, 'Backend variable matches box_url class variable');
 
-    $expected_spurt_str = undef;
+    $expected_spew_str = undef;
     $backend_vars->{VAGRANT_BOX_URL} = undef;
 };
 
@@ -222,7 +222,7 @@ subtest 'Vagrantfile with a box file existing in VAGRANT_ASSETDIR' => sub {
     $backend_vars->{QEMUCPUS} = 1;
     $backend_vars->{QEMURAM} = 1024;
 
-    $expected_spurt_str = <<END;
+    $expected_spew_str = <<END;
 Vagrant.configure("2") do |config|
   config.vm.box = "$box_file"
   config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -237,7 +237,7 @@ END
     like($local_file_backend->{box_name}, qr/$backend_vars->{VAGRANT_BOX}/, 'Backend variable matches box_name class variable');
     is($local_file_backend->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
 
-    $expected_spurt_str = undef;
+    $expected_spew_str = undef;
     $backend_vars->{ASSETDIR} = undef;
     $backend_vars->{VAGRANT_BOX} = "foobar";
 

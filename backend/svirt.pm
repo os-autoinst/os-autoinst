@@ -99,7 +99,7 @@ sub scp_get ($self, $src, $dest) {
     bmwqemu::diag("SCP file: '$src' => '$dest'");
     my $output = IO::Scalar->new;
     $ssh->scp_get($src, $output) or die "SCP failed";
-    path($dest)->spurt($output);
+    path($dest)->spew($output);
     $ssh->disconnect();
 }
 

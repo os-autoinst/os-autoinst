@@ -376,7 +376,7 @@ sub update_status_file ($self) {
     my $json = $coder->encode($data);
 
     my $tmp = AUTOINST_STATUSFILE . ".$$.tmp";
-    path($tmp)->spurt($json);
+    path($tmp)->spew($json);
     rename $tmp, AUTOINST_STATUSFILE or die $!;
 }
 
