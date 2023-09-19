@@ -102,7 +102,7 @@ on 'devel' => sub {
     requires 'Code::TidyAll';
     requires 'Devel::Cover';
     requires 'Devel::Cover::Report::Codecov';
-    requires 'Perl::Tidy', '== 20230701';
+    requires 'Perl::Tidy', '== 202300909';
     requires 'Template::Toolkit';
 
 };
