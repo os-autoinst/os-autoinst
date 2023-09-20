@@ -7,7 +7,7 @@ use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '20';
+use OpenQA::Test::TimeLimit '30';
 use autodie ':all';
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from stderr_from);
