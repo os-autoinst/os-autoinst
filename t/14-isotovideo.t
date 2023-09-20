@@ -17,7 +17,7 @@ use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
-use OpenQA::Isotovideo::Utils qw(checkout_wheels handle_generated_assets);
+use OpenQA::Isotovideo::Utils qw(checkout_wheels handle_generated_assets load_test_schedule);
 use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -128,49 +128,83 @@ subtest 'isotovideo with git refspec specified' => sub {
 subtest 'isotovideo with wheels' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
-
     $bmwqemu::scriptdir = "$Bin/..";
-    my $wheels_dir = "$data_dir";
-    my $specfile = path("$wheels_dir/wheels.yaml");
+    my $case_dir = "$data_dir/tests";
+    my $wheels_dir = "$data_dir/wheels_dir";
+    my $specfile = path($case_dir)->make_path->child('wheels.yaml');
     $specfile->spew("wheels: [foo/bar]");
     throws_ok { checkout_wheels(
-            "$wheels_dir") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
+            $case_dir, $wheels_dir) } qr@Invalid.*\Q$specfile\E.*Missing property@, 'invalid YAML causes error';
     $specfile->spew("version: v99\nwheels: [foo/bar]");
     throws_ok { checkout_wheels(
-            "$wheels_dir") } qr@Unsupported version@, 'unsupported version';
+            $case_dir, $wheels_dir) } qr@Unsupported version.*\Q$specfile\E.*@, 'unsupported version';
     $specfile->spew("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
+    my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
     my @repos;
-    $utils_mock->redefine(checkout_git_repo_and_branch => sub ($dir_variable, %args) { push @repos, $args{repo} });
-    checkout_wheels("$wheels_dir");
-    is($repos[0], 'https://github.com/foo/bar.git', 'repo with full URL');
+    $utils_mock->redefine(clone_git => sub ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
+            push @repos, [$clone_url, $branch];
+            return 1;
+    });
+    checkout_wheels($case_dir, $wheels_dir);
+    is($repos[0][0], 'https://github.com/foo/bar.git', 'repo with full URL');
     is(scalar @repos, 1, 'one wheel');
     $specfile->spew("version: v0.1\nwheels: [https://github.com/foo/bar.git#branch]");
-    checkout_wheels("$wheels_dir");
-    is($repos[1], 'https://github.com/foo/bar.git#branch', 'repo URL with branch');
+    checkout_wheels($case_dir, $wheels_dir);
+    is($repos[1][0], 'https://github.com/foo/bar.git', 'repo URL with branch');
+    is($repos[1][1], 'branch', 'repo URL with branch');
     is(scalar @repos, 2, 'one wheel');
     $specfile->spew("version: v0.1\nwheels: [foo/bar]");
-    checkout_wheels("$wheels_dir");
+    checkout_wheels($case_dir, $wheels_dir);
     is(scalar @repos, 3, 'one wheel');
-    is($repos[2], 'https://github.com/foo/bar.git', 'only wheel');
+    is($repos[2][0], 'https://github.com/foo/bar.git', 'only wheel');
     $specfile->spew("version: v0.1\nwheels: [foo/bar, spam/eggs]");
-    checkout_wheels("$wheels_dir");
-    is($repos[4], 'https://github.com/spam/eggs.git', 'second wheel');
+    checkout_wheels($case_dir, $wheels_dir);
+    is($repos[4][0], 'https://github.com/spam/eggs.git', 'second wheel');
     is(scalar @repos, 5, 'two wheels');
     $specfile->remove;
-    is(checkout_wheels("$wheels_dir"), 1, 'no wheels');
+    is(checkout_wheels($case_dir, $wheels_dir), 1, 'no wheels');
     is(scalar @repos, 5, 'git never called');
 
     # also verify that isotovideo invokes the wheel code correctly
-    $bmwqemu::vars{CASEDIR} = "$data_dir/tests";
     $specfile->spew("version: v0.1\nwheels: [copy/writer]");
-    path($pool_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child('Content.pm')->spew("package Copy::Writer::Content; use Mojo::Base 'Exporter'; our \@EXPORT_OK = qw(write); sub write {}; 1");
-    path($pool_dir, 'writer', 'tests', 'pen')->make_path->child('ink.pm')->spew("use Mojo::Base 'basetest'; use Copy::Writer::Content 'write'; sub run {}; 1");
-    my $log = combined_from { isotovideo(
-            opts => "wheels_dir=$wheels_dir casedir=$data_dir/tests schedule=pen/ink _exit_after_schedule=1") };
-    like $log, qr@Skipping to clone.+copy/writer@, 'already cloned wheel picked up';
-    like $log, qr/scheduling ink/, 'module from the wheel scheduled';
-    rmtree "$pool_dir/writer";
+
+    my @warnings;
+    my @infos;
+    my @diags;
+    $bmwqemu_mock->redefine(fctwarn => sub { push @warnings, $_[0] });
+    $bmwqemu_mock->redefine(fctinfo => sub { push @infos, $_[0] });
+    $bmwqemu_mock->redefine(diag => sub { push @diags, $_[0] });
+
+    my @tests = ("$data_dir/wheels_dir", undef);
+    for my $i (0 .. $#tests) {
+        my $dir = $tests[$i];
+        chdir $pool_dir;
+        $wheels_dir = $dir // $pool_dir;
+        $bmwqemu::vars{CASEDIR} = $case_dir;
+        $bmwqemu::vars{PRODUCTDIR} = $pool_dir;
+        $bmwqemu::vars{SCHEDULE} = "pen/ink$i";
+        $bmwqemu::vars{WHEELS_DIR} = $dir;
+
+        subtest "wheels in $wheels_dir" => sub {
+            @diags = ();
+            path($wheels_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child("Content$i.pm")->spew(<<~"EOM");
+            package Copy::Writer::Content$i;
+            use Mojo::Base 'Exporter';
+            our \@EXPORT_OK = qw(write);
+            sub write { "val$i"};
+            1;
+            EOM
+            path($wheels_dir, 'writer', 'tests', 'pen')->make_path->child("ink$i.pm")->spew("use Mojo::Base 'basetest'; use Copy::Writer::Content$i 'write'; sub run {}; 1");
+            is(0, checkout_wheels($case_dir, $wheels_dir), 'wheels checkout out');
+            load_test_schedule;
+            like $diags[0], qr/scheduling ink$i/, 'module from the wheel scheduled';
+            my $ret = eval "Copy::Writer::Content${i}::write()";
+            is $ret, "val$i", 'called function in wheel library returns expected value';
+            rmtree "$wheels_dir/writer";
+        };
+    }
+    $specfile->remove;
 };
 
 subtest 'productdir variable relative/absolute' => sub {
@@ -310,5 +344,7 @@ done_testing();
 
 END {
     rmtree "$Bin/data/tests/product";
-    unlink("$data_dir/wheels.yaml") if -e "$data_dir/wheels.yaml";
+    rmtree "$data_dir/wheels_dir/writer";
+    rmtree "$pool_dir/writer";
+    unlink("$data_dir/tests/wheels.yaml") if -e "$data_dir/tests/wheels.yaml";
 }

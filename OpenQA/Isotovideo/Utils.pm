@@ -7,6 +7,7 @@ use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
 use JSON::Validator;
+use Cwd 'cwd';
 use YAML::XS;    # Required by JSON::Validator as a runtime dependency
 use YAML::PP;
 
@@ -42,7 +43,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
         return 1;
     }
-    bmwqemu::fctinfo "Cloning git URL '$clone_url'";
+    bmwqemu::fctinfo "Cloning git URL '$clone_url' into '" . cwd . "'";
     my $branch_args = '';
     if ($branch) {
         bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
@@ -138,8 +139,8 @@ optional git refspec to checkout.
 If no wheels are configured the function returns early.
 
 =cut
-sub checkout_wheels ($dir) {
-    my $specfile = path($dir, 'wheels.yaml');
+sub checkout_wheels ($case_dir, $wheels_dir = undef) {
+    my $specfile = path($case_dir, 'wheels.yaml');
     return 1 unless -e $specfile;
 
     my $schema_file = "$bmwqemu::scriptdir/schema/Wheels-01.yaml";
@@ -150,15 +151,18 @@ sub checkout_wheels ($dir) {
     $validator->schema($schema_file);
     my $spec = YAML::PP->new->load_file($specfile);
     my @errors = $validator->validate($spec);
-    die 'Invalid YAML: ' . join(',', @errors) if @errors;
-    die 'Unsupported version: Version must be "v0.1"' if $spec->{version} ne 'v0.1';
+    die "Invalid YAML ($specfile): " . join(',', @errors) if @errors;
+    die "Unsupported version ($specfile): Version must be 'v0.1'" if $spec->{version} ne 'v0.1';
 
+    my $old_cwd = cwd;
+    chdir $wheels_dir if defined $wheels_dir;
     foreach my $repo (@{$spec->{wheels}}) {
         $repo = "https://github.com/$repo.git" unless $repo =~ qr/^http/;
         if (my $clone = checkout_git_repo_and_branch($specfile, repo => $repo)) {
             unshift @INC, "$clone/lib";
         }
     }
+    chdir $old_cwd;
     return 0;
 }
 
