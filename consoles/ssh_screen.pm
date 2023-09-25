@@ -30,6 +30,7 @@ sub new ($class, @args) {
 sub do_read {    # no:style:signatures
     my ($self, undef, %args) = @_;
     my $buffer = '';
+    my %error_seen = (LIBSSH2_ERROR_EAGAIN => 1);
     $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
 
@@ -45,6 +46,10 @@ sub do_read {    # no:style:signatures
             print {$self->{loghandle}} $buffer if $self->{loghandle};
             return $read;
         }
+
+        my ($errcode, $errname, $errstr) = $self->ssh_connection->error;
+        bmwqemu::diag("SSH read error: $errcode $errstr")
+          unless $error_seen{$errcode}++;
 
         last if ($args{timeout} == 0);
         select(undef, undef, undef, 0.25);
