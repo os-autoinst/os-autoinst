@@ -32,7 +32,7 @@ sub ipmitool ($self, $cmd, %args) {
     my @tries = (1 .. $args{tries});
     for (@tries) {
         $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
-        if ($ret == 0) {
+        if ($ret) {
             $self->dell_sleep;
             last;
         } else {
