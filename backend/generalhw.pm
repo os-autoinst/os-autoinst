@@ -88,7 +88,7 @@ sub relogin_vnc ($self) {
             hostname => $bmwqemu::vars{GENERAL_HW_VNC_IP} || die('Need variable GENERAL_HW_VNC_IP'),
             port => $bmwqemu::vars{GENERAL_HW_VNC_PORT} // 5900,
             password => $bmwqemu::vars{GENERAL_HW_VNC_PASSWORD},
-            depth => 16,
+            depth => $bmwqemu::vars{GENERAL_HW_VNC_DEPTH} // 16,
             connect_timeout => 50
         });
     $vnc->backend($self);
