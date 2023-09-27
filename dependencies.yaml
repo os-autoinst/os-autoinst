@@ -152,7 +152,9 @@ main_requires:
   perl(IPC::System::Simple):
   perl(List::MoreUtils):
   perl(List::Util):
-  perl(Mojolicious): '>= 9.34'
+  perl(Mojolicious):
+    perl: '>= 9.34'
+    rpm: '>= 9.340.0'
   perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.26'
   perl(Mojo::JSON):
   perl(Mojo::Log):
