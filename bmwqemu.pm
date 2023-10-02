@@ -158,6 +158,7 @@ sub ensure_valid_vars () {
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
     die "No scripts in CASEDIR '$vars{CASEDIR}'\n" unless -e $vars{CASEDIR};
+    die "WHEELS_DIR '$vars{WHEELS_DIR}' does not exist" if defined $vars{WHEELS_DIR} && !-d $vars{WHEELS_DIR};
     _check_publish_vars();
     save_vars();
 }

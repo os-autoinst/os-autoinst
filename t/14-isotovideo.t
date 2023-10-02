@@ -205,6 +205,16 @@ subtest 'isotovideo with wheels' => sub {
         };
     }
     $specfile->remove;
+
+    subtest 'non-existant WHEELS_DIR' => sub {
+        my $runner_mock = Test::MockModule->new('OpenQA::Isotovideo::Runner');
+        $runner_mock->redefine(checkout_wheels => sub { 1 });
+        $runner_mock->redefine(checkout_git_repo_and_branch => sub { 1 });
+        $runner_mock->redefine(checkout_git_refspec => sub { 1 });
+        my $wheels_dir = '/does/not/exist';
+        $bmwqemu::vars{WHEELS_DIR} = $wheels_dir;
+        throws_ok { OpenQA::Isotovideo::Runner->checkout_code } qr{WHEELS_DIR '$wheels_dir' does not exist}, "Invalid WHEELS_DIR dies";
+    };
 };
 
 subtest 'productdir variable relative/absolute' => sub {
