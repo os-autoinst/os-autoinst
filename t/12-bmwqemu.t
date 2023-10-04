@@ -164,7 +164,9 @@ subtest 'invalid vars characters' => sub {
     is exists $bmwqemu::vars{LOWERCASE_NOT_ACCEPTED}, 1, 'exists $vars{...} works';
 };
 
-my %new_json = (foo => 'bar', baz => 42);
+my %new_json = (foo => 'bar', baz => 42, object => bless {this => "cannot be encoded"}, 'Foo');
+throws_ok { bmwqemu::save_json_file(\%new_json, 'new_json_file.json') } qr{Cannot encode input.*encountered object.*bless.*cannot be encoded}s;
+delete $new_json{object};
 ok bmwqemu::save_json_file(\%new_json, 'new_json_file.json'), 'JSON file can be saved with save_json_file';
 is_deeply decode_json(path('new_json_file.json')->slurp), \%new_json, 'JSON file written with correct content';
 
