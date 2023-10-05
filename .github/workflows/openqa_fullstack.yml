@@ -9,6 +9,9 @@ on:
       stability_test:
         description: 'Set to 1 to fail if any of the RETRY fails'
         default: 0
+env:
+  # Set to 1 to temporarily ignore warnings
+  PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS: 0
 
 jobs:
   fullstack:
