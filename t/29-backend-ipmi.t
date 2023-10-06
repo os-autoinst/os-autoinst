@@ -31,6 +31,8 @@ my $ret;
 combined_like { $ret = $backend->ipmitool('foo') } qr/IPMI: simulating ipmi foo/, 'log output for IPMI call';
 is $ret, 'simulating ipmi foo', 'can call ipmitool';
 ok !$backend->dell_sleep, 'dell_sleep would only work on special HW';
+$bmwqemu::vars{IPMI_HW} = 'dell';
+ok $backend->dell_sleep, 'dell_sleep called with dell hw is effective';
 combined_like { $ret = $backend->is_shutdown } qr/IPMI.*power status/, 'log output for is_shutdown';
 ok !$ret, 'is_shutdown returning false by default';
 my $ipmitool_mock = Test::MockObject->new();
