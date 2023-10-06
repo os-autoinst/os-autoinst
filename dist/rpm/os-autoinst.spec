@@ -237,6 +237,8 @@ export TESSDATA_PREFIX="%{_datadir}/tessdata/"
 # account for sporadic slowness in build environments
 # https://progress.opensuse.org/issues/89059
 export OPENQA_TEST_TIMEOUT_SCALE_CI=20
+# We don't want fatal warnings during package building
+export PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS=1
 # Enable verbose test output as we can not store test artifacts within package
 # build environments in case of needing to investigate failures
 export PROVE_ARGS="--timer -v --nocolor"
