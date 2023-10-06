@@ -1302,7 +1302,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     my ($ssh, $chan) = $self->run_ssh($cmd, %args);
     $chan->send_eof;
 
-    while (!$chan->eof) {
+    until ($chan->eof) {
         if (my ($o, $e) = $chan->read2) {
             $stdout .= $o;
             $stderr .= $e;
@@ -1313,7 +1313,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length($stderr);
     my $ret = $chan->exit_status();
     bmwqemu::diag("[run_ssh_cmd($cmd)] exit-code: $ret");
-    $ssh->disconnect() unless ($args{keep_open});
+    $ssh->disconnect() unless $args{keep_open};
 
     return $args{wantarray} ? ($ret, $stdout, $stderr) : $ret;
 }
@@ -1348,7 +1348,7 @@ sub stop_ssh_serial ($self) {
 }
 
 sub hide_password ($self, %args) {
-    $args{password} = 'SECRET' if ($args{password});
+    $args{password} = 'SECRET' if $args{password};
     return \%args;
 }
 
