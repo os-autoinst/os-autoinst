@@ -157,8 +157,7 @@ ENV NORMAL_USER squamata
 
 # "nobody" can be used for testing as different user than '$NORMAL_USER'
 RUN echo "$NORMAL_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
-    useradd -r -d /home/$NORMAL_USER -m -g users --uid=1000 $NORMAL_USER && \
-    useradd -d /var/lib/nobody nobody
+    useradd -r -d /home/$NORMAL_USER -m -g users --uid=1000 $NORMAL_USER
 VOLUME [ "/opt/openqa" ]
 
 # explicitly set user/group IDs
