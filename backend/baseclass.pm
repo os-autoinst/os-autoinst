@@ -1193,10 +1193,10 @@ sub new_ssh_connection ($self, %args) {
             # Check if we still can create channels on that connection
             if (my $tmp_chan = $con->channel()) {
                 $tmp_chan->close();
-                bmwqemu::diag "Use existing SSH connection (key:$connection_key)";
+                bmwqemu::diag "Using existing SSH connection (key:$connection_key)";
                 return $con;
             } else {
-                bmwqemu::diag "Close broken SSH connection (key:$connection_key)";
+                bmwqemu::diag "Closing broken SSH connection (key:$connection_key)";
                 $con->disconnect();
                 delete $self->{ssh_connections}->{$connection_key};
             }

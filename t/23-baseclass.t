@@ -196,8 +196,8 @@ subtest 'SSH utilities' => sub {
     my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8, $ssh9);
     my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bar');
     my $exp_log_new = qr/SSH connection to root\@foo\.bar established/;
-    my $exp_log_existing = qr/Use existing SSH connection/;
-    my $exp_log_renew = qr/Close broken SSH connection[\s\S]+SSH connection to root\@foo\.bar established/;
+    my $exp_log_existing = qr/Using existing SSH connection/;
+    my $exp_log_renew = qr/Closing broken SSH connection[\s\S]+SSH connection to root\@foo\.bar established/;
     my $default_logger = $log::logger;
     $log::logger = Mojo::Log->new(level => 'debug');
 
