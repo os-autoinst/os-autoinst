@@ -17,7 +17,7 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_USER_TERMINAL_DEFAULT_DEVICE SERIAL_USER_TERMINAL_DEFAULT_PORT);
-use Mojo::File qw(tempdir path);
+use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -380,11 +380,6 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     my @ssh_cmd_return;
     my $_10gb = 1024 * 1024 * 1024 * 10;
 
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my @last_system_calls;
-    $console_mock->redefine(_system => sub { push @last_system_calls, join ' ', @_; return 0 });
-    $console_mock->redefine(which => 1);
-
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
     $mock_baseclass->redefine('run_ssh_cmd' => sub {
             my ($self, $cmd, %args) = @_;
@@ -730,17 +725,19 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             );
         };
 
-        subtest 'family kvm cdrom=1 xz file, using cached file' => sub {
+        subtest 'family kvm cdrom=1 xz file' => sub {
             my $dev_id = 'dev_id_018';
             my $file_wo_xz = "my_compressed_cdrom_$dev_id.iso";
-            my $file = path($file_wo_xz . '.xz')->touch;
-            my $file_path = '/my/path/to/this/file/' . $file;
-            @last_system_calls = ();
+            my $file = $file_wo_xz . '.xz';
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
-            $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $file_path});
-            is $last_system_calls[0], "RSYNC_PASSWORD='password_svirt' rsync -av '$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
-            like $last_ssh_commands[0], qr%unxz%, 'file uncompressed with unxz';
+            $svirt->add_disk({
+                    cdrom => 1,
+                    dev_id => $dev_id,
+                    file => '/my/path/to/this/file/' . $file,
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            like($last_ssh_commands[1], qr%unxz%, 'Uncompress file with unxz');
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
