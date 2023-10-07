@@ -10,7 +10,6 @@ require IPC::System::Simple;
 use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
-use File::Which;
 use Mojo::DOM;
 use Mojo::JSON qw(decode_json);
 
@@ -352,19 +351,10 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     die "Can't create thin VMware image" if $retval;
 }
 
-sub _system (@cmd) { system @cmd }    # uncoverable statement
-
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
-    if (-e $file_basename && defined which 'rsync') {    # utilize asset possibly cached by openQA worker
-        my %c = $self->get_ssh_credentials;
-        bmwqemu::diag "Syncing '$file' directly from worker host to $c{hostname}";
-        _system("RSYNC_PASSWORD='$c{password}' rsync -av '$file_basename' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
-    }
-    else {
-        $self->run_cmd("rsync -av '$file' '$basedir/$file_basename'") && die 'rsync failed';
-    }
+    $self->run_cmd(sprintf("rsync -av '$file' '$basedir/%s'", $file_basename)) && die 'rsync failed';
     if ($file_basename =~ /(.*)\.xz$/) {
-        $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
+        $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
         $file_basename = $1;
     }
 }
