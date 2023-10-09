@@ -189,3 +189,5 @@ main_requires:
   perl(version):
   perl(warnings):
   perl-base:
+  rsync:
+  sshpass:

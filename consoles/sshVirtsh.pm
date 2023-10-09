@@ -358,7 +358,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     if (-e $file_basename && defined which 'rsync') {    # utilize asset possibly cached by openQA worker
         my %c = $self->get_ssh_credentials;
         bmwqemu::diag "Syncing '$file' directly from worker host to $c{hostname}";
-        _system("RSYNC_PASSWORD='$c{password}' rsync -av '$file_basename' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
+        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$file_basename' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
         $self->run_cmd("rsync -av '$file' '$basedir/$file_basename'") && die 'rsync failed';
