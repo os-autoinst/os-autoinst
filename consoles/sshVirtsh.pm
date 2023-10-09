@@ -63,8 +63,8 @@ sub _init_ssh ($self, $args) {
 
 sub get_ssh_credentials ($self, $domain = undef) {
     $domain //= 'default';
-    die("Unknown ssh credentials domain $domain") unless (exists($self->{ssh_credentials}->{$domain}));
-    return %{$self->{ssh_credentials}->{$domain}};
+    die "Unknown ssh credentials domain $domain" unless my $c = $self->{ssh_credentials}->{$domain};
+    return %$c;
 }
 
 # creates an XML document to configure the libvirt domain
@@ -354,7 +354,7 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     $self->run_cmd(sprintf("rsync -av '$file' '$basedir/%s'", $file_basename)) && die 'rsync failed';
     if ($file_basename =~ /(.*)\.xz$/) {
-        $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
+        $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
         $file_basename = $1;
     }
 }
