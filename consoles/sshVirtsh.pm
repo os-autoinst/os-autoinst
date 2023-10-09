@@ -63,8 +63,8 @@ sub _init_ssh ($self, $args) {
 
 sub get_ssh_credentials ($self, $domain = undef) {
     $domain //= 'default';
-    die("Unknown ssh credentials domain $domain") unless (exists($self->{ssh_credentials}->{$domain}));
-    return %{$self->{ssh_credentials}->{$domain}};
+    die "Unknown ssh credentials domain $domain" unless my $c = $self->{ssh_credentials}->{$domain};
+    return %$c;
 }
 
 # creates an XML document to configure the libvirt domain

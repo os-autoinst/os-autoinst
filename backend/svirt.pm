@@ -171,25 +171,24 @@ sub load_snapshot ($self, $args) {
 }
 
 sub get_ssh_credentials ($self, $domain = 'default') {
-    unless ($self->{ssh_credentials}) {
-        $self->{ssh_credentials} = {
+    my $ssh_credentials = $self->{ssh_credentials};
+    unless ($ssh_credentials) {
+        $ssh_credentials = $self->{ssh_credentials} = {
             default => {
                 hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variable VIRSH_HOSTNAME'),
                 username => $bmwqemu::vars{VIRSH_USERNAME} // 'root',
                 password => $bmwqemu::vars{VIRSH_PASSWORD} || die('Need variable VIRSH_PASSWORD'),
             }
         };
-        if (_is_hyperv) {
-            # Credentials for hyperv intermediary host
-            $self->{ssh_credentials}->{hyperv} = {
-                hostname => $bmwqemu::vars{VIRSH_GUEST} || die('Need variable VIRSH_GUEST'),
-                password => $bmwqemu::vars{VIRSH_GUEST_PASSWORD} || die('Need variable VIRSH_GUEST_PASSWORD'),
-                username => 'root',
-            };
-        }
+        # read/require credentials for Hyper-V intermediary host
+        $ssh_credentials->{hyperv} = {
+            hostname => $bmwqemu::vars{VIRSH_GUEST} || die('Need variable VIRSH_GUEST'),
+            password => $bmwqemu::vars{VIRSH_GUEST_PASSWORD} || die('Need variable VIRSH_GUEST_PASSWORD'),
+            username => 'root',
+        } if _is_hyperv;
     }
-    die("Missing SSH credentials domain '$domain'") unless ($self->{ssh_credentials}->{$domain});
-    return %{$self->{ssh_credentials}->{$domain}};
+    die "Missing ssh credentials domain '$domain'" unless my $c = $ssh_credentials->{$domain};
+    return %$c;
 }
 
 sub start_serial_grab ($self, $name) {
