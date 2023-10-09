@@ -17,6 +17,7 @@ use testapi;
 use Inline Python => "for i in dir(perl): globals()[i] = getattr(perl, i)";
 
 use Inline 'Python';
+pass 'use Inline does not die';
 done_testing;
 __END__
 __Python__
