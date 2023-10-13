@@ -918,7 +918,7 @@ sub start_qemu ($self) {
         }
         if ($vars->{NBF}) {
             die "Need variable WORKER_HOSTNAME\n" unless $vars->{WORKER_HOSTNAME};
-            sp('kernel', '/usr/share/qemu/ipxe.lkrn');
+            sp('kernel', -e '/usr/share/ipxe/ipxe.lkrn' ? '/usr/share/ipxe/ipxe.lkrn' : '/usr/share/qemu/ipxe.lkrn');
             my $worker_ip = inet_ntoa(inet_aton($vars->{WORKER_HOSTNAME}));
             die "Unable to determine worker IP from WORKER_HOSTNAME\n" unless $worker_ip;
             sp('append', "dhcp && sanhook iscsi:${worker_ip}::3260:1:$vars->{NBF}", no_quotes => 1);
