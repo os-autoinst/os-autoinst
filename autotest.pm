@@ -126,6 +126,8 @@ sub loadtest ($script, %args) {
             sys.path.append("$inc")
             sys.path.append("$script_dir")
             import $name
+            #print("Using python version: %s" % sys.version)
+            perl.diag("Using python version: %s" % sys.version)
             END_OF_PYTHON_CODE
             # Bind the python functions to the perl $name package
             my %info = py_study_package("$name");
