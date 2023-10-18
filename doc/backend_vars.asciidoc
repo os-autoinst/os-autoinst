@@ -125,7 +125,7 @@ NICMODEL;see qemu -device ?;virtio-net;Network device virtual NIC.
 NICTYPE;user|tap|vde;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
 NICTYPE_USER_OPTIONS;string;undef;Arbitrary options for NICTYPE
 NICVLAN;integer;undef;Comma-separated list of network (vlan) numbers to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
-NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks
+NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4
 OFFLINE_SUT;boolean;0;Disable network for a VM
 OFW;boolean;0;QEMU Open Firmware is in use
 OVS_DEBUG;integer;undef;Set debug mode if value is 1
@@ -176,7 +176,7 @@ VIRTIO_CONSOLE;boolean;1;Enable/disable virtio console. (@see `-device virtconso
 VIRTIO_CONSOLE_NUM;integer;1;Number of virtio consoles.
 QEMU_BALLOON_TARGET;integer;undef;The target guest RAM usage before a snapshot is taken. It is intended to speed up snapshots by forcing the guest to drop various caches. Setting this enables the virtio-balloon device which requires a kernel with a virtio-balloon driver. Setting this far below the RAM required by the guest will probably cause the guest to panic or deadlock. However it should be able to cope with it being set slightly below what is needed.
 QEMU_BALLOON_TIMEOUT;integer;5;Timeout for qemu balloon operations
-RAIDLEVEL;;;Set the raid level
+RAIDLEVEL;;;Set the raid level, affects NUMDISKS.
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
 TAPDOWNSCRIPT;string;undef;Script used during the backend network shutdown
@@ -234,8 +234,8 @@ HYPERV_PASSWORD;string;;Password for above account
 HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address
 HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expected on the Hyper-V server
 HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
-NUMDISKS;integer;1;Number of disks
-RAIDLEVEL;integer;undef;Sets the raid level
+NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4
+RAIDLEVEL;integer;undef;Sets the raid level, affects NUMDISKS.
 SVIRT_KEEP_VM_RUNNING;boolean;undef;Keep VM running after execution, disabled by default
 WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
