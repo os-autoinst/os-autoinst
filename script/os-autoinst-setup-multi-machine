@@ -60,7 +60,6 @@ EOF
   <masquerade/>
 </zone>
 EOF
-    mkdir -p /etc/wicked/scripts/
     cat > /etc/wicked/scripts/gre_tunnel_preup.sh <<EOF
 #!/bin/sh
 action="\$1"
