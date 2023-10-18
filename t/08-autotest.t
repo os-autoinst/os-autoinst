@@ -316,9 +316,6 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
 };
 
 subtest python => sub {
-    my $python_module_regex = qr{scheduling pythontest tests/pythontest};
-    my $python_version_regex = qr{Using python version};
-
     combined_like {
         lives_ok { autotest::loadtest('tests/pythontest.py') } 'can load test module'
     } qr{(?|scheduling pythontest tests/pythontest|Using python version)}, 'python pythontest module referenced';
