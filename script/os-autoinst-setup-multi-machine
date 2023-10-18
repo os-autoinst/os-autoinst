@@ -60,7 +60,6 @@ EOF
   <masquerade/>
 </zone>
 EOF
-    mkdir -p /etc/wicked/scripts/
     cat > /etc/wicked/scripts/gre_tunnel_preup.sh <<EOF
 #!/bin/sh
 action="\$1"
@@ -75,6 +74,10 @@ EOF
 }
 
 main() {
+    if ! readlink /etc/systemd/system/network.service | grep -q wicked.service ; then
+        echo "This script will only work with wicked network daemon"
+        exit 1
+    fi
     ensure_ip_forwarding
     install_packages
     configure_firewall
