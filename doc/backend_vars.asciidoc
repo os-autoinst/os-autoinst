@@ -233,10 +233,11 @@ HYPERV_USERNAME;string;;Administrator account name
 HYPERV_PASSWORD;string;;Password for above account
 HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address
 HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expected on the Hyper-V server
-HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
+HYPERV_VIRTUAL_SWITCH;string;;Name of Hyper-V's External Virtual Switch
 NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4
 RAIDLEVEL;integer;undef;Sets the raid level, affects NUMDISKS.
 SVIRT_KEEP_VM_RUNNING;boolean;undef;Keep VM running after execution, disabled by default
+SVIRT_WORKER_CACHE;boolean;1;Use the openQA worker cache if possible to copy images to the svirt host
 WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
