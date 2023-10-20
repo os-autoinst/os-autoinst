@@ -1,4 +1,4 @@
 from testapi import *
 
-def run(*_):
+def run(self):
     diag("This is morepython.py")
