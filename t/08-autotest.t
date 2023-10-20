@@ -334,6 +334,36 @@ subtest python => sub {
     } qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 };
 
+subtest 'python run_args' => sub {
+    %autotest::tests = ();
+    my $targs = OpenQA::Test::RunArgs->new();
+    $targs->{data} = 23;
+
+    autotest::loadtest('tests/pythontest_with_runargs.py', run_args => $targs);
+
+    loadtest 'pythontest_with_runargs.py';
+    my $p1 = $autotest::tests{'tests-pythontest_with_runargs'};
+
+    stderr_like { $p1->runtest } qr{run_args are not supported in python}, 'Expected output from pythontest_with_runargs.py';
+    is $bmwqemu::vars{PY_SUPPORT_FN}, 'ipsum', 'set_var() using a py function works';
+};
+
+subtest 'python bad run_args' => sub {
+    %autotest::tests = ();
+    my $targs = OpenQA::Test::RunArgs->new();
+    $targs->{data} = 23;
+
+    autotest::loadtest('tests/pythontest_with_bad_runargs.py', run_args => $targs);
+
+    loadtest 'pythontest_with_bad_runargs.py';
+    my $p1 = $autotest::tests{'tests-pythontest_with_bad_runargs'};
+
+    stderr_like {
+        throws_ok(sub { $p1->runtest }, qr{test pythontest_with_bad_runargs died}, "expected failure on python side");
+    } qr{TypeError: run\(\) takes 1 positional argument but 2 were given}, 'Expected output from pythontest_with_bad_runargs.py';
+    is $bmwqemu::vars{PY_SUPPORT_FN_NOT_CALLED}, undef, 'set_var() was never called';
+};
+
 subtest 'pausing on failure' => sub {
     my $autotest_mock = Test::MockModule->new('autotest');
     my %isotovideo_rsp = (ignore_failure => 1);
