@@ -96,6 +96,17 @@ e.g. by making use of the openQA asset download feature.
 
 =cut
 
+sub _debug_python_version () {
+    state $python_loaded = 0;
+    return if $python_loaded++;
+    my $code = <<~'EOM';
+    use Inline::Python;
+    return Inline::Python::py_eval('__import__("sys").version', 0);
+    EOM
+    my $debug = eval $code;
+    bmwqemu::diag "Using python version " . $debug;
+}
+
 sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $casedir = $bmwqemu::vars{CASEDIR};
@@ -115,6 +126,7 @@ sub loadtest ($script, %args) {
         $code .= "require '$script_path';";
     }
     elsif ($script =~ m/\.py$/) {
+        _debug_python_version();
         # Adding the include path of os-autoinst into python context
         my $inc = File::Basename::dirname(__FILE__);
         my $script_dir = path(File::Basename::dirname($script_path))->to_abs;

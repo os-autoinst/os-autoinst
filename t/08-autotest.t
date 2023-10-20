@@ -6,7 +6,7 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Test::Output qw(stderr_like combined_from);
+use Test::Output qw(stderr_like combined_from output_like combined_like);
 use Test::Exception;
 use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
@@ -316,9 +316,10 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
 };
 
 subtest python => sub {
-    stderr_like {
+    combined_like {
         lives_ok { autotest::loadtest('tests/pythontest.py') } 'can load test module'
-    } qr{scheduling pythontest tests/pythontest.py}, 'python pythontest module referenced';
+    } qr{Using python version.*scheduling pythontest tests/pythontest}s, 'python pythontest module referenced';
+
     %autotest::tests = ();
     loadtest 'pythontest.py';
     loadtest 'morepython.py';
