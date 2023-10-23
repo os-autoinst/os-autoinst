@@ -358,7 +358,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 1) && -e $file_basename && defined which 'rsync') {
         my %c = $self->get_ssh_credentials;
-        bmwqemu::diag "Syncing '$file' directly from worker host to $c{hostname}";
+        bmwqemu::diag "Syncing '$file_basename' directly from worker host to $c{hostname}";
         _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$file_basename' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
