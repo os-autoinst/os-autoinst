@@ -334,6 +334,31 @@ subtest python => sub {
     } qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 };
 
+subtest 'python run_args' => sub {
+    %autotest::tests = ();
+    my $targs = OpenQA::Test::RunArgs->new();
+    $targs->{data} = 23;
+
+    eval { autotest::loadtest('tests/pythontest_with_runargs.py', run_args => $targs); };
+    like($@, qr/run_args is not supported in Python test modules/, 'error message mentions run_args and python');
+};
+
+subtest 'python with bad run method' => sub {
+    %autotest::tests = ();
+    my $targs = OpenQA::Test::RunArgs->new();
+    $targs->{data} = 23;
+
+    autotest::loadtest('tests/pythontest_with_bad_run_fn.py');
+
+    loadtest 'pythontest_with_bad_run_fn.py';
+    my $p1 = $autotest::tests{'tests-pythontest_with_bad_run_fn'};
+
+    stderr_like {
+        throws_ok(sub { $p1->runtest }, qr{test pythontest_with_bad_run_fn died}, "expected failure on python side");
+    } qr{TypeError: run\(\) takes 0 positional arguments but 1 was given}, 'Expected output from pythontest_with_bad_runargs.py';
+    is $bmwqemu::vars{PY_SUPPORT_FN_NOT_CALLED}, undef, 'set_var() was never called';
+};
+
 subtest 'pausing on failure' => sub {
     my $autotest_mock = Test::MockModule->new('autotest');
     my %isotovideo_rsp = (ignore_failure => 1);

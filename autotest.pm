@@ -168,6 +168,9 @@ sub loadtest ($script, %args) {
         unless (blessed($args{run_args}) && $args{run_args}->isa('OpenQA::Test::RunArgs')) {
             die 'The run_args must be a sub-class of OpenQA::Test::RunArgs';
         }
+
+        die 'run_args is not supported in Python test modules.' if $is_python;
+
         $test->{run_args} = $args{run_args};
         delete $args{run_args};
     }
