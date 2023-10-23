@@ -12,6 +12,7 @@ use File::Temp 'tempfile';
 use File::Basename;
 use File::Which;
 use Mojo::DOM;
+use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
@@ -358,8 +359,9 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 1) && -e $file_basename && defined which 'rsync') {
         my %c = $self->get_ssh_credentials;
+        my $abs = path($file_basename)->to_abs;    # pass abs path so it can contain a colon
         bmwqemu::diag "Syncing '$file_basename' directly from worker host to $c{hostname}";
-        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$file_basename' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
+        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
         $self->run_cmd("rsync -av '$file' '$basedir/$file_basename'") && die 'rsync failed';
