@@ -272,7 +272,7 @@ sub mydie ($cause_of_death) {
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
     open(my $fd, ">", "$fn.new");
-    my $json = eval { Cpanel::JSON::XS->new->pretty->canonical->encode($result) };
+    my $json = eval { Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) };
     if (my $err = $@) {
         my $dump = Data::Dumper->Dump([$result], ['result']);
         croak "Cannot encode input: $@\n$dump";
