@@ -1193,10 +1193,10 @@ sub new_ssh_connection ($self, %args) {
             # Check if we still can create channels on that connection
             if (my $tmp_chan = $con->channel()) {
                 $tmp_chan->close();
-                bmwqemu::diag "Use existing SSH connection (key:$connection_key)";
+                bmwqemu::diag "Using existing SSH connection (key:$connection_key)";
                 return $con;
             } else {
-                bmwqemu::diag "Close broken SSH connection (key:$connection_key)";
+                bmwqemu::diag "Closing broken SSH connection (key:$connection_key)";
                 $con->disconnect();
                 delete $self->{ssh_connections}->{$connection_key};
             }
@@ -1302,7 +1302,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     my ($ssh, $chan) = $self->run_ssh($cmd, %args);
     $chan->send_eof;
 
-    while (!$chan->eof) {
+    until ($chan->eof) {
         if (my ($o, $e) = $chan->read2) {
             $stdout .= $o;
             $stderr .= $e;
@@ -1313,7 +1313,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length($stderr);
     my $ret = $chan->exit_status();
     bmwqemu::diag("[run_ssh_cmd($cmd)] exit-code: $ret");
-    $ssh->disconnect() unless ($args{keep_open});
+    $ssh->disconnect() unless $args{keep_open};
 
     return $args{wantarray} ? ($ret, $stdout, $stderr) : $ret;
 }
@@ -1348,7 +1348,7 @@ sub stop_ssh_serial ($self) {
 }
 
 sub hide_password ($self, %args) {
-    $args{password} = 'SECRET' if ($args{password});
+    $args{password} = 'SECRET' if $args{password};
     return \%args;
 }
 
