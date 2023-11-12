@@ -27,7 +27,7 @@ my %v4l2_ctl_results = ();
 my @v4l2_ctl_calls;
 $mock_console->redefine(_v4l2_ctl => sub {
         push @v4l2_ctl_calls, [@_];
-        return $v4l2_ctl_results{$_[1]} || $v4l2_ctl_results{''};
+        return $v4l2_ctl_results{$_[2]} || $v4l2_ctl_results{''};
 });
 my $mock_video_source = '/dev/null';
 $mock_console->redefine(_get_ffmpeg_cmd => sub ($self, $url) {
@@ -54,7 +54,7 @@ subtest 'connect stream' => sub {
     %v4l2_ctl_results = ('' => '');
     $console->connect_remote({url => '/dev/video0'});
     is $console->{dv_timings_supported}, 0, "still no need to use v4l2-ctl";
-    is_deeply \@v4l2_ctl_calls, [[('/dev/video0', '--get-dv-timings')]], "calls to v4l2-ctl";
+    is_deeply \@v4l2_ctl_calls, [[('/dev/video0', undef, '--get-dv-timings')]], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
     # no input connected
@@ -63,8 +63,8 @@ subtest 'connect stream' => sub {
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
     is $console->{dv_timings}, '', "correct lack of resolution";
     is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--get-dv-timings')],
-        [('/dev/video0', '--set-dv-bt-timings query')],
+        [('/dev/video0', undef, '--get-dv-timings')],
+        [('/dev/video0', undef, '--set-dv-bt-timings query')],
     ], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
@@ -76,9 +76,9 @@ subtest 'connect stream' => sub {
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
     is $console->{dv_timings}, '640x480p60', "correct resolution";
     is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--get-dv-timings')],
-        [('/dev/video0', '--set-dv-bt-timings query')],
-        [('/dev/video0', '--get-dv-timings')],
+        [('/dev/video0', undef, '--get-dv-timings')],
+        [('/dev/video0', undef, '--set-dv-bt-timings query')],
+        [('/dev/video0', undef, '--get-dv-timings')],
     ], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
@@ -90,10 +90,10 @@ subtest 'connect stream' => sub {
     $console->connect_remote({url => '/dev/video0', edid => 'type=hdmi'});
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl and set edid";
     is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--set-edid type=hdmi')],
-        [('/dev/video0', '--get-dv-timings')],
-        [('/dev/video0', '--set-dv-bt-timings query')],
-        [('/dev/video0', '--get-dv-timings')],
+        [('/dev/video0', undef, '--set-edid type=hdmi')],
+        [('/dev/video0', undef, '--get-dv-timings')],
+        [('/dev/video0', undef, '--set-dv-bt-timings query')],
+        [('/dev/video0', undef, '--get-dv-timings')],
     ], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
@@ -180,7 +180,10 @@ subtest 'frame parsing - ustreamer' => sub {
 
 subtest 'v4l2 resolution' => sub {
     $mock_video_source = $data_dir . "frame1.ppm";
-    my $console = consoles::video_stream->new(undef, {url => '/dev/video0'});
+    my $console = consoles::video_stream->new(undef, {
+            url => '/dev/video0',
+            video_cmd_prefix => 'ssh host',
+    });
     %v4l2_ctl_results = (
         '--get-dv-timings' => '640x480p60',
         '--set-dv-bt-timings query' => 'BT timings set',
@@ -198,7 +201,7 @@ subtest 'v4l2 resolution' => sub {
     $console->update_framebuffer();
     is $console->{dv_timings}, '640x480p60', 'correct resolution detected';
     is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--query-dv-timings')],
+        [('/dev/video0', 'ssh host', '--query-dv-timings')],
     ], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
@@ -214,9 +217,9 @@ subtest 'v4l2 resolution' => sub {
     $console->update_framebuffer();
     is $console->{dv_timings}, '1024x768p60', 'correct resolution detected';
     is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--query-dv-timings')],
-        [('/dev/video0', '--set-dv-bt-timings query')],
-        [('/dev/video0', '--get-dv-timings')],
+        [('/dev/video0', 'ssh host', '--query-dv-timings')],
+        [('/dev/video0', 'ssh host', '--set-dv-bt-timings query')],
+        [('/dev/video0', 'ssh host', '--get-dv-timings')],
     ], "calls to v4l2-ctl";
     $console->disable_video;
 };

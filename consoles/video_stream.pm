@@ -59,9 +59,11 @@ sub disable ($self, @) {
     return $ret;
 }
 
-sub _v4l2_ctl ($device, $cmd) {
-    my @cmd = ("v4l2-ctl", "--device", $device, "--concise");
+sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
+    my @cmd = split(/ /, $cmd_prefix);
+    push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));
     push(@cmd, split(/ /, $cmd));
+
     my $pipe;
     my $pid = open($pipe, '-|', @cmd) or return undef;
     $pipe->read(my $str, 50);
@@ -80,11 +82,11 @@ sub connect_remote ($self, $args) {
 
     if ($args->{url} =~ m/^\/dev\/video/) {
         if ($args->{edid}) {
-            my $ret = _v4l2_ctl($args->{url}, "--set-edid $args->{edid}");
+            my $ret = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, "--set-edid $args->{edid}");
             die "Failed to set EDID" unless defined $ret;
         }
 
-        my $timings = _v4l2_ctl($args->{url}, '--get-dv-timings');
+        my $timings = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, '--get-dv-timings');
         if ($timings) {
             if ($timings ne "0x0pnan") {
                 $self->{dv_timings} = $timings;
@@ -110,8 +112,9 @@ sub connect_remote ($self, $args) {
 }
 
 sub _get_ffmpeg_cmd ($self, $url) {
-    my @cmd = ('ffmpeg', '-loglevel', 'fatal', '-i', $url);
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '2', '-'));
+    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});
+    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
+    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '4', '-'));
     return \@cmd;
 }
 
@@ -126,12 +129,12 @@ sub _get_ustreamer_cmd ($self, $url, $sink_name) {
 
 sub connect_remote_video ($self, $url) {
     if ($self->{dv_timings_supported}) {
-        if (!_v4l2_ctl($url, '--set-dv-bt-timings query')) {
+        if (!_v4l2_ctl($url, $self->{args}->{video_cmd_prefix}, '--set-dv-bt-timings query')) {
             bmwqemu::diag("No video signal");
             $self->{dv_timings} = '';
             return;
         }
-        $self->{dv_timings} = _v4l2_ctl($url, '--get-dv-timings');
+        $self->{dv_timings} = _v4l2_ctl($url, $self->{args}->{video_cmd_prefix}, '--get-dv-timings');
     }
 
     if ($url =~ m^ustreamer://^) {
@@ -301,7 +304,7 @@ sub update_framebuffer ($self) {
     if ($self->{dv_timings_supported}) {
         # periodically check if DV timings needs update due to resolution change
         if (time - $self->{dv_timings_last_check} >= DV_TIMINGS_CHECK_INTERVAL) {
-            my $current_timings = _v4l2_ctl($self->{args}->{url}, '--query-dv-timings');
+            my $current_timings = _v4l2_ctl($self->{args}->{url}, $self->{args}->{video_cmd_prefix}, '--query-dv-timings');
             if ($current_timings && $current_timings ne $self->{dv_timings}) {
                 bmwqemu::diag "Updating DV timings, new: $current_timings";
                 # yes, there is need to update DV timings, restart ffmpeg,
