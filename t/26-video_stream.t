@@ -130,6 +130,18 @@ subtest 'frames parsing' => sub {
     $received_img = $console->current_screen();
     is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
+
+    # now incomplete frame
+    $mock_video_source = $data_dir . "incompleteframe.ppm";
+    $console->connect_remote({url => 'udp://@:5004'});
+
+    # make sure cat process has finished to guarantee that pipe has data on the
+    # next call to update_framebuffer()
+    waitpid($console->{ffmpegpid}, 0);
+
+    my $received_update = $console->update_framebuffer();
+    is $received_update, 0, "detected incomplete frame";
+    $console->disable_video;
 };
 
 subtest 'frame parsing - ustreamer' => sub {

@@ -205,7 +205,11 @@ sub _receive_frame_ffmpeg ($self) {
     my $frame_len = $width * $height * 3 * $bytes_per_pixel;
     my $remaining_len = $header_len + $frame_len - $ret;
     $ret = $ffmpeg->read(my $frame_data, $remaining_len);
-    die "Incomplete frame (got $ret instead of $remaining_len)" if $ret != $remaining_len;
+    if ($ret != $remaining_len) {
+        bmwqemu::diag "Incomplete frame (got $ret instead of $remaining_len)";
+        return undef;
+    }
+
     my $img = tinycv::from_ppm($header . $frame_data);
     $self->{_framebuffer} = $img;
     $self->{width} = $width;
