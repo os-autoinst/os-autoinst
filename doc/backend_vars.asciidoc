@@ -237,7 +237,7 @@ HYPERV_VIRTUAL_SWITCH;string;;Name of Hyper-V's External Virtual Switch
 NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4
 RAIDLEVEL;integer;undef;Sets the raid level, affects NUMDISKS.
 SVIRT_KEEP_VM_RUNNING;boolean;undef;Keep VM running after execution, disabled by default
-SVIRT_WORKER_CACHE;boolean;1;Use the openQA worker cache if possible to copy images to the svirt host - this means the path specified when invoking `add_disk` is **not** fully regarded, e.g. if the specified path points into the `fixed`-subdirectory but the openQA worker cached the same asset under the regular directory (which it prefers over the `fixed`-subdirectory) then the asset from the regular directory will be used
+SVIRT_WORKER_CACHE;boolean;0;Use the openQA worker cache if possible to copy images to the svirt host - this means the path specified when invoking `add_disk` is **not** fully regarded, e.g. if the specified path points into the `fixed`-subdirectory but the openQA worker cached the same asset under the regular directory (which it prefers over the `fixed`-subdirectory) then the asset from the regular directory will be used
 WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
