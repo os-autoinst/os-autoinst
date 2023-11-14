@@ -31,6 +31,7 @@ bmwqemu::init_logger;
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME => 'bar');
 set_var(VIRSH_PASSWORD => 'password');
+set_var(SVIRT_WORKER_CACHE => 1);
 
 my $ssh_xterm_vt_mock = Test::MockModule->new('consoles::sshXtermVt');
 $ssh_xterm_vt_mock->noop('activate');
