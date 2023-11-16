@@ -9,9 +9,9 @@ pr:
   - configure_repositories:
       project: devel:openQA:GitHub
       repositories:
-      - name: SLE_15_SP4_Backports
+      - name: SLE_15_SP5_Backports
         paths:
-          - target_project: openSUSE:Backports:SLE-15-SP4:Update
+          - target_project: openSUSE:Backports:SLE-15-SP5:Update
             target_repository: standard
         architectures: [ x86_64 ]
       - name: openSUSE_Tumbleweed
