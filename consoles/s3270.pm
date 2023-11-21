@@ -321,7 +321,8 @@ sub _connect_3270 ($self, $host) {
 }
 
 sub _login_guest ($self, $guest, $password) {
-    $self->send_3270("String($guest)");
+    my ($username) = $guest =~ /(.*?)\..*$/;
+    $self->send_3270("String($username)");
     $self->send_3270("String($password)");
     $self->send_3270("ENTER");
     $self->send_3270("Wait(InputField)");
