@@ -12,6 +12,7 @@ use autodie ':all';
 sub connect_remote ($self, $args) {
     my $hostname = $args->{hostname};
     my $zvmguest = $bmwqemu::vars{ZVM_GUEST};
+    ($zvmguest) = $zvmguest =~ /(.*?)\..*$/;
 
     # ssh connection to SUT for agetty
     my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');
@@ -31,7 +32,7 @@ sub connect_remote ($self, $args) {
     # ssh connection to SUT for iucvconn
     my ($ssh, $serialchan) = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
     # start iucvconn
-    bmwqemu::diag('ssh iucvconn: grabbing serial console');
+    bmwqemu::diag("ssh iucvconn: grabbing serial console for guest: $zvmguest");
     $ssh->blocking(1);
     if (!$serialchan->exec("iucvconn $zvmguest lnxhvc0")) {
         bmwqemu::fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
