@@ -671,7 +671,7 @@ sub start_qemu ($self) {
     }
     elsif ($vars->{UEFI} && (($vars->{ARCH} // '') eq 'x86_64')) {
         $vars->{UEFI_PFLASH_CODE} //= find_ovmf;
-        $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/vars/r;
+        $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/$&=~tr,CcOoDdEe,VvAaRrSs,r/eir;
         die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
     }
     if ($vars->{UEFI_PFLASH} || $vars->{BIOS}) {

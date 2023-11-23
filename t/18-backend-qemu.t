@@ -647,6 +647,7 @@ subtest 'special cases when starting QEMU' => sub {
     like $qemu_params, qr{once=n}, 'once=n parameter present due to PXEBOOT';
 
     subtest 'various error cases' => sub {
+        my %initial_vars = %bmwqemu::vars;
         $bmwqemu::vars{NICTYPE} = 'foo';
         combined_like { throws_ok { $backend->start_qemu } qr/unknown NICTYPE foo/, 'dies on unknown NICTYPE' }
           qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
@@ -667,6 +668,10 @@ subtest 'special cases when starting QEMU' => sub {
         $bmwqemu::vars{UEFI_PFLASH_CODE} = 0;
         combined_like { throws_ok { $backend->start_qemu } qr{No UEFI firmware can be found}, 'dies if UEFI firmware not found' }
           qr/qemu version/si, 'expected logs until exception thrown (6)';
+        %bmwqemu::vars = %initial_vars;
+        combined_like { qemu_cmdline(UEFI => 1, UEFI_PFLASH_CODE => '/OVMF_CODE.fd') }
+        qr/qemu version/si, 'expected logs until exception thrown (7)';
+        is $bmwqemu::vars{UEFI_PFLASH_VARS}, '/OVMF_VARS.fd', 'default UEFI_PFLASH_VARS was guessed correctly';
     };
 };
 
