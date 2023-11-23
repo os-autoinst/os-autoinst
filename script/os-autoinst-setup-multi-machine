@@ -23,7 +23,48 @@ configure_firewall() {
     systemctl reload firewalld
 }
 
-setup_multi_machine() {
+setup_multi_machine_with_networkmanager() {
+    # Restart NM to load ovs plugin
+    systemctl restart NetworkManager
+    systemctl enable --now openvswitch
+    # Delete any previsous connections
+    nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs nmcli con del
+    # Create bridge, port and interface connection
+    nmcli con add type ovs-bridge con.int "$bridge"
+    nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
+    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 con.zone "$zone"
+    echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
+    # Create tap interfaces
+    for i in 0 $(seq 1 "$instances"; seq 64 $((64+instances)); seq 128 $((128+instances))); do
+        nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
+        nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nobody | cut -f3 -d:)" con.int "tap$i" master "tap$i"
+    done
+    cat > /etc/firewalld/zones/"$zone".xml <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<zone target="ACCEPT">
+  <short>"${zone^}"</short>
+  <description>All network connections are accepted.</description>
+  <service name="isotovideo"/>
+  <interface name="$bridge"/>
+  <interface name="ovs-system"/>
+  <interface name="$ethernet"/>
+  <masquerade/>
+</zone>
+EOF
+    cat > /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh <<EOF
+#!/bin/sh
+action="\$1"
+bridge="\$2"
+ovs-vsctl set bridge \$bridge stp_enable=true
+# TODO add entries according to your network topology
+#ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+EOF
+    chmod +x /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
+    systemctl enable os-autoinst-openvswitch
+    systemctl restart openvswitch os-autoinst-openvswitch
+}
+
+setup_multi_machine_with_wicked() {
     systemctl enable --now openvswitch
     ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
     ovs-vsctl add-br "$bridge"
@@ -74,14 +115,22 @@ EOF
 }
 
 main() {
-    if ! readlink /etc/systemd/system/network.service | grep -q wicked.service ; then
-        echo "This script will only work with wicked network daemon"
+    network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
+    test "$network" = wicked -o "$network" = NetworkManager || {
+        echo "This script will only work with wicked network daemon or NetworkManager"
         exit 1
-    fi
+    }
     ensure_ip_forwarding
     install_packages
     configure_firewall
-    setup_multi_machine
+    case "$network" in
+        wicked)
+            setup_multi_machine_with_wicked
+            ;;
+        NetworkManager)
+            setup_multi_machine_with_networkmanager
+            ;;
+    esac
 }
 
 caller 0 >/dev/null || main "$@"
