@@ -52,7 +52,7 @@ setup_multi_machine_with_networkmanager() {
     # Restart NM to load ovs plugin
     systemctl restart NetworkManager
     # Delete any previous connections
-    nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs nmcli con del
+    nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs -r nmcli con del || true
     # Create bridge, port and interface connection
     nmcli con add type ovs-bridge con.int "$bridge"
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
