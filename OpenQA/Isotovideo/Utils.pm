@@ -21,6 +21,10 @@ our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   checkout_wheels
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
+use constant GIT_CLONE_DEPTH => $ENV{OS_AUTOINST_GIT_CLONE_DEPTH} // 1;
+use constant GIT_RETRY_COUNT => $ENV{OS_AUTOINST_GIT_RETRY_COUNT} // 2;
+use constant GIT_RETRY_INTERVAL => $ENV{OS_AUTOINST_GIT_RETRY_INTERVAL} // 5;
+
 sub git_rev_parse ($dirname, $cmd_prefix = '') {
     $dirname = path($dirname)->realpath;
     chomp(my $version = qx{$cmd_prefix git -C "$dirname" rev-parse HEAD 2>&1});
@@ -106,13 +110,14 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $url = Mojo::URL->new($dir);
     return undef unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
 
-    $args{clone_depth} //= 1;
-    $args{retry_count} //= 2;
+    my $clone_depth = $args{clone_depth} // GIT_CLONE_DEPTH;
+    my $retry_count = $args{retry_count} // GIT_RETRY_COUNT;
+    my $retry_interval = $args{retry_interval} // GIT_RETRY_INTERVAL;
 
     my $branch = $url->fragment;
     my $clone_url = $url->fragment(undef)->to_string;
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
-    my $tries = $args{retry_count};
+    my $tries = $retry_count;
 
     my $local_abs = path($local_path)->to_abs->to_string;
     $bmwqemu::vars{$dir_variable} = $local_abs unless $args{repo};
@@ -120,11 +125,11 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $error;
     do {
         my $status;
-        eval { $status = clone_git($local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) };
+        eval { $status = clone_git($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) };
         $error = $@;
         return $local_abs if $status;
-        bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
-        sleep($args{retry_interval} // 5);
+        bmwqemu::diag "Clone failed, retries left: $tries of $retry_count";
+        sleep $retry_interval;
     } while ($tries-- > 0);
     die $error;
 }

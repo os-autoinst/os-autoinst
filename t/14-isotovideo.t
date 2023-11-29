@@ -7,7 +7,7 @@ use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '30';
+use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from stderr_from);
@@ -27,6 +27,10 @@ my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
+
+# avoid spending time on git clone retries
+$ENV{OS_AUTOINST_GIT_RETRY_COUNT} = 0;
+$ENV{OS_AUTOINST_GIT_RETRY_INTERVAL} = 0;
 
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
