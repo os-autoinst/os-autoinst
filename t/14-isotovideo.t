@@ -244,7 +244,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     path('vars.json')->remove if -e 'vars.json';
     my $module = 'tests/failing_module';
     my $log = combined_from { isotovideo(
-            opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386", exit_code => 0) };
+            opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386 novideo=1", exit_code => 0) };
     like $log, qr/scheduling failing_module $module\.pm/, 'module scheduled';
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
