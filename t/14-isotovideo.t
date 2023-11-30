@@ -7,7 +7,7 @@ use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '30';
+use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from stderr_from);
@@ -27,6 +27,9 @@ my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
+
+# avoid spending time on git clone retries
+$ENV{OS_AUTOINST_GIT_RETRY_COUNT} = 0;
 
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
@@ -241,7 +244,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     path('vars.json')->remove if -e 'vars.json';
     my $module = 'tests/failing_module';
     my $log = combined_from { isotovideo(
-            opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386", exit_code => 0) };
+            opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386 novideo=1", exit_code => 0) };
     like $log, qr/scheduling failing_module $module\.pm/, 'module scheduled';
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
