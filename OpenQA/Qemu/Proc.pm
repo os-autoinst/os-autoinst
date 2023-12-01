@@ -179,7 +179,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
             $drive = $bdc->add_new_drive($node_id, $hdd_model, $size, $num_queues);
         }
 
-        if ($i == 1 && $bootfrom eq 'disk') {
+        if ($i == 1 && ($bootfrom eq 'disk' || $vars->{PXEBOOT})) {
             $drive->bootindex(0);
         }
 
