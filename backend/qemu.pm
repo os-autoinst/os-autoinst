@@ -897,7 +897,7 @@ sub start_qemu ($self) {
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
-            my $bootorder = $vars->{PXEBOOT} ? "bootindex=$i" : '';
+            my $bootorder = $vars->{PXEBOOT} ? "bootindex=" . ($i + 1) : '';
             sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i] $bootorder"]);
         }
 

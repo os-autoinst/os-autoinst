@@ -229,10 +229,14 @@ subtest 'qemu_net_boot' => sub {
     throws_ok { $backend->start_qemu } qr{unsupported boot order: nc}, 'dies on multi boot order as os-autoinst doesnt supported';
     delete $bmwqemu::vars{BOOTFROM};
     delete $bmwqemu::vars{BOOT_MENU};
-    subtest('Test boot with n on x86_64', \&test_boot_options, 0, 'x86_64', 1, qr|mac=.*,bootindex=\d|);
-    subtest('Test boot with n on aarch64', \&test_boot_options, 0, 'aarch64', 1, qr|mac=.*,bootindex=\d|);
-    subtest('Test boot with n on s390x', \&test_boot_options, 0, 's390x', 1, qr|mac=.*,bootindex=\d|);
-    subtest('Test boot with n on ppc64le', \&test_boot_options, 0, 'ppc64le', 1, qr|mac=.*,bootindex=\d|);
+    subtest('Test boot with n on x86_64', \&test_boot_options, 0, 'x86_64', 1, qr|mac=52:54:00:12:34:56,bootindex=1|);
+    subtest('Test boot with set c to bootindex=0 on x86_64', \&test_boot_options, 0, 'x86_64', 1, qr|drive=hd0,bootindex=0|);
+    subtest('Test boot with n on aarch64', \&test_boot_options, 0, 'aarch64', 1, qr|mac=52:54:00:12:34:56,bootindex=1|);
+    subtest('Test boot with set c to bootindex=0 on aarch64', \&test_boot_options, 0, 'aarch64', 1, qr|drive=hd0,bootindex=0|);
+    subtest('Test boot with n on s390x', \&test_boot_options, 0, 's390x', 1, qr|mac=52:54:00:12:34:56,bootindex=1|);
+    subtest('Test boot with set c to bootindex=0 on s390x', \&test_boot_options, 0, 's390x', 1, qr|drive=hd0,bootindex=0|);
+    subtest('Test boot with n on ppc64le', \&test_boot_options, 0, 'ppc64le', 1, qr|mac=52:54:00:12:34:56,bootindex=1|);
+    subtest('Test boot with set c to bootindex=0 on ppc64le', \&test_boot_options, 0, 'ppc64le', 1, qr|drive=hd0,bootindex=0|);
     delete $bmwqemu::vars{PXEBOOT};
     delete $bmwqemu::vars{ARCH};
 };
