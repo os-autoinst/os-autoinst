@@ -68,9 +68,11 @@ setup_multi_machine_with_networkmanager() {
 setup_multi_machine_with_wicked() {
     ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
     ovs-vsctl add-br "$bridge"
-    # see https://progress.opensuse.org/issues/151310
-    # The specific value comes from https://docs.openvswitch.org/en/latest/faq/issues/
-    ovs-vsctl set int $bridge mtu_request=1450
+    # Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
+    # * See https://progress.opensuse.org/issues/151310
+    # * Use 1460 (instead of 1450 as the FAQ suggests) because 1460 should be low enough but is still higher
+    #   than 1458 which openSUSE MM tests configure within the SUT.
+    ovs-vsctl set int $bridge mtu_request=1460
     cat > "/etc/sysconfig/network/ifcfg-$bridge" <<EOF
 BOOTPROTO='static'
 IPADDR='10.0.2.2/15'
