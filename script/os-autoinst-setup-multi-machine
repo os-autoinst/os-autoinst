@@ -69,6 +69,7 @@ setup_multi_machine_with_wicked() {
     ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
     ovs-vsctl add-br "$bridge"
     # see https://progress.opensuse.org/issues/151310
+    # The specific value comes from https://docs.openvswitch.org/en/latest/faq/issues/
     ovs-vsctl set int $bridge mtu_request=1450
     cat > "/etc/sysconfig/network/ifcfg-$bridge" <<EOF
 BOOTPROTO='static'
