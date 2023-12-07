@@ -29,7 +29,7 @@ my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : qr/UNKNOWN/;
 like git_rev_parse($toplevel_dir), $version, 'can parse working copy version (if it is git)';
 note 'call again git_rev_parse under different user (if available)';
 qx{command -v sudo >/dev/null && sudo -u nobody true};
-like git_rev_parse($toplevel_dir, 'sudo -u nobody'), $version, 'can parse git version as different user' if $? == 0;
+like git_rev_parse($toplevel_dir, 'sudo -u nobody'), $version, 'can parse git version as different user' if $? == 0;    # uncoverable statement
 
 subtest 'error handling when loading test schedule' => sub {
     chdir($dir);

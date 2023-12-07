@@ -30,10 +30,10 @@ sub git_rev_parse ($dirname, $cmd_prefix = '') {
     chomp(my $version = qx{$cmd_prefix git -C "$dirname" rev-parse HEAD 2>&1});
     return $version if $? == 0;
     return 'UNKNOWN' unless $version =~ /(git config.*safe.directory.*$)/;
-    my $addsafe = 'TMPDIR=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && HOME=$TMPDIR && ' . $1;
-    $version = qx{$addsafe && git -C "$dirname" rev-parse HEAD && rm -r \$TMPDIR} || '(unreadable git hash)';
-    chomp($version);
-    return $version;
+    my $addsafe = 'TMPDIR=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && HOME=$TMPDIR && ' . $1;    # uncoverable statement
+    $version = qx{$addsafe && git -C "$dirname" rev-parse HEAD && rm -r \$TMPDIR} || '(unreadable git hash)';    # uncoverable statement
+    chomp($version);    # uncoverable statement
+    return $version;    # uncoverable statement
 }
 
 sub calculate_git_hash ($git_repo_dir) {
