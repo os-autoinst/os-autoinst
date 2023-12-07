@@ -5,6 +5,12 @@ bridge="${bridge:-"br1"}"
 ethernet="${ethernet:-"br0"}"
 zone="${zone:-"trusted"}"
 
+# Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
+# * See https://progress.opensuse.org/issues/151310
+# * Use default of 1460 (instead of 1450 as the FAQ suggests) because 1460 should be low enough but
+#   is still higher than 1458 which openSUSE MM tests configure within the SUT.
+mtu=${mtu:-1460}
+
 ensure_ip_forwarding() {
     grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
 }
@@ -56,7 +62,7 @@ setup_multi_machine_with_networkmanager() {
     # Create bridge, port and interface connection
     nmcli con add type ovs-bridge con.int "$bridge"
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 con.zone "$zone"
+    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
     for i in 0 $(seq 1 "$instances"; seq 64 $((64+instances)); seq 128 $((128+instances))); do
         nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
@@ -68,11 +74,7 @@ setup_multi_machine_with_networkmanager() {
 setup_multi_machine_with_wicked() {
     ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
     ovs-vsctl add-br "$bridge"
-    # Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
-    # * See https://progress.opensuse.org/issues/151310
-    # * Use 1460 (instead of 1450 as the FAQ suggests) because 1460 should be low enough but is still higher
-    #   than 1458 which openSUSE MM tests configure within the SUT.
-    ovs-vsctl set int $bridge mtu_request=1460
+    ovs-vsctl set int "$bridge" mtu_request="$mtu"
     cat > "/etc/sysconfig/network/ifcfg-$bridge" <<EOF
 BOOTPROTO='static'
 IPADDR='10.0.2.2/15'
