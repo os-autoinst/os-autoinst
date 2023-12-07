@@ -18,7 +18,9 @@ listdeps > $OLDDEPS
 # shellcheck disable=SC2207
 DEPS=($(getdeps_container))
 
-sudo zypper --no-refresh install -y -C "${DEPS[@]}"
+user=${USER:-root}
+[[ $user != root ]] && sudo=sudo || sudo=
+$sudo zypper --no-refresh install -y -C "${DEPS[@]}"
 
 listdeps > $NEWDEPS
 
