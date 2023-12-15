@@ -26,7 +26,6 @@ configure_firewall() {
     for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp ; done
     firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
     firewall-cmd --get-default-zone | grep -q "$zone" || firewall-cmd --set-default-zone="$zone"
-    systemctl reload firewalld
     cat > /etc/firewalld/zones/"$zone".xml <<EOF
 <?xml version="1.0" encoding="utf-8"?>
 <zone target="ACCEPT">
@@ -39,6 +38,7 @@ configure_firewall() {
   <masquerade/>
 </zone>
 EOF
+    systemctl restart firewalld
 }
 
 create_gre_preup_script() {
