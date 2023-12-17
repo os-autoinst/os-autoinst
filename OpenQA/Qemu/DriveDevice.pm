@@ -112,7 +112,7 @@ sub gen_qemu_img_convert ($self, $img_dir, $name, $qemu_compress_qcow) {
     # Compressing takes longer but the transfer takes shorter amount of time.
     my $compress = $qemu_compress_qcow;
     my @cmd = qw(convert);
-    push @cmd, qw(-c) if $compress;
+    push @cmd, qw(-c -W) if $compress;
     push @cmd, ('-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name");
     return \@cmd;
 }
