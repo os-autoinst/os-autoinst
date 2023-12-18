@@ -208,6 +208,10 @@ long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinyc
   OUTPUT:
    RETVAL
 
+void map_raw_data_uyvy(tinycv::Image self, unsigned char *data)
+  CODE:
+    image_map_raw_data_uyvy(self, data);
+
 void blend(tinycv::Image self, tinycv::Image source, long x, long y)
   CODE:
     image_blend_image(self, source, x, y);

@@ -645,6 +645,48 @@ void image_map_raw_data_rgb555(Image* a, const unsigned char* data)
     }
 }
 
+void image_map_raw_data_uyvy(Image* a, const unsigned char* data)
+{
+    for (int y = 0; y < a->img.rows; y++) {
+        for (int x = 0; x < a->img.cols; x += 2) {
+            int offset = (y * a->img.cols + x) * 2;
+            int u  = data[offset + 0];
+            int y1 = data[offset + 1];
+            int v  = data[offset + 2];
+            int y2 = data[offset + 3];
+
+            y1 -= 16;
+            y2 -= 16;
+            int cb = u - 128;
+            int cr = v - 128;
+
+            int r1 = (298 * y1 + 409 * cr + 128) >> 8;
+            int g1 = (298 * y1 - 100 * cb - 208 * cr + 128) >> 8;
+            int b1 = (298 * y1 + 516 * cb + 128) >> 8;
+
+            int r2 = (298 * y2 + 409 * cr + 128) >> 8;
+            int g2 = (298 * y2 - 100 * cb - 208 * cr + 128) >> 8;
+            int b2 = (298 * y2 + 516 * cb + 128) >> 8;
+
+            // Clamp values to the valid range [0, 255]
+            r1 = (r1 < 0) ? 0 : ((r1 > 255) ? 255 : r1);
+            g1 = (g1 < 0) ? 0 : ((g1 > 255) ? 255 : g1);
+            b1 = (b1 < 0) ? 0 : ((b1 > 255) ? 255 : b1);
+
+            r2 = (r2 < 0) ? 0 : ((r2 > 255) ? 255 : r2);
+            g2 = (g2 < 0) ? 0 : ((g2 > 255) ? 255 : g2);
+            b2 = (b2 < 0) ? 0 : ((b2 > 255) ? 255 : b2);
+
+            a->img.at<Vec3b>(y, x)[0] = b1;
+            a->img.at<Vec3b>(y, x)[1] = g1;
+            a->img.at<Vec3b>(y, x)[2] = r1;
+            a->img.at<Vec3b>(y, x + 1)[0] = b2;
+            a->img.at<Vec3b>(y, x + 1)[1] = g2;
+            a->img.at<Vec3b>(y, x + 1)[2] = r2;
+        }
+    }
+}
+
 static uint16_t read_u16(const unsigned char* data, size_t& offset,
     bool do_endian_conversion)
 {

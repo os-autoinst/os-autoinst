@@ -62,5 +62,8 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
 			     unsigned char *data,
 			     size_t len);
 
+// raw data from v4l2
+void image_map_raw_data_uyvy(Image *a, const unsigned char *data);
+
 // copy the s image into a at x,y
 void image_blend_image(Image *a, Image *s, long x, long y);
