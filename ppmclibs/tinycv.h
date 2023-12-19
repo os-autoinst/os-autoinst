@@ -48,6 +48,8 @@ VNCInfo *image_vncinfo(bool do_endian_conversion,
 std::tuple<long, long, long> image_get_vnc_color(VNCInfo* info, unsigned int index);
 void image_set_vnc_color(VNCInfo *info, unsigned int index, unsigned int red, unsigned int green, unsigned int blue);
 
+void image_fill_pixel(Image* a, const unsigned char *data, VNCInfo* info,
+    long x, long y, long width, long height);
 // this is for VNC support - RAW encoding
 void image_map_raw_data(Image *a, const unsigned char *data, unsigned int x, unsigned int y, unsigned int width, unsigned int height, VNCInfo *info);
 

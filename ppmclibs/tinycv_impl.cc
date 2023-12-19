@@ -617,6 +617,28 @@ VNCInfo* image_vncinfo(bool do_endian_conversion, bool true_colour,
         blue_shift);
 }
 
+/*
+ * Fill given rectangle with pixel value read from 'data' and interpreted
+ * according to 'info'. Number of bytes read from 'data' depends on 'info'.
+ */
+void image_fill_pixel(Image* a, const unsigned char *data, VNCInfo* info,
+    long x, long y, long width, long height)
+{
+    size_t offset = 0;
+    Vec3b pixel = info->read_pixel(data, offset);
+
+    // avoid an exception
+    if (x < 0 || y < 0 || y + height > a->img.rows || x + width > a->img.cols) {
+        std::cerr << "ERROR - fill_pixel: out of range\n"
+                  << std::endl;
+        return;
+    }
+
+    for (auto i = static_cast<int>(y); i < y + height; i++)
+        for (auto j = static_cast<int>(x); j < x + width; j++)
+            a->img.at<Vec3b>(i, j) = pixel;
+}
+
 // implemented in tinycv_ast2100
 void decode_ast2100(Mat* img, const unsigned char* data, size_t len);
 
