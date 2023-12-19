@@ -19,7 +19,7 @@ has [qw(description hostname port username password socket name width height dep
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
-      vmware_vnc_over_ws_url original_hostname)];
+      vmware_vnc_over_ws_url original_hostname jpeg)];
 
 our $VERSION = '0.40';
 
@@ -83,22 +83,37 @@ my %supported_depths = (
     },
 );
 
+# Entries in order of preference
 my @encodings = (
-
     # These ones are defined in rfbproto.pdf
-    {
-        num => 0,
-        name => 'Raw',
-        supported => 1,
-    },
     {
         num => 16,
         name => 'ZRLE',
         supported => 1,
     },
     {
+        num => 0,
+        name => 'Raw',
+        supported => 1,
+    },
+    {
+        num => 7,
+        name => 'Tight',
+        supported => 1,
+    },
+    {
+        num => -24,
+        name => 'JPEG quality',
+        supported => 1,
+    },
+    {
         num => -223,
         name => 'DesktopSize',
+        supported => 1,
+    },
+    {
+        num => -224,
+        name => 'VNC_ENCODING_LAST_RECT',
         supported => 1,
     },
     {
@@ -109,11 +124,6 @@ my @encodings = (
     {
         num => -261,
         name => 'VNC_ENCODING_LED_STATE',
-        supported => 1,
-    },
-    {
-        num => -224,
-        name => 'VNC_ENCODING_LAST_RECT',
         supported => 1,
     },
 );
@@ -428,13 +438,15 @@ sub _server_initialization ($self) {
 
     my @encs = grep { $_->{supported} } @encodings;
 
-    # Prefer the higher-numbered encodings
-    @encs = reverse sort { $a->{num} <=> $b->{num} } @encs;
-
     if ($self->dell) {
         # idrac's ZRLE implementation even kills tigervnc, they duplicate
         # frames under certain conditions. Raw works ok
         @encs = grep { $_->{name} ne 'ZRLE' } @encs;
+    }
+    if (!$self->jpeg) {
+        # according to the spec, RAW encoding is least preferred, so don't let
+        # loosy Tight JPEG be used over RAW unless explicitly requested
+        @encs = grep { $_->{name} ne 'Tight' and $_->{name} ne 'JPEG quality' } @encs;
     }
     $socket->print(
         pack(
@@ -840,6 +852,9 @@ sub _receive_update ($self) {
             $socket->read(my $data, $w * $h * $self->_bpp / 8) || die 'unexpected end of data';
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
         }
+        elsif ($encoding_type == 7) {    # Tight
+            $self->_receive_tight_encoding($x, $y, $w, $h);
+        }
         elsif ($encoding_type == 16) {    # ZRLE
             $self->_receive_zrle_encoding($x, $y, $w, $h);
         }
@@ -919,6 +934,63 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
     OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data") if $old_total_out + $res != $self->{_inflater}->total_out;
     return $res;
+}
+
+# wrapper to make testing easier
+sub _read_socket ($socket, $data, $data_len, $offset) { return read($socket, $data, $data_len, $offset); }    # uncoverable statement
+
+sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
+    my $socket = $self->socket;
+    my $image = $self->_framebuffer;
+
+    $socket->read(my $data, 1)
+      or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
+    my ($compression_control) = unpack('C', $data);
+    # FillCompression
+    if (($compression_control & 0xF0) == 0x80) {
+        my $data;
+        # special case for TPIXEL, otherwise identical to PIXEL
+        if ($self->_true_colour and $self->_bpp == 32 and $self->depth == 24) {
+            $socket->read($data, 3)
+              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
+            $data = pack('CCCx', unpack('CCC', $data));
+        } else {
+            $socket->read($data, $self->_bpp / 8)
+              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
+        }
+        $image->fill_pixel($data, $self->vncinfo, $x, $y, $w, $h);
+        return;
+    }
+    # Only Fill (above) and JPEG for now; "Basic" unsupported
+    die "Unsupported compression $compression_control" if ($compression_control & 0xF0) != 0x90;
+
+    $socket->read($data, 1)
+      or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
+    my ($data_len) = unpack('C', $data);
+    if ($data_len & 0x80) {
+        $socket->read($data, 1)
+          or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
+        my ($data_len2) = unpack('C', $data);
+        $data_len = ($data_len & 0x7f) | ($data_len2 & 0x7f) << 7;
+        if ($data_len2 & 0x80) {
+            $socket->read($data, 1)
+              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
+            my ($data_len2) = unpack('C', $data);
+            $data_len |= $data_len2 << 14;
+        }
+    }
+
+    my $read_len = 0;
+    while ($read_len < $data_len) {
+        my $len = _read_socket($socket, $data, $data_len - $read_len, $read_len);
+        OpenQA::Exception::VNCProtocolError->throw(error => "short read for jpeg data $read_len - $data_len") unless $len;
+        $read_len += $len;
+    }
+    my $rect = tinycv::from_ppm($data);
+    OpenQA::Exception::VNCProtocolError->throw(error => "Invalid width/height of the rectangle (${w}x${h} != " . $rect->xres . "x" . $rect->yres . ")")
+      unless $w == $rect->xres and $h == $rect->yres;
+    $image->blend($rect, $x, $y);
+    $self->_framebuffer($image);
 }
 
 sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {

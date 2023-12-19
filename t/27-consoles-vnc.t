@@ -7,6 +7,7 @@ use Test::Most;
 use Mojo::Base -strict, -signatures;
 use utf8;
 
+use Mojo::File qw(path);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Exception;
 use Test::Output qw(combined_like);
@@ -14,6 +15,7 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Mock::Time;
 use FindBin '$Bin';
+use File::Basename;
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use consoles::VNC;
@@ -33,6 +35,7 @@ my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close 
 sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; length $_[1] });
+$vnc_mock->redefine(_read_socket => sub { substr($_[1], $_[3], $_[2]) = $s->mocked_read; length $_[1] });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
@@ -243,6 +246,54 @@ subtest 'update framebuffer' => sub {
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
     $c->update_framebuffer;
     is scalar @printed, 1, 'no further image requested' or diag explain \@printed;
+
+    my $of_type_tight_with_coordinates_12_42_4_4 = pack(nnnnNC => 12, 42, 4, 4, 7);
+    my $fill_compression = pack("C", 0x80);
+    subtest 'Tight encoding, FillCompression' => sub {
+        $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
+        $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
+        $gray_pixel = pack(CCCC => 31, 37, 41, 0);    # dark prime grey
+        $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_12_42_4_4, $fill_compression, $gray_pixel);
+        $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
+        ok $c->update_framebuffer, 'truthy return value for successful pixel update';
+        ($blue, $green, $red) = $c->_framebuffer->get_pixel(14, 44);
+        is $blue, 41, 'pixel data updated in framebuffer (blue)';
+        is $green, 37, 'pixel data updated in framebuffer (green)';
+        is $red, 31, 'pixel data updated in framebuffer (red)';
+    };
+
+    subtest 'Tight encoding, FillCompression, TPIXEL' => sub {
+        $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
+        $c->depth(24);
+        $c->_true_colour(1);
+        $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
+        $gray_pixel = pack(CCCC => 31, 37, 41);    # dark prime grey
+        $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_12_42_4_4, $fill_compression, $gray_pixel);
+        $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
+        ok $c->update_framebuffer, 'truthy return value for successful pixel update';
+        ($blue, $green, $red) = $c->_framebuffer->get_pixel(14, 44);
+        is $blue, 41, 'pixel data updated in framebuffer (blue)';
+        is $green, 37, 'pixel data updated in framebuffer (green)';
+        is $red, 31, 'pixel data updated in framebuffer (red)';
+    };
+
+    subtest 'Tight encoding, JpegCompression' => sub {
+        my $jpeg_data = path(dirname(__FILE__) . '/data/frame1.jpeg')->slurp;
+        my $of_type_tight_with_coordinates_0_0_1024_768 = pack(nnnnNC => 0, 0, 1024, 768, 7);
+        my $jpeg_compression = pack("C", 0x90);
+        my $data_len = length($jpeg_data);
+        my $data_len1 = pack("C", ($data_len & 0x7f) | 0x80);
+        my $data_len2 = pack("C", (($data_len >> 7) & 0x7f) | 0x80);
+        my $data_len3 = pack("C", ($data_len >> 14));
+
+        $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_0_0_1024_768, $jpeg_compression, $data_len1, $data_len2, $data_len3, $jpeg_data);
+        $c->_framebuffer(undef)->width(1024)->height(768);
+        ok $c->update_framebuffer, 'truthy return value for successful pixel update';
+        ($blue, $green, $red) = $c->_framebuffer->get_pixel(14, 44);
+        is $blue, 0x3e, 'pixel data updated in framebuffer (blue)';
+        is $green, 0x84, 'pixel data updated in framebuffer (green)';
+        is $red, 0x01, 'pixel data updated in framebuffer (red)';
+    };
 };
 
 subtest 'read special messages/encodings' => sub {
@@ -362,6 +413,25 @@ subtest 'server initialization' => sub {
         pack(CCCCCCCCnnnCCCCCC => 0, 0, 0, 0, @params, 0, 0, 0),    # setpixelformat
         pack(CCn => 2, 0, 5),    # five supported encodings (no ZRLE due to dell flag)
         pack(N => 0000),    # raw
+        pack(N => -223),    # DesktopSize
+        pack(N => -224),    # VNC_ENCODING_LAST_RECT
+        pack(N => -257),    # VNC_ENCODING_POINTER_TYPE_CHANGE
+        pack(N => -261),    # VNC_ENCODING_LED_STATE
+    );
+    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or diag explain \@printed;
+
+    # test with jpeg enabled
+    @printed = ();
+    $s->set_series(mocked_read => $server_init);
+    $c->jpeg(1);
+    $c->_server_initialization;
+    # expect params for 16-bit depth being replied as setpixelformat
+    @expected = (
+        pack(CCCCCCCCnnnCCCCCC => 0, 0, 0, 0, @params, 0, 0, 0),    # setpixelformat
+        pack(CCn => 2, 0, 7),    # seven supported encodings (no ZRLE due to dell flag)
+        pack(N => 0000),    # raw
+        pack(N => 0007),    # Tight
+        pack(N => -24),    # JPEG quality
         pack(N => -223),    # DesktopSize
         pack(N => -224),    # VNC_ENCODING_LAST_RECT
         pack(N => -257),    # VNC_ENCODING_POINTER_TYPE_CHANGE
