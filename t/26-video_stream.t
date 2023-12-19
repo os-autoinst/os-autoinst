@@ -9,6 +9,7 @@ use Mojo::UserAgent;
 use Mojo::Transaction::HTTP;
 use Test::Warnings qw(:all :report_warnings);
 use File::Basename;
+use File::Copy;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -33,6 +34,7 @@ $mock_console->redefine(_get_ffmpeg_cmd => sub ($self, $url) {
         my @cmd = ('cat', $mock_video_source);
         return \@cmd;
 });
+$mock_console->redefine(_get_ustreamer_cmd => ["true"]);
 
 my $mock_backend = Test::MockObject->new();
 $mock_backend->{xres} = 1024;
@@ -94,6 +96,19 @@ subtest 'connect stream' => sub {
         [('/dev/video0', '--get-dv-timings')],
     ], "calls to v4l2-ctl";
 
+    @v4l2_ctl_calls = ();
+    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+    is $console->{dv_timings_supported}, 0, "correctly skipping DV timing";
+    is_deeply \@v4l2_ctl_calls, [], "calls to v4l2-ctl";
+
+    my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0');
+    is_deeply $cmd, [
+        'ustreamer', '--device', '/dev/video0', '-f', '5',
+        '-c', 'NOOP',
+        '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
+        '--dv-timings'], "correct cmd built";
+
 };
 
 subtest 'frames parsing' => sub {
@@ -114,6 +129,32 @@ subtest 'frames parsing' => sub {
     $img = tinycv::read($data_dir . "frame2.png");
     $received_img = $console->current_screen();
     is $received_img->similarity($img), 1_000_000, "received correct frame";
+    $console->disable_video;
+
+    # ustreamer frame, invalid magic
+    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    my $received_update = $console->update_framebuffer();
+    is $received_update, 0, "detected invalid data";
+    $console->disable_video;
+
+    # ustreamer frame, "no signal" message encoded as JPEG
+    copy($data_dir . "ustreamer-shared-no-signal", '/dev/shm/raw-sink-dev-video0');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer-shared-no-signal.png");
+    $received_img = $console->current_screen();
+    is $received_img->similarity($img), 1_000_000, "received correct JPEG frame";
+    $console->disable_video;
+
+    # ustreamer frame, actual data, encoded as UYVY
+    copy($data_dir . "ustreamer-shared-full-frame", '/dev/shm/raw-sink-dev-video0');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer-shared-full-frame.png");
+    $received_img = $console->current_screen();
+    is $received_img->similarity($img), 1_000_000, "received correct UYVY frame";
     $console->disable_video;
 };
 

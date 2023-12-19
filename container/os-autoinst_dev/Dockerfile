@@ -76,6 +76,7 @@ RUN zypper in -y -C \
        'perl(Fcntl)' \
        'perl(File::Basename)' \
        'perl(File::Find)' \
+       'perl(File::Map)' \
        'perl(File::Path)' \
        'perl(File::Temp)' \
        'perl(File::Touch)' \

@@ -22,6 +22,7 @@ requires 'ExtUtils::testlib';
 requires 'Fcntl';
 requires 'File::Basename';
 requires 'File::Find';
+requires 'File::Map';
 requires 'File::Path';
 requires 'File::Temp';
 requires 'File::Touch';

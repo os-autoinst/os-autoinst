@@ -7,10 +7,12 @@ package consoles::video_stream;
 use Mojo::Base 'consoles::video_base', -signatures;
 use Mojo::UserAgent;
 use Mojo::URL;
+use Mojo::Util 'scope_guard';
 
 use List::Util 'max';
-use Time::HiRes qw(usleep);
+use Time::HiRes qw(usleep clock_gettime CLOCK_MONOTONIC);
 use Fcntl;
+use File::Map qw(map_handle unmap);
 
 use Try::Tiny;
 use bmwqemu;
@@ -33,15 +35,18 @@ sub screen ($self, @) {
     return $self;
 }
 
+sub _stop_process ($self, $name) {
+    return undef unless my $pipe = delete $self->{$name};
+    my $pid = delete $self->{"${name}pid"};
+    kill(TERM => $pid);
+    close($pipe);
+    return waitpid($pid, 0);
+}
+
 sub disable_video ($self) {
     my $ret = 0;
-    if ($self->{ffmpeg}) {
-        kill(TERM => $self->{ffmpegpid});
-        close($self->{ffmpeg});
-        $self->{ffmpeg} = undef;
-        $ret = waitpid($self->{ffmpegpid}, 0);
-        $self->{ffmpegpid} = undef;
-    }
+    $ret ||= $self->_stop_process('ffmpeg');
+    $ret ||= $self->_stop_process('ustreamer');
     return $ret;
 }
 
@@ -94,7 +99,7 @@ sub connect_remote ($self, $args) {
             bmwqemu::diag "DV timings not supported";
         }
     } else {
-        # applies to v4l only
+        # applies to v4l via ffmpeg only
         $self->{dv_timings_supported} = 0;
     }
 
@@ -110,6 +115,15 @@ sub _get_ffmpeg_cmd ($self, $url) {
     return \@cmd;
 }
 
+sub _get_ustreamer_cmd ($self, $url, $sink_name) {
+    return [
+        'ustreamer', '--device', $url, '-f', '5',
+        '-c', 'NOOP',    # do not produce JPEG stream
+        '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
+        '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)
+    ];
+}
+
 sub connect_remote_video ($self, $url) {
     if ($self->{dv_timings_supported}) {
         if (!_v4l2_ctl($url, '--set-dv-bt-timings query')) {
@@ -120,15 +134,34 @@ sub connect_remote_video ($self, $url) {
         $self->{dv_timings} = _v4l2_ctl($url, '--get-dv-timings');
     }
 
-    my $cmd = $self->_get_ffmpeg_cmd($url);
-    my $ffmpeg;
-    $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
-      or die "Failed to start ffmpeg for video stream at $url";
-    # make the pipe size large enough to hold full frame and a bit
-    my $frame_size = $bmwqemu::vars{VIDEO_STREAM_PIPE_BUFFER_SIZE} // DEFAULT_VIDEO_STREAM_PIPE_BUFFER_SIZE;
-    fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, $frame_size);
-    $self->{ffmpeg} = $ffmpeg;
-    $ffmpeg->blocking(0);
+    if ($url =~ m^ustreamer://^) {
+        my $dev = ($url =~ m^ustreamer://(.*)^)[0];
+        my $sink_name = "raw-sink$dev";
+        $sink_name =~ s^/^-^g;
+        my $cmd = $self->_get_ustreamer_cmd($dev, $sink_name);
+        my $ffmpeg;
+        $self->{ustreamerpid} = open($ffmpeg, '-|', @$cmd)
+          or die "Failed to start ustreamer for video stream at $url";
+        $self->{ustreamer_pipe} = $ffmpeg;
+        my $timeout = 100;
+        while ($timeout && !-f "/dev/shm/$sink_name") {
+            sleep(0.1);    # uncoverable statement
+            $timeout -= 1;    # uncoverable statement
+        }
+        die "ustreamer startup timeout" if $timeout <= 0;
+        open($self->{ustreamer}, "+<", "/dev/shm/$sink_name")
+          or die "Failed to open ustreamer memsink";
+    } else {
+        my $cmd = $self->_get_ffmpeg_cmd($url);
+        my $ffmpeg;
+        $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
+          or die "Failed to start ffmpeg for video stream at $url";
+        # make the pipe size large enough to hold full frame and a bit
+        my $frame_size = $bmwqemu::vars{VIDEO_STREAM_PIPE_BUFFER_SIZE} // DEFAULT_VIDEO_STREAM_PIPE_BUFFER_SIZE;
+        fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, $frame_size);
+        $self->{ffmpeg} = $ffmpeg;
+        $ffmpeg->blocking(0);
+    }
 
     $self->{_last_update_received} = time;
 
@@ -150,7 +183,7 @@ sub connect_remote_input ($self, $cmd) {
 }
 
 
-sub _receive_frame ($self) {
+sub _receive_frame_ffmpeg ($self) {
     my $ffmpeg = $self->{ffmpeg};
     $ffmpeg or die 'ffmpeg is not running. Probably your backend instance could not start or died.';
     $ffmpeg->blocking(0);
@@ -181,6 +214,85 @@ sub _receive_frame ($self) {
     return $img;
 }
 
+sub _receive_frame_ustreamer ($self) {
+    die 'ustreamer is not running. Probably your backend instance could not start or died.'
+      unless my $ustreamer = $self->{ustreamer};
+
+    flock($self->{ustreamer}, Fcntl::LOCK_EX);
+    my $ustreamer_map;
+    map_handle($ustreamer_map, $ustreamer, "+<");
+    {
+        my $unlock = scope_guard sub {
+            unmap($ustreamer_map);
+            flock($ustreamer, Fcntl::LOCK_UN);
+        };
+
+        # us_memsink_shared_s struct defined in https://github.com/pikvm/ustreamer/blob/master/src/libs/memsinksh.h
+        # #define US_MEMSINK_MAGIC    ((uint64_t)0xCAFEBABECAFEBABE)
+        # #define US_MEMSINK_VERSION  ((uint32_t)4)
+        # typedef struct {
+        #     uint64_t    magic;
+        #     uint32_t    version;
+        #     // pad
+        #     uint64_t    id;
+        #
+        #     size_t      used;
+        #     unsigned    width;
+        #     unsigned    height;
+        #     unsigned    format;
+        #     unsigned    stride;
+        #     bool        online;
+        #     bool        key;
+        #     // pad
+        #     unsigned    gop;
+        #     // 56
+        #     long double grab_ts;
+        #     long double encode_begin_ts;
+        #     long double encode_end_ts;
+        #     // 112
+        #     long double last_client_ts;
+        #     bool        key_requested;
+        #
+        #     // 192
+        #     uint8_t     data[US_MEMSINK_MAX_DATA];
+        # } us_memsink_shared_s;
+
+        my ($magic, $version, $id, $used, $width, $height, $format, $stride, $online, $key, $gop) =
+          unpack("QLx4QQIIa4ICCxxI", $ustreamer_map);
+        # This is US_MEMSINK_MAGIC, but perl considers hex literals over 32bits non-portable
+        if ($magic != 14627333968358193854) {
+            bmwqemu::diag "Invalid ustreamer magic: $magic";
+            return undef;
+        }
+        die "Unsupported ustreamer version '$version' (only version 4 supported)" if $version != 4;
+
+        # tell ustreamer we are reading, otherwise it won't write new frames
+        my $clock = clock_gettime(CLOCK_MONOTONIC);
+        substr($ustreamer_map, 112, 16) = pack("D", $clock);
+        # no new frame
+        return undef if $self->{ustreamer_last_id} && $id == $self->{ustreamer_last_id};
+        $self->{ustreamer_last_id} = $id;
+        # empty frame
+        return undef unless $used;
+
+        my $img;
+        if ($format eq 'JPEG') {
+            # tinycv::from_ppm in fact handles a bunch of formats, including JPEG
+            $img = tinycv::from_ppm(substr($ustreamer_map, 129, $used));
+        } elsif ($format eq 'UYVY') {
+            $img = tinycv::new($width, $height);
+            $img->map_raw_data_uyvy(substr($ustreamer_map, 129, $used));
+        } else {
+            die "Unsupported video format '$format'";    # uncoverable statement
+        }
+        $self->{_framebuffer} = $img;
+        $self->{width} = $width;
+        $self->{height} = $height;
+        $self->{_last_update_received} = time;
+        return $img;
+    }
+}
+
 sub update_framebuffer ($self) {
     if ($self->{dv_timings_supported}) {
         # periodically check if DV timings needs update due to resolution change
@@ -202,11 +314,19 @@ sub update_framebuffer ($self) {
     }
 
     # no video connected, don't read anything
-    return 0 unless $self->{ffmpeg};
+    return 0 unless $self->{ffmpeg} or $self->{ustreamer};
 
     my $have_received_update = 0;
-    while ($self->_receive_frame()) {
-        $have_received_update = 1;
+    if ($self->{ffmpeg}) {
+        while ($self->_receive_frame_ffmpeg()) {
+            $have_received_update = 1;
+        }
+    } elsif ($self->{ustreamer}) {
+        # shared-memory interface "discards" older frames implicitly,
+        # no need to loop
+        if ($self->_receive_frame_ustreamer()) {
+            $have_received_update = 1;
+        }
     }
     return $have_received_update;
 }
