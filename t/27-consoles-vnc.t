@@ -32,7 +32,7 @@ my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
 sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
-$s->mock(read => sub { $_[1] = $s->mocked_read; defined $_[1] });
+$s->mock(read => sub { $_[1] = $s->mocked_read; length $_[1] });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
