@@ -11,7 +11,6 @@ Before=openqa-worker.target
 Type=dbus
 BusName=org.opensuse.os_autoinst.switch
 Environment=OS_AUTOINST_USE_BRIDGE=br0
-Environment=OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT=60
 EnvironmentFile=-/etc/sysconfig/os-autoinst-openvswitch
 ExecStart=@pkglibexecdir@/os-autoinst-openvswitch
 
