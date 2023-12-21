@@ -746,6 +746,7 @@ sub start_qemu ($self) {
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
     my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
     my $is_ppc = $arch =~ /ppc/;
+    my $is_riscv = $arch eq 'riscv64';
     my $is_s390x = $arch eq 's390x';
     my $is_x86 = $arch eq 'i586' || $arch eq 'x86_64';
 
@@ -756,7 +757,7 @@ sub start_qemu ($self) {
     my $use_usb_kbd;
     my $use_virtio_kbd;
 
-    if ($is_arm) {
+    if ($is_arm || $is_riscv) {
         $arch_supports_boot_order = 0;
         $use_usb_kbd = 1;
     }
