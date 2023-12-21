@@ -613,6 +613,7 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{OVS_DEBUG} = 1;
     $bmwqemu::vars{WORKER_CLASS} = '';
     $bmwqemu::vars{BOOTFROM} = 'cdrom';
+    $bmwqemu::vars{FIDO2} = '1';
 
     my $process_mock = Test::MockObject->new;
     my %callbacks;
@@ -629,6 +630,7 @@ subtest 'special cases when starting QEMU' => sub {
     like $qemu_params, qr{order=}, 'order parameter present due to BOOT_HDD_IMAGE=1 and UEFI=0';
     like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
     is $bmwqemu::vars{BOOTFROM}, 'd', 'BOOTFROM set to "d" for "cdrom"';
+    like $qemu_params, qr{canokey,file=canokey}, 'canokey parameter present due to FIDO2=1';
     is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
     is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 'foovlan'], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
     is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;

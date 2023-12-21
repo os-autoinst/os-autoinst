@@ -108,6 +108,7 @@ BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
 BOOTFROM;chars;undef;Influences order of boot devices. Multi boot order is not supported. This variable can be overriden by `PXEBOOT`. See qemu -boot option and PXEBOOT variable.
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 DELAYED_START;boolean;;delay vm cpu start until resume_vm() is called
+FIDO2;boolean;0;Enable FIDO2 hardware token
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDMODEL_$_;see qemu -device ?;virtio-blk;Storage device for virtualized HDD. Overrides global HDDMODEL for HDD_$i
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB

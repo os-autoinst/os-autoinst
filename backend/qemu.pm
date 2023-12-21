@@ -959,6 +959,8 @@ sub start_qemu ($self) {
         sp('device', 'usb-kbd') if $use_usb_kbd;
         sp('device', 'virtio-keyboard') if $use_virtio_kbd;
 
+        sp("device", "canokey,file=canokey") if $vars->{FIDO2};
+
         my $smp_config = [$vars->{QEMUCPUS}];
         for my $key (qw(QEMUSOCKETS QEMUDIES QEMUCLUSTERS QEMUCORES QEMUTHREADS)) {
             my $qkey = lc($key =~ s/^QEMU//r);
