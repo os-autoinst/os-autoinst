@@ -19,7 +19,8 @@ use Try::Tiny;
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   spawn_debuggers
   checkout_wheels
-  checkout_git_refspec handle_generated_assets load_test_schedule);
+  checkout_git_refspec git_remote_url
+  handle_generated_assets load_test_schedule);
 
 use constant GIT_CLONE_DEPTH => $ENV{OS_AUTOINST_GIT_CLONE_DEPTH} // 1;
 use constant GIT_RETRY_COUNT => $ENV{OS_AUTOINST_GIT_RETRY_COUNT} // 2;
@@ -38,8 +39,18 @@ sub git_rev_parse ($dirname, $cmd_prefix = '') {
 
 sub calculate_git_hash ($git_repo_dir) {
     my $git_hash = git_rev_parse($git_repo_dir);
-    bmwqemu::diag "git hash in $git_repo_dir: $git_hash";
+    bmwqemu::diag "git hash in '$git_repo_dir': $git_hash";
     return $git_hash;
+}
+
+sub git_remote_url ($git_repo_dir) {
+    return 'UNKNOWN (no .git found)' unless -e "$git_repo_dir/.git";
+    chomp(my @remotes = qx{git -C "$git_repo_dir" remote});
+    return 'UNKNOWN (origin remote not found)' unless grep { $_ eq 'origin' } @remotes;
+    chomp(my $url = qx{git -C "$git_repo_dir" remote get-url origin 2>&1});
+    return $url if $? == 0;
+    bmwqemu::diag("Could not retrieve remote url of $git_repo_dir: '$url'");    # uncoverable statement
+    return 'UNKNOWN (error on git remote call)';    # uncoverable statement
 }
 
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
@@ -191,7 +202,10 @@ sub checkout_git_refspec ($dir, $refspec_variable) {
         qx{env git -C $dir checkout -q $refspec};
         die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
     }
-    calculate_git_hash($dir);
+    my $hash = calculate_git_hash($dir);
+    my $url = git_remote_url($dir);
+    bmwqemu::diag "git url in '$dir': $url";
+    return ($url, $hash);
 }
 
 =head2 handle_generated_assets

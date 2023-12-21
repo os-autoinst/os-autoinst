@@ -12,7 +12,8 @@ use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
-use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec load_test_schedule);
+use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec
+  git_remote_url load_test_schedule);
 
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -67,5 +68,19 @@ subtest 'error handling when loading test schedule' => sub {
 };
 
 is_deeply OpenQA::Isotovideo::Utils::_store_asset(0, 'foo.qcow2', 'bar'), {hdd_num => 0, name => 'foo.qcow2', dir => 'bar', format => 'qcow2'}, '_store_asset returns correct parameters';
+
+subtest 'git repo url' => sub {
+    my $gitrepo = "$dir/git";
+    mkdir "$dir/git";
+    qx{git -C "$gitrepo" init >/dev/null 2>&1};
+    qx{git -C "$gitrepo" remote add origin foo >/dev/null};
+    my $url = git_remote_url($gitrepo);
+    is $url, 'foo', 'git_remote_url works correctly';
+    qx{git -C "$gitrepo" remote rm origin >/dev/null};
+    $url = git_remote_url($gitrepo);
+    is $url, 'UNKNOWN (origin remote not found)', 'git_remote_url with no "origin" remote';
+    $url = git_remote_url($dir);
+    is $url, 'UNKNOWN (no .git found)', 'git_remote_url for a non-git dir';
+};
 
 done_testing;
