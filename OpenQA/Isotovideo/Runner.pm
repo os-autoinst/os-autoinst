@@ -212,7 +212,7 @@ sub checkout_code ($self) {
     # if specified, or simply store the git hash that has been used. If it is not a
     # git repo fail silently, i.e. store an empty variable
 
-    $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+    ($bmwqemu::vars{TEST_GIT_URL}, $bmwqemu::vars{TEST_GIT_HASH}) = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
     checkout_wheels($bmwqemu::vars{CASEDIR}, $bmwqemu::vars{WHEELS_DIR});
 }
