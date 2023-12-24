@@ -204,11 +204,11 @@ sub update_framebuffer ($self) {
     # no video connected, don't read anything
     return 0 unless $self->{ffmpeg};
 
-    my $have_recieved_update = 0;
+    my $have_received_update = 0;
     while ($self->_receive_frame()) {
-        $have_recieved_update = 1;
+        $have_received_update = 1;
     }
-    return $have_recieved_update;
+    return $have_received_update;
 }
 
 sub current_screen ($self) {
