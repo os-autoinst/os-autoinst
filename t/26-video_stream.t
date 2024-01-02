@@ -130,9 +130,17 @@ subtest 'frames parsing' => sub {
     $received_img = $console->current_screen();
     is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
+};
+
+subtest 'frame parsing - ustreamer' => sub {
+    # ustreamer requires pack("D") support, not availabe in openSUSE Leap 15.5's Perl
+    eval { $_ = pack("D", 1.0); };
+    plan skip_all => 'packing long double is not supported' if $@;
+    my ($img, $received_img);
 
     # ustreamer frame, invalid magic
     copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
+    my $console = consoles::video_stream->new(undef, {url => 'ustreamer:///dev/video0'});
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
     my $received_update = $console->update_framebuffer();
