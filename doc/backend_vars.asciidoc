@@ -48,6 +48,8 @@ NO_DEPRECATE_BACKEND_$backend;boolean;0;Only warn about deprecated backends inst
 XRES;integer;1024;Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID
 YRES;integer;768;Resolution of display on y axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID
 VIDEO_ENCODER_BLOCKING_PIPE;boolean;0;Whether the pipe for writing data to the video encoder should be blocking or not. Making it blocking might allow following the live view in realtime despite large screenshot file sizes but it is not a well tested configuration
+DEFAULT_CLICK_SLEEP;float;0.15;Default single click time in seconds
+DEFAULT_DCLICK_SLEEP;float;0.10;Default double/triple click time in seconds (both press time and interval between clicks)
 
 |====================
 
