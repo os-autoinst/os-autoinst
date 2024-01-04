@@ -4,9 +4,8 @@
   <description>openQA WebUI: no-webui-set (1): 0-no-scenario</description>
   <memory unit="MiB">1024</memory>
   <vcpu>1</vcpu>
-  <os>
-    <type>hvm</type>
-    <loader>/usr/share/qemu/ovmf-x86_64-ms-code.bin</loader>
+  <os firmware="efi">
+    <type arch="x86_64">hvm</type>
   </os>
   <features><acpi/><apic/><pae/></features>
   <devices/>

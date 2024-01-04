@@ -112,7 +112,7 @@ subtest 'XML config with UEFI loader and VMware' => sub {
 
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     $console_mock->redefine(run_cmd => 1);
-    throws_ok { $svirt_console->_init_xml } qr/No UEFI firmware can be found on hypervisor/, 'dies if UEFI firmware missing';
+    lives_ok { $svirt_console->_init_xml } 'UEFI firmware can be found on hypervisor';
 
     $console_mock->redefine(run_cmd => 0);
     $svirt_console->_init_xml;
