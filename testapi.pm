@@ -1489,6 +1489,7 @@ Default hold time is 0.15s
 
 sub mouse_click ($button = undef, $time = undef) {
     $button //= 'left';
+    $time //= $bmwqemu::vars{DEFAULT_CLICK_SLEEP};
     $time //= 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
@@ -1506,6 +1507,7 @@ Same as mouse_click only for double click.
 
 sub mouse_dclick ($button = undef, $time = undef) {
     $button //= 'left';
+    $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
@@ -1527,6 +1529,7 @@ Same as mouse_click only for triple click.
 
 sub mouse_tclick ($button = undef, $time = undef) {
     $button //= 'left';
+    $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
