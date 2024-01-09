@@ -31,22 +31,63 @@ ANSI_COLORS_DISABLED or NO_COLOR can be set to any value to disable colors.
 
 Show the current program version and test API version
 
+=item B<-e, -?, --exit-status-from-test-results>
+
+isotovideo will exit with status 1 when a test module fails.
+
 =item B<-h, -?, --help>
 
 Show this help.
 
-=head1 TEST PARAMETER
+=back
+
+=head1 TEST PARAMETERS
 
 All additional command line arguments specified in the C<key=value> format are
 parsed as test parameters which take precedence over the settings in the
 vars.json file. Lower case key names are transformed into upper case
 automatically for convenience.
 
+=head1 EXIT CODES
+
+=over 4
+
+=item B<0 - SUCCESS>
+
+isotovideo successfully executed a complete run. In the case of C<--exit-status-from-test-results> flag additionally all test modules passed or softfailed.
+
+=item B<1 - ERROR>
+
+An error ocurred during the test execution related to a test backend failure.
+
+=item B<100 - NO TEST MODULES SCHEDULED>
+
+No test module was scheduled.
+
+This exit code can only be reported when invoked with the
+C<--exit-status-from-test-results> flag.
+
+=item B<101 - TEST MODULES FAILED>
+
+At least one test module did not end with result "ok" or "softfail".
+
+This exit code can only be reported when invoked with the
+C<--exit-status-from-test-results> flag.
+
+=back
+
 =cut
 
 use Mojo::Base -strict, -signatures;
 use autodie ':all';
 no autodie 'kill';
+
+use constant {
+    EXIT_STATUS_OK => 0,
+    EXIT_STATUS_ERR => 1,
+    EXIT_STATUS_ERR_NO_TESTS => 100,
+    EXIT_STATUS_ERR_FROM_TEST_RESULTS => 101,
+};
 
 # Avoid "Subroutine JSON::PP::Boolean::(0+ redefined" warnings
 # Details: https://progress.opensuse.org/issues/90371
@@ -72,14 +113,15 @@ Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
+use Mojo::File qw(path);
 
 my %options;
 
 # global exit status
-my $return_code = 1;
+my $RETURN_CODE = EXIT_STATUS_ERR;
 
 sub usage ($r) {
-    $return_code = $r;
+    $RETURN_CODE = $r;
     eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
     die "cannot display help, install perl(Pod::Usage)\n" if $@;
 }
@@ -89,13 +131,30 @@ sub _get_version_string () {
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
+sub _exit_code_from_test_results () {
+    my @results = glob(path(bmwqemu::result_dir(), "result-*.json"));
+    return EXIT_STATUS_ERR_NO_TESTS if @results == 0;
+
+    my $did_fail = 0;
+    for my $result_file_path (@results) {
+        my $result_file = path($result_file_path);
+        my $test_result = decode_json($result_file->slurp)->{result};
+        diag sprintf("Test result [%s] %s", $result_file->to_string, $test_result);
+        # If a failure (anything different from ok & softfail) is found, keep it.
+        next if $did_fail;
+
+        $did_fail = $test_result !~ m/^(ok|softfail)$/;
+    }
+    return $did_fail ? EXIT_STATUS_ERR_FROM_TEST_RESULTS : EXIT_STATUS_OK;
+}
+
 sub version () {
     print _get_version_string() . "\n";
-    $return_code = 0;
+    $RETURN_CODE = EXIT_STATUS_OK;
     exit 0;
 }
 
-GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v') or usage(1);
+GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v', 'exit-status-from-test-results|e') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
 
@@ -137,28 +196,32 @@ eval {
 
     $runner->handle_commands;
 
-    $return_code = 0;
+    $RETURN_CODE = EXIT_STATUS_OK;
 
     # enter the main loop: process messages from autotest, command server and backend
     $runner->run;
+
+    if ($options{'exit-status-from-test-results'}) {
+        $RETURN_CODE = _exit_code_from_test_results();
+    }
 
     # terminate/kill the command server and let it inform its websocket clients before
     $runner->stop_commands('test execution ended');
 
     if ($runner->testfd) {
         # unusual shutdown
-        $return_code = 1;    # uncoverable statement
+        $RETURN_CODE = EXIT_STATUS_ERR;    # uncoverable statement
         CORE::close $runner->testfd;    # uncoverable statement
         $runner->stop_autotest();    # uncoverable statement
     }
 
-    diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
-    my $clean_shutdown = $runner->handle_shutdown(\$return_code);
+    diag 'isotovideo ' . ($RETURN_CODE ? 'failed' : 'done');
+    my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
 
     # read calculated variables from backend and tests
     bmwqemu::load_vars();
 
-    $return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
+    $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
 };
 if (my $error = $@) {
     log::fctwarn $error, 'main';
@@ -171,8 +234,8 @@ END {
     $runner and $runner->stop_autotest();
 
     # in case of early exit, e.g. help display
-    $return_code //= 0;
+    $RETURN_CODE //= 0;
 
-    print "$$: EXIT $return_code\n";
-    $? = $return_code;
+    print "$$: EXIT $RETURN_CODE\n";
+    $? = $RETURN_CODE;
 }
