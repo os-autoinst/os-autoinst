@@ -17,7 +17,7 @@ use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
 
-has [qw(instance name vmm_family vmm_type)];
+has [qw(instance name vmm_family vmm_type vmm_firmware)];
 
 sub new ($class, $testapi_console = undef, $args = {}) {
     my $self = $class->SUPER::new($testapi_console, $args);
@@ -27,6 +27,7 @@ sub new ($class, $testapi_console = undef, $args = {}) {
     $self->name("openQA-SUT-" . $self->instance);
     $self->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} // 'kvm');
     $self->vmm_type($bmwqemu::vars{VIRSH_VMM_TYPE} // 'hvm');
+    $self->vmm_firmware($bmwqemu::vars{VIRSH_VMM_FIRMWARE} // 'efi');
 
     return $self;
 }
@@ -99,10 +100,12 @@ sub _init_xml ($self, $args = {}) {
     $root->appendChild($elem);
 
     my $os = $doc->createElement('os');
+    $os->setAttribute(firmware => $self->vmm_firmware) if ($bmwqemu::vars{UEFI} and $self->vmm_family eq 'vmware');
     $root->appendChild($os);
 
     $elem = $doc->createElement('type');
     $elem->appendTextNode($self->vmm_type);
+    $elem->setAttribute(arch => $bmwqemu::vars{ARCH}) if ($self->vmm_family eq 'vmware');
     $os->appendChild($elem);
 
     # Following 'features' are required for VM to correctly shutdown
@@ -132,7 +135,7 @@ sub _init_xml ($self, $args = {}) {
         $root->appendChild($elem);
     }
 
-    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv') {
+    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv' and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'vmware') {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
                 $bmwqemu::vars{BIOS} = $firmware;
