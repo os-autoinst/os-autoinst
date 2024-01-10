@@ -140,6 +140,7 @@ Group:          Development/Tools/Other
 Requires:       openvswitch
 Requires:       openvswitch-switch
 Requires:       os-autoinst
+Requires(post): dbus-1
 
 %description openvswitch
 This package contains openvswitch support for os-autoinst.
@@ -250,6 +251,9 @@ cd %{__builddir}
 
 %post openvswitch
 %service_add_post os-autoinst-openvswitch.service
+if test $1 -eq 1 ; then
+  %{_bindir}/dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig 2>&1 || :
+fi
 
 %preun openvswitch
 %service_del_preun os-autoinst-openvswitch.service
