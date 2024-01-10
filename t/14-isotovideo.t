@@ -7,8 +7,10 @@ use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
+
+use OpenQA::Test::TimeLimit '20';
+
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from stderr_from);
 use File::Basename;
@@ -238,7 +240,47 @@ subtest 'productdir variable relative/absolute' => sub {
     unlike $log, qr/assert_screen_fail_test/, 'assert screen test not scheduled';
 };
 
+subtest 'exit status from test results' => sub {
+    # dummy isotovideo invocations
+    chdir($pool_dir);
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove if -e 'vars.json';
+    path('serial0')->touch;
+
+    subtest 'no test scheduled' => sub {
+        path('testresults/')->remove_tree;
+        my $log = combined_from { isotovideo(
+                default_opts => '--exit-status-from-test-results backend=null',
+                opts => "casedir=$data_dir/empty_test_distribution", exit_code => 100) };
+    };
+
+    subtest 'tests scheduled' => sub {
+        path('testresults/')->remove_tree;
+        my $module_basename = 'failing_module';
+        my $module = "tests/$module_basename";
+        my $log = combined_from { isotovideo(
+                default_opts => '--exit-status-from-test-results backend=null',
+                opts => "casedir=$data_dir/tests schedule=$module", exit_code => 101) };
+
+        like $log, qr/scheduling $module_basename $module\.pm/, 'module scheduled';
+        like $log, qr/Test result \[testresults\/result\-$module_basename\.json\] fail/, 'failed test module report';
+    };
+
+    subtest 'softfailed module' => sub {
+        path('testresults/')->remove_tree;
+        my $module_basename = 'softfail_module';
+        my $module = "tests/$module_basename";
+        my $log = combined_from { isotovideo(
+                default_opts => '--exit-status-from-test-results backend=null',
+                opts => "casedir=$data_dir/tests schedule=$module", exit_code => 0) };
+
+        like $log, qr/scheduling $module_basename $module\.pm/, 'module scheduled';
+        like $log, qr/Test result \[testresults\/result\-$module_basename\.json\] softfail/, 'soft failed test module report';
+    };
+};
+
 subtest 'upload assets on demand even in failed jobs' => sub {
+    # qemu isotovideo invocation
     chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
@@ -252,6 +294,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 };
 
 subtest 'load test success when casedir and productdir are relative path' => sub {
+    # qemu isotovideo invocation
     chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
@@ -356,6 +399,7 @@ subtest 'publish assets' => sub {
 done_testing();
 
 END {
+    unlink "./serial0" if -e "./serial0";
     rmtree "$Bin/data/tests/product";
     rmtree "$data_dir/wheels_dir/writer";
     rmtree "$pool_dir/writer";
