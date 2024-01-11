@@ -348,7 +348,11 @@ subtest 'python with bad run method' => sub {
     my $targs = OpenQA::Test::RunArgs->new();
     $targs->{data} = 23;
 
+    my @msg;
+    $mock_bmwqemu->mock(diag => sub ($message) { push @msg, $message });
     autotest::loadtest('tests/pythontest_with_bad_run_fn.py');
+    is $msg[0], 'scheduling pythontest_with_bad_run_fn tests/pythontest_with_bad_run_fn.py', 'debug message from autotest';
+    $mock_bmwqemu->unmock('diag');
 
     loadtest 'pythontest_with_bad_run_fn.py';
     my $p1 = $autotest::tests{'tests-pythontest_with_bad_run_fn'};
