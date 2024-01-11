@@ -9,6 +9,8 @@ use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use Carp 'croak';
 
+use constant SOCKET_READ_BUFFER_SIZE => 4096;
+
 our $VERSION;
 
 =head1 TESTING
@@ -192,7 +194,7 @@ on failure.
 =cut
 sub read_until ($self, $pattern, $timeout, %nargs) {
     my $fd = $self->{fd_read};
-    my $buflen = $nargs{buffer_size} || 4096;
+    my $buflen = $nargs{buffer_size} || SOCKET_READ_BUFFER_SIZE;
     my $overflow = $nargs{record_output} ? '' : undef;
     my $sttime = thetime();
     my ($rbuf, $buf) = ($self->{carry_buffer}, '');
@@ -266,7 +268,7 @@ no information available about what data is expected to be available.
 
 =cut
 sub peak ($self, %nargs) {
-    my $buflen = $nargs{buffer_size} || 4096;
+    my $buflen = $nargs{buffer_size} || SOCKET_READ_BUFFER_SIZE;
     my $total_read = 0;
     my $buf = '';
     my $read;
