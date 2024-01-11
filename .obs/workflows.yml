@@ -9,9 +9,39 @@ pr:
   - configure_repositories:
       project: devel:openQA:GitHub
       repositories:
+      - name: SLE_15_SP6_Backports
+        paths:
+          - target_project: openSUSE:Backports:SLE-15-SP6:Update
+            target_repository: standard
+        architectures:
+          - x86_64
       - name: SLE_15_SP5_Backports
         paths:
           - target_project: openSUSE:Backports:SLE-15-SP5:Update
+            target_repository: standard
+        architectures:
+          - x86_64
+      - name: SLE_15_SP4_Backports
+        paths:
+          - target_project: openSUSE:Backports:SLE-15-SP4:Update
+            target_repository: standard
+        architectures:
+          - x86_64
+      - name: SLE_15_SP3_Backports
+        paths:
+          - target_project: openSUSE:Backports:SLE-15-SP3:Update
+            target_repository: standard
+        architectures:
+          - x86_64
+      - name: SLE_15_SP2_Backports
+        paths:
+          - target_project: openSUSE:Backports:SLE-15-SP2:Update
+            target_repository: standard
+        architectures:
+          - x86_64
+      - name: SLE_15_SP1_Backports
+        paths:
+          - target_project: openSUSE:Backports:SLE-15-SP1:Update
             target_repository: standard
         architectures:
           - x86_64
