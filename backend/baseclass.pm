@@ -33,6 +33,7 @@ use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
 
+
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
 use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
 use constant DEFAULT_FFMPEG_CMD => 'ffmpeg -y -hide_banner -nostats -r 24 -f image2pipe -vcodec ppm -i - -pix_fmt yuv420p';
