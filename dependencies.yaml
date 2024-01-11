@@ -138,6 +138,7 @@ main_requires:
   perl(File::Basename):
   perl(File::chdir):
   perl(File::Find):
+  perl(File::Map):
   perl(File::Path):
   perl(File::Temp):
   perl(File::Touch):

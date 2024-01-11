@@ -89,7 +89,8 @@ sub relogin_vnc ($self) {
             port => $bmwqemu::vars{GENERAL_HW_VNC_PORT} // 5900,
             password => $bmwqemu::vars{GENERAL_HW_VNC_PASSWORD},
             depth => $bmwqemu::vars{GENERAL_HW_VNC_DEPTH} // 16,
-            connect_timeout => 50
+            connect_timeout => 50,
+            jpeg => $bmwqemu::vars{GENERAL_HW_VNC_JPEG} // 0,
         });
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
