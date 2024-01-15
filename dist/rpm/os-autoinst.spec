@@ -251,6 +251,7 @@ cd %{__builddir}
 
 %post openvswitch
 %service_add_post os-autoinst-openvswitch.service
+%{_bindir}/false
 if test $1 -eq 1 ; then
   %{_bindir}/dbus-send --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig 2>&1 || :
 fi
