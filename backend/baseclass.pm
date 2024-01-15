@@ -36,6 +36,7 @@ use OpenQA::NamedIOSelect;
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
 use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
 use constant DEFAULT_FFMPEG_CMD => 'ffmpeg -y -hide_banner -nostats -r 24 -f image2pipe -vcodec ppm -i - -pix_fmt yuv420p';
+use constant SSH_SERIAL_READ_BUFFER_SIZE => 4096;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -1271,7 +1272,7 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
     # read from SSH channel (receiving extended data channel as well via `$chan->ext_data('merge')`)
     my $chan = $self->{serial_chan};
     my $buffer;
-    while (defined(my $bytes_read = $chan->read($buffer, 4096))) {
+    while (defined(my $bytes_read = $chan->read($buffer, SSH_SERIAL_READ_BUFFER_SIZE))) {
         return 1 unless $bytes_read > 0;
         print $buffer;
         open(my $serial, '>>', $self->{serialfile});

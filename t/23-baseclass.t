@@ -307,12 +307,12 @@ subtest 'SSH utilities' => sub {
         is($ssh->blocking(), 0, 'We run SSH in none blocking mode');
 
         $baseclass->truncate_serial_file();
-        my $expect_output = "FOO$/" x 4096;
+        my $expect_output = "FOO$/" x backend::baseclass::SSH_SERIAL_READ_BUFFER_SIZE;
         my $channel_read_string = $expect_output;
         $chan->mock(read => sub {
                 my ($self, undef, $max) = @_;
                 return unless (defined($channel_read_string));
-                $max //= 4096;
+                $max //= backend::baseclass::SSH_SERIAL_READ_BUFFER_SIZE;
                 $_[1] = substr($channel_read_string, 0, $max);
                 my $ret = length($_[1]);
                 $channel_read_string = substr($channel_read_string, $ret);
