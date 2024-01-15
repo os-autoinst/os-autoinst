@@ -59,22 +59,28 @@ sub disable ($self, @) {
     return $ret;
 }
 
+# uncoverable statement count:1..5 note:the function is redefined in tests
 sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
-    my @cmd = split(/ /, $cmd_prefix);
-    push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));
-    push(@cmd, split(/ /, $cmd));
+    my @cmd = split(/ /, $cmd_prefix);    # uncoverable statement
+    push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));    # uncoverable statement
+    push(@cmd, split(/ /, $cmd));    # uncoverable statement
 
+    # uncoverable statement
     my $pipe;
+    # uncoverable statement
     my $pid = open($pipe, '-|', @cmd) or return undef;
+    # uncoverable statement
     $pipe->read(my $str, 50);
+    # uncoverable statement
     my $ret = waitpid($pid, 0);
+    # uncoverable statement
     if ($ret > 0 && $? == 0) {
         # remove header and whitespaces
-        $str =~ s/DV timings://;
-        $str =~ s/^\s+|\s+$//g;
-        return $str;
+        $str =~ s/DV timings://;    # uncoverable statement
+        $str =~ s/^\s+|\s+$//g;    # uncoverable statement
+        return $str;    # uncoverable statement
     }
-    return undef;
+    return undef;    # uncoverable statement
 }
 
 sub connect_remote ($self, $args) {
@@ -111,11 +117,12 @@ sub connect_remote ($self, $args) {
     $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
 }
 
+# uncoverable statement count:1..4 note:the function is redefined in tests
 sub _get_ffmpeg_cmd ($self, $url) {
-    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});
-    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '4', '-'));
-    return \@cmd;
+    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});    # uncoverable statement
+    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));    # uncoverable statement
+    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '4', '-'));    # uncoverable statement
+    return \@cmd;    # uncoverable statement
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
