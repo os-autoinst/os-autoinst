@@ -5,7 +5,7 @@ Version:        4.6
 Release:        0
 Summary:        test package for %{short_name}
 License:        GPL-2.0-or-later
-BuildRequires:  %{short_name}
+BuildRequires:  %{short_name} == %{version}
 ExcludeArch:    %{ix86}
 
 %description
