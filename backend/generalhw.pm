@@ -125,6 +125,7 @@ sub reconnect_video_stream ($self, @) {
         {
             url => $bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL},
             connect_timeout => 50,
+            video_cmd_prefix => $bmwqemu::vars{GENERAL_HW_VIDEO_CMD_PREFIX},
             input_cmd => $input_cmd,
             edid => $bmwqemu::vars{GENERAL_HW_EDID},
         });

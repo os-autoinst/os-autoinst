@@ -59,20 +59,28 @@ sub disable ($self, @) {
     return $ret;
 }
 
-sub _v4l2_ctl ($device, $cmd) {
-    my @cmd = ("v4l2-ctl", "--device", $device, "--concise");
-    push(@cmd, split(/ /, $cmd));
+# uncoverable statement count:1..5 note:the function is redefined in tests
+sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
+    my @cmd = split(/ /, $cmd_prefix);    # uncoverable statement
+    push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));    # uncoverable statement
+    push(@cmd, split(/ /, $cmd));    # uncoverable statement
+
+    # uncoverable statement
     my $pipe;
+    # uncoverable statement
     my $pid = open($pipe, '-|', @cmd) or return undef;
+    # uncoverable statement
     $pipe->read(my $str, 50);
+    # uncoverable statement
     my $ret = waitpid($pid, 0);
+    # uncoverable statement
     if ($ret > 0 && $? == 0) {
         # remove header and whitespaces
-        $str =~ s/DV timings://;
-        $str =~ s/^\s+|\s+$//g;
-        return $str;
+        $str =~ s/DV timings://;    # uncoverable statement
+        $str =~ s/^\s+|\s+$//g;    # uncoverable statement
+        return $str;    # uncoverable statement
     }
-    return undef;
+    return undef;    # uncoverable statement
 }
 
 sub connect_remote ($self, $args) {
@@ -80,11 +88,11 @@ sub connect_remote ($self, $args) {
 
     if ($args->{url} =~ m/^\/dev\/video/) {
         if ($args->{edid}) {
-            my $ret = _v4l2_ctl($args->{url}, "--set-edid $args->{edid}");
+            my $ret = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, "--set-edid $args->{edid}");
             die "Failed to set EDID" unless defined $ret;
         }
 
-        my $timings = _v4l2_ctl($args->{url}, '--get-dv-timings');
+        my $timings = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, '--get-dv-timings');
         if ($timings) {
             if ($timings ne "0x0pnan") {
                 $self->{dv_timings} = $timings;
@@ -109,10 +117,12 @@ sub connect_remote ($self, $args) {
     $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
 }
 
+# uncoverable statement count:1..4 note:the function is redefined in tests
 sub _get_ffmpeg_cmd ($self, $url) {
-    my @cmd = ('ffmpeg', '-loglevel', 'fatal', '-i', $url);
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '2', '-'));
-    return \@cmd;
+    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});    # uncoverable statement
+    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));    # uncoverable statement
+    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '4', '-'));    # uncoverable statement
+    return \@cmd;    # uncoverable statement
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
@@ -126,12 +136,12 @@ sub _get_ustreamer_cmd ($self, $url, $sink_name) {
 
 sub connect_remote_video ($self, $url) {
     if ($self->{dv_timings_supported}) {
-        if (!_v4l2_ctl($url, '--set-dv-bt-timings query')) {
+        if (!_v4l2_ctl($url, $self->{args}->{video_cmd_prefix}, '--set-dv-bt-timings query')) {
             bmwqemu::diag("No video signal");
             $self->{dv_timings} = '';
             return;
         }
-        $self->{dv_timings} = _v4l2_ctl($url, '--get-dv-timings');
+        $self->{dv_timings} = _v4l2_ctl($url, $self->{args}->{video_cmd_prefix}, '--get-dv-timings');
     }
 
     if ($url =~ m^ustreamer://^) {
@@ -205,7 +215,11 @@ sub _receive_frame_ffmpeg ($self) {
     my $frame_len = $width * $height * 3 * $bytes_per_pixel;
     my $remaining_len = $header_len + $frame_len - $ret;
     $ret = $ffmpeg->read(my $frame_data, $remaining_len);
-    die "Incomplete frame (got $ret instead of $remaining_len)" if $ret != $remaining_len;
+    if ($ret != $remaining_len) {
+        bmwqemu::diag "Incomplete frame (got $ret instead of $remaining_len)";
+        return undef;
+    }
+
     my $img = tinycv::from_ppm($header . $frame_data);
     $self->{_framebuffer} = $img;
     $self->{width} = $width;
@@ -297,7 +311,7 @@ sub update_framebuffer ($self) {
     if ($self->{dv_timings_supported}) {
         # periodically check if DV timings needs update due to resolution change
         if (time - $self->{dv_timings_last_check} >= DV_TIMINGS_CHECK_INTERVAL) {
-            my $current_timings = _v4l2_ctl($self->{args}->{url}, '--query-dv-timings');
+            my $current_timings = _v4l2_ctl($self->{args}->{url}, $self->{args}->{video_cmd_prefix}, '--query-dv-timings');
             if ($current_timings && $current_timings ne $self->{dv_timings}) {
                 bmwqemu::diag "Updating DV timings, new: $current_timings";
                 # yes, there is need to update DV timings, restart ffmpeg,
