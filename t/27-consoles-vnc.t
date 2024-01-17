@@ -35,7 +35,7 @@ my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close 
 sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; length $_[1] });
-$vnc_mock->redefine(_read_socket => sub { substr($_[1], $_[3], $_[2]) = $s->mocked_read; length $_[1] });
+$vnc_mock->redefine(_read_socket => sub { substr(${$_[1]}, $_[3], $_[2]) = $s->mocked_read; length ${$_[1]} });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
@@ -47,6 +47,13 @@ is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and securi
 # ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
 my $machine_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 my %normal_update_request = (x => 0, y => 0, width => 1024, height => 512, incremental => 0);
+
+subtest 'mocked read' => sub {
+    my $data = 'A' x 15;
+    open(my $s, '<:raw', dirname(__FILE__) . '/data/frame1.ppm');
+    is $vnc_mock->original('_read_socket')->($s, \$data, 7, 6), 7, 'correct result of _read_socket';
+    is $data, "AAAAAAP6\n1024", '_read_socket modified data array';
+};
 
 subtest 'send update request' => sub {
     $c->width(1024)->height(512)->send_update_request;
