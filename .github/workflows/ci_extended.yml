@@ -7,7 +7,7 @@ on:
       - master
   pull_request:
     paths:
-      - 'container/**'
+      - container/**
 jobs:
   test-containers:
     runs-on: ubuntu-latest
