@@ -19,11 +19,15 @@ push @Test::Strict::MODULES_ENABLING_WARNINGS, 'Test::Most';
 $Test::Strict::TEST_SYNTAX = 1;
 $Test::Strict::TEST_STRICT = 1;
 $Test::Strict::TEST_WARNINGS = 1;
+# We don't want to check files under external, as there might be
+# missing dependencies like perltidy in OBS builds
+chomp(my @external_files = qx{find external -type f});
 $Test::Strict::TEST_SKIP = [
     't/data/tests/main.pm',
     't/data/tests/product/main.pm',
     't/pool/product/foo/main.pm',
     'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
+    @external_files,
 ];
 
 # Prevent any non-tracked files or files within .git (e.g. in.git/rr-cache) to
