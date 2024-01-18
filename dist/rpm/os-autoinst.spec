@@ -207,6 +207,8 @@ rm t/27-consoles-vmware.t
 %if %{without ocr}
 rm t/02-test_ocr.t
 %endif
+# We don't need anything from the external directory in the rpm
+rm -r external/os-autoinst-common/lib/perlcritic
 
 %build
 %define __builder ninja
