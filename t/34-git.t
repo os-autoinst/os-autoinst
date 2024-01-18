@@ -5,6 +5,8 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Mojo::File qw(path tempdir);
+use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like);
@@ -96,6 +98,51 @@ subtest 'successful clone' => sub {
 
     eval { bmwqemu::save_vars(no_secret => 1) };
     is($@, '', 'serialization successful');
+};
+
+subtest 'cloning with caching' => sub {
+    # setup temp dir for cache and configure using it
+    my $git_cache_dir = tempdir('temp-git-caching-XXXXX')->make_path;
+    note "temp dir for cache: $git_cache_dir";
+    $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
+
+    # make up parameters for cloning
+    my ($orga, $repo, $rev) = (qw(os-autoinst os-autoinst-wheel-launcher 742bd0570a5d086be12fecb3b108bff15f4cb202));
+    my $url = Mojo::URL->new("https://github.com/$orga/$repo.git");
+    my $orga_cache_dir = $git_cache_dir->child($orga);
+    my $repo_cache_dir = $orga_cache_dir->child("$repo.git");
+    my @clone_args = ($repo, $url, 1, $rev, $repo, '?', 1);
+    my $clone = sub {
+        combined_from { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo' };
+    };
+
+    # setup temp dir for the working tree
+    my $pwd = tempdir('temp-git-working-tree-XXXXX')->make_path;
+    note "temp dir for working trees: $pwd";
+    my $working_tree_dir = path($repo);
+    chdir $pwd;
+    my $chdir_guard = scope_guard sub { chdir '..' };
+
+    # clone the same repo twice
+    my $check_working_tree = sub {
+        ok -f $working_tree_dir->child('README.md'), 'working tree has been created';
+        my $working_tree_config = $working_tree_dir->child('.git/config')->slurp;
+        ok index($working_tree_config, $repo_cache_dir), 'working tree config refers to cache dir';
+    };
+    subtest 'first clone' => sub {
+        my $out = $clone->();
+        like $out, qr/Creating bare repository for caching/, 'created bare repo for caching';
+        like $out, qr/Updating Git cache/, 'updated bare repo';
+        ok -d $repo_cache_dir->child('refs'), 'cache dir created and has ref';
+        $check_working_tree->();
+    };
+    subtest 'second clone' => sub {
+        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        my $out = $clone->();
+        unlike $out, qr/Creating bare repository for caching/, 'no new bare repo created';
+        like $out, qr/Updating Git cache/, 'updated bare repo';
+        $check_working_tree->();
+    };
 };
 
 done_testing;
