@@ -937,7 +937,7 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
 }
 
 # wrapper to make testing easier
-sub _read_socket ($socket, $data, $data_len, $offset) { return read($socket, $data, $data_len, $offset); }    # uncoverable statement
+sub _read_socket ($socket, $data, $data_len, $offset) { return read($socket, $$data, $data_len, $offset); }
 
 sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
     my $socket = $self->socket;
@@ -982,7 +982,7 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
 
     my $read_len = 0;
     while ($read_len < $data_len) {
-        my $len = _read_socket($socket, $data, $data_len - $read_len, $read_len);
+        my $len = _read_socket($socket, \$data, $data_len - $read_len, $read_len);
         OpenQA::Exception::VNCProtocolError->throw(error => "short read for jpeg data $read_len - $data_len") unless $len;
         $read_len += $len;
     }
