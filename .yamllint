@@ -4,7 +4,7 @@ rules:
     max: 160
   document-start: disable
   indentation:
-    indent-sequences: whatever
+    indent-sequences: true
 
   # Allows aligning subsequent lines with [] sequences
   brackets:
