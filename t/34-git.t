@@ -138,7 +138,8 @@ subtest 'cloning with caching' => sub {
         my $out = $clone->();
         like $out, qr/Creating bare repository for caching/, 'created bare repo for caching';
         like $out, qr/Updating Git cache/, 'updated bare repo';
-        ok -d $repo_cache_dir->child('refs'), 'cache dir created and has ref';
+        ok -d $repo_cache_dir, 'cache dir created';
+        is $repo_cache_dir->child("refs/heads/$rev")->slurp, "$rev\n", 'cache dir has ref';
         $check_working_tree->();
     };
     subtest 'second clone' => sub {

@@ -74,6 +74,7 @@ sub _clone_bare_repo ($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_
 sub _fetch_new_refs ($clone_url, $cache_dir, $branch_args, $handle_output) {
     bmwqemu::fctinfo "Updating Git cache for '$clone_url' under '$cache_dir'";
     $handle_output->($?, qx{git -C "$cache_dir" fetch origin $branch_args 2>&1 2>&1});
+    $handle_output->($?, qx{git -C "$cache_dir" branch --force $branch_args FETCH_HEAD 2>&1 2>&1}) if $branch_args;
 }
 
 sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output) {
