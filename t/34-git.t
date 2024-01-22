@@ -18,8 +18,9 @@ use Test::Warnings ':report_warnings';
 
 use Mojo::File 'tempdir';
 my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
-my $git_dir = "$tmpdir/tmpgitrepo";
-my $clone_dir = "$Bin/tmpgitrepo";
+my $git_repo = 'tmpgitrepo';
+my $git_dir = "$tmpdir/$git_repo";
+my $clone_dir = "$Bin/$git_repo";
 
 chdir $Bin;
 # some git variables might be set if this test is
@@ -107,10 +108,14 @@ subtest 'cloning with caching' => sub {
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
 
     # make up parameters for cloning
-    my ($orga, $repo, $rev) = (qw(os-autoinst os-autoinst-wheel-launcher 742bd0570a5d086be12fecb3b108bff15f4cb202));
-    my $url = Mojo::URL->new("https://github.com/$orga/$repo.git");
+    my ($orga, $repo, $suffix) = (qw(os-autoinst os-autoinst-wheel-launcher .git));
+    my $rev = '742bd0570a5d086be12fecb3b108bff15f4cb202';
+    my $url = Mojo::URL->new("https://github.com/$orga/$repo$suffix");
+    ($orga, $repo, $rev, $suffix, $url) = ($tmpdir, $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
+      unless $ENV{OS_AUTOINST_TEST_GIT_ONLINE};
+
     my $orga_cache_dir = $git_cache_dir->child($orga);
-    my $repo_cache_dir = $orga_cache_dir->child("$repo.git");
+    my $repo_cache_dir = $orga_cache_dir->child("$repo$suffix");
     my @clone_args = ($repo, $url, 1, $rev, $repo, '?', 1);
     my $clone = sub {
         combined_from { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo' };
@@ -156,8 +161,8 @@ git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
 git config init.defaultBranch main >/dev/null && \
 git config commit.gpgsign false >/dev/null && \
-touch README && \
-git add README && \
+touch README.md && \
+git add README.md && \
 git commit -mInit >/dev/null
 EOM
     system $git_init and die "git init failed";
@@ -165,7 +170,7 @@ EOM
     # Create some dummy commits so the code has to increase the clone depth a
     # couple of times
     for (1 .. 10) {
-        my $git_add = qq{cd $git_dir; echo $_ >>README; git add README; git commit -m"Commit $_" >/dev/null};
+        my $git_add = qq{cd $git_dir; echo $_ >>README.md; git add README.md; git commit -m"Commit $_" >/dev/null};
         system $git_add;
     }
     chomp(my $head = qx{git -C $git_dir rev-parse HEAD});
