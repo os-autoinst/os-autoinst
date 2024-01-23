@@ -5,6 +5,8 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Mojo::File qw(path tempdir);
+use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like);
@@ -16,8 +18,9 @@ use Test::Warnings ':report_warnings';
 
 use Mojo::File 'tempdir';
 my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
-my $git_dir = "$tmpdir/tmpgitrepo";
-my $clone_dir = "$Bin/tmpgitrepo";
+my $git_repo = 'tmpgitrepo';
+my $git_dir = "$tmpdir/$git_repo";
+my $clone_dir = "$Bin/$git_repo";
 
 chdir $Bin;
 # some git variables might be set if this test is
@@ -98,6 +101,56 @@ subtest 'successful clone' => sub {
     is($@, '', 'serialization successful');
 };
 
+subtest 'cloning with caching' => sub {
+    # setup temp dir for cache and configure using it
+    my $git_cache_dir = tempdir('temp-git-caching-XXXXX')->make_path;
+    note "temp dir for cache: $git_cache_dir";
+    $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
+
+    # make up parameters for cloning
+    my ($orga, $repo, $suffix) = (qw(os-autoinst os-autoinst-wheel-launcher .git));
+    my $rev = '742bd0570a5d086be12fecb3b108bff15f4cb202';
+    my $url = Mojo::URL->new("https://github.com/$orga/$repo$suffix");
+    ($orga, $repo, $rev, $suffix, $url) = ($tmpdir, $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
+      unless $ENV{OS_AUTOINST_TEST_GIT_ONLINE};
+
+    my $orga_cache_dir = $git_cache_dir->child($orga);
+    my $repo_cache_dir = $orga_cache_dir->child("$repo$suffix");
+    my @clone_args = ($repo, $url, 1, $rev, $repo, '?', 1);
+    my $clone = sub {
+        combined_from { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo' };
+    };
+
+    # setup temp dir for the working tree
+    my $pwd = tempdir('temp-git-working-tree-XXXXX')->make_path;
+    note "temp dir for working trees: $pwd";
+    my $working_tree_dir = path($repo);
+    chdir $pwd;
+    my $chdir_guard = scope_guard sub { chdir '..' };
+
+    # clone the same repo twice
+    my $check_working_tree = sub {
+        ok -f $working_tree_dir->child('README.md'), 'working tree has been created';
+        my $working_tree_config = $working_tree_dir->child('.git/config')->slurp;
+        ok index($working_tree_config, $repo_cache_dir), 'working tree config refers to cache dir';
+    };
+    subtest 'first clone' => sub {
+        my $out = $clone->();
+        like $out, qr/Creating bare repository for caching/, 'created bare repo for caching';
+        like $out, qr/Updating Git cache/, 'updated bare repo';
+        ok -d $repo_cache_dir, 'cache dir created';
+        is $repo_cache_dir->child("refs/heads/$rev")->slurp, "$rev\n", 'cache dir has ref';
+        $check_working_tree->();
+    };
+    subtest 'second clone' => sub {
+        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        my $out = $clone->();
+        unlike $out, qr/Creating bare repository for caching/, 'no new bare repo created';
+        like $out, qr/Updating Git cache/, 'updated bare repo';
+        $check_working_tree->();
+    };
+};
+
 done_testing;
 
 sub initialize_git_repo () {
@@ -109,8 +162,8 @@ git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
 git config init.defaultBranch main >/dev/null && \
 git config commit.gpgsign false >/dev/null && \
-touch README && \
-git add README && \
+touch README.md && \
+git add README.md && \
 git commit -mInit >/dev/null
 EOM
     system $git_init and die "git init failed";
@@ -118,7 +171,7 @@ EOM
     # Create some dummy commits so the code has to increase the clone depth a
     # couple of times
     for (1 .. 10) {
-        my $git_add = qq{cd $git_dir; echo $_ >>README; git add README; git commit -m"Commit $_" >/dev/null};
+        my $git_add = qq{cd $git_dir; echo $_ >>README.md; git add README.md; git commit -m"Commit $_" >/dev/null};
         system $git_add;
     }
     chomp(my $head = qx{git -C $git_dir rev-parse HEAD});

@@ -50,6 +50,7 @@ YRES;integer;768;Resolution of display on y axis. Sets the resolution of the vid
 VIDEO_ENCODER_BLOCKING_PIPE;boolean;0;Whether the pipe for writing data to the video encoder should be blocking or not. Making it blocking might allow following the live view in realtime despite large screenshot file sizes but it is not a well tested configuration
 DEFAULT_CLICK_SLEEP;float;0.15;Default single click time in seconds
 DEFAULT_DCLICK_SLEEP;float;0.10;Default double/triple click time in seconds (both press time and interval between clicks)
+GIT_CACHE_DIR;string;;If set enables locally caching Git repositories in the specified directory when handling Git URLs in variables like `CASEDIR` and wheels
 
 |====================
 

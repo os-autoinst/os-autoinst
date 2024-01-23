@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package OpenQA::Isotovideo::Utils;
+use Fcntl qw(:flock);
 use IPC::Run;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
+use Mojo::Util qw(scope_guard);
 use JSON::Validator;
 use Cwd 'cwd';
 use YAML::XS;    # Required by JSON::Validator as a runtime dependency
@@ -53,6 +55,41 @@ sub git_remote_url ($git_repo_dir) {
     return 'UNKNOWN (error on git remote call)';    # uncoverable statement
 }
 
+sub _lock_cache_directory ($cache_dir) {
+    my $lock_file = "$cache_dir.lock";
+    open(my $lock, '>', $lock_file) or die "Unable to open lock file '$lock_file' for Git caching: $!\n";
+    flock($lock, LOCK_EX) or die "Unable to lock '$lock_file' for Git caching: $!\n";
+    return scope_guard sub {
+        flock($lock, LOCK_UN) or die "Unable to unlock '$lock_file' after Git caching: $!\n";
+        close($lock);
+    };
+}
+
+sub _clone_bare_repo ($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_output) {
+    return undef if -e $cache_dir;
+    bmwqemu::fctinfo "Creating bare repository for caching '$clone_url' under '$cache_dir'";
+    $handle_output->($?, qx{$clone_cmd --bare --depth='$clone_depth' '$clone_url' '$cache_dir' 2>&1});
+}
+
+sub _fetch_new_refs ($clone_url, $cache_dir, $branch_args, $handle_output) {
+    bmwqemu::fctinfo "Updating Git cache for '$clone_url' under '$cache_dir'";
+    $handle_output->($?, qx{git -C "$cache_dir" fetch origin $branch_args 2>&1 2>&1});
+    $handle_output->($?, qx{git -C "$cache_dir" branch --force $branch_args FETCH_HEAD 2>&1 2>&1}) if $branch_args;
+}
+
+sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output) {
+    # determine cache directory and ensure its parent directory exists
+    return undef unless my $git_cache_dir = $bmwqemu::vars{GIT_CACHE_DIR};
+    my $cache_dir = path($git_cache_dir, $clone_url->path);
+    path($git_cache_dir, $clone_url->path->to_dir)->make_path;
+
+    # ensure bare repo for caching exists and fetch new/required refs
+    my $lock_guard = _lock_cache_directory($cache_dir);
+    _clone_bare_repo($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_output);
+    _fetch_new_refs($clone_url, $cache_dir, $branch ? "'$branch'" : '', $handle_output);
+    return $cache_dir;
+}
+
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
     if (-e $local_path) {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
@@ -64,21 +101,30 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
         $branch_args = " --branch $branch";
     }
+
     my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
-    my @out = qx{$clone_cmd --depth=$clone_depth $branch_args $clone_url 2>&1};
     my $handle_output = sub ($return_value, @out) {
         bmwqemu::diag "@out" if @out;
         die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_value == 0;
         return 1;
     };
-    return $handle_output->($?, @out) unless ($branch && grep /warning: Could not find remote branch/, @out);
+
+    my $cache_dir = _handle_caching($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output);
+    my $source_url = $cache_dir // $clone_url;
+
+    # attempt to clone with `--branch`
+    my $depth_args = $cache_dir ? '' : "--depth='$clone_depth'";    # cannot use `--depth` with $cache_dir
+    if (!$cache_dir) {    # cannot use `--branch` with $cache_dir so just move to fallback directly
+        my @out = qx{$clone_cmd $depth_args $branch_args $source_url 2>&1};
+        return $handle_output->($?, @out) unless ($branch && grep /warning: Could not find remote branch/, @out);
+    }
 
     # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and checkout the missing
     # ref manually
-    @out = qx{$clone_cmd --depth=$clone_depth $clone_url 2>&1};
+    $handle_output->($?, my @out = qx{$clone_cmd $depth_args $source_url 2>&1});
+    return 1 unless $branch;
     if ($direct_fetch) {
         bmwqemu::diag "Fetching '$branch' from origin manually";
-        $handle_output->($?, @out);
         @out = qx{git -C "$local_path" fetch origin "$branch" 2>&1 && git -C "$local_path" checkout FETCH_HEAD 2>&1};
         return $handle_output->($?, @out) unless (grep /could(n't| not) find remote ref/, @out);
     }
@@ -126,7 +172,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $retry_interval = $args{retry_interval} // GIT_RETRY_INTERVAL;
 
     my $branch = $url->fragment;
-    my $clone_url = $url->fragment(undef)->to_string;
+    my $clone_url = $url->fragment(undef);
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
     my $tries = $retry_count;
 
