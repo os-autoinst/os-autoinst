@@ -12,7 +12,7 @@ zone="${zone:-"trusted"}"
 mtu=${mtu:-1460}
 
 ensure_ip_forwarding() {
-    grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
+    grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' >/etc/sysctl.d/ip_forward.conf
 }
 
 install_packages() {
@@ -23,10 +23,10 @@ configure_firewall() {
     systemctl enable --now firewalld
     firewall-cmd --permanent --get-services | grep -q isotovideo && firewall-cmd --permanent --delete-service=isotovideo
     firewall-cmd --permanent --new-service isotovideo
-    for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp ; done
+    for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp; done
     firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
     firewall-cmd --get-default-zone | grep -q "$zone" || firewall-cmd --set-default-zone="$zone"
-    cat > /etc/firewalld/zones/"$zone".xml <<EOF
+    cat >/etc/firewalld/zones/"$zone".xml <<EOF
 <?xml version="1.0" encoding="utf-8"?>
 <zone target="ACCEPT">
   <short>"${zone^}"</short>
@@ -43,7 +43,7 @@ EOF
 
 create_gre_preup_script() {
     local location=$1
-    cat > "$location" <<EOF
+    cat >"$location" <<EOF
 #!/bin/sh
 action="\$1"
 bridge="\$2"
@@ -64,7 +64,11 @@ setup_multi_machine_with_networkmanager() {
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
     nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
-    for i in 0 $(seq 1 "$instances"; seq 64 $((64+instances)); seq 128 $((128+instances))); do
+    for i in 0 $(
+        seq 1 "$instances"
+        seq 64 $((64 + instances))
+        seq 128 $((128 + instances))
+    ); do
         nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
         nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
     done
@@ -75,7 +79,7 @@ setup_multi_machine_with_wicked() {
     ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
     ovs-vsctl add-br "$bridge"
     ovs-vsctl set int "$bridge" mtu_request="$mtu"
-    cat > "/etc/sysconfig/network/ifcfg-$bridge" <<EOF
+    cat >"/etc/sysconfig/network/ifcfg-$bridge" <<EOF
 BOOTPROTO='static'
 IPADDR='10.0.2.2/15'
 STARTMODE='auto'
@@ -84,7 +88,7 @@ OVS_BRIDGE='yes'
 PRE_UP_SCRIPT="wicked:gre_tunnel_preup.sh"
 OVS_BRIDGE_PORT_DEVICE_0='tap0'
 EOF
-    cat > /etc/sysconfig/network/ifcfg-tap0 <<EOF
+    cat >/etc/sysconfig/network/ifcfg-tap0 <<EOF
 BOOTPROTO='none'
 IPADDR=''
 NETMASK=''
@@ -94,12 +98,16 @@ TUNNEL='tap'
 TUNNEL_SET_GROUP='nogroup'
 TUNNEL_SET_OWNER='_openqa-worker'
 EOF
-    for i in $(seq 1 "$instances"; seq 64 $((64+instances)); seq 128 $((128+instances))); do ln -sf ifcfg-tap0 "/etc/sysconfig/network/ifcfg-tap$i" && echo "OVS_BRIDGE_PORT_DEVICE_$i='tap$i'" >> "/etc/sysconfig/network/ifcfg-$bridge"; done
+    for i in $(
+        seq 1 "$instances"
+        seq 64 $((64 + instances))
+        seq 128 $((128 + instances))
+    ); do ln -sf ifcfg-tap0 "/etc/sysconfig/network/ifcfg-tap$i" && echo "OVS_BRIDGE_PORT_DEVICE_$i='tap$i'" >>"/etc/sysconfig/network/ifcfg-$bridge"; done
     create_gre_preup_script /etc/wicked/scripts/gre_tunnel_preup.sh
 }
 
 configure_openvswitch() {
-    echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
+    echo "OS_AUTOINST_USE_BRIDGE=$bridge" >/etc/sysconfig/os-autoinst-openvswitch
     systemctl enable os-autoinst-openvswitch
     systemctl restart openvswitch os-autoinst-openvswitch
 }
@@ -115,12 +123,12 @@ main() {
     configure_firewall
     systemctl enable --now openvswitch
     case "$network" in
-        wicked)
-            setup_multi_machine_with_wicked
-            ;;
-        NetworkManager)
-            setup_multi_machine_with_networkmanager
-            ;;
+    wicked)
+        setup_multi_machine_with_wicked
+        ;;
+    NetworkManager)
+        setup_multi_machine_with_networkmanager
+        ;;
     esac
     configure_openvswitch
 }

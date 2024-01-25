@@ -8,7 +8,7 @@ getdeps_container() {
         my $d = Load<>;
         say for sort grep {!/^%/} map { keys %{$d->{$_."_requires"}} }
         @{$d->{targets}->{docker}}
-    ' < dependencies.yaml
+    ' <dependencies.yaml
 }
 
 listdeps() {
