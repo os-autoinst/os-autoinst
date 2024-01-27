@@ -46,6 +46,7 @@ RUN zypper in -y -C \
        qemu-x86 \
        rsync \
        shadow \
+       shfmt \
        sshpass \
        sudo \
        tesseract-ocr \
