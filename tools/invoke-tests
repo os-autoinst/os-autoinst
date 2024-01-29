@@ -24,17 +24,38 @@ opts=$(getopt \
     --name "$(basename "$0")" -- "$@") || usage
 eval set -- "$opts"
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -h | --help               ) usage                              ;;
-    --coverage                ) WITH_COVER_OPTIONS=1;      shift   ;;
-    --skip-if-cover-db-exists ) SKIP_IF_COVER_DB_EXISTS=1; shift   ;;
-    --prove-tool              ) prove_path=$2;             shift 2 ;;
-    --make-tool               ) make_path=$2;              shift 2 ;;
-    --unbuffer-tool           ) unbuffer_path=$2;          shift 2 ;;
-    --build-directory         ) build_directory=$2;        shift 2 ;;
-    --                        ) shift; break ;;
-    *                         ) break ;;
-  esac
+    case "$1" in
+        -h | --help) usage ;;
+        --coverage)
+            WITH_COVER_OPTIONS=1
+            shift
+            ;;
+        --skip-if-cover-db-exists)
+            SKIP_IF_COVER_DB_EXISTS=1
+            shift
+            ;;
+        --prove-tool)
+            prove_path=$2
+            shift 2
+            ;;
+        --make-tool)
+            make_path=$2
+            shift 2
+            ;;
+        --unbuffer-tool)
+            unbuffer_path=$2
+            shift 2
+            ;;
+        --build-directory)
+            build_directory=$2
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *) break ;;
+    esac
 done
 [[ "$*" ]] && TESTS="$*"
 

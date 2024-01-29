@@ -28,26 +28,35 @@ set -o pipefail
 opts=$(getopt -o vht: --long verbose,help,target: -n 'parse-options' -- "$@") || usage 1
 eval set -- "$opts"
 while true; do
-  case "$1" in
-    -v | --verbose ) set -x; shift ;;
-    -h | --help ) usage 0 ;;
-    -t | --target ) target="$2"; shift 2 ;;
-    -- ) shift; break ;;
-    * ) break ;;
-  esac
+    case "$1" in
+        -v | --verbose)
+            set -x
+            shift
+            ;;
+        -h | --help) usage 0 ;;
+        -t | --target)
+            target="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *) break ;;
+    esac
 done
 
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 
 IMAGE=registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
-build_dir="${build_dir:-"build"}"  # default is in accordance with file path in `.github/workflows/ci.yml`
+build_dir="${build_dir:-"build"}" # default is in accordance with file path in `.github/workflows/ci.yml`
 cre="${cre:-"podman"}"
 $cre pull $IMAGE
 $cre images | grep opensuse
 
 # shellcheck disable=SC2086
 $cre run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
-  $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE bash -ec "
+    $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE bash -ec "
 . /etc/os-release
 if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
     echo 'Newer docker versions need a patched qemu with disabled membarrier'
