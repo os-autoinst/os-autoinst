@@ -65,6 +65,18 @@ else ()
     message(STATUS "Set PERLCRITIC_PATH to the path of the perlcritic executable to enable Perl syntax/style checks.")
 endif ()
 
+# add test for bash script syntax
+find_program(SH_PATH shfmt)
+if (SH_PATH)
+    add_test(
+        NAME test-local-bash-syntax
+	 COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-bash-scripts" "${SH_PATH}" "${CMAKE_SOURCE_DIR}"
+	 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+else ()
+    message(STATUS "Set SH_PATH to the path of the shfmt executable to enable bash script syntax checks.")
+endif ()
+
 # add spell checking for test API documentation
 find_program(PODSPELL_PATH podspell)
 find_program(SPELL_PATH spell)
