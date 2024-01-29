@@ -48,6 +48,7 @@ devel_requires:
   perl(Template::Toolkit):
   perl(Perl::Tidy): '== 20230912'
   ShellCheck:
+  shfmt:
 
 docker_requires:
   pkgconfig(opencv):
