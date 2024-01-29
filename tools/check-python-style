@@ -1,4 +1,4 @@
 #!/bin/sh -e
 # fall back to find if there is no git, e.g. in package builds
 # shellcheck disable=SC2046
-"${1:-black}" --fast --check --diff $(git ls-files "*.py" 2>/dev/null || find . -name '*.py')
+"${1:-black}" --fast --check --diff $(git ls-files "*.py" 2> /dev/null || find . -name '*.py')
