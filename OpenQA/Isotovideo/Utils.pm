@@ -8,6 +8,8 @@ use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
 use Mojo::Util qw(scope_guard);
+use Mojo::JSON qw(decode_json encode_json);
+use Scalar::Util qw(looks_like_number);
 use JSON::Validator;
 use Cwd 'cwd';
 use YAML::XS;    # Required by JSON::Validator as a runtime dependency
@@ -19,6 +21,7 @@ use autotest;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
+  limit_git_cache_dir
   spawn_debuggers
   checkout_wheels
   checkout_git_refspec git_remote_url
@@ -78,16 +81,61 @@ sub _fetch_new_refs ($clone_url, $cache_dir, $branch_args, $handle_output) {
     $handle_output->($?, qx{git -C "$cache_dir" branch --force $branch_args FETCH_HEAD 2>&1 2>&1}) if $branch_args;
 }
 
+sub _open_cache_index ($root_cache_dir, $index_file) {
+    my $index = -e $index_file ? decode_json($index_file->slurp) : {};
+    die "root is not an object\n" unless ref $index eq 'HASH';
+    for my $repo_path (keys %$index) {
+        my $repo = $index->{$repo_path};
+        die "entry '$repo' is invalid\n" unless looks_like_number($repo->{size}) && looks_like_number($repo->{last_use});
+        delete $index->{$repo} unless -e path($root_cache_dir, $repo_path);
+    }
+    return $index;
+}
+
+sub _determine_size ($dir, $handle_output) {
+    $handle_output->($?, my $du = qx{du -s "$dir"});
+    die "Unable to determine size of Git directory under '$dir': du returned '$du'\n" unless $du =~ /(\d+).*/;
+    return int($1);
+}
+
+sub limit_git_cache_dir ($root_cache_dir, $current_cache_dir, $current_relative_cache_dir, $handle_output) {
+    my $cache_dir_size = _determine_size($current_cache_dir, $handle_output);
+    my $index_file = path($root_cache_dir, 'index.json');
+    my $index_lock = _lock_cache_directory($index_file);
+    my $index = eval { _open_cache_index($root_cache_dir, $index_file) };
+    die "Unable to open index for Git caching under '$index_file': $@" if $@;
+    $index->{$current_relative_cache_dir} = {size => $cache_dir_size, last_use => time};
+    my $index_guard = scope_guard sub { $index_file->spew(encode_json($index)) };
+    return undef unless looks_like_number(my $limit = $bmwqemu::vars{GIT_CACHE_DIR_LIMIT});
+
+    my $total_size = 0;
+    $total_size += $index->{$_}->{size} for my @repos = keys %$index;
+    return undef if $total_size <= $limit;
+
+    my @repos_by_last_use = sort { $index->{$a}->{last_use} <=> $index->{$b}->{last_use} } @repos;
+    for my $repo (@repos_by_last_use) {
+        last if $total_size <= $limit;
+        next if $repo eq $current_relative_cache_dir;
+        my $repo_path = path($root_cache_dir, $repo);
+        bmwqemu::fctinfo "Removing '$repo_path' to stay within configured Git cache limit '$limit'";
+        $repo_path->remove_tree if -e $repo_path;
+        my $entry = delete $index->{$repo};
+        $total_size -= $entry->{size};
+    }
+}
+
 sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output) {
     # determine cache directory and ensure its parent directory exists
     return undef unless my $git_cache_dir = $bmwqemu::vars{GIT_CACHE_DIR};
-    my $cache_dir = path($git_cache_dir, $clone_url->path);
-    path($git_cache_dir, $clone_url->path->to_dir)->make_path;
+    my $relative_cache_dir = $clone_url->path;
+    my $cache_dir = path($git_cache_dir, $relative_cache_dir);
+    path($git_cache_dir, $relative_cache_dir->to_dir)->make_path;
 
     # ensure bare repo for caching exists and fetch new/required refs
     my $lock_guard = _lock_cache_directory($cache_dir);
     _clone_bare_repo($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_output);
     _fetch_new_refs($clone_url, $cache_dir, $branch ? "'$branch'" : '', $handle_output);
+    limit_git_cache_dir($git_cache_dir, $cache_dir, $relative_cache_dir, $handle_output);
     return $cache_dir;
 }
 
