@@ -11,7 +11,7 @@ use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like);
 use Test::Mock::Time;
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch);
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
@@ -133,6 +133,7 @@ subtest 'cloning with caching' => sub {
         ok -f $working_tree_dir->child('README.md'), 'working tree has been created';
         my $working_tree_config = $working_tree_dir->child('.git/config')->slurp;
         ok index($working_tree_config, $repo_cache_dir), 'working tree config refers to cache dir';
+        is git_remote_url($working_tree_dir), $url, 'remote URL still computed as before';
     };
     subtest 'first clone' => sub {
         my $out = $clone->();

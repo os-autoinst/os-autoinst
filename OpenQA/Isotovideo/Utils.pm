@@ -45,14 +45,15 @@ sub calculate_git_hash ($git_repo_dir) {
     return $git_hash;
 }
 
-sub git_remote_url ($git_repo_dir) {
-    return 'UNKNOWN (no .git found)' unless -e "$git_repo_dir/.git";
+sub git_remote_url ($git_repo_dir, $fallback = undef) {
+    my $is_working_tree_or_bare_repo = -e "$git_repo_dir/.git" || -e "$git_repo_dir/FETCH_HEAD";
+    return $fallback // 'UNKNOWN (no .git found)' unless $is_working_tree_or_bare_repo;
     chomp(my @remotes = qx{git -C "$git_repo_dir" remote});
-    return 'UNKNOWN (origin remote not found)' unless grep { $_ eq 'origin' } @remotes;
+    return $fallback // 'UNKNOWN (origin remote not found)' unless grep { $_ eq 'origin' } @remotes;
     chomp(my $url = qx{git -C "$git_repo_dir" remote get-url origin 2>&1});
-    return $url if $? == 0;
+    return git_remote_url($url, $url) if $? == 0;    # recursive lookup to handle caching
     bmwqemu::diag("Could not retrieve remote url of $git_repo_dir: '$url'");    # uncoverable statement
-    return 'UNKNOWN (error on git remote call)';    # uncoverable statement
+    return $fallback // 'UNKNOWN (error on git remote call)';    # uncoverable statement
 }
 
 sub _lock_cache_directory ($cache_dir) {
