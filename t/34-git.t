@@ -5,18 +5,18 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
-use Test::Output qw(combined_from combined_like);
+use Test::Output qw(combined_from combined_like combined_unlike);
 use Test::Mock::Time;
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url);
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url limit_git_cache_dir);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
-use Mojo::File 'tempdir';
 my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $git_repo = 'tmpgitrepo';
 my $git_dir = "$tmpdir/$git_repo";
@@ -103,7 +103,10 @@ subtest 'successful clone' => sub {
 
 subtest 'cloning with caching' => sub {
     # setup temp dir for cache and configure using it
-    my $git_cache_dir = tempdir('temp-git-caching-XXXXX')->make_path;
+    my $start_time = time;
+    my $git_cache_dir_from_env = $ENV{OS_AUTOINST_TEST_GIT_CACHE_DIR};
+    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : tempdir('temp-git-caching-XXXXX');
+    $git_cache_dir = $git_cache_dir->make_path->realpath;
     note "temp dir for cache: $git_cache_dir";
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
 
@@ -126,14 +129,18 @@ subtest 'cloning with caching' => sub {
     note "temp dir for working trees: $pwd";
     my $working_tree_dir = path($repo);
     chdir $pwd;
-    my $chdir_guard = scope_guard sub { chdir '..' };
+    my $chdir_guard = scope_guard sub { chdir '..'; $git_cache_dir->remove_tree unless $git_cache_dir_from_env };
 
     # clone the same repo twice
+    my $index;
     my $check_working_tree = sub {
-        ok -f $working_tree_dir->child('README.md'), 'working tree has been created';
+        ok -f $working_tree_dir->child('README.md'), 'working tree has been created / is present';
         my $working_tree_config = $working_tree_dir->child('.git/config')->slurp;
         ok index($working_tree_config, $repo_cache_dir), 'working tree config refers to cache dir';
         is git_remote_url($working_tree_dir), $url, 'remote URL still computed as before';
+    };
+    my $handle_du = sub ($exit_status, $output) {
+        fail "du failed with exit status $exit_status: $output" if $exit_status != 0;
     };
     subtest 'first clone' => sub {
         my $out = $clone->();
@@ -149,6 +156,42 @@ subtest 'cloning with caching' => sub {
         unlike $out, qr/Creating bare repository for caching/, 'no new bare repo created';
         like $out, qr/Updating Git cache/, 'updated bare repo';
         $check_working_tree->();
+    };
+
+    subtest 'index creation' => sub {
+        $index = decode_json($git_cache_dir->child('index.json')->slurp);
+        is ref $index, 'HASH', 'index is hash' or return;
+        my $repo_path = $ENV{OS_AUTOINST_TEST_GIT_ONLINE} ? "/$orga/$repo$suffix" : "$orga/$repo";
+        my $repo_entry = $index->{$repo_path};
+        is ref $repo_entry, 'HASH', "entry for '$repo_path' exists" or return;
+        cmp_ok $repo_entry->{size}, '>', 0, 'valid size assigned';
+        cmp_ok $repo_entry->{last_use}, '>=', $start_time, 'valid last use assigned';
+    } or diag explain $index;
+
+    subtest 'limit size of cache directory' => sub {
+        sleep 10;    # simulate time has passed via "Test::Mock::Time"
+
+        # pretend we have made other Git checkouts
+        my $fake_checkout_relative1 = path('foo');
+        my $fake_checkout1 = $git_cache_dir->child('foo')->make_path;
+        $fake_checkout1->child('some-file')->spew('This file is 27 bytes long.');
+        my $fake_checkout_relative2 = path('bar');
+        my $fake_checkout2 = $git_cache_dir->child('bar')->make_path;
+
+        subtest 'below limit' => sub {
+            $bmwqemu::vars{GIT_CACHE_DIR_LIMIT} = 10000000;
+            combined_unlike { limit_git_cache_dir($git_cache_dir, $fake_checkout1, $fake_checkout_relative1, $handle_du) }
+            qr/removing/i, 'no cleanup was logged';
+            ok -d $repo_cache_dir, 'no cleanup has happened yet';
+        };
+        subtest 'over limit' => sub {
+            $bmwqemu::vars{GIT_CACHE_DIR_LIMIT} = 100;
+            combined_like { limit_git_cache_dir($git_cache_dir, $fake_checkout2, $fake_checkout_relative2, $handle_du) }
+            qr|removing.*$orga/$repo$suffix|i, 'cleanup was logged';
+            ok !-d $repo_cache_dir, 'the repo that was cloned first has been cleaned up';
+            ok -d $fake_checkout1, 'fake repo 1 has not been cleaned up yet';
+            ok -d $fake_checkout2, 'fake repo 2 has not been cleaned up yet';
+        };
     };
 };
 
