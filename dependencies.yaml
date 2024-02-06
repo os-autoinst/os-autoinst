@@ -13,7 +13,7 @@ targets:
   docker:   [ build_base, build,        devel, docker, main, spellcheck, lint, yamllint, test_base, test,                    python_style, ocr ]
   cpanfile-targets:
     # target: cpanfile target type (default main)
-    devel: devel
+    devel: develop
     cover: cover
     test_base: test
     test: test
