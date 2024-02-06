@@ -99,7 +99,7 @@ on 'test' => sub {
 
 };
 
-on 'devel' => sub {
+on 'develop' => sub {
     requires 'Code::TidyAll';
     requires 'Devel::Cover';
     requires 'Devel::Cover::Report::Codecov';
