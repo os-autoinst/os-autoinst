@@ -1,3 +1,6 @@
+# créé par ansible pour la gestion du clavier fr
+## penser à ajouter dans les variables openQA : VNCKB=fr
+
 package consoles::VNC;
 
 use Mojo::Base -base, -signatures;
@@ -19,7 +22,7 @@ has [qw(description hostname port username password socket name width height dep
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
-      vmware_vnc_over_ws_url original_hostname jpeg)];
+      vmware_vnc_over_ws_url original_hostname)];
 
 our $VERSION = '0.40';
 
@@ -83,37 +86,22 @@ my %supported_depths = (
     },
 );
 
-# Entries in order of preference
 my @encodings = (
+
     # These ones are defined in rfbproto.pdf
-    {
-        num => 16,
-        name => 'ZRLE',
-        supported => 1,
-    },
     {
         num => 0,
         name => 'Raw',
         supported => 1,
     },
     {
-        num => 7,
-        name => 'Tight',
-        supported => 1,
-    },
-    {
-        num => -24,
-        name => 'JPEG quality',
+        num => 16,
+        name => 'ZRLE',
         supported => 1,
     },
     {
         num => -223,
         name => 'DesktopSize',
-        supported => 1,
-    },
-    {
-        num => -224,
-        name => 'VNC_ENCODING_LAST_RECT',
         supported => 1,
     },
     {
@@ -124,6 +112,11 @@ my @encodings = (
     {
         num => -261,
         name => 'VNC_ENCODING_LED_STATE',
+        supported => 1,
+    },
+    {
+        num => -224,
+        name => 'VNC_ENCODING_LAST_RECT',
         supported => 1,
     },
 );
@@ -438,15 +431,13 @@ sub _server_initialization ($self) {
 
     my @encs = grep { $_->{supported} } @encodings;
 
+    # Prefer the higher-numbered encodings
+    @encs = reverse sort { $a->{num} <=> $b->{num} } @encs;
+
     if ($self->dell) {
         # idrac's ZRLE implementation even kills tigervnc, they duplicate
         # frames under certain conditions. Raw works ok
         @encs = grep { $_->{name} ne 'ZRLE' } @encs;
-    }
-    if (!$self->jpeg) {
-        # according to the spec, RAW encoding is least preferred, so don't let
-        # loosy Tight JPEG be used over RAW unless explicitly requested
-        @encs = grep { $_->{name} ne 'Tight' and $_->{name} ne 'JPEG quality' } @encs;
     }
     $socket->print(
         pack(
@@ -503,9 +494,12 @@ my $keymap_x11 = {
     'minus' => ord('-'),
     'shift' => 0xffe1,
     'ctrl' => 0xffe3,    # left, right is e4
+    'ctrlright' => 0xffe4,    
     'caps' => 0xffe5,
     'meta' => 0xffe7,    # left, right is e8
+    'metaright' => 0xffe8,    
     'alt' => 0xffe9,    # left one, right is ea
+    'altgr' => 0xffea, 
     'ret' => 0xff0d,
     'tab' => 0xff09,
     'backspace' => 0xff08,
@@ -517,6 +511,7 @@ my $keymap_x11 = {
     'pgdn' => 0xff56,
     'sysrq' => 0xff15,
     'super' => 0xffeb,    # left, right is ec
+    'superright' => 0xffec, 
 };
 
 # ikvm aka USB: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-14.html
@@ -567,41 +562,100 @@ my $keymap_ikvm = {
 
 sub shift_keys () {
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
-    return {
-        '~' => '`',
-        '!' => '1',
-        '@' => '2',
-        '#' => '3',
-        '$' => '4',
-        '%' => '5',
-        '^' => '6',
-        '&' => '7',
-        '*' => '8',
-        '(' => '9',
-        ')' => '0',
-        '_' => 'minus',
-        '+' => '=',
+    # see https://www.tcl.tk/man/tcl8.4/TkCmd/keysyms.html
+    # see https://www.ascii-code.com/fr
+    # see https://doc.ubuntu-fr.org/tutoriel/comprendre_la_configuration_du_clavier
 
-        # second line
-        '{' => '[',
-        '}' => ']',
-        '|' => '\\',
+    return {
+        '1' => '&',
+        '2' => chr(233), # é est mal encodé donc on le désigne par chr(233)
+        '3' => '"',
+        '4' => '\'',
+        '5' => '(',
+        '6' => '-',
+        '7' => chr(232), # è est mal encodé donc on le désigne par chr(232)
+        '8' => '_',
+        '9' => chr(231), # ç est mal encodé donc on le désigne par chr(231)
+	'0' => chr(224), # à est mal encodé donc on le désigne par chr(224)
+        #'°' => ')',
+        chr(176) => ')', # ° est parfois mal encodé donc on le désigne par chr(176)
+	'+' => '=',
+	
+	# second line
+	#'"' => '^', # trema buggué car boucle avec les double quote
+	#'£' => '$',
+	chr(163) => '$', # £ est parfois mal encodé donc on le désigne par chr(163)
 
         # third line
-        ':' => ';',
-        '"' => '\'',
+	'%' => chr(249), # ù est mal encodé donc on le désigne par chr(249)
+	#'µ' => '*',
+	chr(181) => '*', # µ est parfois mal encodé donc on le désigne par chr(181)
 
         # fourth line
-        '<' => ',',
-        '>' => '.',
-        '?' => '/',
+	'?' => ',',
+	'.' => ';',
+	'/' => ':',
+	#'§' => '!',
+	chr(167) => '!', # § est parfois mal encodé donc on le désigne par chr(167)
     };
 }
 
+sub special_keys () {
+    # see https://www.tcl.tk/man/tcl8.4/TkCmd/keysyms.html
+    # see https://www.ascii-code.com/fr
+    # see https://doc.ubuntu-fr.org/tutoriel/comprendre_la_configuration_du_clavier
+    # Liste des caractères mal encodés (ASCII vs UTF8) : °çéèà§µù || mal gérés par qemu (altgr)
+    return {
+        chr(233) => '2', # ord('é')=233 # é est mal encodé donc on prend le caractère 2 qui est sur la même touche
+        '~' => '2', # ~ est keysym no scancode in qemu donc on prend le caractère 2 qui est sur la même touche
+	'#' => '3', # '#' keysym = 35 : no scancode in qemu
+        '{' => '\'', # '{' keysym no scancode in qemu
+        '[' => '(', # '[' keysym no scancode in qemu
+        '|' => '-', # '|' keysym no scancode in qemu
+        '`' => '7', # ` keysym no scancode in qemu donc on prend le caractère 7 qui est sur la même touche
+        chr(232) => '7', # ord('è')=232 # è est mal encodé donc on prend le caractère 7 qui est sur la même touche
+        '\\' => '_', # '\' keysym no scancode in qemu
+        chr(231) => '9', # ord('ç')=231 # ç est mal encodé donc on prend le caractère 9 qui est sur la même touche
+        '^' => '9', # ^ est mal encodé donc on prend le caractère 9 qui est sur la même touche
+        chr(224) => '0', # ord('à')=224 # à est mal encodé donc on prend le caractère 0 qui est sur la même touche
+        '@' => '0', # @ keysym no scancode in qemu donc on prend le caractère 0 qui est sur la même touche
+        chr(176) => ')', # ord('°')=176 # '°' est mal encodé donc on le désigne par chr(176) et on prend le caractère ')' qui est sur la même touche
+        ']' => ')', # ']' keysym no scancode in qemu
+        '}' => '=', # '}' keysym no scancode in qemu
+        chr(249) => '%', # ord('ù')=249 # ù est mal encodé donc on prend le caractère % qui est sur la même touche
+        chr(181) => '*', # ord('µ')=181 # µ est mal encodé donc on prend le caractère * qui est sur la même touche
+	chr(167) => '!', # ord('§')=167 # § est mal encodé donc on prend le caractère ! qui est sur la même touche
+    }
+}
+
+sub altgr_keys () {
+    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+    # see https://www.tcl.tk/man/tcl8.4/TkCmd/keysyms.html
+    # see https://www.ascii-code.com/fr
+    # see https://doc.ubuntu-fr.org/tutoriel/comprendre_la_configuration_du_clavier
+    return {
+        '~' => chr(233), # é est mal encodé donc on le désigne par chr(233)
+        '#' => '"',
+        '{' => '\'',
+        '[' => '(',
+        '|' => '-',
+        '`' => chr(232), # è est mal encodé donc on le désigne par chr(232)
+        '\\' => '_',
+        '^' => chr(231), # ç est mal encodé donc on le désigne par chr(231)
+        '@' => chr(224), # à est mal encodé donc on le désigne par chr(224)
+        ']' => ')',
+	'}' => '=',
+	#chr(164) => '$', # ¤ commenté car apparaît avec ê à la place... # ¤ est mal encodé donc on le désigne par chr(164)
+	#chr(183) => ':', # · semble non supporté ou accessible via une autre combinaison (shift+altgr+k) # · est mal encodé donc on le désigne par char(183)
+	chr(128) => 'e', # € est mal encodé donc on le désigne par char(128)
+
+    };
+}
 ## use critic
 
 sub die_on_invalid_mapping ($key) {
-    die decode_utf8 "No map for '$key' - layouts other than en-us are not supported\n";
+    #die decode_utf8 "No map for '$key' - layouts other than en-us are not supported\n";
+    die "No map for '$key' - layouts other than en-us and some fr characters are not supported\n";
 }
 
 sub init_x11_keymap ($self) {
@@ -617,15 +671,49 @@ sub init_x11_keymap ($self) {
     }
     for my $key ("a" .. "z") {
         $keymap{$key} = ord($key);
+        bmwqemu::diag "[Keytab Shift Keys] $key : [$keymap{shift}, ".ord(uc $key)."]";
         # shift-H looks strange, but that's how VNC works
         $keymap{uc $key} = [$keymap{shift}, ord(uc $key)];
     }
     # VNC doesn't use the unshifted values, only prepends a shift key
     for my $key (keys %{shift_keys()}) {
         die_on_invalid_mapping($key) unless $keymap{$key};
+	bmwqemu::diag "[Keytab Shift Keys] $key : [$keymap{shift},$keymap{$key}]";
         $keymap{$key} = [$keymap{shift}, $keymap{$key}];
     }
+    my %altgrkeys=%{altgr_keys()};
+    for my $key (keys (%altgrkeys)) {
+       die_on_invalid_mapping($key) unless $keymap{$key};
+	bmwqemu::diag "[Keytab Altgr Keys] $key : [$keymap{altgr},$keymap{$altgrkeys{$key}}]";
+        $keymap{$key} = [$keymap{altgr}, $keymap{$altgrkeys{$key}}];
+    }
+    my %specialkeys=%{special_keys()};
+    for my $key (keys (%specialkeys)) {
+        die_on_invalid_mapping($key) unless $keymap{$key};
+        if (ref($keymap{$key}) eq 'ARRAY') {
+	    if (ref($keymap{$specialkeys{$key}}) eq 'ARRAY') {
+		$keymap{$key}[-1] = $keymap{$specialkeys{$key}}[-1];
+	    }
+	    else {
+		$keymap{$key}[-1] = $keymap{$specialkeys{$key}};
+	    }
+	    bmwqemu::diag "[Keytab Special Keys] $key : @{$keymap{$key}}";
+	}
+	else {
+	    if (ref($keymap{$specialkeys{$key}}) eq 'ARRAY') {
+                $keymap{$key} = $keymap{$specialkeys{$key}}[-1];
+            }
+            else {
+                $keymap{$key} = $keymap{$specialkeys{$key}};
+            }
+	    bmwqemu::diag "[Keytab Special Keys] $key : $keymap{$key}";
+	}
+    }
     $self->keymap(\%keymap);
+    foreach my $k (keys(%keymap)) {
+    	bmwqemu::diag "[Keytab] Key=Char=$k Val=Keysym=$keymap{$k}";
+    }
+
 }
 
 sub init_ikvm_keymap ($self) {
@@ -647,6 +735,7 @@ sub init_ikvm_keymap ($self) {
         die_on_invalid_mapping($key) unless $keymap{$shift};
         $keymap{$key} = [$keymap{shift}, $keymap{$shift}];
     }
+
     $self->keymap(\%keymap);
 }
 
@@ -663,7 +752,19 @@ sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
 
     my @events;
 
+    # Caractère non décodé en UTF8
+    #bmwqemu::diag "[String] $keys";
+
     for my $key (split('-', $keys)) {
+	$key = decode_utf8($key);
+	#bmwqemu::diag "[ENCODING UTF8] key $key, decoded key ".encode("utf-8", $key)." defini ? :".defined($self->keymap->{$key});
+	#bmwqemu::diag "[ENCODING UTF16] key $key, decoded key ".encode("utf-16", $key)." defini ? :".defined($self->keymap->{$key});
+	#bmwqemu::diag "[ENCODING LATIN1] key $key, decoded key ".encode("latin-1", $key)." defini ? :".defined($self->keymap->{$key});
+	#bmwqemu::diag "[ENCODING ISO885915] key $key, decoded key ".encode("iso-8859-15", $key)." defini ? :".defined($self->keymap->{$key});
+	
+	# Caractère décodé en UTF8
+        #bmwqemu::diag decode_utf8("[Char] $key (defini dans le keytab ? 1=oui : ".defined($self->keymap->{$key}.")"));
+
         if (defined($self->keymap->{$key})) {
             if (ref($self->keymap->{$key}) eq 'ARRAY') {
                 push(@events, @{$self->keymap->{$key}});
@@ -852,9 +953,6 @@ sub _receive_update ($self) {
             $socket->read(my $data, $w * $h * $self->_bpp / 8) || die 'unexpected end of data';
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
         }
-        elsif ($encoding_type == 7) {    # Tight
-            $self->_receive_tight_encoding($x, $y, $w, $h);
-        }
         elsif ($encoding_type == 16) {    # ZRLE
             $self->_receive_zrle_encoding($x, $y, $w, $h);
         }
@@ -934,63 +1032,6 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
     OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data") if $old_total_out + $res != $self->{_inflater}->total_out;
     return $res;
-}
-
-# wrapper to make testing easier
-sub _read_socket ($socket, $data, $data_len, $offset) { return read($socket, $$data, $data_len, $offset); }
-
-sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
-    my $socket = $self->socket;
-    my $image = $self->_framebuffer;
-
-    $socket->read(my $data, 1)
-      or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
-    my ($compression_control) = unpack('C', $data);
-    # FillCompression
-    if (($compression_control & 0xF0) == 0x80) {
-        my $data;
-        # special case for TPIXEL, otherwise identical to PIXEL
-        if ($self->_true_colour and $self->_bpp == 32 and $self->depth == 24) {
-            $socket->read($data, 3)
-              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
-            $data = pack('CCCx', unpack('CCC', $data));
-        } else {
-            $socket->read($data, $self->_bpp / 8)
-              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
-        }
-        $image->fill_pixel($data, $self->vncinfo, $x, $y, $w, $h);
-        return;
-    }
-    # Only Fill (above) and JPEG for now; "Basic" unsupported
-    die "Unsupported compression $compression_control" if ($compression_control & 0xF0) != 0x90;
-
-    $socket->read($data, 1)
-      or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-    my ($data_len) = unpack('C', $data);
-    if ($data_len & 0x80) {
-        $socket->read($data, 1)
-          or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-        my ($data_len2) = unpack('C', $data);
-        $data_len = ($data_len & 0x7f) | ($data_len2 & 0x7f) << 7;
-        if ($data_len2 & 0x80) {
-            $socket->read($data, 1)
-              or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-            my ($data_len2) = unpack('C', $data);
-            $data_len |= $data_len2 << 14;
-        }
-    }
-
-    my $read_len = 0;
-    while ($read_len < $data_len) {
-        my $len = _read_socket($socket, \$data, $data_len - $read_len, $read_len);
-        OpenQA::Exception::VNCProtocolError->throw(error => "short read for jpeg data $read_len - $data_len") unless $len;
-        $read_len += $len;
-    }
-    my $rect = tinycv::from_ppm($data);
-    OpenQA::Exception::VNCProtocolError->throw(error => "Invalid width/height of the rectangle (${w}x${h} != " . $rect->xres . "x" . $rect->yres . ")")
-      unless $w == $rect->xres and $h == $rect->yres;
-    $image->blend($rect, $x, $y);
-    $self->_framebuffer($image);
 }
 
 sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
