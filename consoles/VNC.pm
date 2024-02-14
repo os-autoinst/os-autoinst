@@ -655,7 +655,7 @@ sub altgr_keys () {
 
 sub die_on_invalid_mapping ($key) {
     #die decode_utf8 "No map for '$key' - layouts other than en-us are not supported\n";
-    die "No map for '$key' - layouts other than en-us and some fr characters are not supported\n";
+    die "No map for '$key' - layouts other than fr are not supported\n";
 }
 
 sub init_x11_keymap ($self) {
