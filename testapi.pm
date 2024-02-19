@@ -905,7 +905,7 @@ C<$fail_message> is returned in the die message if specified.
 I<The C<script_run> implementation is distribution specific and not always available.
 For this to work correctly, it must return 0 if and only if C<$command> completes
 successfully. It must NOT return 0 if C<$command> times out. The default implementation
-should work on *nix operating systems with a configured serial device.>
+should work on *nix operating systems with a configured serial device.
 
 =cut
 
@@ -947,8 +947,8 @@ This is equivalent to use of C<die_on_timeout> equal to 1. To use the
 deprecated behaviour of not throwing an error on timeout set the value to 0.
 This option will be removed in the near future.
 
-<Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0 or timeout
-expired and C<die_on_timeout> is not C<1>.
+Returns the exit code received from I<$cmd> or undef if C<$timeout> is 0 or
+timeout expired and C<die_on_timeout> is not C<1>.
 
 I<The implementation is distribution specific and not always available.>
 
