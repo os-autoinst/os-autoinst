@@ -1,0 +1,18 @@
+---
+name: Author tests
+
+on: [push, pull_request]
+
+jobs:
+  author-tests:
+    runs-on: ubuntu-latest
+    name: Author tests
+    container:
+      image: registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: make test-local
+        run: |
+          git config --global --add safe.directory '*'
+          make
+          make test-local
