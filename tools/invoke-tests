@@ -78,6 +78,7 @@ args=()
 # note: When executing tests with prove it seems that the output is only flushed after one test has finished unless there's a terminal.
 [[ $unbuffer_path ]] && [[ $unbuffer_path != 'UNBUFFER_PATH-NOTFOUND' ]] && args+=("$unbuffer_path")
 # split TESTS on white-spaces to allow specifying multiple tests as documented
+TESTS=${TESTS:-"-r t xt"}
 # shellcheck disable=SC2206
-args+=("$prove_path" $PROVE_ARGS ${TESTS:-"-r"})
+args+=("$prove_path" $PROVE_ARGS $TESTS)
 (cd "$source_directory" && "${args[@]}")
