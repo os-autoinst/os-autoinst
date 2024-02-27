@@ -47,7 +47,7 @@ create_gre_preup_script() {
 #!/bin/sh
 action="\$1"
 bridge="\$2"
-ovs-vsctl set bridge \$bridge stp_enable=true
+ovs-vsctl set bridge \$bridge rstp_enable=true
 # TODO add entries according to your network topology
 #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
 EOF
