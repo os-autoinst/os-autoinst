@@ -93,10 +93,15 @@ endif ()
 find_program(PROVE_PATH prove)
 find_program(UNBUFFER_PATH unbuffer)
 if (PROVE_PATH)
-    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
+    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}" t)
     add_test(
         NAME test-perl-testsuite
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_test(
+        NAME test-local-author-perl
+        COMMAND "${PROVE_PATH}" xt
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
@@ -104,6 +109,7 @@ else ()
 endif ()
 
 # add build system targets for invoking specific tests
+add_custom_target(test-local-author-perl COMMAND ${CMAKE_CTEST_COMMAND} -R "test-local-author-perl" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-local COMMAND ${CMAKE_CTEST_COMMAND} -R "test-local-.*" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-doc COMMAND ${CMAKE_CTEST_COMMAND} -R "test-doc-.*" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-installed-files COMMAND ${CMAKE_CTEST_COMMAND} -R "test-installed-files" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

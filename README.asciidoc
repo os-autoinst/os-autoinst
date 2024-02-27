@@ -287,6 +287,16 @@ Run individual tests by specifying them explicitly:
 make test-perl-testsuite TESTS="t/15-logging.t t/28-signalblocker.t"
 ----
 
+Run perl author tests:
+----
+make test-local-author-perl
+----
+
+Run all author tests:
+----
+make test-local
+----
+
 Notice that the user needs to include the test directory for each test (either t for normal or
 xt for developer-centric tests) when specifying individual tests.
 
