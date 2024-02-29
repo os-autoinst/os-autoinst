@@ -29,7 +29,14 @@ sub activate ($self) {
           ($ipmi_response =~ /SOL payload already de-activated/);
     }
 
-    $self->callxterm($cstr, "ipmitool:$testapi_console");
+    for my $retry (0 .. 2) {
+        eval { $self->callxterm($cstr, "ipmitool:$testapi_console") };
+        return unless $@;
+        die $@ unless $@ =~ m/err:/;
+        bmwqemu::diag("IPMI sol activate try #$retry: $@");
+    }
+
+    die $@;
 }
 
 sub reset ($self) {
