@@ -328,6 +328,16 @@ Install files for packaging:
 make install DESTDIR=…
 ----
 
+Automatically tidy all perl files:
+----
+tools/tidyall
+----
+
+Tidy all changed perl files:
+----
+tools/tidyall --git
+----
+
 Further notes:
 
 * When using the `test-perl-testsuite` target, `ctest` is not used (and therefore `ctest`
