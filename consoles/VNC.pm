@@ -597,6 +597,7 @@ sub shift_keys () {
 	'/' => ':',
 	#'§' => '!',
 	chr(167) => '!', # § est parfois mal encodé donc on le désigne par chr(167)
+ 	'>' => '<',
     };
 }
 
