@@ -11,9 +11,11 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
+use POSIX qw(waitpid _exit);
 
 BEGIN { *backend::ipmi::system = sub { 1 } }
-BEGIN { *consoles::localXvnc::system = sub { "@_" =~ /hardware-console-log/ ? 1 : 0 } }
+BEGIN { *consoles::localXvnc::system = sub { 0 } }
+BEGIN { *consoles::localXvnc::exec = sub { _exit("@_" =~ /hardware-console-log/ ? 1 : 0); } }
 
 use backend::ipmi;    # SUT
 
@@ -50,7 +52,9 @@ ok $backend->get_mc_status, 'can call get_mc_status';
 
 is $testapi::distri->{consoles}->{sol}->{args}->{log}, '1';
 $testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
-ok !$testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console"), "can create console with log enabled";
+my $pid = $testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console");
+is waitpid($pid, 0), $pid, 'can start xterm subprocess';
+is $?, 0x100, "can create console with log enabled";
 
 subtest 'cold reset' => sub {
     # reduce retries for testing
