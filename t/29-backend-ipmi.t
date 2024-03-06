@@ -21,6 +21,7 @@ use backend::ipmi;    # SUT
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
 $bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
+$bmwqemu::vars{IPMI_SOL_MAX_RECONNECTS} = 1;
 ok my $backend = backend::ipmi->new(), 'backend can be created';
 $bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
 my @ipmi_cmdline = $backend->ipmi_cmdline;
@@ -74,6 +75,32 @@ subtest 'dell sleep' => sub {
     my $start = time;
     throws_ok { $backend->ipmitool('foo') } qr/ipmi foo: err/, 'error logged';
     is time, $start + 4, 'slept 4 seconds';
+};
+
+subtest 'sol reconnect' => sub {
+    my $localXvnc_mock = Test::MockModule->new('consoles::localXvnc');
+    my $sol_mock = Test::MockModule->new('consoles::sshXtermIPMI');
+    my $screen_calls = 0;
+
+    $localXvnc_mock->noop('activate');
+    $localXvnc_mock->redefine(current_screen => sub {
+            $screen_calls++;
+            return 'image data';
+    });
+    $sol_mock->redefine(waitpid => -1);
+    $testapi::distri->{consoles}->{sol}->activate;
+
+    # Pretend the subprocess is dead, screen read should fail after
+    # 1 reconnect attempt
+    throws_ok { $testapi::distri->{consoles}->{sol}->current_screen; } qr/Too many IPMI SOL errors/, 'dies on reconnect failure';
+    is $screen_calls, 2, 'SOL reconnect count is correct';
+
+    # Pretend the subprocess is still running and check that screen read
+    # returns the correct data
+    $screen_calls = 0;
+    $sol_mock->redefine(waitpid => 0);
+    is $testapi::distri->{consoles}->{sol}->current_screen, 'image data', 'can read screen buffer';
+    is $screen_calls, 1, 'screen buffer read without reconnect';
 };
 
 done_testing;

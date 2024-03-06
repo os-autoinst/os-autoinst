@@ -8,11 +8,10 @@ use Mojo::Base 'consoles::localXvnc', -signatures;
 use autodie ':all';
 require IPC::System::Simple;
 use File::Which;
+use Time::HiRes qw(usleep);
+use POSIX qw(waitpid WNOHANG);
 
-sub activate ($self) {
-    # start Xvnc
-    $self->SUPER::activate;
-
+sub start_sol ($self) {
     my $testapi_console = $self->{testapi_console};
 
     my @command = $self->backend->ipmi_cmdline;
@@ -29,7 +28,14 @@ sub activate ($self) {
           ($ipmi_response =~ /SOL payload already de-activated/);
     }
 
-    $self->callxterm($cstr, "ipmitool:$testapi_console");
+    $self->{xterm_pid} = $self->callxterm($cstr, "ipmitool:$testapi_console");
+}
+
+sub activate ($self) {
+    # start Xvnc
+    $self->SUPER::activate;
+    $self->start_sol;
+    $self->{reconnects} = 0;
 }
 
 sub reset ($self) {
@@ -53,6 +59,20 @@ sub do_mc_reset ($self) {
         $self->{activated} = 0;
     }
     return;
+}
+
+sub current_screen ($self) {
+    my $retry = 0;
+    my $max_errs = $bmwqemu::vars{IPMI_SOL_MAX_RECONNECTS} // 5;
+
+    while (1) {
+        my $ret = $self->SUPER::current_screen;
+        return $ret if waitpid($self->{xterm_pid}, WNOHANG) == 0;
+        die 'Too many IPMI SOL errors' if ++$self->{reconnects} > $max_errs;
+        bmwqemu::fctwarn("IPMI SOL connection died, reconnect $self->{reconnects} / $max_errs");
+        usleep(500_000 * $retry++);    # sleep between retries
+        $self->start_sol;
+    }
 }
 
 1;
