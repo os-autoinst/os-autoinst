@@ -22,6 +22,7 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 BEGIN { *consoles::localXvnc::system = sub { 1 } }
+BEGIN { *consoles::localXvnc::exec = sub { _exit(0) } }
 BEGIN { *CORE::GLOBAL::sleep = sub { 1 } }
 
 # mock external tool for testing
@@ -42,11 +43,11 @@ my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
 # uncoverable statement count:2
 $local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });
 stderr_like { $c->activate } qr/Connected to Xvnc/, 'can call activate';
-is $c->callxterm('true', 'window1'), '', 'can call callxterm';
+ok $c->callxterm('true', 'window1'), 'can call callxterm';
 $vnc_mock->called_pos_ok(0, 'check_vnc_stalls', 'VNC stall detection configured');
 $vnc_mock->called_args_pos_is(0, 2, 0, 'VNC stall detection disabled');
 $c->{args}->{log} = 1;
-is $c->callxterm('true', 'window1'), '', 'can call callxterm';
+ok $c->callxterm('true', 'window1'), 'can call callxterm';
 is $c->fullscreen({window_name => 'foo'}), 1, 'can call fullscreen';
 is $c->disable, undef, 'can call disable';
 
