@@ -3,7 +3,7 @@
 use Test::Most;
 use Test::Warnings qw(warning :report_warnings);
 use autodie ':all';
-use Test::Output qw(combined_like stderr_like);
+use Test::Output qw(combined_like combined_from stderr_like);
 use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
@@ -13,8 +13,9 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec
+  handle_generated_assets
   git_remote_url load_test_schedule);
-
+use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $pool_dir = "$dir/pool";
@@ -65,6 +66,19 @@ subtest 'error handling when loading test schedule' => sub {
         $bmwqemu::vars{PRODUCTDIR} = 'not/found';
         throws_ok { load_test_schedule } qr/PRODUCTDIR.*invalid/, 'error logged';
     };
+};
+
+subtest 'prevent upload assets when publish_hdd is none with case-insensitive' => sub {
+    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+    my @possible_values = qw(none None NONE);
+    $bmwqemu::vars{BACKEND} = 'qemu';
+    for my $v (@possible_values) {
+        $bmwqemu::vars{PUBLISH_HDD_1} = $v;
+        $command_handler->test_completed(1);
+        my $return_code;
+        my $log = combined_from { $return_code = handle_generated_assets($command_handler, 1) };
+        like $log, qr/Asset upload is skipped for PUBLISH_HDD/, "Upload is skipped when PUBLISH_HDD_1 is $v";
+    }
 };
 
 is_deeply OpenQA::Isotovideo::Utils::_store_asset(0, 'foo.qcow2', 'bar'), {hdd_num => 0, name => 'foo.qcow2', dir => 'bar', format => 'qcow2'}, '_store_asset returns correct parameters';

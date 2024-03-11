@@ -322,6 +322,10 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
             my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
             unless ($name) {
                 $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+                if ($name =~ /none/i) {
+                    bmwqemu::log_call("Asset upload is skipped for PUBLISH_HDD_$i=$name");
+                    next;
+                }
                 $dir = 'assets_public';
             }
             next unless $name;
