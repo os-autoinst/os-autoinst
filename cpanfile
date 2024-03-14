@@ -104,7 +104,7 @@ on 'develop' => sub {
     requires 'Devel::Cover';
     requires 'Devel::Cover::Report::Codecov';
     requires 'Module::CPANfile';
-    requires 'Perl::Tidy', '== 20230912';
+    requires 'Perl::Tidy', '== 20240202';
     requires 'Template::Toolkit';
 
 };
