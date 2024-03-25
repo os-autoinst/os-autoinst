@@ -3,9 +3,14 @@
 
 package OpenQA::Isotovideo::Runner;
 use Mojo::Base -base, -signatures;
+# Avoid "Subroutine JSON::PP::Boolean::(0+ redefined" warnings
+# Details: https://progress.opensuse.org/issues/90371
+use JSON::PP;
+
 use autodie ':all';
 no autodie 'kill';
 use POSIX qw(:sys_wait_h _exit);
+use Mojo::File qw(path);
 use Mojo::UserAgent;
 use IO::Select;
 use log qw(diag fctwarn);
@@ -28,6 +33,12 @@ has [qw(backend command_handler)];
 
 # the loop status
 has loop => 1;
+
+use constant {
+    EXIT_STATUS_OK => 0,
+    EXIT_STATUS_ERR_NO_TESTS => 100,
+    EXIT_STATUS_ERR_FROM_TEST_RESULTS => 101,
+};
 
 sub run ($self) {
     # now we have everything, give the tests a go
@@ -233,6 +244,23 @@ sub _init_bmwqemu ($, @args) {
             diag("Setting forced test parameter $key -> $2");
         }
     }
+}
+
+sub exit_code_from_test_results ($self) {
+    my @results = glob(path(bmwqemu::result_dir(), "result-*.json"));
+    return EXIT_STATUS_ERR_NO_TESTS if @results == 0;
+
+    my $did_fail = 0;
+    for my $result_file_path (@results) {
+        my $result_file = path($result_file_path);
+        my $test_result = decode_json($result_file->slurp)->{result};
+        diag sprintf("Test result [%s] %s", $result_file->to_string, $test_result);
+        # If a failure (anything different from ok & softfail) is found, keep it.
+        next if $did_fail;
+
+        $did_fail = $test_result !~ m/^(ok|softfail)$/;
+    }
+    return $did_fail ? EXIT_STATUS_ERR_FROM_TEST_RESULTS : EXIT_STATUS_OK;
 }
 
 sub handle_shutdown ($self, $return_code) {

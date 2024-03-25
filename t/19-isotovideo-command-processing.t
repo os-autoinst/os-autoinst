@@ -10,10 +10,13 @@ use Test::MockModule;
 use Test::Output qw(stderr_like stderr_unlike combined_like);
 use Test::Warnings ':report_warnings';
 use Test::Fatal;
-use Mojo::JSON;
+use Mojo::JSON 'encode_json';
+use Mojo::File qw(tempdir path);
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 
 # declare fake file descriptors
 my $cmd_srv_fd = 0;
@@ -393,6 +396,32 @@ subtest signalhandler => sub {
         $runner->_signal_handler('INT');
     } qr/isotovideo received signal INT/, 'Signal logged';
     is($last_signal, 'INT', 'Event emitted');
+};
+subtest 'Check exit_code_from_test_results' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    chdir($dir);
+
+    subtest 'no test scheduled' => sub {
+        my $path_mock = Test::MockModule->new('Mojo::File');
+        $path_mock->redefine(path => 0);
+        is($runner->exit_code_from_test_results(), 100, 'EXIT_STATUS_ERR_NO_TESTS returns if no results');
+    };
+
+    subtest 'tests scheduled' => sub {
+        path('testresults/')->make_path;
+        my $json = encode_json({result => 'failing'});
+        my $resfile = path('testresults/result-failed_module.json')->spew($json);
+        is($runner->exit_code_from_test_results(), 101, 'EXIT_STATUS_ERR_FROM_TEST_RESULTS returns if test failed');
+        path('testresults/')->remove_tree;
+    };
+
+    subtest 'softfailed module' => sub {
+        path('testresults/')->make_path;
+        my $json = encode_json({result => 'softfail'});
+        my $resfile = path('testresults/result-softfailed_module.json')->spew($json);
+        is($runner->exit_code_from_test_results(), 0, 'EXIT_STATUS_OK returns if test is not failed');
+        path('testresults/')->remove_tree;
+    };
 };
 
 subtest 'No readable JSON' => sub {
