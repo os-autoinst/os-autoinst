@@ -92,7 +92,7 @@ process. The scale parameter can be used based on performance of workers to
 prevent false positive timeouts based on differing worker performance.
 
 os-autoinst is used in the openQA project.
-+For more information on how to use openQA, please visit http://open.qa/documentation
+For more information on how to use openQA, please visit http://open.qa/documentation
 
 =cut
 
