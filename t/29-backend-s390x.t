@@ -18,6 +18,9 @@ use distribution;
 use testapi;
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
+$bmwqemu::vars{ZVM_HOST} = 'localhost';
+$bmwqemu::vars{ZVM_GUEST} = 'guest';
+$bmwqemu::vars{ZVM_PASSWORD} = 'password';
 ok my $backend = backend::s390x->new(), 'can instantiate backend';
 ok !$backend->check_socket(undef), 'check_socket returns false by default';
 
@@ -27,6 +30,10 @@ my $distri = $testapi::distri = distribution->new;
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
 my $local_xvnc_activated;
 $local_xvnc_mock->redefine(activate => sub { $local_xvnc_activated = 1 });
+
+my $s3270_mock = Test::MockModule->new('consoles::s3270');
+$s3270_mock->noop('new_3270_console');
+$s3270_mock->noop('connect_and_login');
 
 
 subtest 'starting VM' => sub {

@@ -1033,7 +1033,8 @@ sub start_qemu ($self) {
             description => "QEMU's VNC"});
 
     $vnc->backend($self);
-    $self->select_console({testapi_console => 'sut'});
+    my $ret = $self->select_console({testapi_console => 'sut'});
+    die $ret->{error} if $ret->{error};
 
     if ($vars->{NICTYPE} eq "tap") {
         $self->{allocated_networks} = $num_networks;

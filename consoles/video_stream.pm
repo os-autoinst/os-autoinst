@@ -128,6 +128,7 @@ sub _get_ffmpeg_cmd ($self, $url) {
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
     return [
         'ustreamer', '--device', $url, '-f', '5',
+        '-m', 'UYVY',    # specify preferred format
         '-c', 'NOOP',    # do not produce JPEG stream
         '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
         '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)
@@ -155,7 +156,7 @@ sub connect_remote_video ($self, $url) {
         $self->{ustreamer_pipe} = $ffmpeg;
         my $timeout = 100;
         while ($timeout && !-f "/dev/shm/$sink_name") {
-            sleep(0.1);    # uncoverable statement
+            usleep(100_000);    # uncoverable statement
             $timeout -= 1;    # uncoverable statement
         }
         die "ustreamer startup timeout" if $timeout <= 0;

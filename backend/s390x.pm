@@ -20,7 +20,8 @@ sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
-    $self->select_console({testapi_console => 'x3270'});
+    my $ret = $self->select_console({testapi_console => 'x3270'});
+    die $ret->{error} if $ret->{error};
 
     return 1;
 }

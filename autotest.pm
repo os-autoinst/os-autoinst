@@ -254,7 +254,8 @@ sub load_snapshot ($sname) {
     # On VMware VNC console needs to be re-selected after snapshot revert,
     # so the screen is refreshed. Same with serial console.
     return unless ($command // '') eq 'vmware_fixup';
-    testapi::select_console('sut');
+    my $ret = testapi::select_console('sut');    # uncoverable statement
+    die $ret->{error} if $ret->{error};    # uncoverable statement
     query_isotovideo('backend_stop_serial_grab');
     query_isotovideo('backend_start_serial_grab');
 }
