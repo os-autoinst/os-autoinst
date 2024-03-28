@@ -247,25 +247,6 @@ subtest 'exit status from test results' => sub {
     path('vars.json')->remove if -e 'vars.json';
     path('serial0')->touch;
 
-    subtest 'no test scheduled' => sub {
-        path('testresults/')->remove_tree;
-        my $log = combined_from { isotovideo(
-                default_opts => '--exit-status-from-test-results backend=null',
-                opts => "casedir=$data_dir/empty_test_distribution", exit_code => 100) };
-    };
-
-    subtest 'tests scheduled' => sub {
-        path('testresults/')->remove_tree;
-        my $module_basename = 'failing_module';
-        my $module = "tests/$module_basename";
-        my $log = combined_from { isotovideo(
-                default_opts => '--exit-status-from-test-results backend=null',
-                opts => "casedir=$data_dir/tests schedule=$module", exit_code => 101) };
-
-        like $log, qr/scheduling $module_basename $module\.pm/, 'module scheduled';
-        like $log, qr/Test result \[testresults\/result\-$module_basename\.json\] fail/, 'failed test module report';
-    };
-
     subtest 'softfailed module' => sub {
         path('testresults/')->remove_tree;
         my $module_basename = 'softfail_module';

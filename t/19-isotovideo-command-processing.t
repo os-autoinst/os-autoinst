@@ -394,6 +394,35 @@ subtest signalhandler => sub {
     } qr/isotovideo received signal INT/, 'Signal logged';
     is($last_signal, 'INT', 'Event emitted');
 };
+subtest 'Check results_exit_code' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    use Mojo::File 'path';
+    use Mojo::JSON 'encode_json';
+    my %fake_results = ();
+
+    subtest 'no test scheduled' => sub {
+        $runner->_exit_code_from_test_results();
+        is($runner->results_exit_code(), 100, 'results_exit_code returns correct EXIT_STATUS_ERR_NO_TESTS');
+    };
+
+    subtest 'tests scheduled' => sub {
+        %fake_results = ("result" => "failing");
+        my $json = encode_json(\%fake_results);
+        my $resfile = path(bmwqemu::result_dir(), 'result-failing_module.json')->spew($json);
+        $runner->_exit_code_from_test_results();
+        path(bmwqemu::result_dir(), 'result-failing_module.json')->remove_tree;
+        is($runner->results_exit_code(), 101, 'results_exit_code returns correct EXIT_STATUS_ERR_FROM_TEST_RESULTS');
+    };
+
+    subtest 'softfailed module' => sub {
+        %fake_results = ("result" => "softfail");
+        my $json = encode_json(\%fake_results);
+        my $resfile = path(bmwqemu::result_dir(), 'result-failing_module.json')->spew($json);
+        $runner->_exit_code_from_test_results();
+        path(bmwqemu::result_dir(), 'result-failing_module.json')->remove_tree;
+        is($runner->results_exit_code(), 0, 'results_exit_code returns correct EXIT_STATUS_OK');
+    };
+};
 
 subtest 'No readable JSON' => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
