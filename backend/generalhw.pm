@@ -93,7 +93,8 @@ sub relogin_vnc ($self) {
             jpeg => $bmwqemu::vars{GENERAL_HW_VNC_JPEG} // 0,
         });
     $vnc->backend($self);
-    $self->select_console({testapi_console => 'sut'});
+    my $ret = $self->select_console({testapi_console => 'sut'});
+    die $ret->{error} if $ret->{error};
 
     return 1;
 }
@@ -130,7 +131,8 @@ sub reconnect_video_stream ($self, @) {
             edid => $bmwqemu::vars{GENERAL_HW_EDID},
         });
     $vnc->backend($self);
-    $self->select_console({testapi_console => 'sut'});
+    my $ret = $self->select_console({testapi_console => 'sut'});
+    die $ret->{error} if $ret->{error};
 
     return 1;
 }
