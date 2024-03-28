@@ -1,0 +1,14 @@
+{
+    "area": [
+        {
+            "height": 20,
+            "type": "match",
+            "width": 100,
+            "xpos": 250,
+            "ypos": 200
+        }
+    ],
+    "tags": [
+        "none"
+    ]
+}
