@@ -155,7 +155,7 @@ sub connect_remote_video ($self, $url) {
         $self->{ustreamer_pipe} = $ffmpeg;
         my $timeout = 100;
         while ($timeout && !-f "/dev/shm/$sink_name") {
-            sleep(0.1);    # uncoverable statement
+            usleep(100_000);    # uncoverable statement
             $timeout -= 1;    # uncoverable statement
         }
         die "ustreamer startup timeout" if $timeout <= 0;
