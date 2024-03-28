@@ -303,6 +303,10 @@ sub random_string ($count) {
 # sleeping for one second should ensure that one more screenshot is taken
 sub wait_for_one_more_screenshot () { sleep 1 }
 
+sub debug_vars () {
+    tied(%bmwqemu::vars)->debug_vars;
+}
+
 package bmwqemu::tiedvars;
 use Tie::Hash;
 use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use of Mojo::Base and base in this file
@@ -317,6 +321,39 @@ sub TIEHASH ($class, %args) {
 sub STORE ($self, $key, $val) {
     croak("Settings key '$key' is invalid (check your test settings)") unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
     $self->{data}->{$key} = $val;
+    my @stack;
+    for (0 .. 9) {
+        my @caller = caller($_);
+        last unless @caller;
+        my ($package, $file, $line, $sub) = @caller;
+        if ($caller[3] eq 'bmwqemu::load_vars') {
+            $self->{trace}->{load_vars}->{$key} = $val;
+            return;
+        }
+        next if ($package eq 'testapi');
+        last if ($package eq 'basetest' and $sub eq '(eval)');
+        last if $package eq 'main';
+        push @stack, [$package, $line, $sub];
+    }
+    $self->{trace}->{override}->{$key} = {
+        callstack => \@stack,
+        value => $val,
+    };
+}
+
+sub debug_vars ($self) {
+    use YAML::PP;
+    use YAML::PP::Common qw/ PRESERVE_FLOW_STYLE YAML_FLOW_SEQUENCE_STYLE /;
+    my $yp = YAML::PP->new(preserve => PRESERVE_FLOW_STYLE);
+    my $trace = $self->{trace};
+    for my $key (keys %{$trace->{override}}) {
+        my $callstack = $trace->{override}->{$key}->{callstack};
+        for my $row (@$callstack) {
+            $row = $yp->preserved_sequence($row, style => YAML_FLOW_SEQUENCE_STYLE);
+        }
+    }
+    my $dump = $yp->dump_string($trace);
+    log::diag $dump;
 }
 
 sub FIRSTKEY ($self) {
