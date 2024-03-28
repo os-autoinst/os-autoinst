@@ -61,7 +61,11 @@ $vnc_mock->redefine(login => sub { push @vnc_logins, [shift->hostname] });
 $vnc_mock->redefine($_ => sub { }) for (qw(_receive_message _send_frame_buffer send_update_request));
 my $video_mock = Test::MockModule->new('consoles::video_stream');
 my @video_connects;
-$video_mock->redefine(connect_remote => sub { push @video_connects, [shift->{args}->{url}] });
+my $connect_fail = 0;
+$video_mock->redefine(connect_remote => sub {
+        die "connect_remote failed" if $connect_fail;
+        push @video_connects, [shift->{args}->{url}];
+});
 $video_mock->redefine($_ => sub { }) for (qw(update_framebuffer request_screen_update));
 my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
 # silence some log output for cleaner tests
@@ -126,6 +130,11 @@ subtest 'error handling' => sub {
         qr/WORKER_HOSTNAME/,
         'WORKER_HOSTNAME required'
     );
+    $connect_fail = 1;
+    $backend->reset_console({testapi_console => 'sut'});
+    my $ret = $backend->select_console({testapi_console => 'sut'});
+    is_deeply $ret, {error => "connect_remote failed at t/29-backend-generalhw.t line 66.\n"}, 'Correct error returned';
+    $connect_fail = 0;
 };
 
 subtest 'handling power commands' => sub {
