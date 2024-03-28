@@ -128,6 +128,7 @@ sub _get_ffmpeg_cmd ($self, $url) {
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
     return [
         'ustreamer', '--device', $url, '-f', '5',
+        '-m', 'UYVY',    # specify preferred format
         '-c', 'NOOP',    # do not produce JPEG stream
         '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
         '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)

@@ -105,6 +105,7 @@ subtest 'connect stream' => sub {
     my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
+        '-m', 'UYVY',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
         '--dv-timings'], "correct cmd built";
