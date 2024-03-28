@@ -16,7 +16,9 @@ ensure_ip_forwarding() {
 }
 
 install_packages() {
-    zypper -n in openvswitch os-autoinst-openvswitch firewalld libcap-progs
+    for i in $(seq 3); do
+        retry zypper -n in openvswitch os-autoinst-openvswitch firewalld libcap-progs && break
+    done
 }
 
 configure_firewall() {
