@@ -401,6 +401,9 @@ subtest signalhandler => sub {
     is($last_signal, 'INT', 'Event emitted');
 };
 subtest 'Check exit_code_from_test_results' => sub {
+    my $mock_runner = Test::MockModule->new('OpenQA::Isotovideo::Runner');
+    my @diags;
+    $mock_runner->redefine(diag => sub { push @diags, $_[0] });
     my $runner = OpenQA::Isotovideo::Runner->new;
 
     subtest 'no test scheduled' => sub {
@@ -415,6 +418,8 @@ subtest 'Check exit_code_from_test_results' => sub {
         my $resfile = path('testresults/result-failed_module.json')->spew($json);
         is($runner->exit_code_from_test_results(), 101, 'EXIT_STATUS_ERR_FROM_TEST_RESULTS returns if test failed');
         path('testresults/')->remove_tree;
+        like $diags[0], qr/result-failed_module.json.*failing/;
+        @diags = ();
     };
 
     subtest 'softfailed module' => sub {
@@ -422,6 +427,8 @@ subtest 'Check exit_code_from_test_results' => sub {
         my $json = encode_json({result => 'softfail'});
         my $resfile = path('testresults/result-softfailed_module.json')->spew($json);
         is($runner->exit_code_from_test_results(), 0, 'EXIT_STATUS_OK returns if test is not failed');
+        like $diags[0], qr/result-softfailed_module.json.*softfail/;
+        @diags = ();
         path('testresults/')->remove_tree;
     };
 };
