@@ -3,9 +3,6 @@
 
 package OpenQA::Isotovideo::Runner;
 use Mojo::Base -base, -signatures;
-# Avoid "Subroutine JSON::PP::Boolean::(0+ redefined" warnings
-# Details: https://progress.opensuse.org/issues/90371
-use JSON::PP;
 
 use autodie ':all';
 no autodie 'kill';
@@ -13,6 +10,7 @@ use POSIX qw(:sys_wait_h _exit);
 use Mojo::File qw(path);
 use Mojo::UserAgent;
 use IO::Select;
+use JSON::PP;
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
   load_test_schedule);
