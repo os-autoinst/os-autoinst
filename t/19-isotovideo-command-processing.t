@@ -12,11 +12,14 @@ use Test::Warnings ':report_warnings';
 use Test::Fatal;
 use Mojo::JSON 'encode_json';
 use Mojo::File qw(tempdir path);
+use Mojo::Util qw(scope_guard);
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # declare fake file descriptors
 my $cmd_srv_fd = 0;
@@ -399,7 +402,6 @@ subtest signalhandler => sub {
 };
 subtest 'Check exit_code_from_test_results' => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
-    chdir($dir);
 
     subtest 'no test scheduled' => sub {
         my $path_mock = Test::MockModule->new('Mojo::File');
@@ -450,8 +452,3 @@ subtest 'shutdown handling' => sub {
 };
 
 done_testing;
-
-END {
-    unlink OpenQA::Isotovideo::CommandHandler::AUTOINST_STATUSFILE;
-    unlink bmwqemu::STATE_FILE;
-}
