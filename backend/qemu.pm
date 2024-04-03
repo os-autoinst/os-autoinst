@@ -544,12 +544,6 @@ sub qemu_params_ofw ($self) {
     $vars->{QEMUMACHINE} //= "usb=off";
     # set the initial resolution on PCC and SPARC
     sp('g', "$self->{xres}x$self->{yres}");
-    # newer qemu needs safe cache capability level quirk settings
-    # https://progress.opensuse.org/issues/75259
-    my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
-    $vars->{QEMUMACHINE} .= $caps if $vars->{QEMUMACHINE} !~ /$caps/;
-    $caps = ',cap-ccf-assist=off';
-    $vars->{QEMUMACHINE} .= $caps if $self->{qemu_version} >= version->declare(5) && $vars->{QEMUMACHINE} !~ /$caps/;
     return 1;
 }
 
