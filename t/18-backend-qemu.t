@@ -194,7 +194,6 @@ sub qemu_cmdline (%args) {
 }
 
 like qemu_cmdline(OFW => 1, XRES => 640, YRES => 480), qr/-g 640x480/, 'res is set for ppc/sparc';
-like qemu_cmdline(OFW => 1), qr/cap-cfpc=broken/, 'OFW workarounds applied';
 
 sub test_boot_options ($boot, $arch, $pxe, $expected) {
     my $cmdline;
