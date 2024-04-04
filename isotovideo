@@ -85,8 +85,6 @@ no autodie 'kill';
 use constant {
     EXIT_STATUS_OK => 0,
     EXIT_STATUS_ERR => 1,
-    EXIT_STATUS_ERR_NO_TESTS => 100,
-    EXIT_STATUS_ERR_FROM_TEST_RESULTS => 101,
 };
 
 # Avoid "Subroutine JSON::PP::Boolean::(0+ redefined" warnings
@@ -113,7 +111,6 @@ Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
-use Mojo::File qw(path);
 
 my %options;
 
@@ -129,23 +126,6 @@ sub usage ($r) {
 sub _get_version_string () {
     my $thisversion = git_rev_parse(curfile->dirname);
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
-}
-
-sub _exit_code_from_test_results () {
-    my @results = glob(path(bmwqemu::result_dir(), "result-*.json"));
-    return EXIT_STATUS_ERR_NO_TESTS if @results == 0;
-
-    my $did_fail = 0;
-    for my $result_file_path (@results) {
-        my $result_file = path($result_file_path);
-        my $test_result = decode_json($result_file->slurp)->{result};
-        diag sprintf("Test result [%s] %s", $result_file->to_string, $test_result);
-        # If a failure (anything different from ok & softfail) is found, keep it.
-        next if $did_fail;
-
-        $did_fail = $test_result !~ m/^(ok|softfail)$/;
-    }
-    return $did_fail ? EXIT_STATUS_ERR_FROM_TEST_RESULTS : EXIT_STATUS_OK;
 }
 
 sub version () {
@@ -202,7 +182,7 @@ eval {
     $runner->run;
 
     if ($options{'exit-status-from-test-results'}) {
-        $RETURN_CODE = _exit_code_from_test_results();
+        $RETURN_CODE = $runner->exit_code_from_test_results;
     }
 
     # terminate/kill the command server and let it inform its websocket clients before
