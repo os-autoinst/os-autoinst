@@ -400,7 +400,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     else {
         $file = $basedir . $file;
         # $args->{size} is expected to be e.g. '20G' but internally we need it as integer
-        my $size = $args->{size} =~ tr/.*G$/.*/dr // 0;
+        my $size = ($args->{size} // 0) =~ tr/G//dr;
         # expected value in Bytes
         my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
