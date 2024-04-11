@@ -84,12 +84,18 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define ocr_requires %{nil}
 %endif
+%ifnarch s390x
 # The following line is generated from dependencies.yaml
-%define test_base_requires %main_requires cpio icewm ipxe-bootimgs perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::MockRandom) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu >= 4.0 qemu-tools qemu-x86 xorg-x11-Xvnc xterm xterm-console
+%define test_non_s390_requires ipxe-bootimgs qemu-x86
+%else
+%define test_non_s390_requires %{nil}
+%endif
+# The following line is generated from dependencies.yaml
+%define test_base_requires %main_requires cpio icewm perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::MockRandom) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu >= 4.0 qemu-tools xorg-x11-Xvnc xterm xterm-console
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %ocr_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) python3-Pillow-tk
+%define test_requires %build_requires %ocr_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires perl(Inline::Python) python3-Pillow-tk
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Module::CPANfile) perl(Perl::Tidy) perl(Template::Toolkit) shfmt
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale openssh-clients
