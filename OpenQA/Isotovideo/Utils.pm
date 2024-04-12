@@ -75,10 +75,17 @@ sub _clone_bare_repo ($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_
     $handle_output->($?, qx{$clone_cmd --bare --depth='$clone_depth' '$clone_url' '$cache_dir' 2>&1});
 }
 
-sub _fetch_new_refs ($clone_url, $cache_dir, $branch_args, $handle_output) {
+sub _fetch_new_refs ($clone_url, $cache_dir, $branch_arg, $handle_output) {
     bmwqemu::fctinfo "Updating Git cache for '$clone_url' under '$cache_dir'";
-    $handle_output->($?, qx{git -C "$cache_dir" fetch origin $branch_args 2>&1 2>&1});
-    $handle_output->($?, qx{git -C "$cache_dir" branch --force $branch_args FETCH_HEAD 2>&1 2>&1}) if $branch_args;
+    if ($branch_arg eq '') {
+        # get default branch (usually "master") from remote repo if $branch_arg is empty
+        my $cmd = "env GIT_SSH_COMMAND='ssh -oBatchMode=yes' git ls-remote --symref '$clone_url' HEAD";
+        $handle_output->($?, my $refs = qx{$cmd});
+        die "Error detecting remote default branch name" unless $refs =~ /refs\/heads\/(\S+)\s+HEAD/;
+        $branch_arg = "'$1'";
+    }
+    $handle_output->($?, qx{git -C "$cache_dir" fetch origin $branch_arg 2>&1});
+    $handle_output->($?, qx{git -C "$cache_dir" branch --force $branch_arg FETCH_HEAD 2>&1});
 }
 
 sub _open_cache_index ($root_cache_dir, $index_file) {
