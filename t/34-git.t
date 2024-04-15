@@ -157,6 +157,12 @@ subtest 'cloning with caching' => sub {
         like $out, qr/Updating Git cache/, 'updated bare repo';
         $check_working_tree->();
     };
+    subtest 'clone default branch' => sub {
+        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
+        combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }
+          qr/master/, 'detected master branch';
+    };
 
     subtest 'index creation' => sub {
         $index = decode_json($git_cache_dir->child('index.json')->slurp);
