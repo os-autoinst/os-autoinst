@@ -120,6 +120,7 @@ subtest 'frames parsing' => sub {
 
     $img = tinycv::read($data_dir . "frame1.png");
     $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for single frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
 
@@ -129,6 +130,7 @@ subtest 'frames parsing' => sub {
 
     $img = tinycv::read($data_dir . "frame2.png");
     $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
 
@@ -166,6 +168,7 @@ subtest 'frame parsing - ustreamer' => sub {
 
     $img = tinycv::read($data_dir . "ustreamer-shared-no-signal.png");
     $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for JPEG frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct JPEG frame";
     $console->disable_video;
 
@@ -175,6 +178,7 @@ subtest 'frame parsing - ustreamer' => sub {
 
     $img = tinycv::read($data_dir . "ustreamer-shared-full-frame.png");
     $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for UYVY frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct UYVY frame";
     $console->disable_video;
 };
