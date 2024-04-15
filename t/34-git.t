@@ -160,11 +160,8 @@ subtest 'cloning with caching' => sub {
     subtest 'clone default branch' => sub {
         $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
         my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
-        my $clone = sub {
-            combined_from { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' };
-        };
-        my $out = $clone->();
-        like $out, qr/master/, 'detected master branch';
+        combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }
+          qr/master/, 'detected master branch';
     };
 
     subtest 'index creation' => sub {
