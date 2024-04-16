@@ -631,7 +631,7 @@ sub start_qemu ($self) {
         }
         else {
             (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
-            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64);
+            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64 qemu-system-s390x);
             my %allowed = map { $_ => 1 } @execs;
             for (split(/\s*,\s*/, $class)) {
                 if ($allowed{$_}) {
