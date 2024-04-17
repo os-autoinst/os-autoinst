@@ -614,6 +614,14 @@ sub _set_graphics_backend ($self, $is_arm) {
     sp('device', "${device}${options}");
 }
 
+sub determine_qemu_version($self, $qemubin) {
+    my $qemu_version = qx{$qemubin -version};
+    $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
+    $qemu_version = $1;
+    bmwqemu::diag "qemu version detected: $qemu_version";
+    $self->{qemu_version} = $qemu_version;
+}
+
 sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 
@@ -649,12 +657,7 @@ sub start_qemu ($self) {
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);
 
-    # Get qemu version
-    my $qemu_version = qx{$qemubin -version};
-    $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
-    $qemu_version = $1;
-    $self->{qemu_version} = $qemu_version;
-    bmwqemu::diag "qemu version detected: $self->{qemu_version}";
+    $self->determine_qemu_version($qemubin);
 
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
     $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
