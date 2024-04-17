@@ -170,6 +170,10 @@ subtest 'setting graphics backend' => sub {
     is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 changes ARM default to VGA' or diag explain \@params;
     delete $bmwqemu::vars{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64};
 
+    $bmwqemu::vars{ARCH} = 's390x';
+    $backend->_set_graphics_backend();
+    is_deeply \@params, [device => 'virtio-gpu,edid=on,xres=1024,yres=768'], 'default backend for s390x sets graphics backend' or diag explain \@params;
+
     $bmwqemu::vars{ARCH} = 'x86_64';
     $bmwqemu::vars{QEMUVGA} = 'virtio';
     $backend->_set_graphics_backend();

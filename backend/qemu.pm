@@ -588,15 +588,8 @@ sub is_x86 ($arch) { ($arch // '') eq 'i586' || ($arch // '') eq 'x86_64' }
 
 sub _set_graphics_backend ($self) {
     my $vars = \%bmwqemu::vars;
-    my $device = "VGA";
+    my $device;
     my $options = "";
-    if ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
-        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
-    }
-    else {
-        # annoying pre-existing special-case default for ARM
-        $device = "virtio-gpu-pci" if is_arm($vars->{ARCH});
-    }
     if ($vars->{QEMU_VIDEO_DEVICE}) {
         bmwqemu::fctwarn("Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!") if $vars->{QEMUVGA};
         $device = $vars->{QEMU_VIDEO_DEVICE};
@@ -609,6 +602,17 @@ sub _set_graphics_backend ($self) {
         $device = "cirrus-vga" if ($vga eq "cirrus");
         $device = "VGA" if ($vga eq "std");
     }
+    elsif ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
+        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
+    }
+    elsif (is_arm($vars->{ARCH})) {
+        # annoying pre-existing special-case default for ARM
+        $device = "virtio-gpu-pci";
+    }
+    elsif (is_s390x($vars->{ARCH})) {
+        $device = "virtio-gpu";
+    }
+    $device //= "VGA";
     my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display", "virtio-gpu");
     if (grep { $device eq $_ } @edids) {
         # these devices support EDID
