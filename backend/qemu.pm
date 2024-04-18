@@ -547,7 +547,7 @@ sub qemu_params_ofw ($self) {
     return 1;
 }
 
-sub setup_tpm ($self, $arch) {
+sub setup_tpm ($self) {
     my $vars = \%bmwqemu::vars;
     return unless ($vars->{QEMUTPM});
     my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
@@ -567,6 +567,7 @@ sub setup_tpm ($self, $arch) {
     }
     sp('chardev', "socket,id=chrtpm,path=$vmsock");
     sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
+    my $arch = $vars->{ARCH} // '';
     if ($arch eq 'aarch64') {
         sp('device', 'tpm-tis-device,tpmdev=tpm0');
     }
@@ -580,17 +581,16 @@ sub setup_tpm ($self, $arch) {
     }
 }
 
-sub _set_graphics_backend ($self, $is_arm) {
+sub is_arm ($arch) { ($arch // '') =~ /armv6|armv7|arm|aarch64/ }
+sub is_ppc ($arch) { ($arch // '') =~ /ppc/ }
+sub is_riscv ($arch) { ($arch // '') eq 'risv64' }
+sub is_s390x ($arch) { ($arch // '') eq 's390x' }
+sub is_x86 ($arch) { ($arch // '') eq 'i586' || ($arch // '') eq 'x86_64' }
+
+sub _set_graphics_backend ($self) {
     my $vars = \%bmwqemu::vars;
-    my $device = "VGA";
+    my $device;
     my $options = "";
-    if ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
-        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
-    }
-    else {
-        # annoying pre-existing special-case default for ARM
-        $device = "virtio-gpu-pci" if ($is_arm);
-    }
     if ($vars->{QEMU_VIDEO_DEVICE}) {
         bmwqemu::fctwarn("Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!") if $vars->{QEMUVGA};
         $device = $vars->{QEMU_VIDEO_DEVICE};
@@ -603,6 +603,17 @@ sub _set_graphics_backend ($self, $is_arm) {
         $device = "cirrus-vga" if ($vga eq "cirrus");
         $device = "VGA" if ($vga eq "std");
     }
+    elsif ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
+        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
+    }
+    elsif (is_arm($vars->{ARCH})) {
+        # annoying pre-existing special-case default for ARM
+        $device = "virtio-gpu-pci";
+    }
+    elsif (is_s390x($vars->{ARCH})) {
+        $device = "virtio-gpu";
+    }
+    $device //= "VGA";
     my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display", "virtio-gpu");
     if (grep { $device eq $_ } @edids) {
         # these devices support EDID
@@ -612,6 +623,14 @@ sub _set_graphics_backend ($self, $is_arm) {
         $options .= "," . $vars->{QEMU_VIDEO_DEVICE_OPTIONS};
     }
     sp('device', "${device}${options}");
+}
+
+sub determine_qemu_version($self, $qemubin) {
+    my $qemu_version = qx{$qemubin -version};
+    $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
+    $qemu_version = $1;
+    bmwqemu::diag "qemu version detected: $qemu_version";
+    $self->{qemu_version} = $qemu_version;
 }
 
 sub start_qemu ($self) {
@@ -649,21 +668,15 @@ sub start_qemu ($self) {
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);
 
-    # Get qemu version
-    my $qemu_version = qx{$qemubin -version};
-    $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
-    $qemu_version = $1;
-    $self->{qemu_version} = $qemu_version;
-    bmwqemu::diag "qemu version detected: $self->{qemu_version}";
+    $self->determine_qemu_version($qemubin);
 
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
     $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
-
-
-    if ($vars->{UEFI_PFLASH} && (($vars->{ARCH} // '') eq 'x86_64')) {
+    my $arch = $vars->{ARCH} // '';
+    if ($vars->{UEFI_PFLASH} && ($arch eq 'x86_64')) {
         $vars->{BIOS} //= find_ovmf =~ s/-code//r;
     }
-    elsif ($vars->{UEFI} && (($vars->{ARCH} // '') eq 'x86_64')) {
+    elsif ($vars->{UEFI} && ($arch eq 'x86_64')) {
         $vars->{UEFI_PFLASH_CODE} //= find_ovmf;
         $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/$&=~tr,CcOoDdEe,VvAaRrSs,r/eir;
         die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
@@ -734,28 +747,18 @@ sub start_qemu ($self) {
         # of ports is 32 so enough for 14 workers per host.
         $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
     }
-
-    # arch discovery
-    my $arch = $vars->{ARCH} // '';
-    $arch = 'arm' if ($arch =~ /armv6|armv7/);
-    my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
-    my $is_ppc = $arch =~ /ppc/;
-    my $is_riscv = $arch eq 'riscv64';
-    my $is_s390x = $arch eq 's390x';
-    my $is_x86 = $arch eq 'i586' || $arch eq 'x86_64';
-
-    $self->_set_graphics_backend($is_arm);
+    $self->_set_graphics_backend;
 
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
     my $use_virtio_kbd;
 
-    if ($is_arm || $is_riscv) {
+    if (is_arm($arch) || is_riscv($arch)) {
         $arch_supports_boot_order = 0;
         $use_usb_kbd = 1;
     }
-    elsif ($is_s390x) {
+    elsif (is_s390x($arch)) {
         $arch_supports_boot_order = 0;
         $use_virtio_kbd = 1;
     }
@@ -848,7 +851,7 @@ sub start_qemu ($self) {
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial', 'chardev:serial0');
 
-    if (!$is_s390x) {
+    if (!is_s390x($arch)) {
         if ($self->requires_audiodev) {
             my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
             my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
@@ -866,7 +869,7 @@ sub start_qemu ($self) {
     }
     {
         # Remove floppy drive device on architectures which have it
-        sp('global', 'isa-fdc.fdtypeA=none') if (($is_ppc || $is_x86) && !$vars->{QEMU_NO_FDC_SET});
+        sp('global', 'isa-fdc.fdtypeA=none') if (is_ppc($arch) || is_x86($arch) && !$vars->{QEMU_NO_FDC_SET});
 
         sp('m', $vars->{QEMURAM}) if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
@@ -900,7 +903,7 @@ sub start_qemu ($self) {
 
         # Keep additional virtio _after_ Ethernet setup to keep virtio-net as eth0
         if ($vars->{QEMU_VIRTIO_RNG} // 1) {
-            my $rngdev = $is_s390x ? 'virtio-rng' : 'virtio-rng-pci';
+            my $rngdev = is_s390x($arch) ? 'virtio-rng' : 'virtio-rng-pci';
             sp('object', 'rng-random,filename=/dev/urandom,id=rng0');
             sp('device', "$rngdev,rng=rng0");
         }
@@ -921,7 +924,7 @@ sub start_qemu ($self) {
             sp('append', "dhcp && sanhook iscsi:${worker_ip}::3260:1:$vars->{NBF}", no_quotes => 1);
         }
 
-        $self->setup_tpm($arch);
+        $self->setup_tpm;
 
         my @boot_args;
         # Enable boot menu for aarch64 workaround, see bsc#1022064 for details
@@ -949,8 +952,8 @@ sub start_qemu ($self) {
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
-            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : $is_s390x ? 'virtio-tablet' : 'qemu-xhci');
-            sp('device', 'usb-tablet') unless $is_s390x;
+            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : is_s390x($arch) ? 'virtio-tablet' : 'qemu-xhci');
+            sp('device', 'usb-tablet') unless is_s390x($arch);
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
