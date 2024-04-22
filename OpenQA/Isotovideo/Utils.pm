@@ -385,11 +385,18 @@ sub load_test_schedule (@) {
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
     }
     my $productdir = $bmwqemu::vars{PRODUCTDIR};
+    my $distri = $bmwqemu::vars{DISTRI};
     my $main_path = path($productdir, 'main.pm');
+    my $nested_main_path = $distri ? path($productdir, 'products', $distri, 'main.pm') : undef;
     try {
         if (-e $main_path) {
             unshift @INC, '.';
             require $main_path;
+        }
+        elsif (defined $nested_main_path && -e $nested_main_path) {
+            $bmwqemu::vars{PRODUCTDIR} = $nested_main_path->dirname->to_string;
+            unshift @INC, '.';
+            require $nested_main_path;
         }
         elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
             require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);

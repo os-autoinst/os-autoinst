@@ -35,8 +35,9 @@ my $sudo_user = $ENV{OS_AUTOINST_TEST_SECOND_USER} // 'nobody';
 qx{command -v sudo >/dev/null && sudo --non-interactive -u $sudo_user true};
 like git_rev_parse($toplevel_dir, "sudo -u $sudo_user"), $version, 'can parse git version as different user' if $? == 0;    # uncoverable statement
 
+chdir($dir);
+
 subtest 'error handling when loading test schedule' => sub {
-    chdir($dir);
     my $base_state = path(bmwqemu::STATE_FILE);
     subtest 'no schedule at all' => sub {
         $base_state->remove;
@@ -66,6 +67,25 @@ subtest 'error handling when loading test schedule' => sub {
         $bmwqemu::vars{PRODUCTDIR} = 'not/found';
         throws_ok { load_test_schedule } qr/PRODUCTDIR.*invalid/, 'error logged';
     };
+};
+
+subtest 'loading test schedule from different locations' => sub {
+    # assume PRODUCTDIR is not specified by the user so code in Runner.pm has set it to the default value of CASEDIR
+    $bmwqemu::vars{CASEDIR} = $bmwqemu::vars{PRODUCTDIR} = $dir;
+    $bmwqemu::vars{DISTRI} = 'foodistri';
+
+    # put distinct main.pm files under the locations load_test_schedule is supposed to check
+    my $main_pm = $dir->child('main.pm');
+    $main_pm->spew('die "tried to load main.pm directly under CASEDIR";');
+    my $nested_main_pm = $dir->child('products/foodistri')->make_path->child('main.pm');
+    $nested_main_pm->spew('die "tried to load main.pm from products dir";');
+
+    throws_ok { load_test_schedule } qr/tried to load main\.pm directly under CASEDIR/, 'loading main.pm from CASEDIR by default';
+    is $bmwqemu::vars{PRODUCTDIR}, $bmwqemu::vars{CASEDIR}, 'PRODUCTDIR is still CASEDIR';
+
+    $main_pm->remove;
+    throws_ok { load_test_schedule } qr/tried to load main\.pm from products dir/, 'loading main.pm from nested dir as fallback';
+    is $bmwqemu::vars{PRODUCTDIR}, "$bmwqemu::vars{CASEDIR}/products/foodistri", 'PRODUCTDIR set to nested dir';
 };
 
 subtest 'prevent upload assets when publish_hdd is none with case-insensitive' => sub {
