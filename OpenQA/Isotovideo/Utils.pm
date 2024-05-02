@@ -222,6 +222,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
 
     my $url = Mojo::URL->new($dir);
     return undef unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
+    return undef if $url->scheme eq 'file';    # prevent unauthorized clone of local git repos
 
     my $clone_depth = $args{clone_depth} // GIT_CLONE_DEPTH;
     my $retry_count = $args{retry_count} // GIT_RETRY_COUNT;
