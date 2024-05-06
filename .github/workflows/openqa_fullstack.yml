@@ -12,23 +12,30 @@ on:
 env:
   # Set to 1 to temporarily ignore warnings
   PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS: 0
+  # Default user in the used container image from
+  # https://github.com/os-autoinst/openQA/blob/master/container/devel%3AopenQA%3Aci/base/Dockerfile
+  NORMAL_USER: squamata
 
 jobs:
   fullstack:
     runs-on: ubuntu-latest
     container:
       image: registry.opensuse.org/devel/openqa/ci/containers/base:latest
+      # See https://docs.github.com/en/actions/creating-actions/dockerfile-support-for-github-actions#user
+      options: --user root
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
       - name: Make project folder user-writable
-        run: sudo chown -R $USER ../../os-autoinst
+        run: chown -R $NORMAL_USER ../../os-autoinst
       - name: Clone openQA
-        run: git clone --depth 1 https://github.com/os-autoinst/openQA.git ../openQA
+        run: >-
+          sudo -u $NORMAL_USER
+          git clone --depth 1 https://github.com/os-autoinst/openQA.git ../openQA
       - name: Install dependencies
         run: (cd ../openQA; bash -x tools/ci/build_cache.sh; sudo npm install)
       - name: Build os-autoinst
-        run: make symlinks
+        run: sudo -u $NORMAL_USER make symlinks
       - name: Run unit tests
-        run: make -C ../openQA test-fullstack
+        run: sudo -u $NORMAL_USER make -C ../openQA test-fullstack
         env:
           STABILITY_TEST: ${{ github.event.inputs.stability_test }}
