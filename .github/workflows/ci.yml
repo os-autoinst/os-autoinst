@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Static checks, unit- and integration tests
         run: tools/container_run_ci
       - name: Upload coverage to Codecov
@@ -22,7 +22,7 @@ jobs:
           verbose: true
       - run: |
           tar cvf coverage.tar build/cover_db
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.tar
@@ -30,6 +30,6 @@ jobs:
   static-check-containers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Test our container definitions
         run: tools/static_check_containers
