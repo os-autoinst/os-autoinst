@@ -20,10 +20,10 @@ pr:
               - target_project: openSUSE:Factory
                 target_repository: snapshot
             architectures: [ x86_64 ]
-          - name: openSUSE_Leap_15.5
+          - name: openSUSE_Leap_15.6
             paths:
-              - target_project: devel:openQA:Leap:15.5
-                target_repository: openSUSE_Leap_15.5
+              - target_project: devel:openQA:Leap:15.6
+                target_repository: openSUSE_Leap_15.6
             architectures: [ x86_64 ]
   filters:
     event: pull_request
