@@ -47,7 +47,7 @@ devel_requires:
   perl(Devel::Cover::Report::Codecov):
   perl(Module::CPANfile):
   perl(Template::Toolkit):
-  perl(Perl::Tidy): '== 20240202'
+  perl(Perl::Tidy): == 20240511.0.0
   ShellCheck:
   shfmt:
 
