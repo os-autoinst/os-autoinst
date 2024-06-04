@@ -177,13 +177,9 @@ sub loadtest ($script, %args) {
 
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
-        # to all perl hardcore hackers: fuck off!
-        $nr = $nr eq '' ? 1 : $nr + 1;
-        $test->{name} = join("#", $name, $nr);
+        $test->{name} = join "#", $name, ++$nr;
     }
-    if ($args{name}) {
-        $test->{name} = $args{name};
-    }
+    $test->{name} = $args{name} if $args{name};
 
     $tests{$fullname . $nr} = $test;
 
