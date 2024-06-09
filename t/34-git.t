@@ -191,7 +191,7 @@ subtest 'cloning with caching' => sub {
             ok -d $repo_cache_dir, 'no cleanup has happened yet';
         };
         subtest 'over limit' => sub {
-            $bmwqemu::vars{GIT_CACHE_DIR_LIMIT} = 100;
+            $bmwqemu::vars{GIT_CACHE_DIR_LIMIT} = 50;
             combined_like { limit_git_cache_dir($git_cache_dir, $fake_checkout2, $fake_checkout_relative2, $handle_du) }
             qr|removing.*$orga/$repo$suffix|i, 'cleanup was logged';
             ok !-d $repo_cache_dir, 'the repo that was cloned first has been cleaned up';
