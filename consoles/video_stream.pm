@@ -9,6 +9,7 @@ use Mojo::UserAgent;
 use Mojo::URL;
 use Mojo::Util 'scope_guard';
 
+use Config;
 use List::Util 'max';
 use Time::HiRes qw(usleep clock_gettime CLOCK_MONOTONIC);
 use Fcntl;
@@ -146,6 +147,7 @@ sub connect_remote_video ($self, $url) {
     }
 
     if ($url =~ m^ustreamer://^) {
+        die 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
         my $dev = ($url =~ m^ustreamer://(.*)^)[0];
         my $sink_name = "raw-sink$dev";
         $sink_name =~ s^/^-^g;

@@ -3,6 +3,7 @@
 # Copyright 2021 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+use Config;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Mojo::UserAgent;
@@ -95,7 +96,11 @@ subtest 'connect stream' => sub {
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
         [('/dev/video0', undef, '--get-dv-timings')],
     ], "calls to v4l2-ctl";
+};
 
+subtest 'connect stream ustreamer' => sub {
+    plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
+    my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     @v4l2_ctl_calls = ();
     copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
@@ -109,7 +114,6 @@ subtest 'connect stream' => sub {
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
         '--dv-timings'], "correct cmd built";
-
 };
 
 subtest 'frames parsing' => sub {
@@ -151,6 +155,12 @@ subtest 'frame parsing - ustreamer' => sub {
     # ustreamer requires pack("D") support, not availabe in openSUSE Leap 15.5's Perl
     eval { $_ = pack("D", 1.0); };
     plan skip_all => 'packing long double is not supported' if $@;
+    # frame unpacking is only correct on little-endian 64-bit arches, in
+    # practice ustreamer is only used on aarch64, restrict tests to
+    # aarch64 and x86_64 (x86_64 for CI convenience)
+    # see https://progress.opensuse.org/issues/161969
+    plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
+
     my ($img, $received_img);
 
     # ustreamer frame, invalid magic
