@@ -78,23 +78,19 @@ sub serialize_state (%state) {
 }
 
 sub load_vars () {
-    my $fn = "vars.json";
-    my $ret = {};
     local $/;
     my $fh;
-    eval { open($fh, '<', $fn) };
+    eval { $fh = path('vars.json')->open('<') };
     return 0 if $@;
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
+    my $ret = {};
+    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>) };
     die "parse error in vars.json:\n$@" if $@;
-    close($fh);
     %vars = %{$ret};
     return;
 }
 
 sub save_vars (%args) {
-    my $fn = "vars.json";
-    unlink "vars.json" if -e "vars.json";
-    open(my $fd, ">", $fn);
+    my $fd = path('vars.json')->open('>');
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
     truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
@@ -271,15 +267,12 @@ sub mydie ($cause_of_death) {
 
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
-    open(my $fd, ">", "$fn.new");
     my $json = eval { Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) };
     if (my $err = $@) {
         my $dump = Data::Dumper->Dump([$result], ['result']);
         croak "Cannot encode input: $@\n$dump";
     }
-    print $fd $json;
-    close($fd);
-    return rename("$fn.new", $fn);
+    path($fn)->spew($json);
 }
 
 sub scale_timeout ($timeout) {
