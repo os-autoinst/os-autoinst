@@ -79,21 +79,15 @@ sub serialize_state (%state) {
 
 sub load_vars () {
     local $/;
-    my $fh;
-    eval { $fh = path('vars.json')->open('<') };
+    my $vars_content = eval { path('vars.json')->slurp };
     return 0 if $@;
-    my $ret = {};
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>) };
+    my $ret = eval { Cpanel::JSON::XS->new->relaxed->decode($vars_content) };
     die "parse error in vars.json:\n$@" if $@;
     %vars = %{$ret};
     return;
 }
 
 sub save_vars (%args) {
-    my $fd = path('vars.json')->open('>');
-    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
-
     my $write_vars = \%vars;
     if ($args{no_secret}) {
         $write_vars = {};
@@ -102,8 +96,7 @@ sub save_vars (%args) {
 
     # make sure the JSON is sorted
     my $json = Cpanel::JSON::XS->new->pretty->canonical;
-    print $fd $json->encode($write_vars);
-    close($fd);
+    path('vars.json')->spew($json->encode($write_vars));
     return;
 }
 
