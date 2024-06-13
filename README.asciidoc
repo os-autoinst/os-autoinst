@@ -351,6 +351,14 @@ Further notes:
 * All mentioned variables to influence the test execution (`TESTS`, `WITH_COVER_OPTIONS`, …)
   can be combined and can also be used with the `coverage` target.
 
+== Running isotovideo as CI check
+We provide a container to run `isotovideo` which can be used to run QEMU-based tests directly
+in a CI runner. Checkout this
+https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/.github/workflows/isotovideo-action.yml[example workflow]
+for how it can be used. The
+https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/README.md#local-testing-and-ci-environment[README of the example test distribution]
+also contains further details.
+
 == Standalone tool for image search
 The script `imgsearch` in the repository's top-level allows to use the fuzzy
 image comparison independently of the normal test execution. Invoke the script
