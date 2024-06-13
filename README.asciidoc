@@ -82,8 +82,8 @@ below.
 
 == How to run test cases
 
-This following instructions shows how to run test cases. First one needs to clone the test
-distribution. Checkout
+This following instructions shows how to run test cases. First one needs to
+clone the test distribution. Checkout
 link:https://github.com/os-autoinst/os-autoinst-distri-example[os-autoinst-distri-example]
 for an example of a minimal test distribution.
 
@@ -128,34 +128,38 @@ Create a minimal `vars.json` config file within that directory, e.g.:
 }
 ---------------------------------------------------------
 
-You will need to correct the file paths to point to real locations. Some of the variables
-you can use are listed link:doc/backend_vars.asciidoc[here]. Test case specific variables
-are listed in the distri directories e.g.
+You will need to correct the file paths to point to real locations. Some of the
+variables you can use are listed link:doc/backend_vars.asciidoc[here]. Test case
+specific variables are listed in the distri directories e.g.
 link:https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/variables.md[os-autoinst-distri-opensuse/variables].
 
-Then you can run the `isotovideo` script within the created working directory. When doing
-a manual build, that script can be found at the top-level of the os-autoinst Git checkout.
+Then you can run the `isotovideo` script within the created working directory.
+When doing a manual build, that script can be found at the top-level of the
+os-autoinst Git checkout.
 
-All of these examples were using the QEMU backend which is usually the easiest backend
-to handle and therefore recommended. If you need to develop and test other backends, have
-a look at the link:doc/backends.md[backend-specific documentation].
+All of these examples were using the QEMU backend which is usually the easiest
+backend to handle and therefore recommended. If you need to develop and test
+other backends, have a look at the
+link:doc/backends.md[backend-specific documentation].
 
-When using the QEMU backend it is possible to access the system under test via VNC:
+When using the QEMU backend it is possible to access the system under test via
+VNC:
 
 ----------------------------------------
 vncviewer localhost:91 -ViewOnly -Shared
 ----------------------------------------
 
-Run `isotovideo` with the environment variable `RUN_VNCVIEWER` set to autostart a VNC viewer
-on the right port.
+Run `isotovideo` with the environment variable `RUN_VNCVIEWER` set to autostart
+a VNC viewer on the right port.
 
-Run `isotovideo` with the environment variable `RUN_DEBUGVIEWER` to start the internal debug
-screenshot viewer updated with an always recent screenshot of the test run.
+Run `isotovideo` with the environment variable `RUN_DEBUGVIEWER` to start the
+internal debug screenshot viewer updated with an always recent screenshot of the
+test run.
 
 == Develop test modules
 
-Individual test modules are written with one test module per file using the
-test API in Perl code. Experimental support for test modules in the Python
+Individual test modules are written with one test module per file using the test
+API in Perl code. Experimental support for test modules in the Python
 programming language is provided.
 
 Find more details about how to write tests on
@@ -177,31 +181,32 @@ accelerated virtualization support.
 
 == How to contribute
 
-If you want to contribute to this project, please clone and send
-pull requests via https://github.com/os-autoinst/os-autoinst.
+If you want to contribute to this project, please clone and send pull requests
+via https://github.com/os-autoinst/os-autoinst.
 
 More information on the contribution can be found on
 http://os-autoinst.github.io/openQA/contact/, too.
 
 Issues are tracked on https://progress.opensuse.org/projects/openqav3/.
 
-For an overview of the architecture, see link:doc/architecture.md[doc/architecture.md].
+For an overview of the architecture, see
+link:doc/architecture.md[doc/architecture.md].
 
 === Rules for commits
 
-* Every commit is checked by our CI system as soon as
-you create a pull request but you *should* run the os-autoinst tests locally.
-Checkout the build instructions for further details.
+* Every commit is checked by our CI system as soon as you create a pull request
+  but you *should* run the os-autoinst tests locally. Checkout the build
+  instructions for further details.
 
 * For git commit messages use the rules stated on
-http://chris.beams.io/posts/git-commit/[How to Write a Git Commit Message] as
-a reference
+  http://chris.beams.io/posts/git-commit/[How to Write a Git Commit Message] as
+  a reference
 
 * Every pull request is reviewed in a peer review to give feedback on possible
-implications and how we can help each other to improve
+  implications and how we can help each other to improve
 
-If this is too much hassle for you feel free to provide incomplete pull
-requests for consideration or create an issue with a code change proposal.
+If this is too much hassle for you feel free to provide incomplete pull requests
+for consideration or create an issue with a code change proposal.
 
 === Deprecation approach
 
@@ -221,9 +226,9 @@ distribution-provided packages might be too old or miss dependencies. This is
 particularly true for openSUSE Leap. Also see
 link:https://open.qa/docs/#_development_version_repository[the openQA docs].
 
-The required dependencies are also declared in `dependencies.yaml`. (The names listed
-within that file are specific to openSUSE but can be easily transferred to other
-distributions.)
+The required dependencies are also declared in `dependencies.yaml`. (The names
+listed within that file are specific to openSUSE but can be easily transferred
+to other distributions.)
 
 === Conducting the build
 
@@ -245,37 +250,37 @@ make help
 to list all available targets.
 
 The above commands use a convenience Makefile calling `cmake`. For packaging,
-when using an IDE or to conduct the steps manually it is suggested to use
-CMake directly and do the following: Create a build directory outside of the
-source directory. The following commands need to be invoked within that
-directory.
+when using an IDE or to conduct the steps manually it is suggested to use CMake
+directly and do the following: Create a build directory outside of the source
+directory. The following commands need to be invoked within that directory.
 
 Configure build:
 ----
 cmake $path_to_os_autoinst_checkout
 ----
 
-You can specify any of the standard CMake variables, e.g. `-DCMAKE_BUILD_TYPE=Debug`
-and `-DCMAKE_INSTALL_PREFIX=/custom/install/prefix`.
+You can specify any of the standard CMake variables, e.g.
+`-DCMAKE_BUILD_TYPE=Debug` and `-DCMAKE_INSTALL_PREFIX=/custom/install/prefix`.
 
-The following examples assume that GNU Make is used. It is possible to generate for
-a different build tool by adding e.g. `-G Ninja` to the CMake arguments.
+The following examples assume that GNU Make is used. It is possible to generate
+for a different build tool by adding e.g. `-G Ninja` to the CMake arguments.
 
 Build executables and libraries:
 ----
 make symlinks
 ----
 
-This target also creates symlinks of the built executables and libraries within the
-source directory so `isotovideo` can find them.
+This target also creates symlinks of the built executables and libraries within
+the source directory so `isotovideo` can find them.
 
 Run all tests:
 ----
 make check
 ----
 
-By default CTest is invoked in verbose mode because prove already provides condensed
-output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid that.
+By default CTest is invoked in verbose mode because prove already provides
+condensed output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid
+that.
 
 Run all Perl tests (`*.t` files found within the `t` and `xt` directories):
 ----
@@ -297,8 +302,8 @@ Run all author tests:
 make test-local
 ----
 
-Notice that the user needs to include the test directory for each test (either t for normal or
-xt for developer-centric tests) when specifying individual tests.
+Notice that the user needs to include the test directory for each test (either t
+for normal or xt for developer-centric tests) when specifying individual tests.
 
 Add additional arguments to the `prove` invocation, e.g. enable verbose output:
 ----
@@ -315,8 +320,8 @@ Generate a coverage report from the gathered coverage data:
 make coverage
 ----
 
-If no coverage data has been gathered so far the `coverage` target will invoke the
-testsuite automatically.
+If no coverage data has been gathered so far the `coverage` target will invoke
+the testsuite automatically.
 
 Reset gathered coverage data:
 ----
@@ -340,20 +345,22 @@ tools/tidyall --git
 
 Further notes:
 
-* When using the `test-perl-testsuite` target, `ctest` is not used (and therefore `ctest`
-  specific tweaks have no effect).
-* One can always run Perl tests manually via `prove` after the build has been conducted with
-  `make symlinks`. Note that some tests need to be invoked within the `t` directory. An
-  invocation like `prove -vI.. -I../external/os-autoinst-common/lib 28-signalblocker.t` is
+* When using the `test-perl-testsuite` target, `ctest` is not used (and
+  therefore `ctest` specific tweaks have no effect).
+* One can always run Perl tests manually via `prove` after the build has been
+  conducted with `make symlinks`. Note that some tests need to be invoked within
+  the `t` directory. An invocation like
+  `prove -vI.. -I../external/os-autoinst-common/lib 28-signalblocker.t` is
   supposed to work.
-* It is also possible to run `ctest` within the build directory directly instead of
-  using the mentioned targets.
-* All mentioned variables to influence the test execution (`TESTS`, `WITH_COVER_OPTIONS`, …)
-  can be combined and can also be used with the `coverage` target.
+* It is also possible to run `ctest` within the build directory directly instead
+  of using the mentioned targets.
+* All mentioned variables to influence the test execution (`TESTS`,
+  `WITH_COVER_OPTIONS`, …) can be combined and can also be used with the
+  `coverage` target.
 
 == Running isotovideo as CI check
-We provide a container to run `isotovideo` which can be used to run QEMU-based tests directly
-in a CI runner. Checkout this
+We provide a container to run `isotovideo` which can be used to run QEMU-based
+tests directly in a CI runner. Checkout this
 https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/.github/workflows/isotovideo-action.yml[example workflow]
 for how it can be used. The
 https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/README.md#local-testing-and-ci-environment[README of the example test distribution]
@@ -386,8 +393,8 @@ Bernhard's blog posts.
 
 == Further notes
 
-When using the QEMU backend, also ensure your user running os-autoinst has access
-to `/dev/kvm`.
+When using the QEMU backend, also ensure your user running os-autoinst has
+access to `/dev/kvm`.
 
 -----------------------------------------------------------
 modprobe kvm-intel || modprobe kvm-amd
