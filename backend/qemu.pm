@@ -583,7 +583,7 @@ sub setup_tpm ($self) {
 
 sub is_arm ($arch) { ($arch // '') =~ /armv6|armv7|arm|aarch64/ }
 sub is_ppc ($arch) { ($arch // '') =~ /ppc/ }
-sub is_riscv ($arch) { ($arch // '') eq 'risv64' }
+sub is_riscv ($arch) { ($arch // '') eq 'riscv64' }
 sub is_s390x ($arch) { ($arch // '') eq 's390x' }
 sub is_x86 ($arch) { ($arch // '') eq 'i586' || ($arch // '') eq 'x86_64' }
 
