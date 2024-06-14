@@ -94,6 +94,7 @@ IPMI_MC_RESET_PING_COUNT;integer;1;Ping counts that must be successful after mc 
 IPMI_MC_RESET_IPMI_TRIES;integer;3;Maximum number of IPMI command tries that are conducted after mc reset
 IPMI_SOL_PERSISTENT_CONSOLE;boolean;1;Make SOL console persistent and don't reset it, enabled by default
 IPMI_SOL_MAX_RECONNECTS;integer;5;Maximum number of SOL reconnects on connection failure
+IPMI_SOL_LOG;boolean;1;Record IPMI SOL output into ipmisol-log in consoles/sshXtermIPMI.pm, disabled by default
 IPMI_$_;;;Internal iterator variable
 WORKER_HOSTNAME;string;undef;Worker hostname
 |====================

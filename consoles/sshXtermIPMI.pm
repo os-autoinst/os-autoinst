@@ -17,6 +17,7 @@ sub start_sol ($self) {
     my @command = $self->backend->ipmi_cmdline;
     push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
+    push(@command, qw(2>&1 | tee -a ipmisol-log)) if $bmwqemu::vars{IPMI_SOL_LOG};
     my $cstr = join(' ', @command);
 
     # Try to deactivate IPMI SOL before activate
