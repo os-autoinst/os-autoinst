@@ -1207,8 +1207,9 @@ sub new_ssh_connection ($self, %args) {
     # timeout requires libssh2 >= 1.2.9 so not all versions might have it
     my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 5 * ONE_MINUTE) * 1000);
 
-    # Retry multiple times, in case of the guest is not running yet
+    # Retry multiple times in case the guest is not running yet
     my $counter = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
+    my $interval = $bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10;
     my $con_pretty = "$args{username}\@$args{hostname}";
     $con_pretty .= ":$args{port}" unless $args{port} == 22;
     while ($counter > 0) {
@@ -1225,8 +1226,8 @@ sub new_ssh_connection ($self, %args) {
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $con_pretty, Retrying after some seconds...";
-            sleep($bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
+            bmwqemu::diag "Could not connect to $con_pretty. Retrying up to $counter more times after sleeping ${interval}s";
+            sleep($interval);
             $counter--;
             next;
         }
