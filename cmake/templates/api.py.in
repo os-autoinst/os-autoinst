@@ -1,0 +1,5 @@
+import perl
+
+perl.use("@PYTHON_BINDING@")
+for i in dir(perl.@PYTHON_BINDING@):
+    locals()[i] = getattr(perl.@PYTHON_BINDING@, i)

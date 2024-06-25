@@ -86,9 +86,6 @@ set(PERL_FILES
 set(MISC_FILES
     consoles/icewm.cfg
     crop.py
-    lockapi.py
-    mmapi.py
-    testapi.py
     dmidata/dell_e6330/smbios_type_1.bin
     dmidata/dell_e6330/smbios_type_2.bin
     dmidata/dell_e6330/smbios_type_3.bin
@@ -96,6 +93,11 @@ set(MISC_FILES
     dmidata/hp_elitebook_820g1/smbios_type_2.bin
     dmidata/hp_elitebook_820g1/smbios_type_3.bin
     dmidata/dump
+)
+set(PYTHON_BINDINGS
+    lockapi
+    mmapi
+    testapi
 )
 
 # determine install directories
@@ -140,6 +142,11 @@ if (NOT SRC_DIR STREQUAL BIN_DIR)
         COMMAND ln -fs $<TARGET_FILE:snd2png> "${CMAKE_CURRENT_SOURCE_DIR}/snd2png/snd2png"
         COMMAND ln -fs $<TARGET_FILE:debugviewer> "${CMAKE_CURRENT_SOURCE_DIR}/debugviewer/debugviewer"
     )
+    foreach (PYTHON_BINDING IN LISTS PYTHON_BINDINGS)
+        list(APPEND OUT_OF_SOURCE_TREE_BUILD_COMMANDS
+            COMMAND ln -fs "${CMAKE_CURRENT_BINARY_DIR}/${PYTHON_BINDING}.py" "${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_BINDING}.py"
+        )
+    endforeach ()
 endif ()
 add_custom_target(
     symlinks
@@ -201,6 +208,13 @@ install(
 )
 foreach (FILE README.asciidoc COPYING ${GENERATED_DOC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DOC_DIR}")
+endforeach ()
+foreach (PYTHON_BINDING IN LISTS PYTHON_BINDINGS)
+    configure_file("cmake/templates/api.py.in" "${PYTHON_BINDING}.py")
+    install(
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/${PYTHON_BINDING}.py"
+        DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    )
 endforeach ()
 foreach (FILE ${PERL_FILES} ${MISC_FILES})
     get_filename_component(SUB_DIR ${FILE} DIRECTORY)
