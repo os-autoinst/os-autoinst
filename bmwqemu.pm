@@ -78,36 +78,27 @@ sub serialize_state (%state) {
 }
 
 sub load_vars () {
-    my $fn = "vars.json";
-    my $ret = {};
     local $/;
-    my $fh;
-    eval { open($fh, '<', $fn) };
+    my $vars_content = eval { path('vars.json')->slurp };
     return 0 if $@;
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
+    my $ret = eval { Cpanel::JSON::XS->new->relaxed->decode($vars_content) };
     die "parse error in vars.json:\n$@" if $@;
-    close($fh);
     %vars = %{$ret};
     return;
 }
 
 sub save_vars (%args) {
-    my $fn = "vars.json";
-    unlink "vars.json" if -e "vars.json";
-    open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
-
     my $write_vars = \%vars;
     if ($args{no_secret}) {
         $write_vars = {};
-        $write_vars->{$_} = $vars{$_} for (grep !/(^_SECRET_|_PASSWORD)/, keys(%vars));
+        my $hide_re = '^_SECRET_|_PASSWORD';
+        $hide_re .= "|$vars{_HIDE_MATCH_RE}" if $vars{_HIDE_MATCH_RE};
+        $write_vars->{$_} = $vars{$_} for (grep !/($hide_re)/, keys(%vars));
     }
 
     # make sure the JSON is sorted
     my $json = Cpanel::JSON::XS->new->pretty->canonical;
-    print $fd $json->encode($write_vars);
-    close($fd);
+    path('vars.json')->spew($json->encode($write_vars));
     return;
 }
 
@@ -271,15 +262,12 @@ sub mydie ($cause_of_death) {
 
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
-    open(my $fd, ">", "$fn.new");
     my $json = eval { Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) };
     if (my $err = $@) {
         my $dump = Data::Dumper->Dump([$result], ['result']);
         croak "Cannot encode input: $@\n$dump";
     }
-    print $fd $json;
-    close($fd);
-    return rename("$fn.new", $fn);
+    path($fn)->spew($json);
 }
 
 sub scale_timeout ($timeout) {
