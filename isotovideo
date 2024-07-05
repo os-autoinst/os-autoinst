@@ -167,11 +167,7 @@ eval {
     $bmwqemu::scriptdir = $installprefix;
 
     $runner = OpenQA::Isotovideo::Runner->new;
-    $runner->_init_bmwqemu(@ARGV);
-    $runner->prepare;
-    $runner->start_autotest;
-    $runner->create_backend;
-
+    $runner->init(@ARGV);
     spawn_debuggers;
 
     $runner->handle_commands;
