@@ -93,12 +93,14 @@ endif ()
 find_program(PROVE_PATH prove)
 find_program(UNBUFFER_PATH unbuffer)
 if (PROVE_PATH)
-    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}" t)
+    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
     add_test(
         NAME test-perl-testsuite
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
+    set_tests_properties(test-perl-testsuite
+        PROPERTIES ENVIRONMENT "TESTS=t")
     add_test(
         NAME test-local-author-perl
         COMMAND "${PROVE_PATH}" xt
