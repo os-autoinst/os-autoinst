@@ -117,6 +117,9 @@ my %options;
 # global exit status
 my $RETURN_CODE = EXIT_STATUS_ERR;
 
+# abstraction providing many helpers and function to run the select-loop
+my $runner;
+
 sub usage ($r) {
     $RETURN_CODE = $r;
     eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
@@ -134,6 +137,21 @@ sub version () {
     exit 0;
 }
 
+sub handle_shutdown () {
+    # terminate/kill the command server and let it inform its websocket clients before
+    $runner->stop_commands('test execution ended');
+    if ($runner->testfd) {
+        # unusual shutdown
+        $RETURN_CODE = EXIT_STATUS_ERR;    # uncoverable statement
+        CORE::close $runner->testfd;    # uncoverable statement
+        $runner->stop_autotest();    # uncoverable statement
+    }
+    diag 'isotovideo ' . ($RETURN_CODE ? 'failed' : 'done');
+    my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
+    bmwqemu::load_vars();    # read calculated variables from backend and tests
+    $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
+}
+
 GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v', 'exit-status-from-test-results|e') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
@@ -149,9 +167,6 @@ $ENV{ANSI_COLORS_DISABLED} = 1 if $color eq 'no';
 
 chdir $options{workdir} if $options{workdir};
 
-# abstraction providing many helpers and function to run the select-loop
-my $runner;
-
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
 # default locale
@@ -160,44 +175,16 @@ $ENV{LANG} = 'en_US.UTF-8';
 
 eval {
     diag(_get_version_string());
-
-    # enable debug default when started from a tty
-    $log::direct_output = $options{debug};
-
+    $log::direct_output = $options{debug};    # enable debug default when started from a tty
     $bmwqemu::scriptdir = $installprefix;
-
     $runner = OpenQA::Isotovideo::Runner->new;
     $runner->init(@ARGV);
     spawn_debuggers;
-
     $runner->handle_commands;
-
     $RETURN_CODE = EXIT_STATUS_OK;
-
-    # enter the main loop: process messages from autotest, command server and backend
-    $runner->run;
-
-    if ($options{'exit-status-from-test-results'}) {
-        $RETURN_CODE = $runner->exit_code_from_test_results;
-    }
-
-    # terminate/kill the command server and let it inform its websocket clients before
-    $runner->stop_commands('test execution ended');
-
-    if ($runner->testfd) {
-        # unusual shutdown
-        $RETURN_CODE = EXIT_STATUS_ERR;    # uncoverable statement
-        CORE::close $runner->testfd;    # uncoverable statement
-        $runner->stop_autotest();    # uncoverable statement
-    }
-
-    diag 'isotovideo ' . ($RETURN_CODE ? 'failed' : 'done');
-    my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
-
-    # read calculated variables from backend and tests
-    bmwqemu::load_vars();
-
-    $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
+    $runner->run;    # enter the main loop: process messages from autotest, command server and backend
+    $RETURN_CODE = $runner->exit_code_from_test_results if $options{'exit-status-from-test-results'};
+    handle_shutdown;
 };
 if (my $error = $@) {
     log::fctwarn $error, 'main';
@@ -208,10 +195,7 @@ END {
     $runner->backend->stop if $runner and $runner->backend;
     $runner and $runner->stop_commands('test execution ended through exception');
     $runner and $runner->stop_autotest();
-
-    # in case of early exit, e.g. help display
-    $RETURN_CODE //= 0;
-
+    $RETURN_CODE //= 0;    # in case of early exit, e.g. help display
     print "$$: EXIT $RETURN_CODE\n";
     $? = $RETURN_CODE;
 }

@@ -245,7 +245,7 @@ sub _init_bmwqemu ($, @args) {
 }
 
 sub init ($self, @args) {
-    $self->_init_bmwqemu(@ARGV);
+    $self->_init_bmwqemu(@args);
     $self->prepare;
     $self->start_autotest;
     $self->create_backend;
