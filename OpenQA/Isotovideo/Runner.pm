@@ -244,6 +244,13 @@ sub _init_bmwqemu ($, @args) {
     }
 }
 
+sub init ($self, @args) {
+    $self->_init_bmwqemu(@args);
+    $self->prepare;
+    $self->start_autotest;
+    $self->create_backend;
+}
+
 sub exit_code_from_test_results ($self) {
     my @results = glob(path(bmwqemu::result_dir(), "result-*.json"));
     return EXIT_STATUS_ERR_NO_TESTS if @results == 0;
