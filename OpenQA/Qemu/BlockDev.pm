@@ -64,6 +64,21 @@ QEMU.
 has 'node_name';
 has 'size';
 
+=head3 logical_block_size
+
+WIP - The logical block size of the drive
+
+=cut
+has 'logical_block_size';
+
+=head physical_block_size
+
+The physical block size of the drive
+
+=cut
+has 'physical_block_size';
+
+
 =head3 overlay
 
 A link to another OpenQA::Qemu::BlockDev object which represents the overlay on

@@ -60,20 +60,6 @@ has 'serial';
 has 'id';
 has last_overlay_id => 0;
 
-=head3 logical_block_size
-
-WIP - The logical block size of the drive
-
-=cut
-has 'logical_block_size';
-
-=head physical_block_size
-
-The physical block size of the drive
-
-=cut
-has 'physical_block_size';
-
 =head3 num_queues
 
 The number of I/O queues of the drive, esp. for NVMe devices
