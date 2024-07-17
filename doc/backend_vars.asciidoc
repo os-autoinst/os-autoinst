@@ -117,6 +117,8 @@ HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDMODEL_$_;see qemu -device ?;virtio-blk;Storage device for virtualized HDD. Overrides global HDDMODEL for HDD_$i
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
+HDD_LOGICAL_BLOCK_SIZE;integer;undef;see QEMU_HDD_LOGICAL_BLOCK_SIZE
+HDD_PHYSICAL_BLOCK_SIZE;integer;undef;specifies the block size and boot sector size of the HDD image
 HDDNUMQUEUES_$i;integer;-1;see qemu-system-x86_64 -device nvme,help - set the number of queues for HDD_$i
 ISO;filename;;Filename of ISO file to be attached to VM
 ISO_$i;filename;;Additional ISO to be attached to VM. Up to 9

@@ -60,6 +60,20 @@ has 'serial';
 has 'id';
 has last_overlay_id => 0;
 
+=head3 logical_block_size
+
+WIP - The logical block size of the drive
+
+=cut
+has 'logical_block_size';
+
+=head physical_block_size
+
+The physical block size of the drive
+
+=cut
+has 'physical_block_size';
+
 =head3 num_queues
 
 The number of I/O queues of the drive, esp. for NVMe devices
@@ -98,6 +112,9 @@ sub gen_cmdline ($self) {
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
         $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if (($self->num_queues // -1) != -1);
+        # logical_block_size=4096,physical_block_size=4096
+        $self->(_push_ifdef(\@params, 'logical_block_size=', $self->drive->logical_block_size));
+        $self->(_push_ifdef(\@params, 'physical_block_size=', $self->drive->physical_block_size));
         push(@cmdln, ('-device', join(',', @params)));
     }
 
@@ -141,6 +158,8 @@ sub _to_map ($self) {
         paths => \@paths,
         bootindex => $self->bootindex,
         serial => $self->serial,
+        logical_block_size => $self->logical_block_size,
+        physical_block_size => $self->physical_block_size,
         id => $self->id,
         num_queues => $self->num_queues};
 }
@@ -156,7 +175,9 @@ sub _from_map ($self, $map, $cont_conf, $snap_conf) {
       ->paths(\@paths)
       ->bootindex($map->{bootindex})
       ->serial($map->{serial})
-      ->id($map->{id})
+      ->logical_block_size($map->logical_block_size),
+      ->physical_block_size($map->physical_block_size),
+      ->id($map->{id}),
       ->num_queues($map->{num_queues});
 }
 

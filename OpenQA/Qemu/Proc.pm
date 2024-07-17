@@ -184,6 +184,10 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         }
 
         $drive->serial($hdd_serial);
+        # logical_block_size=4096,physical_block_size=4096
+        # TODO: consider only doing this for the bootfrom device number
+        $drive->logical_block_size($vars->{HDD_LOGICAL_BLOCK_SIZE});
+        $drive->physical_block_size($vars->{HDD_PHYSICAL_BLOCK_SIZE});
         if ($vars->{MULTIPATH}) {
             for my $c (0 .. $vars->{PATHCNT} - 1) {
                 $bdc->add_path_to_drive("path$c",
