@@ -625,7 +625,7 @@ sub _set_graphics_backend ($self) {
     sp('device', "${device}${options}");
 }
 
-sub determine_qemu_version($self, $qemubin) {
+sub determine_qemu_version ($self, $qemubin) {
     my $qemu_version = qx{$qemubin -version};
     $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
     $qemu_version = $1;
@@ -735,6 +735,8 @@ sub start_qemu ($self) {
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{CDMODEL} ||= "scsi-cd";
     $vars->{HDDMODEL} ||= "virtio-blk";
+    $vars->{HDD_LOGICAL_BLOCK_SIZE} ||= 512;
+    $vars->{HDD_PHYSICAL_BLOCK_SIZE} ||= 4096;
 
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
