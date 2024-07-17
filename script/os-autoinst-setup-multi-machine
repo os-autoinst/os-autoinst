@@ -11,6 +11,29 @@ zone="${zone:-"trusted"}"
 #   is still higher than 1458 which openSUSE MM tests configure within the SUT.
 mtu=${mtu:-1460}
 
+usage() {
+    cat << EOF
+Usage: os-autoinst-setup-multi-machine
+
+Options:
+ -h, --help         display this help
+EOF
+    exit "$1"
+}
+
+opts=$(getopt -o h -l help -n "$0" -- "$@") || usage 1
+eval set -- "$opts"
+while true; do
+    case "$1" in
+        -h | --help) usage 0 ;;
+        --)
+            shift
+            break
+            ;;
+        *) break ;;
+    esac
+done
+
 ensure_ip_forwarding() {
     grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
 }
