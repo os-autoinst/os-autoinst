@@ -3,6 +3,10 @@
 use Mojo::Base -strict, -signatures;
 use File::Basename;
 use Getopt::Long;
+
+use FindBin '$Bin';
+use lib "$Bin";
+
 use needle;
 use cv;
 
