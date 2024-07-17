@@ -191,6 +191,8 @@ sub _to_map ($self) {
         node_name => $self->node_name,
         size => $self->size,
         needs_creating => $self->needs_creating,
+        logical_block_size => $self->logical_block_size,
+        physical_block_size => $self->physical_block_size,
         implicit => $self->implicit,
         snapshot => $self->snapshot->sequence};
 }
@@ -206,6 +208,8 @@ sub _from_map ($self, $drives, $snap_conf) {
       ->node_name($this->{node_name})
       ->size($this->{size})
       ->needs_creating($this->{needs_creating})
+      ->logical_block_size($this->logical_block_size)
+      ->physical_block_size($this->physical_block_size)
       ->implicit($this->{implicit})
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }

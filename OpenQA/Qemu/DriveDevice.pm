@@ -144,8 +144,6 @@ sub _to_map ($self) {
         paths => \@paths,
         bootindex => $self->bootindex,
         serial => $self->serial,
-        logical_block_size => $self->logical_block_size,
-        physical_block_size => $self->physical_block_size,
         id => $self->id,
         num_queues => $self->num_queues};
 }
@@ -161,8 +159,6 @@ sub _from_map ($self, $map, $cont_conf, $snap_conf) {
       ->paths(\@paths)
       ->bootindex($map->{bootindex})
       ->serial($map->{serial})
-      ->logical_block_size($map->logical_block_size)
-      ->physical_block_size($map->physical_block_size)
       ->id($map->{id})
       ->num_queues($map->{num_queues});
 }
