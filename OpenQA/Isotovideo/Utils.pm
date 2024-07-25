@@ -79,9 +79,9 @@ sub _fetch_new_refs ($clone_url, $cache_dir, $branch_arg, $handle_output) {
     bmwqemu::fctinfo "Updating Git cache for '$clone_url' under '$cache_dir'";
     if ($branch_arg eq '') {
         # get default branch (usually "main" or "master") from remote repo if $branch_arg is empty
-        my $cmd = "env GIT_SSH_COMMAND='ssh -oBatchMode=yes' git ls-remote --symref '$clone_url' HEAD";
+        my $cmd = "env GIT_SSH_COMMAND='ssh -oBatchMode=yes' git ls-remote --symref '$clone_url' HEAD 2>&1";
         $handle_output->($?, my $refs = qx{$cmd});
-        die "Error detecting remote default branch name" unless $refs =~ /refs\/heads\/(\S+)\s+HEAD/;
+        die "Error detecting remote default branch name ('$refs')" unless $refs =~ m{refs/heads/(\S+)\s+HEAD};
         $branch_arg = "'$1'";
     }
     $handle_output->($?, qx{git -C "$cache_dir" fetch origin $branch_arg 2>&1});
