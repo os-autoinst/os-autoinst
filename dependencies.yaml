@@ -105,6 +105,7 @@ test_base_requires:
   xorg-x11-Xvnc:
   icewm:
   xterm:
+  socat:
 
 test_version_only_requires:
   perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.28'
