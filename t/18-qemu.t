@@ -43,6 +43,12 @@ $bdc->add_new_drive('hd1', 'virtio-blk', '10G');
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 
+$cmdl[-1] .= ',logical_block_size=4096,physical_block_size=4096';
+$bdc = OpenQA::Qemu::BlockDevConf->new();
+$bdc->add_new_drive('hd1', 'virtio-blk', '10G', undef, '4096');
+@gcmdl = $bdc->gen_cmdline();
+is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for drive with 4k sector size');
+
 @cmdl = [qw(create -f qcow2 raid/hd1 10G)];
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
@@ -100,6 +106,12 @@ $bdc = OpenQA::Qemu::BlockDevConf->new();
 $bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 22548578304);
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing drive');
+
+$cmdl[-1] .= ',logical_block_size=4096,physical_block_size=4096';
+$bdc = OpenQA::Qemu::BlockDevConf->new();
+$bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 22548578304, undef, 4096);
+@gcmdl = $bdc->gen_cmdline();
+is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for existing drive with 4k sector size');
 
 @cmdl = ([qw(create -f qcow2 -F qcow2 -b /abs/path/sle15-minimal.qcow2 raid/hd1-overlay0 22548578304)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();

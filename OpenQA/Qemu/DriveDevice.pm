@@ -67,6 +67,14 @@ The number of I/O queues of the drive, esp. for NVMe devices
 =cut
 has 'num_queues';
 
+=head3 sector_size
+
+The logical and physical block size of the drive if differing from QEMU
+default.
+
+=cut
+has 'sector_size';
+
 sub new_overlay_id ($self) { $self->last_overlay_id($self->last_overlay_id + 1)->last_overlay_id }
 
 sub node_name ($self) { $self->id . DEVICE_POSTFIX }
@@ -98,6 +106,7 @@ sub gen_cmdline ($self) {
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
         $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if (($self->num_queues // -1) != -1);
+        push(@params, 'logical_block_size=' . $self->sector_size . ',physical_block_size=' . $self->sector_size) if $self->sector_size;
         push(@cmdln, ('-device', join(',', @params)));
     }
 
