@@ -118,6 +118,7 @@ HDDMODEL_$_;see qemu -device ?;virtio-blk;Storage device for virtualized HDD. Ov
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
 HDDNUMQUEUES_$i;integer;-1;see qemu-system-x86_64 -device nvme,help - set the number of queues for HDD_$i
+HDDSECTORSIZE_$i;integer;undef;specifies the physical and logical block size and boot sector size of the HDD image
 ISO;filename;;Filename of ISO file to be attached to VM
 ISO_$i;filename;;Additional ISO to be attached to VM. Up to 9
 KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
