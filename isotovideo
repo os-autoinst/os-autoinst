@@ -91,16 +91,17 @@ use constant {
 # Details: https://progress.opensuse.org/issues/90371
 use JSON::PP;
 
+use FindBin '$RealBin';
+
 my $installprefix;    # $bmwqemu::topdir
 
 BEGIN {
     # the following line is modified during make install
     $installprefix = undef;
 
-    my ($wd) = $0 =~ m-(.*)/-;
-    $wd ||= '.';
-    $installprefix ||= $wd;
-    unshift @INC, "$installprefix";
+    my $topdir = $RealBin || '.';
+    $installprefix ||= $topdir;
+    unshift @INC, $installprefix;
 }
 
 use log qw(diag);
