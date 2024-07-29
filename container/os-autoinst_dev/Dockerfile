@@ -47,6 +47,7 @@ RUN zypper in -y -C \
        rsync \
        shadow \
        shfmt \
+       socat \
        sshpass \
        sudo \
        tesseract-ocr \

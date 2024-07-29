@@ -14,6 +14,7 @@ use List::Util 'max';
 use Time::HiRes qw(usleep clock_gettime CLOCK_MONOTONIC);
 use Fcntl;
 use File::Map qw(map_handle unmap);
+use IPC::Open2 qw(open2);
 
 use Try::Tiny;
 use bmwqemu;
@@ -55,6 +56,7 @@ sub disable ($self, @) {
     my $ret = $self->disable_video;
     if ($self->{input_pipe}) {
         close($self->{input_pipe});
+        close($self->{input_feedback});
         waitpid($self->{inputpid}, 0);
     }
     return $ret;
@@ -187,10 +189,12 @@ sub connect_remote_input ($self, $cmd) {
     bmwqemu::diag "Connecting input device";
 
     my $input_pipe;
-    $self->{inputpid} = open($input_pipe, '|' . $cmd)
+    my $input_feedback;
+    $self->{inputpid} = open2($input_feedback, $input_pipe, $cmd)
       or die "Failed to start input_cmd($cmd)";
     $self->{input_pipe} = $input_pipe;
     $self->{input_pipe}->autoflush(1);
+    $self->{input_feedback} = $input_feedback;
 
     return $input_pipe;
 }
@@ -370,6 +374,8 @@ sub send_key_event ($self, $key, $press_release_delay) {
     return unless $self->{input_pipe};
     $self->{input_pipe}->write($key . "\n")
       or die "failed to send '$key' input event";
+    my $rsp = $self->{input_feedback}->getline;
+    die "Send key failed: $rsp" unless $rsp eq "ok\n";
 }
 
 =head2 _send_keyboard_emulator_cmd
@@ -421,8 +427,8 @@ sub mouse_move_to ($self, $x, $y) {
     return unless $self->{input_pipe};
     $self->{input_pipe}->write("mouse_move $x $y\n");
     $self->{input_pipe}->flush;
-    # let the event be processed before further commands
-    $self->backend->run_capture_loop(.1);
+    my $rsp = $self->{input_feedback}->getline;
+    die "Mouse move failed: $rsp" unless $rsp eq "ok\n";
 }
 
 sub mouse_button ($self, $args) {
@@ -434,6 +440,8 @@ sub mouse_button ($self, $args) {
     bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{input_pipe}->write("mouse_button $mask\n");
     $self->{input_pipe}->flush;
+    my $rsp = $self->{input_feedback}->getline;
+    die "Mouse button failed: $rsp" unless $rsp eq "ok\n";
     return {};
 }
 
