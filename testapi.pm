@@ -810,7 +810,7 @@ sub is_serial_terminal () {
 
   wait_serial($regex or ARRAYREF of $regexes, [, timeout => $timeout] [, expect_not_found => $expect_not_found] [, %args]);
 
-Deprecated mode
+Positional mode (not suggested)
 
   wait_serial($regex or ARRAYREF of $regexes [, $timeout [, $expect_not_found [, @args ]]]);
 
@@ -892,7 +892,7 @@ sub _handle_script_run_ret {    # no:style:signatures
 
   assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet]);
 
-Deprecated mode
+Positional mode (not suggested)
 
   assert_script_run($cmd [, $timeout [, $fail_message]]);
 
@@ -931,7 +931,7 @@ sub assert_script_run {    # no:style:signatures
 
   script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet] [, die_on_timeout => 1]);
 
-Deprecated mode
+Positional mode (not suggested)
 
   script_run($cmd [, $timeout]);
 
@@ -1162,7 +1162,7 @@ sub get_test_data ($path) {
 
   validate_script_output($script, $code | $regexp [, timeout => $timeout] [, quiet => $quiet] [, title => $title] [, fail_message => $fail_message])
 
-Deprecated mode
+Positional mode (not suggested)
 
   validate_script_output($script, $code, [$wait])
 
