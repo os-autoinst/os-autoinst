@@ -42,9 +42,13 @@ subtest 'failure to clone results once' => sub {
 };
 
 subtest 'failure to clone results in repeated attempts' => sub {
+    my $chdir_guard = scope_guard sub { chdir $Bin; };
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
-    $utils_mock->redefine(clone_git => sub (@) {
+    chdir $tmpdir;
+    $utils_mock->redefine(clone_git => sub ($dir, @) {
+            ok !-e $dir, "$dir cleaned up" or return 1;
+            path($dir)->make_path;
             bmwqemu::diag "Connection reset by peer";
             die "Unable to clone Git repository";
     });
