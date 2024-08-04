@@ -339,6 +339,8 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
       'done;' .
       'else ' .
       "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+      "[ $? -ne 0 -a -e /vmfs/volumes/$vmware_nfs_datastore/hdd/fixed/$file_basename ] &&" .
+      "  cp /vmfs/volumes/$vmware_nfs_datastore/hdd/fixed/$file_basename $vmware_openqa_datastore;" .
       'fi;';
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't copy VMware image $file_basename" if $retval;
