@@ -324,20 +324,25 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
-sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile) {
+sub _copy_image_vmware ($self, $name, $backingfile, $file, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile) {
     # If the file exists, make sure someone else is not copying it there right now,
-    # otherwise copy image from NFS datastore.
+    # otherwise copy image from NFS datastore, unless origin full-path is available.
+    # $file may contain the original full-path image-name in hdd|iso (backingfile: 1|0) or subdir.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
     my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? "set -x;" : "";
+    my $file_basename = basename($file);
+    my $file_origin;
+    # When input file is without path, the folder is recomposed and added:
+    $file_origin = ($file eq $file_basename) ? "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename" : $file;
     my $cmd =
       "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
       "while lsof | grep 'cp.*$file_basename'; do " .
       "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
       'done;' .
       'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+      "cp $file_origin $vmware_openqa_datastore;" .
       'fi;';
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't copy VMware image $file_basename" if $retval;
@@ -383,7 +388,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
-            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
+            $self->_copy_image_vmware($name, $backingfile, $args->{file}, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
         }
         else {
             $self->_copy_image_else($args->{file}, $file_basename, $basedir);

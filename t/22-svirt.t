@@ -600,6 +600,22 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
+            like($last_ssh_commands[0], qr%cp\s+/my/path/to/this/file/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
+
+            svirt_xml_validate($svirt,
+                disk_device => 'cdrom',
+                dev => 'hd' . $dev_id,
+                bus => 'ide',
+                source_file => '[my_vmware_datastore] openQA/' . $filename
+            );
+        };
+
+        subtest 'vmware cdrom=1 file_basename' => sub {
+            my $dev_id = 'dev_id_033';
+            my $filename = 'my_cdrom_file_' . $dev_id . '.iso';
+            set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
+            @last_ssh_commands = ();
+            $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $filename});
             like($last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
 
             svirt_xml_validate($svirt,
