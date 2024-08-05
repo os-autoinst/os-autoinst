@@ -713,8 +713,9 @@ sub get_required_var ($var) {
 
 Set test variable C<$variable> to value C<$value>.
 
-Variables starting with C<_SECRET_> or including C<_PASSWORD> will not appear
-in the C<vars.json> file.
+Variables starting with C<_SECRET_> or including C<_PASSWORD> or matching a
+custom regular expression in the test variable C<_HIDE_MATCH_RE> will not
+appear in the C<vars.json> file.
 
 Specify a true value for the C<reload_needles> flag to trigger a reloading
 of needles in the backend and call the cleanup handler with the new variables
