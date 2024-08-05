@@ -367,14 +367,14 @@ https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/README.md#lo
 also contains further details.
 
 == Standalone tool for image search
-The script `imgsearch` in the repository's top-level allows to use the fuzzy
-image comparison independently of the normal test execution. Invoke the script
-with no parameters to show its usage. There is also an
+The script `imgsearch` in the repository's script folder allows to use the
+fuzzy image comparison independently of the normal test execution. Invoke the
+script with no parameters to show its usage. There is also an
 link:https://github.com/os-autoinst/os-autoinst/blob/master/t/imgsearch/expected-output.json[example file]
-showing what output you can expect. There is one key for
-each file to be searched. The best matching image to be found will show up as
-`match` and the other images under `candidates`. If no image matches well
-enough, `match` will be `null`.
+showing what output you can expect. There is one key for each file to be
+searched. The best matching image to be found will show up as `match` and the
+other images under `candidates`. If no image matches well enough, `match` will
+be `null`.
 
 To use the script the previously shown build instructions need to be executed
 (including the invocation of the `symlinks` target).

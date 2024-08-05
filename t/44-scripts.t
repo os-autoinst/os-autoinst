@@ -16,7 +16,7 @@ my %allowed_types = (
 );
 
 # Could also use MIME::Types, would be new dependency
-chomp(my @types = qx{cd $Bin/..; for i in *; do echo \$i; file --mime-type --brief \$i; done});
+chomp(my @types = qx{cd $Bin/../script/; for i in *; do echo \$i; file --mime-type --brief \$i; done});
 
 my %types = @types;
 for my $key (keys %types) {
@@ -24,7 +24,7 @@ for my $key (keys %types) {
 }
 
 for my $script (sort keys %types) {
-    my $out = qx{timeout 8 $Bin/../$script --help 2>&1};
+    my $out = qx{timeout 8 $Bin/../script/$script --help 2>&1};
     my $rc = $? >> 8;
     is $rc, 0, "Calling '$script --help' returns exit code 0" or diag "Output($script): $out";
     $out = qx{$Bin/../$script invalid-command --invalid-flag 2>&1};

@@ -10,7 +10,7 @@ use lib "$FindBin::Bin/lib", "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 
 sub check_qemu_oom () {
-    system("$Bin/../check_qemu_oom 1");
+    system("$Bin/../script/check_qemu_oom 1");
     return $? >> 8;
 }
 
