@@ -96,6 +96,16 @@ subtest 'connect stream' => sub {
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
         [('/dev/video0', undef, '--get-dv-timings')],
     ], "calls to v4l2-ctl";
+
+    my $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, 'udp://@:5004');
+    is_deeply $cmd, [
+        'ffmpeg', '-loglevel', 'fatal', '-i', 'udp://@:5004',
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 4, '-'], "correct cmd built for UDP source";
+
+    $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, '/dev/video0?fps=3');
+    is_deeply $cmd, [
+        'ffmpeg', '-loglevel', 'fatal', '-i', '/dev/video0',
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
 };
 
 subtest 'connect stream ustreamer' => sub {
@@ -113,7 +123,14 @@ subtest 'connect stream ustreamer' => sub {
         '-m', 'UYVY',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
-        '--dv-timings'], "correct cmd built";
+        '--dv-timings'], "correct cmd built for ustreamer";
+    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2', 'raw-sink-dev-video0');
+    is_deeply $cmd, [
+        'ustreamer', '--device', '/dev/video0', '-f', '2',
+        '-m', 'UYVY',
+        '-c', 'NOOP',
+        '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
+        '--dv-timings'], "correct cmd built for fps=2";
 };
 
 subtest 'frames parsing' => sub {

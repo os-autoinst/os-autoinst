@@ -120,17 +120,21 @@ sub connect_remote ($self, $args) {
     $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
 }
 
-# uncoverable statement count:1..4 note:the function is redefined in tests
 sub _get_ffmpeg_cmd ($self, $url) {
-    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});    # uncoverable statement
-    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));    # uncoverable statement
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', '4', '-'));    # uncoverable statement
-    return \@cmd;    # uncoverable statement
+    my $fps = $1 if ($url =~ s/\?fps=([0-9]+)//);
+    $fps //= 4;
+    my @cmd;
+    @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
+    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
+    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', $fps, '-'));
+    return \@cmd;
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
+    my $fps = $1 if ($url =~ s/\?fps=([0-9]+)//);
+    $fps //= 5;
     return [
-        'ustreamer', '--device', $url, '-f', '5',
+        'ustreamer', '--device', $url, '-f', $fps,
         '-m', 'UYVY',    # specify preferred format
         '-c', 'NOOP',    # do not produce JPEG stream
         '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
