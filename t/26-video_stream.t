@@ -96,6 +96,16 @@ subtest 'connect stream' => sub {
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
         [('/dev/video0', undef, '--get-dv-timings')],
     ], "calls to v4l2-ctl";
+
+    my $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, 'udp://@:5004');
+    is_deeply $cmd, [
+        'ffmpeg', '-loglevel', 'fatal', '-i', 'udp://@:5004',
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 4, '-'], "correct cmd built for UDP source";
+
+    $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, '/dev/video0?fps=3');
+    is_deeply $cmd, [
+        'ffmpeg', '-loglevel', 'fatal', '-i', '/dev/video0',
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
 };
 
 subtest 'connect stream ustreamer' => sub {
