@@ -120,14 +120,14 @@ sub connect_remote ($self, $args) {
     $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
 }
 
-# uncoverable statement count:1..6 note:the function is redefined in tests
 sub _get_ffmpeg_cmd ($self, $url) {
     my $fps = $1 if ($url =~ s/\?fps=([0-9]+)//);
     $fps //= 4;
-    my @cmd = split(/ /, $self->{args}->{video_cmd_prefix});    # uncoverable statement
-    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));    # uncoverable statement
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', $fps, '-'));    # uncoverable statement
-    return \@cmd;    # uncoverable statement
+    my @cmd;
+    @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
+    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
+    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', $fps, '-'));
+    return \@cmd;
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
