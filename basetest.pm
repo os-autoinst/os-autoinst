@@ -210,6 +210,8 @@ sub _serialize_match ($self, $candidate) {
         for my $i (qw(x y w h result)) {
             $na->{$i} = $area->{$i};
         }
+        $na->{refstr} = $area->{refstr} if exists $area->{refstr};
+        $na->{ocr_str} = $area->{ocr_str} if exists $area->{ocr_str};
         $na->{similarity} = int($area->{similarity} * 100);
         $na->{click_point} = $area->{click_point} if exists $area->{click_point};
         push @{$match{area}}, $na;
@@ -599,24 +601,6 @@ sub verify_sound_image ($self, $imgpath, $mustmatch, $check) {
     }
     return;
 }
-
-=head2 ocr_checklist
-
-Optical Character Recognition matching.
-
-Return a listref containing hashrefs like this:
-
-  {
-    screenshot=>2,      # nr of screenshot for the test to OCR
-    x=>104, y=>201,     # position
-    xs=>380, ys=>150,   # size
-    pattern=>"H ?ello", # regex to match the OCR result
-    result=>"OK"        # or "fail"
-  }
-
-=cut
-
-sub ocr_checklist () { [] }
 
 # this is called if the test failed and the framework loaded a VM
 # snapshot - all consoles activated in the test's run function loose their
