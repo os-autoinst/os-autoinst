@@ -815,6 +815,7 @@ Positional mode (not suggested)
   wait_serial($regex or ARRAYREF of $regexes [, $timeout [, $expect_not_found [, @args ]]]);
 
 Wait for C<$regex> or anyone of C<$regexes> to appear on serial output.
+A regex object has to be created with the C<qr> operator.
 
 Setting C<$no_regex> will cause it to do a plain string search.
 
@@ -828,6 +829,10 @@ Returns the string matched or C<undef> if C<$expect_not_found> is false
 
 Returns C<undef> or (after timeout) the string that I<did _not_ match> if
 C<$expect_not_found> is true. The default timeout is 90 seconds.
+
+Example:
+
+    wait_serial(qr/Password:\s*$/i, timeout => 30);
 
 =cut
 
