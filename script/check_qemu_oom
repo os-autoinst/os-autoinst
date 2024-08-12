@@ -1,0 +1,33 @@
+#!/usr/bin/perl -w
+# Copyright 2021 SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+
+=head1 check_qemu_oom
+
+check_qemu_oom - check if qemu is killed due to system being out of memory
+
+=head1 SYNOPSIS
+
+check_qemu_oom qemu_pid
+
+=cut
+
+use Mojo::Base -strict, -signatures;
+use Getopt::Long;
+
+Getopt::Long::Configure("no_ignore_case");
+
+my %options;
+
+sub usage ($r) {
+    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
+    die "cannot display help, install perl(Pod::Usage)\n" if $@;    # uncoverable statement
+}
+
+GetOptions(\%options, 'help|h|?') or usage(1);
+usage(0) if $options{help};
+usage(1) unless @ARGV;
+my $qemu_pid = $ARGV[0] or usage(1);
+my $oom_log_cmd = $ENV{CHECK_QEMU_OOM_LOG_CMD} // 'dmesg';
+exit(index(qx{$oom_log_cmd} // '', "Out of memory: Killed process $qemu_pid") != -1 ? 0 : 1);
