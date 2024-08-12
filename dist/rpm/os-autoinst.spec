@@ -304,15 +304,18 @@ fi
 %{_prefix}/lib/os-autoinst/consoles
 %{_prefix}/lib/os-autoinst/autotest.pm
 %{_prefix}/lib/os-autoinst/*.py
+%dir %{_prefix}/lib/os-autoinst/script
 %{_prefix}/lib/os-autoinst/script/check_qemu_oom
 %{_prefix}/lib/os-autoinst/script/dewebsockify
 %{_prefix}/lib/os-autoinst/script/vnctest
+%{_prefix}/lib/os-autoinst/script/crop.py
 
 %dir %{_prefix}/lib/os-autoinst/schema
 %{_prefix}/lib/os-autoinst/schema/Wheels-01.yaml
 
 %files openvswitch
 %defattr(-,root,root)
+%dir %{_prefix}/lib/os-autoinst/script
 %{_prefix}/lib/os-autoinst/script/os-autoinst-openvswitch
 %{_unitdir}/os-autoinst-openvswitch.service
 %config /etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf

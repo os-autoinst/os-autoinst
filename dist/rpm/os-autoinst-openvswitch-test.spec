@@ -19,7 +19,7 @@ touch %{_sourcedir}/%{short_name}
 %build
 # call one of the components but not openqa itself which would need a valid
 # configuration
-/usr/lib/os-autoinst/os-autoinst-openvswitch --help
+/usr/lib/os-autoinst/script/os-autoinst-openvswitch --help
 
 %install
 # disable debug packages in package test to prevent error about missing files
