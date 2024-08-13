@@ -149,13 +149,29 @@ subtest 'starting VMware console' => sub {
     ], 'expected commands invoked' or diag explain \@cmds;
 };
 
-subtest 'starting VMware console with Cloud Init' => sub {
+subtest 'test config encoding' => sub {
+    $bmwqemu::vars{GUESTINFO_COMBUSTION} = 'someTestScript';
+    my $test_script_dir = path(File::Temp->newdir('testXXXX'));
+    $bmwqemu::vars{CASEDIR} = $test_script_dir->to_string;
+
+    my $test_script = $test_script_dir->child('data')->make_path;
+    $test_script = $test_script->child($bmwqemu::vars{GUESTINFO_COMBUSTION});
+    my $test_string = 'combustion' x 100;
+    $test_script->spew($test_string);
+
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $conf_encoded = $svirt_console->_encode_config($test_script->basename, 'GUESTINFO_COMBUSTION');
+    like $conf_encoded, qr/^H4sI.*noAwAA$/, 'config encoded';
+    is_deeply length $conf_encoded < length $test_string, 1, 'Encoded string is shorter';
+    dies_ok { $svirt_console->_encode_config('testingFile') } '_encode_config dies with insufficient amount of arguments passed';
+};
+
+subtest 'starting VMware console with InvalidConfig' => sub {
     $bmwqemu::vars{VMWARE_HOST} = 'h';
     $bmwqemu::vars{VMWARE_USERNAME} = 'u';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
-    $bmwqemu::vars{CLOUD_INIT_META} = 'test@meta';
-    $bmwqemu::vars{CLOUD_INIT_USER} = 'test%user';
-    $bmwqemu::vars{CLOUD_INIT_ENCODING} = 'gzip+base64';
+    $bmwqemu::vars{GUESTINFO_COMBUSTION} = 'someTestScript';
+    $bmwqemu::vars{GUESTINFO_CONFIG} = 'NotValid';
 
     my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
     my $backend_mock = Test::MockModule->new('backend::svirt');
@@ -169,6 +185,29 @@ subtest 'starting VMware console with Cloud Init' => sub {
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
 
+    dies_ok { $svirt_console->define_and_start } 'Invalid GUESTINFO_CONFIG was passed';
+};
+
+subtest 'starting VMware console with combustion' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+    $bmwqemu::vars{GUESTINFO_COMBUSTION} = 'someTestScript';
+    $bmwqemu::vars{GUESTINFO_CONFIG} = 'combustion';
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'testingCombustion' });
+
     $svirt_console->define_and_start;
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
@@ -177,10 +216,81 @@ subtest 'starting VMware console with Cloud Init' => sub {
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.metadata = "test@meta"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.userdata = "test%user"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.combustion.script = "testingCombustion"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    ], 'expected commands invoked' or diag explain \@cmds;
+};
+
+subtest 'starting VMware console with ignition' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+    $bmwqemu::vars{GUESTINFO_IGNITION} = 'testing/config.ign';
+    $bmwqemu::vars{GUESTINFO_CONFIG} = 'ignition';
+    $bmwqemu::vars{GUESTINFO_COMBUSTION} = undef;
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'ignitionTEST' });
+
+    $svirt_console->define_and_start;
+    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    is_deeply \@cmds, [
+        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.ignition.config.data.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.ignition.config.data = "ignitionTEST"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    ], 'expected commands invoked' or diag explain \@cmds;
+};
+
+subtest 'starting VMware console with cloud-init' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+    $bmwqemu::vars{GUESTINFO_CLOUD_INIT} = 'someCloud_init_file1, meta_data';
+    $bmwqemu::vars{GUESTINFO_CONFIG} = 'cloud-init';
+    $bmwqemu::vars{GUESTINFO_COMBUSTION} = undef;
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'CI_test_CONF' });
+
+    $svirt_console->define_and_start;
+    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    is_deeply \@cmds, [
+        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.userdata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.userdata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.metadata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or diag explain \@cmds;
