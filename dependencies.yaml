@@ -147,7 +147,6 @@ main_requires:
   perl(File::Map):
   perl(File::Path):
   perl(File::Temp):
-  perl(File::Touch):
   perl(File::Which):
   perl(IO::Handle):
   perl(IO::Scalar):
