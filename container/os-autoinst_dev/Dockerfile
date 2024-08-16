@@ -81,7 +81,6 @@ RUN zypper in -y -C \
        'perl(File::Map)' \
        'perl(File::Path)' \
        'perl(File::Temp)' \
-       'perl(File::Touch)' \
        'perl(File::Which)' \
        'perl(File::chdir)' \
        'perl(FindBin)' \

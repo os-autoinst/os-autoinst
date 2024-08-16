@@ -25,7 +25,6 @@ requires 'File::Find';
 requires 'File::Map';
 requires 'File::Path';
 requires 'File::Temp';
-requires 'File::Touch';
 requires 'File::Which';
 requires 'File::chdir';
 requires 'IO::Handle';

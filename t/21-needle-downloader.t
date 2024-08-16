@@ -6,7 +6,6 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use File::Touch;
 use File::Path qw(make_path remove_tree);
 use Test::MockModule;
 use Test::Warnings ':report_warnings';
@@ -70,11 +69,12 @@ subtest 'add relevant downloads' => sub {
         },
     );
 
-    # pretend that ...
-    # ... one file is already up to date (to the exact second)
-    File::Touch->new(mtime => 1514764800)->touch($needles_dir . '/foo.png');
-    # ... one file is present but outdated (by one second)
-    File::Touch->new(mtime => 1514764799)->touch($needles_dir . '/bar.json');
+    # pretend that one file is …
+    my $touch = sub ($timestamp, $path) {
+        path($path)->touch and utime 0, $timestamp, $path or BAIL_OUT("unable to set modification time of $path: $!");
+    };
+    $touch->(1514764800, "$needles_dir/foo.png");    # … already up to date (to the exact second)
+    $touch->(1514764799, "$needles_dir/bar.png");    # … is present but outdated (by one second)
 
     # define expected downloads: everything from @new_needles except foo.png
     my @expected_downloads = (
