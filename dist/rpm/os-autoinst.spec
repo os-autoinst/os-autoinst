@@ -67,6 +67,18 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %bcond_with black
 %endif
+# SLE is missing Python support requirements
+%if !0%{?is_opensuse}
+%bcond_without python_support
+%else
+%bcond_with python_support
+%endif
+%if %{with python_support}
+# The following line is generated from dependencies.yaml
+%define python_support_requires perl(Inline::Python)
+%else
+%define python_support_requires %{nil}
+%endif
 %if %{with black}
 # The following line is generated from dependencies.yaml
 %define python_style_requires python3-black
@@ -95,7 +107,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %ocr_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires perl(Inline::Python) python3-Pillow-tk
+%define test_requires %build_requires %ocr_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires python3-Pillow-tk
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Module::CPANfile) perl(Perl::Tidy) perl(Template::Toolkit) shfmt
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale openssh-clients
@@ -111,8 +123,10 @@ Recommends:     tesseract-ocr
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
 Recommends:     %qemu_requires
+%if %{with python_support}
 # Optional dependency for Python test API support
 Recommends:     perl(Inline::Python)
+%endif
 # Optional dependency for crop.py
 Recommends:     python3-Pillow-tk
 # Optional dependency for QEMU's built-in samba service (enabled via QEMU_ENABLE_SMBD=1)

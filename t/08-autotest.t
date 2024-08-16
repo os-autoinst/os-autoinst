@@ -315,7 +315,11 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
     like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
 };
 
+my $has_python = eval { require Inline::Python };
+
 subtest python => sub {
+    plan skip_all => 'Inline::Python is not available' unless $has_python;
+
     combined_like {
         lives_ok { autotest::loadtest('tests/pythontest.py') } 'can load test module'
     } qr{Using python version.*scheduling pythontest tests/pythontest}s, 'python pythontest module referenced';
@@ -335,6 +339,8 @@ subtest python => sub {
 };
 
 subtest 'python run_args' => sub {
+    plan skip_all => 'Inline::Python is not available' unless $has_python;
+
     %autotest::tests = ();
     my $targs = OpenQA::Test::RunArgs->new();
     $targs->{data} = 23;
@@ -344,6 +350,8 @@ subtest 'python run_args' => sub {
 };
 
 subtest 'python with bad run method' => sub {
+    plan skip_all => 'Inline::Python is not available' unless $has_python;
+
     %autotest::tests = ();
     my $targs = OpenQA::Test::RunArgs->new();
     $targs->{data} = 23;
