@@ -68,7 +68,7 @@ Source0:        %{name}-%{version}.tar.xz
 %bcond_with black
 %endif
 # SLE is missing Python support requirements
-%if !0%{?is_opensuse}
+%if 0%{?is_opensuse}
 %bcond_without python_support
 %else
 %bcond_with python_support
