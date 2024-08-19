@@ -85,10 +85,13 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define python_style_requires %{nil}
 %endif
-%ifnarch ppc ppc64 ppc64le s390x
-%bcond_without ocr
-%else
+%ifarch ppc ppc64 ppc64le s390x
+%define ocr_not_supported_by_arch 1
+%endif
+%if 0%{?ocr_not_supported_by_arch} || !0%{?is_opensuse}
 %bcond_with ocr
+%else
+%bcond_without ocr
 %endif
 %if %{with ocr}
 # The following line is generated from dependencies.yaml
