@@ -1,0 +1,12 @@
+---
+name: OBS Helper
+
+on: [push, pull_request]
+
+jobs:
+  obs-url:
+    runs-on: ubuntu-latest
+    name: Report OBS Url
+    steps:
+        run: |
+          env | sort
