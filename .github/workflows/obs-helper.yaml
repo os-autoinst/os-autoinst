@@ -8,5 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     name: Report OBS Url
     steps:
-        run: |
-          env | sort
+    - run: |
+        env | sort
