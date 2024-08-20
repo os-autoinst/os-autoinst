@@ -1,7 +1,7 @@
 ---
 name: OBS Helper
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   obs-url:
