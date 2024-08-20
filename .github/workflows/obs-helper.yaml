@@ -10,3 +10,4 @@ jobs:
     steps:
     - run: |
         env | sort
+        echo "PR: ${{ github.event.number }}"
