@@ -14,6 +14,8 @@ use File::Which;
 use Mojo::DOM;
 use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
+use Mojo::Util;
+use Carp 'croak';
 
 use backend::svirt;
 
@@ -496,6 +498,20 @@ sub resume ($self) {
 
 sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
 
+sub _encode_config ($self, $config, $key) {
+    # expand path
+    $config = "$bmwqemu::vars{CASEDIR}/data/$config";
+
+    croak "'$config' either doesn't exist or it is not a file, update the $key variable" unless -f $config;
+
+    my $content = Mojo::File->new($config)->slurp;
+    my $gzip = Mojo::Util::gzip $content;
+    my $encoded_config = Mojo::Util::b64_encode($gzip);
+    $encoded_config =~ s/\R//g;
+
+    return $encoded_config;
+}
+
 sub define_and_start ($self) {
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
@@ -542,17 +558,33 @@ __END"
 
         # set default boot delay
         $self->run_cmd(qq{echo 'bios.bootDelay = "10000"' >> $vmx}, domain => 'sshVMwareServer');
+        my $fb_tool = $bmwqemu::vars{GUESTINFO_CONFIG};
 
-        # inject cloud init metadata and userdata required for the image if there are any
-        my $ci_meta = $bmwqemu::vars{CLOUD_INIT_META};
-        my $ci_user = $bmwqemu::vars{CLOUD_INIT_USER};
-        my $ci_encoding = $bmwqemu::vars{CLOUD_INIT_ENCODING};
+        if ($fb_tool && $fb_tool ne 'wizard') {
+            my $encoding = 'gzip+base64';
+            if ($fb_tool =~ /combustion|ignition/) {
+                if ($bmwqemu::vars{GUESTINFO_COMBUSTION}) {
+                    my $conf = $self->_encode_config($bmwqemu::vars{GUESTINFO_COMBUSTION}, 'GUESTINFO_COMBUSTION');
+                    $self->run_cmd(qq{echo 'guestinfo.combustion.script = "$conf"' >> $vmx}, domain => 'sshVMwareServer');
+                }
+                if ($bmwqemu::vars{GUESTINFO_IGNITION}) {
+                    my $conf = $self->_encode_config($bmwqemu::vars{GUESTINFO_IGNITION}, 'GUESTINFO_IGNITION');
+                    $self->run_cmd(qq{echo 'guestinfo.ignition.config.data.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
+                    $self->run_cmd(qq{echo 'guestinfo.ignition.config.data = "$conf"' >> $vmx}, domain => 'sshVMwareServer');
+                }
+            } elsif ($fb_tool eq 'cloud-init') {
+                croak "GUESTINFO_CLOUD_INIT is unset, or does not contain user-data and meta-data configs" unless ($bmwqemu::vars{GUESTINFO_CLOUD_INIT});
 
-        if ($ci_meta && $ci_user && $ci_encoding) {
-            $self->run_cmd(qq{echo 'guestinfo.metadata = "$ci_meta"' >> $vmx}, domain => 'sshVMwareServer');
-            $self->run_cmd(qq{echo 'guestinfo.metadata.encoding = "$ci_encoding"' >> $vmx}, domain => 'sshVMwareServer');
-            $self->run_cmd(qq{echo 'guestinfo.userdata = "$ci_user"' >> $vmx}, domain => 'sshVMwareServer');
-            $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$ci_encoding"' >> $vmx}, domain => 'sshVMwareServer');
+                my ($conf, $meta) = split(',', $bmwqemu::vars{GUESTINFO_CLOUD_INIT});
+                $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
+                $self->run_cmd(qq{echo 'guestinfo.metadata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
+                $conf = $self->_encode_config($conf, 'GUESTINFO_CLOUD_INIT');
+                $self->run_cmd(qq{echo 'guestinfo.userdata = "$conf"' >> $vmx}, domain => 'sshVMwareServer');
+                $meta = $self->_encode_config($meta, 'GUESTINFO_CLOUD_INIT');
+                $self->run_cmd(qq{echo 'guestinfo.metadata = "$meta"' >> $vmx}, domain => 'sshVMwareServer');
+            } else {
+                croak 'Unknown provisioning option has been passed through GUESTINFO_CONFIG test variable';
+            }
         }
     }
 

@@ -235,6 +235,9 @@ VMWARE_BRIDGE;string;;VMware's bridge name (usual default is 'VM Network')
 VMWARE_REMOTE_VMM;string;;Set the vmware Virtual Machine Manager
 VMWARE_VNC_OVER_WS;boolean;0;Whether to use VNC over WebSockets (instead of raw VNC connection)
 VMWARE_VNC_OVER_WS_INSECURE;boolean;0;Do not require a valid TLS certificate for VNC over WebSockets
+GUESTINFO_COMBUSTION;string;;Set the location of combustion's bash script file among the data folder
+GUESTINFO_IGNITION;string;;Set the location of ignition's config file formated in json, among the data folder
+GUESTINFO_CLOUD_INIT;string;;Set the location of user-data and meta-data files, separated by a comma in data folder
 HYPERV_USERNAME;string;;Administrator account name
 HYPERV_PASSWORD;string;;Password for above account
 HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address
