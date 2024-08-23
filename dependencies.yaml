@@ -8,13 +8,14 @@
 #######################################################
 ---
 targets:
-  cpanfile: [ cover, devel, main, lint, test_base, test, test_version_only, python_support ]
+  cpanfile: [ cover, ci, devel, main, lint, test_base, test, test_version_only, python_support ]
   spec:     [ build_base, build, devel, main, spellcheck, yamllint, test_base, test, test_version_only, python_style, ocr, test_non_s390, python_support ]
-  docker:   [ build_base, build, devel, docker, main, spellcheck, lint, yamllint, test_base, test, python_style, ocr, test_non_s390, python_support ]
+  docker:   [ build_base, build, ci, devel, docker, main, spellcheck, lint, yamllint, test_base, test, python_style, ocr, test_non_s390, python_support ]
   cpanfile-targets:
     # target: cpanfile target type (default main)
     devel: develop
     cover: cover
+    ci: cover
     test_base: test
     python_support: test
     test: test
@@ -38,6 +39,8 @@ build_requires:
 
 cover_requires:
   perl(Devel::Cover):
+
+ci_requires:
   perl(Devel::Cover::Report::Codecov):
 
 devel_requires:
@@ -45,7 +48,6 @@ devel_requires:
   '%python_style_requires':
   perl(Code::TidyAll):
   perl(Devel::Cover):
-  perl(Devel::Cover::Report::Codecov):
   perl(Module::CPANfile):
   perl(Template::Toolkit):
   perl(Perl::Tidy): == 20240511.0.0
