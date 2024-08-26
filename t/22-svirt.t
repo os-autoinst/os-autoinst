@@ -103,6 +103,12 @@ subtest 'XML config for VNC and serial console' => sub {
     _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config.xml";
 };
 
+subtest 's390x specifics' => sub {
+    $bmwqemu::vars{ARCH} = 's390x';
+    $svirt_console->_init_xml;
+    unlike $svirt_console->{domainxml}->toString, qr/acpi/i, 'ACPI support is not configured for s390x';
+};
+
 # assume VMware for further testing
 $svirt_console->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware');
 
