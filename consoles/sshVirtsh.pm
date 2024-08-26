@@ -113,12 +113,8 @@ sub _init_xml ($self, $args = {}) {
     # Following 'features' are required for VM to correctly shutdown
     my $features = $doc->createElement('features');
     $root->appendChild($features);
-    $elem = $doc->createElement('acpi');
-    $features->appendChild($elem);
-    $elem = $doc->createElement('apic');
-    $features->appendChild($elem);
-    $elem = $doc->createElement('pae');
-    $features->appendChild($elem);
+    $features->appendChild($doc->createElement('acpi')) if ($bmwqemu::vars{ARCH} // '') ne 's390x';
+    $features->appendChild($doc->createElement($_)) for qw(apic pae);
 
     if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'linux') {
         $elem = $doc->createElement('kernel');
