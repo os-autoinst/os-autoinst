@@ -16,7 +16,6 @@ use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util;
 use Carp 'croak';
-
 use backend::svirt;
 
 has [qw(instance name vmm_family vmm_type vmm_firmware)];
@@ -330,8 +329,10 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     # otherwise copy image from NFS datastore.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
+    # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
+    my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? "set -x;" : "";
     my $cmd =
-      "if test -e $vmware_openqa_datastore$file_basename; then " .
+      "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
       "while lsof | grep 'cp.*$file_basename'; do " .
       "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
       'done;' .
