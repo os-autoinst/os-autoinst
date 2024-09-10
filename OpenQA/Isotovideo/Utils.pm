@@ -55,7 +55,7 @@ sub git_remote_url ($git_repo_dir, $fallback = undef) {
     return $fallback // 'UNKNOWN (origin remote not found)' unless grep { $_ eq 'origin' } @remotes;
     chomp(my $url = qx{git -C "$git_repo_dir" remote get-url origin 2>&1});
     return git_remote_url($url, $url) if $? == 0;    # recursive lookup to handle caching
-    bmwqemu::diag("Could not retrieve remote url of $git_repo_dir: '$url'");    # uncoverable statement
+    bmwqemu::diag("Could not retrieve remote url of $git_repo_dir: \"$url\"");    # uncoverable statement
     return $fallback // 'UNKNOWN (error on git remote call)';    # uncoverable statement
 }
 
@@ -71,7 +71,7 @@ sub _lock_cache_directory ($cache_dir) {
 
 sub _clone_bare_repo ($clone_url, $clone_depth, $clone_cmd, $cache_dir, $handle_output) {
     return undef if -e $cache_dir;
-    bmwqemu::fctinfo "Creating bare repository for caching '$clone_url' under '$cache_dir'";
+    bmwqemu::fctinfo "Creating bare repository for caching \"$clone_url\" under '$cache_dir'";
     $handle_output->($?, qx{$clone_cmd --bare --depth='$clone_depth' '$clone_url' '$cache_dir' 2>&1});
 }
 
@@ -101,7 +101,7 @@ sub _open_cache_index ($root_cache_dir, $index_file) {
 
 sub _determine_size ($dir, $handle_output) {
     $handle_output->($?, my $du = qx{du -s "$dir"});
-    die "Unable to determine size of Git directory under '$dir': du returned '$du'\n" unless $du =~ /(\d+).*/;
+    die "Unable to determine size of Git directory under \"$dir\": du returned '$du'\n" unless $du =~ /(\d+).*/;
     return int($1);
 }
 
@@ -148,10 +148,10 @@ sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_outp
 
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
     if (-e $local_path) {
-        bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
+        bmwqemu::diag "Skipping to clone \"$clone_url\"; $local_path already exists";
         return 1;
     }
-    bmwqemu::fctinfo "Cloning git URL '$clone_url' into '" . cwd . "'";
+    bmwqemu::fctinfo "Cloning git URL \"$clone_url\" into '" . cwd . "'";
     my $branch_args = '';
     if ($branch) {
         bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
@@ -161,7 +161,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
     my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
     my $handle_output = sub ($return_value, @out) {
         bmwqemu::diag "@out" if @out;
-        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_value == 0;
+        die "Unable to clone Git repository \"$dir\" specified via $dir_variable (see log for details)" unless $return_value == 0;
         return 1;
     };
 
@@ -195,11 +195,11 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         $clone_depth *= 2;
         @out = qx[git -C $local_path fetch --progress --depth=$clone_depth 2>&1];
         $handle_output->($?, @out);
-        die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
+        die "Could not find '$branch' in complete history in cloned Git repository \"$dir\"" if grep /remote: Total 0/, @out;
     }
     @out = qx{git -C $local_path checkout $branch};
     bmwqemu::diag "@out" if @out;
-    die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
+    die "Unable to checkout branch '$branch' in cloned Git repository \"$dir\"" unless $? == 0;
     return 1;
 }
 
@@ -307,7 +307,7 @@ sub checkout_git_refspec ($dir, $refspec_variable) {
     }
     my $hash = calculate_git_hash($dir);
     my $url = git_remote_url($dir);
-    bmwqemu::diag "git url in '$dir': $url";
+    bmwqemu::diag "git url in '$dir': \"$url\"";
     return ($url, $hash);
 }
 

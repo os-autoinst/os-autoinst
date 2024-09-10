@@ -71,7 +71,7 @@ subtest 'failing clone' => sub {
         eval { $path = checkout_git_repo_and_branch('CASEDIR', retry_count => 0) };
     };
     my $error = $@;
-    like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository '\Q$case_dir\E'}, "Error message when trying to clone wrong git hash";
+    like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, "Error message when trying to clone wrong git hash";
     like $out, qr{Fetching 'abcdef' from origin manually}s, 'manual git fetch for revspec was attempted';
     like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch with --depth option was attempted';
 };
