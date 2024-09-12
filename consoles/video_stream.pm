@@ -65,6 +65,7 @@ sub disable ($self, @) {
 # uncoverable statement count:1..5 note:the function is redefined in tests
 sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
     my @cmd = split(/ /, $cmd_prefix // '');    # uncoverable statement
+    $device =~ s/\?fps=([0-9]+)//;    # uncoverable statement
     push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));    # uncoverable statement
     push(@cmd, split(/ /, $cmd));    # uncoverable statement
 
