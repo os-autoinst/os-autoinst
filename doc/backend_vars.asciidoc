@@ -51,6 +51,7 @@ VIDEO_ENCODER_BLOCKING_PIPE;boolean;0;Whether the pipe for writing data to the v
 DEFAULT_CLICK_SLEEP;float;0.15;Default single click time in seconds
 DEFAULT_DCLICK_SLEEP;float;0.10;Default double/triple click time in seconds (both press time and interval between clicks)
 GIT_CACHE_DIR;string;;If set enables locally caching Git repositories in the specified directory when handling Git URLs in variables like `CASEDIR` and wheels
+_HIDE_MATCH_RE;string;;If set any test variables matching the specified regular expression additional to the default '^_SECRET_' and '_PASSWORD' are excluded from being saved into vars.json or further processing. This is intended for custom test variable keys that are to be treated as secret but can not match the default patterns.
 
 |====================
 

@@ -23,19 +23,15 @@ my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir = "$toplevel_dir/t/data";
 
 sub create_vars ($data) {
-    open(my $varsfh, '>', 'vars.json') || BAIL_OUT('can not create vars.json');
-    my $json = Cpanel::JSON::XS->new->pretty->canonical;
-    print $varsfh $json->encode($data);
-    close($varsfh);
+    my $json = Cpanel::JSON::XS->new->pretty->canonical->encode($data);
+    path('vars.json')->spew($json);
 }
 
 sub read_vars () {
     local $/;
-    open(my $varsfh, '<', 'vars.json') || BAIL_OUT('can not open vars.json for reading');
-    my $ret;
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$varsfh>); };
+    my $vars_content = path('vars.json')->slurp;
+    my $ret = eval { Cpanel::JSON::XS->new->relaxed->decode($vars_content) };
     die "parse error in vars.json:\n$@" if $@;
-    close($varsfh);
     return $ret;
 }
 
@@ -130,7 +126,7 @@ subtest 'save_vars' => sub {
 
 subtest 'save_vars no_secret' => sub {
     my $dir = "$data_dir/tests";
-    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials', MY_PASSWORD => 'secret'});
+    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials', MY_PASSWORD => 'secret', SNEAKY_TEXT => 'secret'});
     $bmwqemu::openqa_default_share = $data_dir;
 
     eval {
@@ -144,6 +140,13 @@ subtest 'save_vars no_secret' => sub {
     ok(!$vars{_SECRET_TEST}, '_SECRET_TEST not written to vars.json');
     ok(!$vars{MY_PASSWORD}, 'MY_PASSWORD not written to vars.json');
     is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
+    is($vars{SNEAKY_TEXT}, 'secret', 'custom text is included by default');
+    $bmwqemu::vars{_HIDE_MATCH_RE} = 'SNEAKY_';
+    bmwqemu::save_vars(no_secret => 1);
+    %vars = %{read_vars()};
+    ok(!$vars{SNEAKY_TEXT}, 'custom text not included if matching as secret');
+    is($vars{CASEDIR}, $dir, 'CASEDIR unchanged if custom text matches secret');
+    is($vars{_HIDE_MATCH_RE}, 'SNEAKY_', '_HIDE_MATCH_RE itself is preserved');
 };
 
 subtest 'HDD variables sanity check' => sub {
