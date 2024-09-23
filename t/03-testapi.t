@@ -311,18 +311,17 @@ subtest 'script_run' => sub {
     );
     $fake_exit = 0;
     $cmds = [];
-    is(script_run('true', die_on_timeout => 1), '0', 'script_run with no check of success, returns exit code');
+    is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
     like($cmds->[1]->{text}, qr/; echo /);
     $cmds = [];
-    is(script_run('true', die_on_timeout => 1, output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
+    is(script_run('true', output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
     like($cmds->[1]->{text}, qr/; echo .*Comment: foo/);
     $fake_exit = 1;
-    is(script_run('false', die_on_timeout => 1), '1', 'script_run with no check of success, returns exit code');
-    is(script_run('false', die_on_timeout => 1, output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
-    is(script_run('false', 0, die_on_timeout => 1), undef, 'script_run with no check of success, returns undef when not waiting');
+    is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
+    is(script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
+    is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
     $fake_matched = 0;
-    throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
-    $testapi::distri->{script_run_die_on_timeout} = 1;
+    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
     throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
 
     throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
@@ -333,13 +332,6 @@ subtest 'script_run' => sub {
     lives_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } 'assert_script_run() timeout ignored if pausing on failure';
     is_deeply \@diag_messages, ["ignoring failure via developer mode: command 'sleep 13' timed out"], 'ignored failure logged'
       or diag explain \@diag_messages;
-
-    $testapi::distri->{script_run_die_on_timeout} = -1;
-    $fake_matched = 1;
-
-
-    stderr_unlike { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear if `die_on_timeout` is not provided';
-    stderr_like { script_run('true', die_on_timeout => 0, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED appears if `die_on_timeout` is used';
 
     $fake_matched = 1;
     $fake_exit = 1234;
@@ -787,7 +779,7 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
-    is(script_run('true', die_on_timeout => 1), '0', 'script_run with _QUIET_SCRIPT_CALLS=1');
+    is(script_run('true'), '0', 'script_run with _QUIET_SCRIPT_CALLS=1');
     is(assert_script_run('true'), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
     ok(!validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1');
 
@@ -796,7 +788,7 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
-    is(script_run('true', quiet => 0, die_on_timeout => 1), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};

@@ -935,7 +935,7 @@ sub assert_script_run {    # no:style:signatures
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet] [, die_on_timeout => 1]);
+  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet]);
 
 Positional mode (not suggested)
 
@@ -948,13 +948,9 @@ execution to complete.
 C<$output> can be used as an explanatory text that will be displayed with the execution of
 the command.
 
-By default C<script_run> will throw an exception if the timeout has expired.
-This is equivalent to use of C<die_on_timeout> equal to 1. To use the
-deprecated behaviour of not throwing an error on timeout set the value to 0.
-This option will be removed in the near future.
+C<script_run> will throw an exception if the timeout has expired.
 
-<Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0 or timeout
-expired and C<die_on_timeout> is not C<1>.
+<Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0.
 
 I<The implementation is distribution specific and not always available.>
 
@@ -970,27 +966,12 @@ sub script_run {    # no:style:signatures
         {
             timeout => $bmwqemu::default_timeout,
             output => '',
-            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
-            die_on_timeout => $distri->{script_run_die_on_timeout},
+            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
-    my $die_on_timeout = delete $args{die_on_timeout} // 1;
     my $ret = $distri->script_run($cmd, %args);
-    if ($args{timeout} > 0) {
-        if ($die_on_timeout == 0) {
-            # This is to warn users of deprecated behaviour of script_run()
-            my ($package, $filename, $line) = caller;
-            my $casedir = testapi::get_var(CASEDIR => '');
-            $filename =~ s%^\Q$casedir\E/%%;
-            bmwqemu::fctwarn("DEPRECATED call of script_run() in $filename:$line " .
-                  'requested by `die_on_timeout => 0` or set
-                  $distri->{script_run_die_on_timeout}. Adapt the test code to work
-                  with the default. This workaround will be removed in the near future');
-        } else {
-            croak("command '$cmd' timed out") if !defined($ret);
-        }
-    }
+    croak("command '$cmd' timed out") if $args{timeout} > 0 && !defined($ret);
     return $ret;
 }
 
