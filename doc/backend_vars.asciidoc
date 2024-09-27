@@ -172,11 +172,12 @@ QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
 QEMU_SOUNDHW;see qemu -soundhw ?;had;pass this value to qemu -soundhw (for qemu < 4.2)
 QEMU_AUDIODEV;see qemu -device ?;intel-hda;Audio device to use with audiodev to qemu -device (for qemu >= 4.2)
 QEMU_AUDIOBACKEND;see qemu -audio-help;none;Audio backend to use with audiodev (for qemu >= 4.2)
-QEMU_COMPRESS_LEVEL;integer;6;Sets the compression level used for memory dumps and snapshots. Zero turns compression off and 9 is the maximum level. Generally there is little improvement in compression ratio by increasing the level, but the CPU time can be high on some platforms.
-QEMU_COMPRESS_THREADS;integer;QEMUCPUS;Number of threads used for compressing memory dumps and snapshots.
+QEMU_COMPRESS_LEVEL;integer;6;Sets the compression level used for memory dumps and snapshots. Zero turns compression off and 9 is the maximum level. Generally there is little improvement in compression ratio by increasing the level, but the CPU time can be high on some platforms. (For qemu < 9.1.0)
+QEMU_COMPRESS_THREADS;integer;QEMUCPUS;Number of threads used for compressing memory dumps and snapshots. (For qemu < 9.1.0)
 QEMU_NON_FATAL_DBUS_CALL;boolean;0;Ignore failed dbus calls and ignore instead of fatal exits
 QEMU_MAX_BANDWIDTH;integer;INT_MAX;Limits the transfer rate during a snapshot.
 QEMU_DUMP_COMPRESS_METHOD;string;xz;The compression to use during a memory dump. Can be set to xz, bzip2 or internal (QEMU's internal compression, not compatible with crash or gdb). If xz is set, but not available, it will fallback to bzip2. Also see QEMU_COMPRESSION_LEVEL.
+QEMU_MULTIFD_CHANNELS;integer;2;Number of channels used to migrate data in parallel (only when multifd is used, which means qemu >= 9.1.0). This is the same number that the number of sockets used for migration. Can be set from 1 to 255.
 QEMU_APPEND;string;;Append parameters on qemu command line. The first item will have '-' prepended to it.
 QEMU_ENABLE_SMBD;boolean;0;Enable QEMU's built-in samba service for user network. Exported worker's pool will be accessible on `\\10.0.2.4\qemu` share. Requires `smbd` to be installed (usually part of the `samba` package).
 VIRTIO_CONSOLE;boolean;1;Enable/disable virtio console. (@see `-device virtconsole` qemu option)
