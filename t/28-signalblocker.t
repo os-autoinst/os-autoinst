@@ -39,6 +39,8 @@ $SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigc
 
 # initialize OpenCV via signalblocker and create_threads
 {
+    is thread_count, 1, 'only one thread present before OpenCV is initialized';
+
     my $signal_blocker = $no_signal_blocker || signalblocker->new;
     require cv;
     cv::init();
