@@ -229,6 +229,17 @@ sub add_pty ($self, $args) {
     return;
 }
 
+sub add_usb_hub ($self) {
+    my $doc = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $controller = $doc->createElement('controller');
+    $controller->setAttribute(type => 'usb');
+    $controller->setAttribute(index => '0');
+    $controller->setAttribute(ports => '8');
+    $devices->appendChild($controller);
+}
+
 # this is an equivalent of QEMU's '-vnc' option for tests where we watch
 # the system from boot on (e.g. JeOS)
 sub add_vnc ($self, $args) {
