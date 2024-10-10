@@ -1,0 +1,22 @@
+{
+    "area": [
+        {
+            "height": 294,
+            "type": "ocr",
+            "width": 223,
+            "xpos": 213,
+            "ypos": 279,
+	    "refstr": "Firmware Test\nF3 Video Mode F4 Source"
+        },
+        {
+            "height": 30,
+            "type": "exclude",
+            "width": 223,
+            "xpos": 213,
+            "ypos": 308
+        }
+    ],
+    "tags": [
+        "none"
+    ]
+}
