@@ -901,6 +901,42 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
         }
     };
+    subtest 'family svirt-xen-pv' => sub {
+        set_var(VIRSH_VMM_FAMILY => 'xen');
+        set_var(VIRSH_VMM_TYPE => 'linux');
+        my $basedir = '/var/lib/libvirt/images/';
+
+        my $svirt = consoles::sshVirtsh->new('svirt');
+        $svirt->backend(backend::baseclass->new);
+        $svirt->_init_ssh($ssh_creds_svirt);
+        $svirt->_init_xml();
+
+        subtest 'family svirt-xen-pv only file=>"specified"' => sub {
+            my $dev_id = 'device_id_105';
+            my $exp_filename = $svirt->name . $dev_id . '.iso';
+            my $file_name_given = "/fo/bar/" . $exp_filename;
+
+            @last_ssh_commands = ();
+            $svirt->add_disk({dev_id => $dev_id, file => $file_name_given});
+            $svirt->add_usb_hub();
+            is(scalar(@last_ssh_commands), 0, 'None command was triggered');
+
+            svirt_xml_validate($svirt,
+                dev => 'xvd' . $dev_id,
+                bus => 'xen',
+                source_file => $basedir . $exp_filename,
+                usb => 1
+            );
+        };
+
+        subtest '<controller type="usb" index="0" ports="8"/>' => sub {
+            my $doc = $svirt->{domainxml};
+            my $target = $doc->findnodes('domain/devices/controller')->shift();
+            my $driver_node = $target->parentNode->findnodes('controller')->shift;
+            is($driver_node->getAttribute('ports'), 8, 'no. of ports <controller> is correct');
+            is($driver_node->getAttribute('type'), 'usb', 'type attribute of <controller> is correct');
+        };
+    };
 };
 
 subtest 'get_wait_still_screen_on_here_doc_input' => sub {
