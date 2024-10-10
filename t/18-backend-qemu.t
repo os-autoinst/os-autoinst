@@ -361,10 +361,12 @@ subtest 'migration to file' => sub {
     is_deeply \@wait_for_migrate_args, [$backend], 'migration awaited';
     is_deeply $$invoked_qmp_cmds, [
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
-        {execute => 'migrate-set-parameters', arguments => {'compress-level' => 0, 'compress-threads' => 2, 'max-bandwidth' => '9223372036854775807'}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-parameters', arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'}},
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
-        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
+        {execute => 'migrate', arguments => {uri => 'file:dumpfd'}},
     ], 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
 };
 
@@ -405,12 +407,12 @@ subtest 'saving memory dump' => sub {
     is_deeply $called{handle_qmp_command}, [
         {execute => 'query-status'},
         {
-            execute => 'migrate-set-capabilities',
-            arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]},
+            execute => 'migrate-set-parameters',
+            arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'},
         },
         {
-            execute => 'migrate-set-parameters',
-            arguments => {'compress-level' => 0, 'compress-threads' => 1, 'max-bandwidth' => '9223372036854775807'},
+            execute => 'migrate-set-capabilities',
+            arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]},
         },
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
@@ -489,8 +491,9 @@ subtest 'snapshot handling' => sub {
         {execute => 'query-status'},
         {execute => 'stop'},
         {execute => 'qmp_capabilities'},
-        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'compress', state => Mojo::JSON->true}]}},
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]}},
         {execute => 'migrate-incoming', arguments => {uri => 'exec:cat vm-snapshots/fakevm'}},
         {execute => 'cont'},
     ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
