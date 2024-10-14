@@ -331,14 +331,12 @@ private:
  *
  * \remarks
  * - This should be generally at least one thread and we generally just use OpenCV's default.
- * - To avoid running into TBB's soft limit which seems to be one thread less than the number
- *   of physical CPU threads (see TBB function `calc_workers_soft_limit`) we also limit ourselves
- *   to that. Otherwise we might run into a deadlock with "The number of workers is currently
- *   limited to 7. The request for 8 workers is ignored.".
+ * - We cap OpenCV's thread count by the number of CPUs to avoid requesting more threads
+ *   than can be concurrently scheduled, which would deadlock the barrier in create_opencv_threads().
  */
 int opencv_default_thread_count()
 {
-    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs() - 1));
+    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs()));
 }
 
 /*!
