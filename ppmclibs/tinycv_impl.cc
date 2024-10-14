@@ -333,7 +333,7 @@ private:
  */
 int opencv_default_thread_count()
 {
-    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs() - 1));
+    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs()));
 }
 
 /*!
