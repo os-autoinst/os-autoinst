@@ -472,6 +472,51 @@ subtest 'check_assert_screen' => sub {
     };
 };
 
+subtest 'upload_logs' => sub {
+    $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
+    $bmwqemu::vars{QEMUPORT} = '4242';
+    $bmwqemu::vars{JOBTOKEN} = 'LookAtMeImAToken';
+    $bmwqemu::vars{OFFLINE_SUT} = '1';
+    $cmds = [];
+    upload_logs '/var/log/messages';
+    is_deeply($cmds, []);
+    delete $bmwqemu::vars{OFFLINE_SUT};
+    $cmds = [];
+    upload_logs '/var/log/messages';
+    is_deeply($cmds, [
+            {
+                text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => '; echo XXX-$?-',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => "\n",
+                cmd => 'backend_type_string'
+            }
+    ]);
+    $cmds = [];
+    upload_logs '/var/log/messages', failok => 1;
+    is_deeply($cmds, [
+            {
+                text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => '; echo XXX-$?-',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => "\n",
+                cmd => 'backend_type_string'
+            }
+    ]);
+    delete $bmwqemu::vars{AUTOINST_URL_HOSTNAME};
+    $cmds = [];
+};
+
 ok(save_screenshot);
 
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
