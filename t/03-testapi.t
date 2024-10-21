@@ -517,6 +517,30 @@ subtest 'upload_logs' => sub {
     $cmds = [];
 };
 
+subtest 'script_sudo' => sub {
+    script_sudo "rm /boot/grub/menu.lst";
+    is_deeply($cmds, [
+            {
+                text => "sudo rm /boot/grub/menu.lst; echo XXX > /dev/null\n",
+                cmd => 'backend_type_string'
+            },
+            {
+                mustmatch => 'sudo-passwordprompt',
+                cmd => 'check_screen',
+                timeout => 3,
+                check => 1,
+                no_wait => undef
+            },
+            {
+                cmd => 'backend_type_string',
+                secret => 1,
+                text => 'stupid',
+                max_interval => 100
+            }
+    ]);
+    $cmds = [];
+};
+
 ok(save_screenshot);
 
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
