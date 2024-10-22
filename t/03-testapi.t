@@ -7,6 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
+use Test::MockObject;
 use File::Temp;
 use Mojo::File qw(path);
 use Test::Output qw(stderr_like stderr_unlike);
@@ -539,6 +540,22 @@ subtest 'script_sudo' => sub {
             }
     ]);
     $cmds = [];
+};
+
+subtest 'parse_extra_log' => sub {
+    my $mock_parser = Test::MockObject->new();
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->define(parser => sub { $mock_parser });
+    my $i = 0;
+    $mock_parser->fake_module("OpenQA::Parser", import => sub { $i++; });
+    $mock_parser->mock(write_output => sub { $i++; });
+    $mock_parser->mock(write_test_result => sub { $i++; });
+    $mock_parser->mock(tests => sub { $mock_parser });
+    $mock_parser->mock(each => sub($self, $cb) { $_ = $mock_parser; $cb->() });
+    $mock_parser->mock(to_openqa => sub { return {name => 'foo'} });
+    parse_junit_log "foo.log";
+    is $i, 3, 'Correct number of methods called';
+    is_deeply($autotest::current_test->{extra_test_results}->[0], {name => 'foo', script => undef});
 };
 
 ok(save_screenshot);
