@@ -2189,12 +2189,8 @@ sub upload_asset ($file, $public = undef, $nocheck = undef) {
     $cmd .= show_curl_progress_meter();
     my $basename = basename($file);
     $cmd .= autoinst_url("/upload_asset/$basename");
-    if ($nocheck) {
-        type_string("$cmd\n");
-    }
-    else {
-        return assert_script_run($cmd);
-    }
+    return assert_script_run($cmd) unless $nocheck;
+    type_string("$cmd\n");
 }
 
 =head2 compat_args
