@@ -1149,6 +1149,8 @@ subtest 'mouse click' => sub {
 is_deeply testapi::_handle_found_needle(undef, undef, undef), undef, 'handle_found_needle returns no found needle by default';
 $bmwqemu::vars{CASEDIR} = 'foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
+$bmwqemu::vars{CASEDIR} = 't';
+like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 lives_ok { become_root } 'become_root can be called';
 like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
 lives_ok { hold_key('ret') } 'hold_key can be called';
