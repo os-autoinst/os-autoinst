@@ -1180,6 +1180,10 @@ subtest 'upload_asset and parse_junit_log' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->noop('assert_script_run');
     ok upload_asset('foo'), 'upload_asset can be called';
+    ok upload_asset('foo', nocheck => 1), 'upload_asset can be called with nocheck';
+    $bmwqemu::vars{OFFLINE_SUT} = '1';
+    is upload_asset('foo'), undef, 'upload_asset can be called offline (but does nothing)';
+    delete $bmwqemu::vars{OFFLINE_SUT};
     $mock_testapi->redefine(upload_logs => sub { die 'foo' });
     like(exception { parse_junit_log('foo') }, qr/foo/, 'parse_junit_log calls upload_logs');
 };
