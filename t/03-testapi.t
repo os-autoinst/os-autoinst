@@ -1041,6 +1041,8 @@ subtest 'mouse_drag' => sub {
                 cmd => 'backend_mouse_button'
             },
     ], 'mouse drag (redundant definition by a needle)') or diag explain $cmds;
+    like exception { mouse_drag(endx => $endx, endy => $endy) }, qr/starting.*point.*not.*provided/, 'faile for no start';
+    like exception { mouse_drag(startx => $endx, starty => $endy) }, qr/ending.*point.*not.*provided/, 'faile for no end';
 };
 
 subtest 'show_curl_progress_meter' => sub {
