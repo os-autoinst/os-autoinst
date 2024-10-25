@@ -51,7 +51,7 @@ sub fake_read_json ($fd) {
         return {ret => {matched => $fake_matched, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
-        return {ret => {activated => 0}};
+        return {ret => {activated => 1}};
     }
     elsif ($cmd eq 'report_timeout') {
         $report_timeout_called += 1;
@@ -279,7 +279,9 @@ $mock_bmwqemu->noop('log_call');
 
 require distribution;
 testapi::set_distribution(distribution->new());
+$autotest::last_milestone = {};
 select_console('a-console');
+is_deeply $autotest::last_milestone->{activated_consoles}, ['a-console'], 'Current console is activated';
 is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
 
