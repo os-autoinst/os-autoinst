@@ -133,7 +133,7 @@ subtest 'error handling' => sub {
     $connect_fail = 1;
     $backend->reset_console({testapi_console => 'sut'});
     my $ret = $backend->select_console({testapi_console => 'sut'});
-    is_deeply $ret, {error => "connect_remote failed at t/29-backend-generalhw.t line 66.\n"}, 'Correct error returned';
+    like $ret->{error}, qr/^connect_remote failed at t\/29-backend-generalhw.t line \d./, 'Correct error returned';
     $connect_fail = 0;
 };
 
