@@ -2087,9 +2087,9 @@ sub autoinst_url ($path = undef, $query = undef, $args = {}) {
     $query //= {};
     my $hostname = get_var('AUTOINST_URL_HOSTNAME', host_ip($args));
     # QEMUPORT is historical for the base port of the worker instance
-    my $workerport = get_var("QEMUPORT") + 1;
+    my $workerport = get_required_var("QEMUPORT") + 1;
 
-    my $token = get_var('JOBTOKEN');
+    my $token = get_required_var('JOBTOKEN');
     my $querystring = join('&', map { "$_=$query->{$_}" } sort keys %$query);
     my $url = "http://$hostname:$workerport/$token$path";
     $url .= "?$querystring" if $querystring;
@@ -2189,12 +2189,8 @@ sub upload_asset ($file, $public = undef, $nocheck = undef) {
     $cmd .= show_curl_progress_meter();
     my $basename = basename($file);
     $cmd .= autoinst_url("/upload_asset/$basename");
-    if ($nocheck) {
-        type_string("$cmd\n");
-    }
-    else {
-        return assert_script_run($cmd);
-    }
+    return assert_script_run($cmd) unless $nocheck;
+    type_string("$cmd\n");
 }
 
 =head2 compat_args

@@ -7,6 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
+use Test::MockObject;
 use File::Temp;
 use Mojo::File qw(path);
 use Test::Output qw(stderr_like stderr_unlike);
@@ -50,7 +51,7 @@ sub fake_read_json ($fd) {
         return {ret => {matched => $fake_matched, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
-        return {ret => {activated => 0}};
+        return {ret => {activated => 1}};
     }
     elsif ($cmd eq 'report_timeout') {
         $report_timeout_called += 1;
@@ -278,7 +279,10 @@ $mock_bmwqemu->noop('log_call');
 
 require distribution;
 testapi::set_distribution(distribution->new());
+$autotest::last_milestone = {};
 select_console('a-console');
+is console('a-console')->{console}, 'a-console';
+is_deeply $autotest::last_milestone->{activated_consoles}, ['a-console'], 'Current console is activated';
 is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
 
@@ -470,6 +474,91 @@ subtest 'check_assert_screen' => sub {
         assert_screen('foo', 3, timeout => 2);
         is($report_timeout_called, 1, 'report_timeout called only once');
     };
+};
+
+subtest 'upload_logs' => sub {
+    $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
+    $bmwqemu::vars{QEMUPORT} = '4242';
+    $bmwqemu::vars{JOBTOKEN} = 'LookAtMeImAToken';
+    $bmwqemu::vars{OFFLINE_SUT} = '1';
+    $cmds = [];
+    upload_logs '/var/log/messages';
+    is_deeply($cmds, []);
+    delete $bmwqemu::vars{OFFLINE_SUT};
+    $cmds = [];
+    upload_logs '/var/log/messages';
+    is_deeply($cmds, [
+            {
+                text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => '; echo XXX-$?-',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => "\n",
+                cmd => 'backend_type_string'
+            }
+    ]);
+    $cmds = [];
+    upload_logs '/var/log/messages', failok => 1;
+    is_deeply($cmds, [
+            {
+                text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => '; echo XXX-$?-',
+                cmd => 'backend_type_string'
+            },
+            {
+                text => "\n",
+                cmd => 'backend_type_string'
+            }
+    ]);
+    delete $bmwqemu::vars{AUTOINST_URL_HOSTNAME};
+    $cmds = [];
+};
+
+subtest 'script_sudo' => sub {
+    script_sudo "rm /boot/grub/menu.lst";
+    is_deeply($cmds, [
+            {
+                text => "sudo rm /boot/grub/menu.lst; echo XXX > /dev/null\n",
+                cmd => 'backend_type_string'
+            },
+            {
+                mustmatch => 'sudo-passwordprompt',
+                cmd => 'check_screen',
+                timeout => 3,
+                check => 1,
+                no_wait => undef
+            },
+            {
+                cmd => 'backend_type_string',
+                secret => 1,
+                text => 'stupid',
+                max_interval => 100
+            }
+    ]);
+    $cmds = [];
+};
+
+subtest 'parse_extra_log' => sub {
+    my $mock_parser = Test::MockObject->new();
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->define(parser => sub { $mock_parser });
+    my $i = 0;
+    $mock_parser->fake_module("OpenQA::Parser", import => sub { $i++; });
+    $mock_parser->mock(write_output => sub { $i++; });
+    $mock_parser->mock(write_test_result => sub { $i++; });
+    $mock_parser->mock(tests => sub { $mock_parser });
+    $mock_parser->mock(each => sub($self, $cb) { $_ = $mock_parser; $cb->() });
+    $mock_parser->mock(to_openqa => sub { return {name => 'foo'} });
+    parse_junit_log "foo.log";
+    is $i, 3, 'Correct number of methods called';
+    is_deeply($autotest::current_test->{extra_test_results}->[0], {name => 'foo', script => undef});
 };
 
 ok(save_screenshot);
@@ -955,6 +1044,8 @@ subtest 'mouse_drag' => sub {
                 cmd => 'backend_mouse_button'
             },
     ], 'mouse drag (redundant definition by a needle)') or diag explain $cmds;
+    like exception { mouse_drag(endx => $endx, endy => $endy) }, qr/starting.*point.*not.*provided/, 'faile for no start';
+    like exception { mouse_drag(startx => $endx, starty => $endy) }, qr/ending.*point.*not.*provided/, 'faile for no end';
 };
 
 subtest 'show_curl_progress_meter' => sub {
@@ -1063,6 +1154,8 @@ subtest 'mouse click' => sub {
 is_deeply testapi::_handle_found_needle(undef, undef, undef), undef, 'handle_found_needle returns no found needle by default';
 $bmwqemu::vars{CASEDIR} = 'foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
+$bmwqemu::vars{CASEDIR} = 't';
+like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 lives_ok { become_root } 'become_root can be called';
 like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
 lives_ok { hold_key('ret') } 'hold_key can be called';
@@ -1090,6 +1183,10 @@ subtest 'upload_asset and parse_junit_log' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->noop('assert_script_run');
     ok upload_asset('foo'), 'upload_asset can be called';
+    ok upload_asset('foo', nocheck => 1), 'upload_asset can be called with nocheck';
+    $bmwqemu::vars{OFFLINE_SUT} = '1';
+    is upload_asset('foo'), undef, 'upload_asset can be called offline (but does nothing)';
+    delete $bmwqemu::vars{OFFLINE_SUT};
     $mock_testapi->redefine(upload_logs => sub { die 'foo' });
     like(exception { parse_junit_log('foo') }, qr/foo/, 'parse_junit_log calls upload_logs');
 };
