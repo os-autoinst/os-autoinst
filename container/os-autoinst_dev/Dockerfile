@@ -29,6 +29,7 @@ RUN zypper in -y -C \
        aspell-spell \
        cmake \
        cpio \
+       file \
        gcc-c++ \
        git-core \
        icewm \
@@ -45,6 +46,7 @@ RUN zypper in -y -C \
        qemu-tools \
        qemu-x86 \
        rsync \
+       sed \
        shadow \
        shfmt \
        socat \
