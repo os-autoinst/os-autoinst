@@ -32,6 +32,7 @@ $bmwqemu::vars{WORKER_HOSTNAME} = 'worker-hostname';
 $bmwqemu::vars{GENERAL_HW_CMD_DIR} = $cmd_dir;
 $bmwqemu::vars{GENERAL_HW_POWERON_CMD} = 'ctl poweron';
 $bmwqemu::vars{GENERAL_HW_POWEROFF_CMD} = 'ctl poweroff';
+$bmwqemu::vars{GENERAL_HW_EJECT_CMD} = 'ctl eject';
 $bmwqemu::vars{GENERAL_HW_SOL_CMD} = 'ctl console';
 $bmwqemu::vars{GENERAL_HW_SOL_ARGS} = 'console';
 $bmwqemu::vars{GENERAL_HW_FLASH_CMD} = 'ctl flash';
@@ -109,6 +110,18 @@ subtest 'stop VM' => sub {
     @invoked_cmds = ();
     is_deeply($backend->do_stop_vm, {}, 'return value');
     is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+};
+
+subtest 'eject_cd' => sub {
+    @invoked_cmds = ();
+    $backend->eject_cd;
+    $backend->eject_cd({id => "cd1"});
+    $backend->eject_cd({force => 1});
+    is_deeply(\@invoked_cmds, [
+            [$cmd_ctl, 'eject'],
+            [$cmd_ctl, 'eject', '--id=cd1'],
+            [$cmd_ctl, 'eject', '--force'],
+    ], 'eject commands invoked') or diag explain \@invoked_cmds;
 };
 
 subtest 'error handling' => sub {

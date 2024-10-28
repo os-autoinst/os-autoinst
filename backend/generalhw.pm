@@ -31,6 +31,7 @@ sub get_cmd ($self, $cmd) {
         'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS',
         'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
         'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
+        'GENERAL_HW_EJECT_CMD' => 'GENERAL_HW_EJECT_ARGS',
     );
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
@@ -73,6 +74,13 @@ sub power ($self, $args) {
     } else {
         $self->notimplemented;
     }
+}
+
+sub eject_cd($self, $args = {}) {
+    my @extra_args;
+    push @extra_args, "--id=$args->{id}" if ($args->{id});
+    push @extra_args, "--force" if ($args->{force});
+    $self->run_cmd('GENERAL_HW_EJECT_CMD', @extra_args);
 }
 
 sub relogin_vnc ($self) {
