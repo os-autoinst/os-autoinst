@@ -46,6 +46,8 @@ ci_requires:
 devel_requires:
   '%test_requires':
   '%python_style_requires':
+  file:
+  sed:
   perl(Code::TidyAll):
   perl(Devel::Cover):
   perl(Module::CPANfile):
