@@ -10,6 +10,7 @@ use Test::Mock::Time;
 use Test::MockObject;
 use File::Temp;
 use Mojo::File qw(path);
+use Mojo::Util qw(b64_encode);
 use Test::Output qw(stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
@@ -19,7 +20,13 @@ use Scalar::Util 'looks_like_number';
 use OpenQA::Isotovideo::Interface;
 use consoles::console;
 
+use autotest;
+use basetest;
+use testapi qw(is_serial_terminal :DEFAULT);
+use needle;
+
 require bmwqemu;
+require tinycv;
 
 ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
 
@@ -104,9 +111,6 @@ sub fake_read_json ($fd) {
 
 $mod->redefine(send_json => \&fake_send_json);
 $mod->redefine(read_json => \&fake_read_json);
-
-use testapi qw(is_serial_terminal :DEFAULT);
-use basetest;
 
 my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->noop('_result_add_screenshot');
@@ -364,6 +368,21 @@ subtest 'assert_script_sudo' => sub {
     subtest('Test assert_script_sudo', \&assert_script_sudo_test, 10, 1);
 };
 
+is match_has_tag('foo'), undef, 'match_has_tag returns undef if no needle has matched yet';
+
+subtest 'handle found needle' => sub {
+    needle::init("$Bin/data");
+    my %needle = (name => 'frame2', area => [{}], tags => ['foo']);
+    my %match = (similarity => 1, x => 0, y => 5, w => 10, h => 20, result => 'ok');
+    my %found = (needle => \%needle, area => [\%match]);
+    my %rsp = (frame => undef, image => b64_encode(path("$Bin/data/frame2.ppm")->slurp));
+    is testapi::_handle_found_needle(\%found, \%rsp, []), \%found, 'handle_found_needle returns found needle';
+    $match{similarity} *= 100;    # similarity is expected to be converted to percent
+    is ref($found{needle}), 'needle', 'passed needle was blessed';
+    is_deeply $autotest::current_test->{details}->[-1]->{area}, [\%match], 'matched areas recorded';
+    is match_has_tag('foo'), 1, 'match_has_tag now returns true for tag of matched needle';
+};
+
 subtest 'check_assert_screen' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
@@ -421,7 +440,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result => 'unk',
-                    screenshot => 'basetest-13.png',
+                    screenshot => 'basetest-14.png',
                     frametime => [qw(1.75 1.79)],
                     tags => [qw(fake tags)],
                 }
@@ -563,7 +582,6 @@ subtest 'parse_extra_log' => sub {
 
 ok(save_screenshot);
 
-is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my @areas = ({x => 1, y => 2, w => 10, h => 20});
@@ -1151,7 +1169,6 @@ subtest 'mouse click' => sub {
     is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or diag explain $cmds;
 };
 
-is_deeply testapi::_handle_found_needle(undef, undef, undef), undef, 'handle_found_needle returns no found needle by default';
 $bmwqemu::vars{CASEDIR} = 'foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
 $bmwqemu::vars{CASEDIR} = 't';
