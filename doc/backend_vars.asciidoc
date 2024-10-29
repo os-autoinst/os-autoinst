@@ -322,6 +322,7 @@ GENERAL_HW_VIDEO_STREAM_URL;string;;Video stream URL (in ffmpeg's syntax) to rec
 GENERAL_HW_VIDEO_CMD_PREFIX;string;;Prefix to prepend to 'ffmpeg' and 'v4l2-ctl' commands, can be used to run them on a different host via SSH. Example: 'ssh root@pikvm'. Note: the value is tokenized on spaces, so avoid their use in command name or any of the parameters.
 VIDEO_STREAM_PIPE_BUFFER_SIZE;integer;1680*1050*3+20;Buffer containing at least a single PPM frame for video capturing
 GENERAL_HW_KEYBOARD_URL;string;;URL to keyboard emulation device. eg. 'http://1.2.3.4/cmd' - see https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard[rpi_pico_w_keyboard]
+GENERAL_HW_ALSA_CTRL_DEV;string;;Path to alsa ctl dev or symlink. Identifies soundcard for audiocapture.
 GENERAL_HW_CMD_DIR;string;;Directory with allowed CMD scripts. Note: This variable should be set in the workers.ini file, otherwise it will be ignored by openQA.
 GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
 GENERAL_HW_SOL_ARGS;string;;Arguments to pass GENERAL_HW_SOL_CMD Shell script
