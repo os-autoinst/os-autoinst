@@ -301,7 +301,7 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
         }) and return 'try_again';
 
         # only care for the last one
-        $failed_screens = [$final_mismatch] if $check;
+        $failed_screens = [$final_mismatch] if $check && defined $final_mismatch;
         for my $l (@$failed_screens) {
             my $img = tinycv::from_ppm(decode_base64($l->{image}));
             my $result = $check ? 'unk' : 'fail';
