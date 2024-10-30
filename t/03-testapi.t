@@ -43,6 +43,7 @@ my $fake_needle_found = 1;
 my $fake_needle_found_after_pause = 0;
 my $fake_timeout = 0;
 my $fake_similarity = 42;
+my $fake_is_configured_to_pause_on_timeout = 0;
 
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail (@) { }
@@ -102,6 +103,9 @@ sub fake_read_json ($fd) {
     }
     elsif ($cmd eq 'backend_start_audiocapture') {
         return {ret => 0};
+    }
+    elsif ($cmd eq 'is_configured_to_pause_on_timeout') {
+        return {ret => $fake_is_configured_to_pause_on_timeout};
     }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
@@ -370,12 +374,14 @@ subtest 'assert_script_sudo' => sub {
 
 is match_has_tag('foo'), undef, 'match_has_tag returns undef if no needle has matched yet';
 
+my $dummy_image = b64_encode(path("$Bin/data/frame2.ppm")->slurp);
+
 subtest 'handle found needle' => sub {
     needle::init("$Bin/data");
     my %needle = (name => 'frame2', area => [{}], tags => ['foo']);
     my %match = (similarity => 1, x => 0, y => 5, w => 10, h => 20, result => 'ok');
     my %found = (needle => \%needle, area => [\%match]);
-    my %rsp = (frame => undef, image => b64_encode(path("$Bin/data/frame2.ppm")->slurp));
+    my %rsp = (frame => undef, image => $dummy_image);
     is testapi::_handle_found_needle(\%found, \%rsp, []), \%found, 'handle_found_needle returns found needle';
     $match{similarity} *= 100;    # similarity is expected to be converted to percent
     is ref($found{needle}), 'needle', 'passed needle was blessed';
@@ -492,6 +498,21 @@ subtest 'check_assert_screen' => sub {
         $fake_needle_found_after_pause = 1;
         assert_screen('foo', 3, timeout => 2);
         is($report_timeout_called, 1, 'report_timeout called only once');
+    };
+
+    subtest 'handle timeout when configured to pause_on timeout' => sub {
+        my @tags = qw(tag1 tag2 tag3);
+        my %rsp = (timeout => 1, tags => \@tags, failed_screens => [{image => $dummy_image}]);
+        $fake_is_configured_to_pause_on_timeout = 1;
+        testapi::_check_backend_response(\%rsp, 'check_screen', 10, [qw(foo bar)]);
+        my $recorded_detail = $autotest::current_test->{details}->[-1];
+        my $detail_count = scalar(@{$autotest::current_test->{details}});
+        is_deeply $recorded_detail->{result}, 'unk', 'mismatch with unknown result recorded' or diag explain $recorded_detail;
+        is_deeply $recorded_detail->{tags}, \@tags, 'mismatch contains expected tags' or diag explain $recorded_detail;
+
+        $rsp{failed_screens} = [];
+        testapi::_check_backend_response(\%rsp, 'check_screen', 10, [qw(foo bar)]);
+        is scalar(@{$autotest::current_test->{details}}), $detail_count, 'no screenfail recorded if failed screens empty';
     };
 };
 
