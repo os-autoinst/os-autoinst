@@ -329,6 +329,8 @@ GENERAL_HW_POWERON_CMD;string;;Shell Command to power on the SUT (in CMD_DIR)
 GENERAL_HW_POWERON_ARGS;string;;Arguments to pass GENERAL_HW_POWERON_CMD Shell script
 GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
+GENERAL_HW_EJECT_CMD;string;;Shell Command to eject CD from SUT (in CMD_DIR). If 'id' is passed to eject_cd, it's converted to '--id=...' argument. If 'force' is passed to eject_cd, it's converted to '--force' argument.
+GENERAL_HW_EJECT_ARGS;string;;Arguments to pass GENERAL_HW_EJECT_CMD Shell script
 GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
 GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
 GENERAL_HW_IMAGE_CMD;string;;Shell Command to extract disk image from SUT (in CMD_DIR), optional
