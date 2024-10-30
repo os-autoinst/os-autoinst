@@ -193,10 +193,19 @@ subtest 'type_string' => sub {
     type_password 'hallo', max_interval => 5;
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
     $cmds = [];
+
+    $fake_timeout = 1;
+    throws_ok { type_password 'hallo', wait_still_screen => 1 }
+    qr/wait_still_screen timed out after 30s/, 'dies if wait_still_screen times out';
+    is_deeply($cmds, [
+            {cmd => 'backend_type_string', max_interval => 100, text => 'hallo'},
+            {cmd => 'backend_wait_still_screen', similarity_level => 47, stilltime => 1, timeout => 30},
+    ]) or diag explain $cmds;
+    $cmds = [];
 };
 
 subtest 'wait_screen_change' => sub {
-    my $callback_invoked = 0;
+    my $callback_invoked = $fake_timeout = 0;
     ok wait_screen_change { $callback_invoked = 1 }, 'change found';
     ok $callback_invoked, 'callback invoked';
     my @expected_cmds = (
@@ -277,6 +286,10 @@ subtest 'send_key with wait_screen_change' => sub {
     ok($wait_screen_change_called, 'wait_screen_change called by send_key');
 };
 
+subtest 'assert_screen_change' => sub {
+    combined_like { testapi::assert_screen_change { say 'something' } } qr/something/, 'callback invoked';
+};
+
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 $mock_bmwqemu->unmock('log_call');
 stderr_like { record_soft_failure('workaround for bug#1234') } qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason';
@@ -297,6 +310,7 @@ is console('a-console')->{console}, 'a-console';
 is_deeply $autotest::last_milestone->{activated_consoles}, ['a-console'], 'Current console is activated';
 is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
+is console('b-console')->{console}, 'b-console', 'new console created on the fly';
 
 subtest 'script_run' => sub {
     # just save ourselves some time during testing
@@ -533,7 +547,7 @@ subtest 'check_assert_screen' => sub {
         is $recorded_detail->{result}, 'fail', 'stall treated as failure during assert screen';
     };
 
-    subtest 'recursive call for sveresult response, handling unexpected response' => sub {
+    subtest 'recursive call for saveresult response, handling unexpected response' => sub {
         $rsp{saveresult} = 1;
         $rsp{stall} = 0;
         push @fake_extra_responses, {cmd => 'after_report_timeout'};
