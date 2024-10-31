@@ -11,7 +11,7 @@ use Test::MockObject;
 use File::Temp;
 use Mojo::File qw(path);
 use Mojo::Util qw(b64_encode);
-use Test::Output qw(stderr_like stderr_unlike);
+use Test::Output qw(combined_like stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
 use Test::Exception;
@@ -44,6 +44,7 @@ my $fake_needle_found_after_pause = 0;
 my $fake_timeout = 0;
 my $fake_similarity = 42;
 my $fake_is_configured_to_pause_on_timeout = 0;
+my @fake_extra_responses;
 
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail (@) { }
@@ -63,8 +64,8 @@ sub fake_read_json ($fd) {
     }
     elsif ($cmd eq 'report_timeout') {
         $report_timeout_called += 1;
-        return {ret => 0} unless ($fake_pause_on_timeout);
-
+        push @$cmds, shift @fake_extra_responses if @fake_extra_responses;
+        return {ret => 0} unless $fake_pause_on_timeout;
         $fake_pause_on_timeout = 0;    # only fake the pause once to prevent enless loop
         return {ret => 1};
     }
@@ -106,6 +107,9 @@ sub fake_read_json ($fd) {
     }
     elsif ($cmd eq 'is_configured_to_pause_on_timeout') {
         return {ret => $fake_is_configured_to_pause_on_timeout};
+    }
+    elsif ($cmd eq 'after_report_timeout') {
+        return {ret => {not => 'expected'}};
     }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
@@ -189,10 +193,19 @@ subtest 'type_string' => sub {
     type_password 'hallo', max_interval => 5;
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
     $cmds = [];
+
+    $fake_timeout = 1;
+    throws_ok { type_password 'hallo', wait_still_screen => 1 }
+    qr/wait_still_screen timed out after 30s/, 'dies if wait_still_screen times out';
+    is_deeply($cmds, [
+            {cmd => 'backend_type_string', max_interval => 100, text => 'hallo'},
+            {cmd => 'backend_wait_still_screen', similarity_level => 47, stilltime => 1, timeout => 30},
+    ]) or diag explain $cmds;
+    $cmds = [];
 };
 
 subtest 'wait_screen_change' => sub {
-    my $callback_invoked = 0;
+    my $callback_invoked = $fake_timeout = 0;
     ok wait_screen_change { $callback_invoked = 1 }, 'change found';
     ok $callback_invoked, 'callback invoked';
     my @expected_cmds = (
@@ -273,6 +286,10 @@ subtest 'send_key with wait_screen_change' => sub {
     ok($wait_screen_change_called, 'wait_screen_change called by send_key');
 };
 
+subtest 'assert_screen_change' => sub {
+    combined_like { testapi::assert_screen_change { say 'something' } } qr/something/, 'callback invoked';
+};
+
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 $mock_bmwqemu->unmock('log_call');
 stderr_like { record_soft_failure('workaround for bug#1234') } qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason';
@@ -293,6 +310,7 @@ is console('a-console')->{console}, 'a-console';
 is_deeply $autotest::last_milestone->{activated_consoles}, ['a-console'], 'Current console is activated';
 is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
+is console('b-console')->{console}, 'b-console', 'new console created on the fly';
 
 subtest 'script_run' => sub {
     # just save ourselves some time during testing
@@ -500,19 +518,42 @@ subtest 'check_assert_screen' => sub {
         is($report_timeout_called, 1, 'report_timeout called only once');
     };
 
+    my @tags = qw(tag1 tag2 tag3);
+    my %rsp = (timeout => 1, tags => \@tags, failed_screens => [{image => $dummy_image}]);
+    my $detail_count = @{$autotest::current_test->{details}};
+
     subtest 'handle timeout when configured to pause_on timeout' => sub {
-        my @tags = qw(tag1 tag2 tag3);
-        my %rsp = (timeout => 1, tags => \@tags, failed_screens => [{image => $dummy_image}]);
         $fake_is_configured_to_pause_on_timeout = 1;
-        testapi::_check_backend_response(\%rsp, 'check_screen', 10, [qw(foo bar)]);
+        testapi::_check_backend_response(\%rsp, 1, 10, [qw(foo bar)]);
+        cmp_ok @{$autotest::current_test->{details}}, '>', $detail_count, 'new details recorded';
+        $detail_count = @{$autotest::current_test->{details}};
         my $recorded_detail = $autotest::current_test->{details}->[-1];
-        my $detail_count = scalar(@{$autotest::current_test->{details}});
         is_deeply $recorded_detail->{result}, 'unk', 'mismatch with unknown result recorded' or diag explain $recorded_detail;
         is_deeply $recorded_detail->{tags}, \@tags, 'mismatch contains expected tags' or diag explain $recorded_detail;
+    };
 
+    subtest 'handling of stalled VNC connection when running into timeout' => sub {
         $rsp{failed_screens} = [];
-        testapi::_check_backend_response(\%rsp, 'check_screen', 10, [qw(foo bar)]);
+        $rsp{stall} = 1;
+        combined_like { testapi::_check_backend_response(\%rsp, 1, 10, [qw(foo bar)]) }
+        qr/stall detected during check_screen failure/, 'stall logged during check screen';
         is scalar(@{$autotest::current_test->{details}}), $detail_count, 'no screenfail recorded if failed screens empty';
+
+        throws_ok { combined_like { testapi::_check_backend_response(\%rsp, 0, 10, [qw(foo bar)]) }
+            qr/ran into assert_screen timeout/, 'assert_screen timeout logged' }
+          qr/no candidate needle with tag\(s\) 'foo, bar' matched/, 'exception thrown if no candidate matched';
+        my $recorded_detail = $autotest::current_test->{details}->[-1];
+        is $recorded_detail->{title}, 'Stall detected', 'stall recorded during assert screen';
+        is $recorded_detail->{result}, 'fail', 'stall treated as failure during assert screen';
+    };
+
+    subtest 'recursive call for saveresult response, handling unexpected response' => sub {
+        $rsp{saveresult} = 1;
+        $rsp{stall} = 0;
+        push @fake_extra_responses, {cmd => 'after_report_timeout'};
+        throws_ok { combined_like { testapi::_check_backend_response(\%rsp, 0, 10, [qw(foo bar)]) }
+            qr/ran into assert_screen timeout/, 'assert_screen timeout logged' }
+          qr/unexpected response.*not.*expected/s, 'exception thrown on unexpected response';
     };
 };
 

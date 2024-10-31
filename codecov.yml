@@ -31,6 +31,7 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
+          - testapi.pm
           - t/
           - xt/
     patch:
