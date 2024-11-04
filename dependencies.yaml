@@ -129,6 +129,7 @@ test_requires:
   '%ocr_requires':
   '%test_non_s390_requires':
   python3-Pillow-tk:
+  ffmpeg:
 
 main_requires:
   git-core:
