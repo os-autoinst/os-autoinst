@@ -52,10 +52,14 @@ ok !$backend->check_socket(undef), 'check_socket not returning true by default';
 ok $backend->get_mc_status, 'can call get_mc_status';
 
 is $testapi::distri->{consoles}->{sol}->{args}->{log}, '1';
-$testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
-my $pid = $testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console");
-is waitpid($pid, 0), $pid, 'can start xterm subprocess';
-is $?, 0x100, "can create console with log enabled";
+combined_like {
+    $testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
+    my $pid = $testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console");
+    is waitpid($pid, 0), $pid, 'can start xterm subprocess';
+    is $?, 0x100, "can create console with log enabled";
+} qr/
+    Xterm\ PID:\ \d+
+/x, 'callxterm outputs expected debug message';
 
 subtest 'cold reset' => sub {
     # reduce retries for testing
@@ -88,18 +92,31 @@ subtest 'sol reconnect' => sub {
             return 'image data';
     });
     $sol_mock->redefine(waitpid => -1);
-    $testapi::distri->{consoles}->{sol}->activate;
+    combined_like {
+        $testapi::distri->{consoles}->{sol}->activate;
+    } qr/
+        IPMI:\s+simulating\ ipmi\ sol\ deactivate.*
+        Xterm\ PID:\ \d+
+    /xs, 'sol console activation logs as expected';
 
     # Pretend the subprocess is dead, screen read should fail after
     # 1 reconnect attempt
-    throws_ok { $testapi::distri->{consoles}->{sol}->current_screen; } qr/Too many IPMI SOL errors/, 'dies on reconnect failure';
+    combined_like {
+        throws_ok { $testapi::distri->{consoles}->{sol}->current_screen; }
+        qr/Too many IPMI SOL errors/, 'dies on reconnect failure';
+    } qr/
+        !!!\ consoles::sshXtermIPMI::current_screen:\ IPMI\ SOL\ connection\ died.*
+        Xterm\ PID:\ \d+
+    /xs, 'sol current_screen failure logs as expected';
     is $screen_calls, 2, 'SOL reconnect count is correct';
 
     # Pretend the subprocess is still running and check that screen read
     # returns the correct data
     $screen_calls = 0;
     $sol_mock->redefine(waitpid => 0);
-    is $testapi::distri->{consoles}->{sol}->current_screen, 'image data', 'can read screen buffer';
+    combined_like {
+        is $testapi::distri->{consoles}->{sol}->current_screen, 'image data', 'can read screen buffer';
+    } qr/^$/, 'no ouput during current_screen call as expected';
     is $screen_calls, 1, 'screen buffer read without reconnect';
 };
 
