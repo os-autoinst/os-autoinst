@@ -7,6 +7,7 @@
 package consoles::sshIucvconn;
 
 use Mojo::Base 'consoles::network_console', -signatures;
+use log qw(diag fctwarn);
 use autodie ':all';
 
 sub connect_remote ($self, $args) {
@@ -22,7 +23,7 @@ sub connect_remote ($self, $args) {
     $chan->blocking(0);
     $chan->pty(1);
     if (!$chan->exec('smart_agetty hvc0')) {
-        bmwqemu::fctwarn('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
+        fctwarn('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
     }
 
     # Save objects to prevent unexpected closings
@@ -32,10 +33,10 @@ sub connect_remote ($self, $args) {
     # ssh connection to SUT for iucvconn
     my ($ssh, $serialchan) = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
     # start iucvconn
-    bmwqemu::diag("ssh iucvconn: grabbing serial console for guest: $zvmguest");
+    diag("ssh iucvconn: grabbing serial console for guest: $zvmguest");
     $ssh->blocking(1);
     if (!$serialchan->exec("iucvconn $zvmguest lnxhvc0")) {
-        bmwqemu::fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
     $ssh->blocking(0);
 }
