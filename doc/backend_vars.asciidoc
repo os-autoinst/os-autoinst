@@ -82,6 +82,7 @@ HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of sol console, dis
 IPMI_HOSTNAME;string;undef;Hostname/IP for IPMI interface
 IPMI_PASSWORD;string;undef;Password for the IPMI interface
 IPMI_USER;string;undef;Username for the IPMI interface
+IPMI_OPTIONS;string;-I lanplus;Additional options for the IPMI interface
 IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test
 IPMI_DO_NOT_RESTART_HOST;boolean;undef;Don't restart the machine before test
 IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol console stability

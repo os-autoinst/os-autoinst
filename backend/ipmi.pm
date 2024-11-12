@@ -17,7 +17,8 @@ sub new ($class) {
 
 sub ipmi_cmdline ($self) {
     $bmwqemu::vars{"IPMI_$_"} or die "Need variable IPMI_$_" for qw(HOSTNAME USER PASSWORD);
-    return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
+    my $ipmi_options = $bmwqemu::vars{IPMI_OPTIONS} // '-I lanplus';
+    return ('ipmitool', split(' ', $ipmi_options), '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
 sub ipmitool ($self, $cmd, %args) {
