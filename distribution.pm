@@ -43,7 +43,6 @@ sub add_console ($self, $testapi_console, $backend_console, $backend_args = unde
         'local-Xvnc' => 'localXvnc',
         'ssh-iucvconn' => 'sshIucvconn',
         'virtio-terminal' => 'virtio_terminal',
-        'amt-sol' => 'amtSol',
         'ipmi-sol' => 'ipmiSol',
         'ipmi-xterm' => 'sshXtermIPMI',
         'video-stream' => 'video_stream',

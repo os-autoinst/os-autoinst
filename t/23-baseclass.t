@@ -892,4 +892,8 @@ subtest 'child process handling' => sub {
     combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';
 };
 
+subtest 'deprecate backend' => sub {
+    throws_ok { backend::baseclass::handle_deprecate_backend('AMT') } qr/is unsupported and planned to be\nremoved from os-autoinst eventually/, 'deprecated message is displayed';
+};
+
 done_testing;
