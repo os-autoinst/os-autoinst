@@ -176,8 +176,8 @@ int main(int argc, char* argv[])
     int freqs = height / scale_factor;
     Mat grayscaleMat(height, 1024, CV_8U, Scalar(255));
 
-    if (last_non_silence - first_non_silence >= grayscaleMat.cols)
-        last_non_silence = grayscaleMat.cols - first_non_silence - 1;
+    if (last_non_silence - first_non_silence > grayscaleMat.cols)
+        last_non_silence = grayscaleMat.cols + first_non_silence;
 
     fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
     for (int i = 1; i < freqs; ++i) {
