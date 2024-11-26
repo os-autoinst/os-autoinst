@@ -11,7 +11,6 @@ set(DOC_FILES
 )
 set(PERL_FILES
     autotest.pm
-    backend/amt.pm
     backend/baseclass.pm
     backend/console_proxy.pm
     backend/driver.pm
@@ -28,7 +27,6 @@ set(PERL_FILES
     basetest.pm
     bmwqemu.pm
     commands.pm
-    consoles/amtSol.pm
     consoles/console.pm
     consoles/ipmiSol.pm
     consoles/localXvnc.pm
