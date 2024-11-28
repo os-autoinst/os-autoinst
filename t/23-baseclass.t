@@ -894,6 +894,8 @@ subtest 'child process handling' => sub {
 
 subtest 'deprecate backend' => sub {
     throws_ok { backend::baseclass::handle_deprecate_backend('AMT') } qr/is unsupported and planned to be\nremoved from os-autoinst eventually/, 'deprecated message is displayed';
+    $bmwqemu::vars{NO_DEPRECATE_BACKEND_TESTBACKEND} = 1;
+    stderr_like { backend::baseclass::handle_deprecate_backend('TESTBACKEND') } qr/DEPRECATED: 'backend::TESTBACKEND' is unsupported/, 'deprecation message is logged';
 };
 
 done_testing;
