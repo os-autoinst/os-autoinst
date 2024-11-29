@@ -28,6 +28,7 @@ coverage:
           - consoles/sshIucvconn.pm
           - consoles/virtio_terminal.pm
           - bmwqemu.pm
+          - cv.pm
           - log.pm
           - mmapi.pm
           - osutils.pm

@@ -21,9 +21,9 @@ sub init () {
     return if ($sysdir && $libdir eq $sysdir);
     my @s = stat("$libdir/ppmclibs/blib/lib/tinycv.pm");
     unless (@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat(_))[7]) {
-        $| = 1;
-        print STDERR "### Please build the tinycv bindings first (see os-autoinst's README)\n";
-        die("tinycv outdated");
+        $| = 1;    # uncoverable statement
+        print STDERR "### Please build the tinycv bindings first (see os-autoinst's README)\n";    # uncoverable statement
+        die("tinycv outdated");    # uncoverable statement
     }
 
     unshift(@INC, "$libdir/ppmclibs/blib/arch");
