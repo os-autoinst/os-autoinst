@@ -1678,10 +1678,7 @@ sub select_console ($testapi_console, @args) {
 
     $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
-        # we need to store the activated consoles for rollback
-        if ($autotest::last_milestone) {
-            push(@{$autotest::last_milestone->{activated_consoles}}, $testapi_console);
-        }
+        push(@$autotest::activated_consoles, $testapi_console);
         $testapi::distri->activate_console($testapi_console, @args);
     }
     $testapi::distri->console_selected($testapi_console, @args);
@@ -1728,6 +1725,7 @@ if you did something to the system that affects the console (e.g. trigger reboot
 =cut
 
 sub reset_consoles () {
+    $autotest::activated_consoles = [];
     query_isotovideo('backend_reset_consoles');
     return;
 }
