@@ -71,8 +71,16 @@ subtest 'send_json should die when buffer is empty and pipe is broken' => sub {
         $! = 'broken pipe'
         return 0
     }
-    # create a fake json 
-    my $fake_send = {foo => 'bar'};
+    # run send_json
+    dies_ok { send_json($child, undef) }
+};
+
+subtest 'send_json should succeed when buffer is empty and pipe is NOT broken' => sub {
+    # mock the broken pipe behaviour
+    local *CORE::GLOBAL::syswrite = sub { 
+        $! = 'not broken'
+        return 0
+    }
     # run send_json
     dies_ok { send_json($child, undef) }
 };
