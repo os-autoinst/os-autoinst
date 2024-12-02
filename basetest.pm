@@ -225,19 +225,13 @@ sub record_screenfail ($self, %args) {
     my $status = $args{result} || 'fail';
     my $overall = $args{overall};    # whether and how to set global test result
     my $frame = $args{frame};
-
-    my $candidates;
-    for my $cand (@{$needles || []}) {
-        push @$candidates, $self->_serialize_match($cand);
-    }
-
     my $result = {
         screenshot => $self->next_resultname('png'),
         result => $status,
         frametime => _framenumber_to_timerange($frame),
     };
-
-    $result->{needles} = $candidates if $candidates;
+    my @candidates = map { $self->_serialize_match($_) } @{$needles || []};
+    $result->{needles} = \@candidates if @candidates;
     $result->{tags} = [@$tags] if $tags;    # make a copy
 
     my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
