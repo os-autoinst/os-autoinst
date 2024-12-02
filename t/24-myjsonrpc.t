@@ -3,6 +3,9 @@
 # Copyright 2019-2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+BEGIN {
+    $ENV{PERL_MYJSONRPC_DEBUG} = 0;
+}
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
@@ -62,11 +65,16 @@ subtest magic_close => sub {
     like($warnings[0], qr{received magic close});
 };
 
-subtest 'send_json should die when buffer is empty or pipe is broken' => sub {
+subtest 'send_json should die when buffer is empty and pipe is broken' => sub {
     # mock the broken pipe behaviour
+    local *CORE::GLOBAL::syswrite = sub { 
+        $! = 'broken pipe'
+        return 0
+    }
     # create a fake json 
+    my $fake_send = {foo => 'bar'};
     # run send_json
-    # expectation
+    dies_ok { send_json($child, undef) }
 };
 
 my $io_select_mock = Test::MockModule->new('IO::Select');
