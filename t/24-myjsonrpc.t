@@ -56,9 +56,17 @@ sub magic_close () {
     my $quit = myjsonrpc::read_json($isotovideo);
     is($quit, undef, "received magic close");
 }
+
 subtest magic_close => sub {
     my @warnings = warnings { magic_close() };
     like($warnings[0], qr{received magic close});
+};
+
+subtest 'send_json should die when buffer is empty or pipe is broken' => sub {
+    # mock the broken pipe behaviour
+    # create a fake json 
+    # run send_json
+    # expectation
 };
 
 my $io_select_mock = Test::MockModule->new('IO::Select');
