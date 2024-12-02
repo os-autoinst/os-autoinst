@@ -27,6 +27,7 @@ coverage:
           - consoles/sshSerial.pm
           - consoles/sshIucvconn.pm
           - consoles/virtio_terminal.pm
+          - basetest.pm
           - bmwqemu.pm
           - cv.pm
           - log.pm
