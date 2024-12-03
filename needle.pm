@@ -105,6 +105,13 @@ sub new ($classname, $jsonfile) {
             }
             $area->{click_point} = $click_point;
         }
+        if ($area->{type} eq 'ocr') {
+            $area->{refstr} = $area_from_json->{refstr};
+            unless (defined $area->{refstr}) {
+                warn "$jsonfile contains OCR area without refstr\n";
+                return undef;
+            }
+        }
 
         $gotmatch = 1 if $area->{type} =~ /match|ocr/;
 
@@ -119,7 +126,6 @@ sub new ($classname, $jsonfile) {
     my $png = $self->{png} || $self->{name} . ".png";
 
     $self->{png} = path(dirname($jsonfile), $png)->to_string;
-    warn "Can't find $self->{png}" && return unless -s $self->{png};
     $self = bless $self, $classname;
     $self->register();
     return $self;
@@ -167,6 +173,7 @@ sub register ($self) {
 }
 
 sub _load_image ($self, $image_path) {
+    return undef unless (-e $image_path);
     # read PNG file measuring required time
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();

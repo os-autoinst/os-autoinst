@@ -80,8 +80,9 @@ python_support_requires:
   perl(Inline::Python):
 
 ocr_requires:
-  tesseract-ocr:
-  tesseract-ocr-traineddata-english:
+  gocr:
+  netpbm:
+  perl(Text::Levenshtein):
 
 test_non_s390_requires:
   ipxe-bootimgs:

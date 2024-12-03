@@ -131,6 +131,32 @@ my $mod2 = Test::MockModule->new('testapi');
 
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 
+subtest '_handle_found_needle' => sub {
+    my $mocked_needle = Test::MockModule->new('needle');
+    $mocked_needle->mock('new', sub { return bless({name => 'needlename'}) });
+    my $mocked_encode = Test::MockModule->new('Encode');
+    $mocked_encode->mock(decode_base64 => 'A value');
+    my $mocked_tinycv = Test::MockModule->new('tinycv');
+    $mocked_tinycv->mock(from_ppm => 'A Value');
+
+    my $mocked_current_test = Test::MockObject->new();
+    $mocked_current_test->fake_module('basetest', new => sub { return $mocked_current_test; });
+    $mocked_current_test->mock('record_screenmatch' => sub { return undef; });
+    my $current_test_sav = $autotest::current_test;
+    $autotest::current_test = basetest->new();
+
+    my $foundneedle = bless({area => [{similarity => 1, ocr_str => 'ocr'}]});
+    my $fakeresponse = bless({image => 'dummy'});
+    my $last_matched_needle_sav = $testapi::last_matched_needle;
+    stderr_like(
+        sub { testapi::_handle_found_needle($foundneedle, $fakeresponse, undef); },
+        qr;.*testapi::_handle_found_needle: found needlename, similarity 1.00 @ 0/0 OCR: ocr.*;,
+        'Check correct output for ocr needle');
+
+    $autotest::current_test = $current_test_sav;
+    $testapi::last_matched_needle = $last_matched_needle_sav;
+};
+
 subtest 'type_string' => sub {
     $mod2->redefine(wait_screen_change => sub : prototype(&@) {
             my ($callback, $timeout, %args) = @_;

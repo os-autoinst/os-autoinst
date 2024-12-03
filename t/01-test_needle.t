@@ -99,9 +99,7 @@ subtest 'handle failure to load image' => sub {
     ok(my $image = $needle_with_png->get_image, 'image returned');
     my $needle_without_png = needle->new('console.ref.json');
     my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
-    stderr_like {
-        is($needle_without_png->get_image, undef, 'get_image returns undef if no image present')
-    } qr/Could not open image/, 'log output for missing image';
+    ok(!defined $needle_without_png->get_image, 'get_image returns undef if no image present');
 
     stderr_like {
         my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
@@ -111,7 +109,7 @@ subtest 'handle failure to load image' => sub {
         is_deeply($candidates, [], 'missing needle not even considered as candidate')
           or diag explain $candidates;
     }
-    qr{.*Could not open image .*$missing_needle_path.*\n.*skipping console\.ref\: missing PNG.*},
+    qr{.*Skipping console.ref: missing PNG.*},
       'needle with missing PNG skipped';
 };
 
@@ -168,7 +166,7 @@ needle_init;
 
 my @alltags = sort keys %needle::tags;
 my @needles = @{needle::tags('none') || []};
-is(@needles, 4, "four needles found");
+is(@needles, 21, "21 needles found");
 for my $n (@needles) {
     $n->unregister();
 }
@@ -423,6 +421,14 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
         is($needle->{file}, 'subdir/foo.json', 'file path relative to needle directory');
         is($needle->{png}, "$needles_dir/subdir/foo.png", 'absolute image path assigned');
     };
+};
+
+subtest 'handle failure loading OCR needle without refstr' => sub {
+    needle::set_needles_dir($misc_needles_dir);
+    warning_like(
+        sub { is(needle->new('bootmenu.test.ocr-norefstr.json'), undef, 'Check needle->new is undef for OCR needle without refstr'); },
+        qr/.contains OCR area without refstr.*/,
+        'Check stderr warning on OCR needle without refstr');
 };
 
 subtest 'click point' => sub {

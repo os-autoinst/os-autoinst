@@ -33,8 +33,10 @@ RUN zypper in -y -C \
        file \
        gcc-c++ \
        git-core \
+       gocr \
        icewm \
        ipxe-bootimgs \
+       netpbm \
        ninja \
        perl-base \
        pkg-config \
@@ -53,8 +55,6 @@ RUN zypper in -y -C \
        socat \
        sshpass \
        sudo \
-       tesseract-ocr \
-       tesseract-ocr-traineddata-english \
        which \
        xorg-x11-Xvnc \
        xterm \
@@ -138,6 +138,7 @@ RUN zypper in -y -C \
        'perl(Test::Pod)' \
        'perl(Test::Strict)' \
        'perl(Test::Warnings)' \
+       'perl(Text::Levenshtein)' \
        'perl(Thread::Queue)' \
        'perl(Time::HiRes)' \
        'perl(Time::Moment)' \
