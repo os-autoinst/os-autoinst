@@ -195,6 +195,8 @@ sub loadtest ($script, %args) {
 our $current_test;
 our $selected_console;
 our $last_milestone;
+our $last_milestone_active_consoles = [];
+our $activated_consoles = [];
 our $last_milestone_console;
 
 sub parse_test_path ($script_path) {
@@ -436,14 +438,14 @@ sub runalltests () {
             elsif (defined $next_test && !$flags->{no_rollback} && $last_milestone) {
                 load_snapshot('lastgood');
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok');
-                $last_milestone->rollback_activated_consoles();
+                rollback_activated_consoles();
             }
         }
         else {
             if (defined $next_test && !$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
                 load_snapshot('lastgood');
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
-                $last_milestone->rollback_activated_consoles();
+                rollback_activated_consoles();
             }
             my $makesnapshot = $bmwqemu::vars{TESTDEBUG};
             # Only make a snapshot if there is a next test and it's not a fatal milestone
@@ -453,6 +455,7 @@ sub runalltests () {
             }
             if ($snapshots_supported && $makesnapshot) {
                 make_snapshot('lastgood');
+                push @$last_milestone_active_consoles, @$activated_consoles;
                 $last_milestone = $t;
                 $last_milestone_console = $selected_console;
             }
@@ -469,6 +472,23 @@ sub loadtestdir ($dir) {
     foreach my $script (glob "$dir/*.pm") {
         loadtest($script);
     }
+}
+
+# This is called if the framework loaded a VM snapshot. All consoles
+# activated in the test run lose their state but we should not reset
+# consoles which where already activated in the last milestone.
+sub rollback_activated_consoles () {
+    for my $console (@$activated_consoles) {
+        next if grep { /^$console$/ } @$last_milestone_active_consoles;
+        autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
+    }
+    $activated_consoles = [];
+    if (defined($last_milestone_console)) {
+        my $ret = autotest::query_isotovideo('backend_select_console',
+            {testapi_console => $last_milestone_console});
+        die $ret->{error} if $ret->{error};
+    }
+    return;
 }
 
 1;

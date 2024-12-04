@@ -36,7 +36,24 @@ sub loadtest ($test, $msg = "loadtest($test)") {
 }
 
 my @sent;    # array of messages sent with the fake json_send
+my @reset_consoles;
+my @selected_consoles;
 sub fake_send ($target, $msg) { push @sent, $msg }
+sub fake_read ($fd) {
+    my $lcmd = $sent[-1];
+    my $cmd = $lcmd->{cmd};
+
+    if ($cmd eq 'backend_reset_console') {
+        push @reset_consoles, $lcmd;
+        return {};
+    }
+    elsif ($cmd eq 'backend_select_console') {
+        push @selected_consoles, $lcmd;
+        return {};
+    }
+
+    return {};
+}
 
 # find the (first) 'tests_done' message from the @sent array and
 # return the 'died' and 'completed' values
@@ -51,7 +68,7 @@ sub get_tests_done () {
 
 my $mock_jsonrpc = Test::MockModule->new('myjsonrpc');
 $mock_jsonrpc->redefine(send_json => \&fake_send);
-$mock_jsonrpc->redefine(read_json => sub { });
+$mock_jsonrpc->redefine(read_json => \&fake_read);
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 my $vm_stopped = 0;
 $mock_bmwqemu->noop('save_json_file');
@@ -386,6 +403,17 @@ subtest 'pausing on failure' => sub {
     is scalar @isotovideo_calls, 3, 'isotovideo called again after a command failed';
     autotest::pause_on_failure('another reason');
     is scalar @isotovideo_calls, 3, 'isotovideo not called after tests died because previous command failure was not ignored';
+};
+
+subtest rollback_activated_consoles => sub {
+    $mock_autotest->unmock('query_isotovideo');
+
+    $autotest::activated_consoles = ['activated_console'];
+    $autotest::last_milestone_console = 'last_milestone_console';
+    autotest::rollback_activated_consoles();
+    is(scalar(@$autotest::activated_consoles), 0, 'activated consoles cleared');
+    is_deeply(\@reset_consoles, [{cmd => 'backend_reset_console', testapi_console => 'activated_console'}], 'activated consoles reset');
+    is_deeply(\@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected');
 };
 
 done_testing();

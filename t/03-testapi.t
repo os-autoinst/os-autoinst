@@ -307,7 +307,7 @@ testapi::set_distribution(distribution->new());
 $autotest::last_milestone = {};
 select_console('a-console');
 is console('a-console')->{console}, 'a-console';
-is_deeply $autotest::last_milestone->{activated_consoles}, ['a-console'], 'Current console is activated';
+is_deeply $autotest::activated_consoles, ['a-console'], 'Current console is activated';
 is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
 is console('b-console')->{console}, 'b-console', 'new console created on the fly';
