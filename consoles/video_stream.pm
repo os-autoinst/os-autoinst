@@ -156,7 +156,7 @@ sub connect_remote_video ($self, $url) {
     if ($url =~ m^ustreamer://^) {
         die 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
         my $dev = ($url =~ m^ustreamer://(.*)^)[0];
-        my $sink_name = "raw-sink$dev";
+        my $sink_name = "raw-sink$dev.raw";
         $sink_name =~ s^/^-^g;
         my $cmd = $self->_get_ustreamer_cmd($dev, $sink_name);
         my $ffmpeg;

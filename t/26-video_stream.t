@@ -112,24 +112,24 @@ subtest 'connect stream ustreamer' => sub {
     plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     @v4l2_ctl_calls = ();
-    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
+    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
     is $console->{dv_timings_supported}, 0, "correctly skipping DV timing";
     is_deeply \@v4l2_ctl_calls, [], "calls to v4l2-ctl";
 
-    my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0');
+    my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
         '-m', 'UYVY',
         '-c', 'NOOP',
-        '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
+        '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
         '--dv-timings'], "correct cmd built for ustreamer";
-    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2', 'raw-sink-dev-video0');
+    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '2',
         '-m', 'UYVY',
         '-c', 'NOOP',
-        '--raw-sink', 'raw-sink-dev-video0', '--raw-sink-rm',
+        '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
         '--dv-timings'], "correct cmd built for fps=2";
 };
 
@@ -181,7 +181,7 @@ subtest 'frame parsing - ustreamer' => sub {
     my ($img, $received_img);
 
     # ustreamer frame, invalid magic
-    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0');
+    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0.raw');
     my $console = consoles::video_stream->new(undef, {url => 'ustreamer:///dev/video0'});
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
@@ -190,7 +190,7 @@ subtest 'frame parsing - ustreamer' => sub {
     $console->disable_video;
 
     # ustreamer frame, "no signal" message encoded as JPEG
-    copy($data_dir . "ustreamer-shared-no-signal", '/dev/shm/raw-sink-dev-video0');
+    copy($data_dir . "ustreamer-shared-no-signal", '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
     $img = tinycv::read($data_dir . "ustreamer-shared-no-signal.png");
@@ -200,7 +200,7 @@ subtest 'frame parsing - ustreamer' => sub {
     $console->disable_video;
 
     # ustreamer frame, actual data, encoded as UYVY
-    copy($data_dir . "ustreamer-shared-full-frame", '/dev/shm/raw-sink-dev-video0');
+    copy($data_dir . "ustreamer-shared-full-frame", '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
     $img = tinycv::read($data_dir . "ustreamer-shared-full-frame.png");
