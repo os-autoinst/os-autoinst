@@ -65,24 +65,20 @@ subtest magic_close => sub {
     like($warnings[0], qr{received magic close});
 };
 
-subtest 'send_json should die when buffer is empty and pipe is broken' => sub {
-    # mock the broken pipe behaviour
-    local *CORE::GLOBAL::syswrite = sub { 
-        $! = 'broken pipe'
-        return 0
-    }
-    # run send_json
-    dies_ok { send_json($child, undef) }
+subtest 'send_json dies when buffer is empty and pipe is broken' => sub {
+    local *CORE::GLOBAL::syswrite = sub {
+        $! = 'broken pipe';
+        return 0;
+    };
+    dies_ok { send_json($child, undef) };
 };
 
-subtest 'send_json should succeed when buffer is empty and pipe is NOT broken' => sub {
-    # mock the broken pipe behaviour
-    local *CORE::GLOBAL::syswrite = sub { 
-        $! = 'not broken'
-        return 0
-    }
-    # run send_json
-    dies_ok { send_json($child, undef) }
+subtest 'send_json succeeds when buffer is empty and pipe is NOT broken' => sub {
+    local *CORE::GLOBAL::syswrite = sub {
+        $! = 'not broken';
+        return 0;
+    };
+    dies_ok { send_json($child, undef) };
 };
 
 my $io_select_mock = Test::MockModule->new('IO::Select');
