@@ -189,6 +189,14 @@ subtest 'frame parsing - ustreamer' => sub {
     is $received_update, 0, "detected invalid data";
     $console->disable_video;
 
+    # ustreamer frame, unsupported version
+    copy($data_dir . "ustreamer6-invalid", '/dev/shm/raw-sink-dev-video0.raw');
+    $console = consoles::video_stream->new(undef, {url => 'ustreamer:///dev/video0'});
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+    throws_ok { $console->update_framebuffer(); }
+    qr/Unsupported ustreamer version '6'/, "detected unsupported version";
+    $console->disable_video;
+
     # ustreamer frame, "no signal" message encoded as JPEG
     copy($data_dir . "ustreamer-shared-no-signal", '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
@@ -207,6 +215,36 @@ subtest 'frame parsing - ustreamer' => sub {
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for UYVY frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct UYVY frame";
+    $console->disable_video;
+
+    # ustreamer v7 frame, "no signal" message encoded as RGB3
+    copy($data_dir . "ustreamer7-shared-no-signal", '/dev/shm/raw-sink-dev-video0.raw');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer7-shared-no-signal.png");
+    $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for RGB3 v7 no-signal message' or return;
+    is $received_img->similarity($img), 1_000_000, "received correct RGB3 v7 no-signal message";
+    $console->disable_video;
+
+    # ustreamer v7 frame, full frame encoded as RGB3
+    copy($data_dir . "ustreamer7-shared-full-frame-rgb3", '/dev/shm/raw-sink-dev-video0.raw');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame-rgb3.png");
+    $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for RGB3 v7 frame' or return;
+    is $received_img->similarity($img), 1_000_000, "received correct RGB3 v7 frame";
+    $console->disable_video;
+
+    # ustreamer v7 frame, actual data, encoded as UYVY
+    copy($data_dir . "ustreamer7-shared-full-frame", '/dev/shm/raw-sink-dev-video0.raw');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame.png");
+    $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for UYVY v7 frame' or return;
+    is $received_img->similarity($img), 1_000_000, "received correct UYVY v7 frame";
     $console->disable_video;
 };
 
