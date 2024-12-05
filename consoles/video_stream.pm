@@ -305,6 +305,20 @@ sub _receive_frame_ustreamer ($self) {
         if ($format eq 'JPEG') {
             # tinycv::from_ppm in fact handles a bunch of formats, including JPEG
             $img = tinycv::from_ppm(substr($ustreamer_map, 129, $used));
+        } elsif ($format eq 'RGB3') {
+            $img = tinycv::new($width, $height);
+            my $vncinfo = tinycv::new_vncinfo(
+                0,    # do_endian_conversion
+                1,    # true_color
+                3,    # bytes_per_pixel
+                0xff,    # red_mask
+                0,    # red_shift
+                0xff,    # green_mask
+                8,    # green_shift
+                0xff,    # blue_mask
+                16,    # blue_shift
+            );
+            $img->map_raw_data(substr($ustreamer_map, 129, $used), 0, 0, $width, $height, $vncinfo);
         } elsif ($format eq 'UYVY') {
             $img = tinycv::new($width, $height);
             $img->map_raw_data_uyvy(substr($ustreamer_map, 129, $used));
