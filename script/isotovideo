@@ -140,6 +140,7 @@ sub version () {
 
 sub handle_shutdown () {
     # terminate/kill the command server and let it inform its websocket clients before
+    diag("isotovideo handle_shutdown");
     $runner->stop_commands('test execution ended');
     if ($runner->testfd) {
         # unusual shutdown
