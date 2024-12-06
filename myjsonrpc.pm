@@ -38,8 +38,8 @@ sub send_json ($to_fd, $cmd) {
     $json .= "\n";
 
     confess 'myjsonprc: called on undefined file descriptor' unless defined $to_fd;
-    my $wb = syswrite($to_fd, "$json");
-    if (!$wb || $wb != length($json)) {
+    my $written_bytes = syswrite($to_fd, "$json");
+    if (!$written_bytes || $written_bytes != length($json)) {
         die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
         confess "syswrite failed: $!";
     }
