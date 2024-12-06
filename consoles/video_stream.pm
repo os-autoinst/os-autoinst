@@ -156,7 +156,7 @@ sub connect_remote_video ($self, $url) {
     if ($url =~ m^ustreamer://^) {
         die 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
         my $dev = ($url =~ m^ustreamer://(.*)^)[0];
-        my $sink_name = "raw-sink$dev";
+        my $sink_name = "raw-sink$dev.raw";
         $sink_name =~ s^/^-^g;
         my $cmd = $self->_get_ustreamer_cmd($dev, $sink_name);
         my $ffmpeg;
@@ -279,35 +279,90 @@ sub _receive_frame_ustreamer ($self) {
         #     long double last_client_ts;
         #     bool        key_requested;
         #
-        #     // 192
+        #     // 129
         #     uint8_t     data[US_MEMSINK_MAX_DATA];
         # } us_memsink_shared_s;
+        #
+        # #define US_MEMSINK_VERSION  ((u32)7)
+        # typedef struct {
+        #     uint64_t     magic;
+        #     uint32_t     version;
+        #     // pad
+        #     uint64_t     id;
+        #     size_t      used;
+        #     // 32
+        #     long double     last_client_ts;
+        #     bool    key_requested;
+        #     // 52
+        #     unsigned    width;
+        #     unsigned    height;
+        #     unsigned    format;
+        #     unsigned    stride;
+        #     /* Stride is a bytesperline in V4L2 */
+        #     /* https://www.kernel.org/doc/html/v4.14/media/uapi/v4l/pixfmt-v4l2.html */
+        #     /* https://medium.com/@oleg.shipitko/what-does-stride-mean-in-image-processing-bba158a72bcd */
+        #     bool    online;
+        #     bool    key;
+        #     unsigned    gop;
+        #
+        #     long double     grab_ts;
+        #     long double     encode_begin_ts;
+        #     long double     encode_end_ts;
+        #     // 128
+        #     ... data
+        # } us_memsink_shared_s;
 
-        my ($magic, $version, $id, $used, $width, $height, $format, $stride, $online, $key, $gop) =
-          unpack("QLx4QQIIa4ICCxxI", $ustreamer_map);
+        my ($magic, $version, $id, $used) = unpack("QLx4QQ", $ustreamer_map);
         # This is US_MEMSINK_MAGIC, but perl considers hex literals over 32bits non-portable
         if ($magic != 14627333968358193854) {
             bmwqemu::diag "Invalid ustreamer magic: $magic";
             return undef;
         }
-        die "Unsupported ustreamer version '$version' (only version 4 supported)" if $version != 4;
+        my ($client_clock_offset, $meta_offset, $data_offset);
+        if ($version == 4) {
+            $client_clock_offset = 112;
+            $data_offset = 129;
+            $meta_offset = 32;
+        } elsif ($version == 7) {
+            $client_clock_offset = 32;
+            $data_offset = 128;
+            $meta_offset = 52;
+        } else {
+            die "Unsupported ustreamer version '$version' (only versions 4 and 7 are supported)";
+        }
 
         # tell ustreamer we are reading, otherwise it won't write new frames
         my $clock = clock_gettime(CLOCK_MONOTONIC);
-        substr($ustreamer_map, 112, 16) = pack("D", $clock);
+        substr($ustreamer_map, $client_clock_offset, 16) = pack("D", $clock);
         # no new frame
         return undef if $self->{ustreamer_last_id} && $id == $self->{ustreamer_last_id};
         $self->{ustreamer_last_id} = $id;
         # empty frame
         return undef unless $used;
 
+        my ($width, $height, $format, $stride) = unpack("IIa4ICCxxI", substr($ustreamer_map, $meta_offset, 28));
+
         my $img;
         if ($format eq 'JPEG') {
             # tinycv::from_ppm in fact handles a bunch of formats, including JPEG
-            $img = tinycv::from_ppm(substr($ustreamer_map, 129, $used));
+            $img = tinycv::from_ppm(substr($ustreamer_map, $data_offset, $used));
+        } elsif ($format eq 'RGB3') {
+            $img = tinycv::new($width, $height);
+            my $vncinfo = tinycv::new_vncinfo(
+                0,    # do_endian_conversion
+                1,    # true_color
+                3,    # bytes_per_pixel
+                0xff,    # red_mask
+                0,    # red_shift
+                0xff,    # green_mask
+                8,    # green_shift
+                0xff,    # blue_mask
+                16,    # blue_shift
+            );
+            $img->map_raw_data(substr($ustreamer_map, $data_offset, $used), 0, 0, $width, $height, $vncinfo);
         } elsif ($format eq 'UYVY') {
             $img = tinycv::new($width, $height);
-            $img->map_raw_data_uyvy(substr($ustreamer_map, 129, $used));
+            $img->map_raw_data_uyvy(substr($ustreamer_map, $data_offset, $used));
         } else {
             die "Unsupported video format '$format'";    # uncoverable statement
         }
