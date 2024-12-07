@@ -440,7 +440,7 @@ sub _handle_disk_type ($vmm_family, $cdrom, $dev_id) {
     return ("hd$dev_id", 'ide') if $vmm_family eq 'vmware';
     return ("hd$dev_id", 'ide') if $cdrom && $vmm_family eq 'kvm';
     return ("vd$dev_id", 'virtio') if $vmm_family eq 'kvm';
-    return (undef, undef);
+    return (undef, undef);    # uncoverable statement
 }
 
 sub _bootorder_elem ($doc, $bootorder) {
