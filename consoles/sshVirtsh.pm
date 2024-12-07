@@ -488,6 +488,7 @@ sub add_disk ($self, $args) {
     return;
 }
 
+# uncoverable block
 sub virsh () {
     my $virsh = 'virsh';
     $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
@@ -505,6 +506,7 @@ sub resume ($self) {
 }
 
 sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
+# uncoverable block uncovered
 
 sub _encode_config ($self, $config, $key) {
     # expand path
