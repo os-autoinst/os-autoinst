@@ -109,6 +109,43 @@ subtest 's390x specifics' => sub {
     unlike $svirt_console->{domainxml}->toString, qr/acpi/i, 'ACPI support is not configured for s390x';
 };
 
+subtest 'add_input modifies XML config ' => sub {
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    $svirt_console->add_input({type => 'tablet', bus => 'usb'});
+    like $svirt_console->{domainxml}->toString, qr/tablet.*usb/i, 'XML contains correct type and bus';
+};
+
+subtest 'add network config on XML config' => sub {
+    my %ifcfg = ();
+    $ifcfg{source} = {bridge => 'br0'};
+    $ifcfg{mac} = {address => '00:16:3e:11:22:33'};
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    $svirt_console->add_interface(\%ifcfg);
+    like $svirt_console->{domainxml}->toString, qr/br0/i, 'source was added correctly on XML';
+    like $svirt_console->{domainxml}->toString, qr/00:16:3e:11:22:33/i, 'mac was added correctly on XML';
+    subtest 'add the serial console used for the serial log' => sub {
+        $bmwqemu::vars{VMWARE_SERIAL_PORT} = '10002';
+        $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
+                pty_dev_type => 'pty',
+                target_type => 'bar',
+                protocol_type => 'raw',
+                source => 1});
+        like $svirt_console->{domainxml}->toString, qr/service="10002"/i, 'serial port added correctly on XML';
+        like $svirt_console->{domainxml}->toString, qr/<target type="bar" port=""\/>/i, 'target type added correctly on XML';
+        like $svirt_console->{domainxml}->toString, qr/<protocol type="raw"\/>/i, 'protocol type added correctly on XML';
+    };
+};
+
+subtest 'allow to add, remove elements and set attributes in the domain XML' => sub {
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    $svirt_console->change_domain_element(funny => guy => 'hello');
+    like $svirt_console->{domainxml}->toString, qr/<funny><guy>hello<\/guy><\/funny>/i, 'added node successfully in the domain XML';
+    $svirt_console->change_domain_element(funny => guy => undef);
+    unlike $svirt_console->{domainxml}->toString, qr/<funny><guy>hello<\/guy><\/funny>/i, 'remove node successfully in the domain XML';
+    $svirt_console->change_domain_element(funny => guy => {hello => 'world'});
+    like $svirt_console->{domainxml}->toString, qr/<funny><guy hello="world"\/><\/funny>/i, 'set attributes successfully in the domain XML';
+};
+
 # assume VMware for further testing
 $svirt_console->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware');
 
