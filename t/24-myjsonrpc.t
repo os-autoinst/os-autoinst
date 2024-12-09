@@ -3,7 +3,6 @@
 # Copyright 2019-2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Exception;
@@ -56,9 +55,18 @@ sub magic_close () {
     my $quit = myjsonrpc::read_json($isotovideo);
     is($quit, undef, "received magic close");
 }
+
 subtest magic_close => sub {
     my @warnings = warnings { magic_close() };
     like($warnings[0], qr{received magic close});
+};
+
+subtest 'send_json dies when buffer is empty and pipe is broken' => sub {
+    my $myjsonrpc_mock = Test::MockModule->new('myjsonrpc');
+    $myjsonrpc_mock->redefine(_syswrite => sub ($to_fd, $json) {
+            return 0;
+    });
+    dies_ok { myjsonrpc::send_json($child, $send1) } 'myjsonrpc: remote end terminated connection, stopping';
 };
 
 my $io_select_mock = Test::MockModule->new('IO::Select');

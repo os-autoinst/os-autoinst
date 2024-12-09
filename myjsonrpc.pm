@@ -14,6 +14,10 @@ use bmwqemu ();
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 
+sub _syswrite($to_fd, $json) {
+    return syswrite($to_fd, "$json");
+}
+
 sub send_json ($to_fd, $cmd) {
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end
@@ -37,9 +41,9 @@ sub send_json ($to_fd, $cmd) {
     }
     $json .= "\n";
 
-    confess 'myjsonprc: called on undefined file descriptor' unless defined $to_fd;
-    my $wb = syswrite($to_fd, "$json");
-    if (!$wb || $wb != length($json)) {
+    confess 'myjsonrpc: called on undefined file descriptor' unless defined $to_fd;
+    my $written_bytes = _syswrite($to_fd, "$json");
+    if (!$written_bytes || $written_bytes != length($json)) {
         die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
         confess "syswrite failed: $!";
     }
