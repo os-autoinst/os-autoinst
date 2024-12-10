@@ -15,7 +15,7 @@
   </features>
   <on_reboot>destroy</on_reboot>
   <devices>
-    <graphics type="vnc" port="5901" autoport="no" listen="0.0.0.0" sharePolicy="force-shared">
+    <graphics type="vnc" port="5901" autoport="no" listen="0.0.0.0" sharePolicy="force-shared" passwd="secret">
       <listen type="address" address="0.0.0.0"/>
     </graphics>
     <console type="pty">

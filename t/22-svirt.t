@@ -96,6 +96,7 @@ sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
 
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
+    $testapi::password = 'secret';
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
     $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
@@ -107,6 +108,68 @@ subtest 's390x specifics' => sub {
     $bmwqemu::vars{ARCH} = 's390x';
     $svirt_console->_init_xml;
     unlike $svirt_console->{domainxml}->toString, qr/acpi/i, 'ACPI support is not configured for s390x';
+};
+
+subtest 'add_input modifies XML config ' => sub {
+    $svirt_console->add_input({type => 'tablet', bus => 'usb'});
+    like $svirt_console->{domainxml}->toString, qr/tablet.*usb/i, 'XML contains correct type and bus';
+};
+
+subtest 'add network config on XML config' => sub {
+    my %ifcfg = ();
+    $ifcfg{source} = {bridge => 'br0'};
+    $ifcfg{mac} = {address => '00:16:3e:11:22:33'};
+    $svirt_console->add_interface(\%ifcfg);
+    like $svirt_console->{domainxml}->toString, qr/br0/i, 'source was added correctly on XML';
+    like $svirt_console->{domainxml}->toString, qr/00:16:3e:11:22:33/i, 'mac was added correctly on XML';
+    subtest 'add the serial console used for the serial log' => sub {
+        $bmwqemu::vars{VMWARE_SERIAL_PORT} = '10002';
+        $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
+                pty_dev_type => 'pty',
+                target_type => 'bar',
+                protocol_type => 'raw',
+                source => 1});
+        like $svirt_console->{domainxml}->toString, qr/service="10002"/i, 'serial port added correctly on XML';
+        like $svirt_console->{domainxml}->toString, qr/<target type="bar" port=""\/>/i, 'target type added correctly on XML';
+        like $svirt_console->{domainxml}->toString, qr/<protocol type="raw"\/>/i, 'protocol type added correctly on XML';
+    };
+};
+
+subtest 'allow to add, remove elements and set attributes in the domain XML' => sub {
+    $svirt_console->change_domain_element(funny => guy => 'hello');
+    like $svirt_console->{domainxml}->toString, qr/<funny><guy>hello<\/guy><\/funny>/i, 'added node successfully in the domain XML';
+    $svirt_console->change_domain_element(funny => guy => undef);
+    unlike $svirt_console->{domainxml}->toString, qr/<funny><guy>hello<\/guy><\/funny>/i, 'remove node successfully in the domain XML';
+    $svirt_console->change_domain_element(funny => guy => {hello => 'world'});
+    like $svirt_console->{domainxml}->toString, qr/<funny><guy hello="world"\/><\/funny>/i, 'set attributes successfully in the domain XML';
+};
+
+subtest 'check virsh() method' => sub {
+    $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
+    my $virsh = consoles::sshVirtsh::virsh();
+    is $virsh, 'virsh my_vmm', 'correct output from virsh()';
+};
+
+subtest 'check suspend() method' => sub {
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my @cmds;
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $svirt_console->suspend();
+    is_deeply \@cmds, ['virsh my_vmm suspend openQA-SUT-1'], 'correct command from suspend()';
+};
+
+subtest 'check resume() method' => sub {
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my @cmds;
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $svirt_console->resume();
+    is_deeply \@cmds, ['virsh my_vmm resume openQA-SUT-1'], 'correct command from suspend()';
+};
+
+subtest 'check get_remote_vmm() method' => sub {
+    $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
+    my $virsh = consoles::sshVirtsh->get_remote_vmm();
+    is $virsh, 'my_vmm', 'correct output from virsh';
 };
 
 # assume VMware for further testing
