@@ -144,8 +144,8 @@ sub _init_xml ($self, $args = {}) {
         }
         if (!$bmwqemu::vars{BIOS}) {
             # We know this won't go well.
-            my $virsh_hostname = $bmwqemu::vars{VIRSH_HOSTNAME} // '';
-            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
+            my $virsh_hostname = $bmwqemu::vars{VIRSH_HOSTNAME} // '';    # uncoverable statement
+            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package."; # uncoverable statement
         }
     }
 
