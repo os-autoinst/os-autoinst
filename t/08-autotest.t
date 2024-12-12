@@ -82,7 +82,10 @@ $mock_autotest->noop('_terminate');
 
 my $died;
 my $completed;
-like warning { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
+like warning {
+    stderr_like { autotest::run_all } qr/Sending tests_done/, 'tests_done sent';
+}, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
+
 ($died, $completed) = get_tests_done;
 is($died, 1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
@@ -96,7 +99,10 @@ is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests'
 is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
   for qw(script fullname category class);
 
-like warning { autotest::run_all }, qr/isotovideo.*not initialized/, 'autotest methods need a valid isotovideo socket';
+like warning {
+    stderr_like { autotest::run_all } qr/Sending tests_done/, 'tests_done sent';
+}, qr/isotovideo.*not initialized/, 'autotest methods need a valid isotovideo socket';
+
 @sent = ();
 $autotest::isotovideo = 1;
 stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
