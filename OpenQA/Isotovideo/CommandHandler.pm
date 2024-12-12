@@ -311,11 +311,8 @@ sub _handle_command_check_screen ($self, $response, @) {
             check_screen => \%arguments,
             current_api_function => $current_api_function,
     });
-    $self->tags($bmwqemu::backend->_send_json(
-            {
-                cmd => 'set_tags_to_assert',
-                arguments => \%arguments,
-            })->{tags});
+    my $tags_resp = $bmwqemu::backend->_send_json({cmd => 'set_tags_to_assert', arguments => \%arguments});
+    $self->tags(($tags_resp // {})->{tags} // []);
     $self->current_api_function($current_api_function);
 }
 
