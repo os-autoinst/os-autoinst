@@ -63,9 +63,7 @@ subtest magic_close => sub {
 
 subtest 'send_json dies when buffer is empty and pipe is broken' => sub {
     my $myjsonrpc_mock = Test::MockModule->new('myjsonrpc');
-    $myjsonrpc_mock->redefine(_syswrite => sub ($to_fd, $json) {
-            return 0;
-    });
+    $myjsonrpc_mock->redefine(_syswrite => sub ($to_fd, $json) { 0 });
     dies_ok { myjsonrpc::send_json($child, $send1) } 'myjsonrpc: remote end terminated connection, stopping';
 };
 
