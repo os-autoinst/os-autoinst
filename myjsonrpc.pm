@@ -14,9 +14,20 @@ use bmwqemu ();
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 
+# hash for keeping state
+our $sockets;
+
 sub _syswrite($to_fd, $json) { syswrite($to_fd, $json) }
 
 sub is_debug () { DEBUG_JSON || $bmwqemu::vars{DEBUG_JSON_RPC} }
+
+sub handle_read_error ($fd) {
+    # throw an error except can_read has been interrupted
+    my $error = $!;
+    confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
+    # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
+    bmwqemu::diag("read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if is_debug;    # uncoverable statement
+}
 
 sub send_json ($to_fd, $cmd) {
     # allow regular expressions to be automatically converted into
@@ -43,9 +54,6 @@ sub send_json ($to_fd, $cmd) {
     }
     return $cmdcopy{json_cmd_token};
 }
-
-# hash for keeping state
-our $sockets;
 
 # utility function
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
@@ -91,16 +99,10 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
 
         # wait for next read
 
-        until (my @res = $s->can_read) {
-            # throw an error except can_read has been interrupted
-            my $error = $!;
-            confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
-            # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
-            bmwqemu::diag("read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if is_debug();    # uncoverable statement
-        }
+        handle_read_error($fd) until (my @res = $s->can_read);
 
         my $qbuffer;
-        if (!sysread($socket, $qbuffer, READ_BUFFER)) { bmwqemu::fctwarn("sysread failed: $!") if is_debug(), return }
+        if (!sysread($socket, $qbuffer, READ_BUFFER)) { bmwqemu::fctwarn("sysread failed: $!") if is_debug(); return }
         $cjx->incr_parse($qbuffer);
     }
 

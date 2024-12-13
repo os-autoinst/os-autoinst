@@ -28,6 +28,7 @@ coverage:
           - consoles/sshVirtsh.pm
           - consoles/sshIucvconn.pm
           - consoles/virtio_terminal.pm
+          - myjsonrpc.pm
           - basetest.pm
           - bmwqemu.pm
           - cv.pm
