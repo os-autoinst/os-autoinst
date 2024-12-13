@@ -172,10 +172,17 @@ is_deeply decode_json(path('new_json_file.json')->slurp), \%new_json, 'JSON file
 
 ok bmwqemu::wait_for_one_more_screenshot, 'wait for one more screenshot is ok';
 
+subtest 'serializing state' => sub {
+    bmwqemu::serialize_state(msg => 'myjsonrpc: remote end terminated');
+    ok !-e bmwqemu::STATE_FILE, 'no statefile created for shutdown-related message';
+    bmwqemu::serialize_state(msg => 'foo');
+    is_deeply decode_json(path(bmwqemu::STATE_FILE)->slurp), {msg => 'foo'}, 'state serialized';
+};
+
 done_testing;
 
 END {
-    unlink for qw(vars.json new_json_file.json);
+    unlink for qw(vars.json new_json_file.json), bmwqemu::STATE_FILE;
 }
 
 1;
