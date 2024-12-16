@@ -52,6 +52,7 @@ subtest 'mmapi: server not reachable' => sub {
     combined_like { is_deeply call($_), undef, "undef returned ($_)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
     is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
+
 subtest 'lockapi: server not reachable' => sub {
     combined_like { is call($_, qw(name where info)), 0, "zero returned $_" } qr/Connection error/, "error logged ($_)"
       for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::barrier_create lockapi::barrier_try_wait));
@@ -240,6 +241,14 @@ subtest 'mmapi: get_current_job_id function' => sub {
     combined_like {
         is(get_current_job_id(), undef, 'Retrieve undef on error');
     } qr /404 response/, 'Error message has 404';
+};
+
+subtest 'mutex_wait lock and unlock than log' => sub {
+    @recorded_info = ();
+    combined_like { lockapi::mutex_wait('lockable', 1, 'test info'); } qr/mutex lock.*mutex unlock/s, 'mutex_wait logs lock/unlock operations';
+    is scalar @recorded_info, 1, 'One log entry created';
+    like $recorded_info[0]->[0], qr/Paused 0m0s/, 'Log entry includes duration';
+    is $recorded_info[0]->[1], 'Wait for lockable (on ? #1) - test info', 'Log entry has correct message';
 };
 
 done_testing;
