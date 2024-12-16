@@ -422,6 +422,27 @@ subtest rollback_activated_consoles => sub {
     is_deeply(\@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected');
 };
 
+subtest find_script => sub {
+    my $override_path = 0;
+    $bmwqemu::vars{WHEELS_DIR} = '';    # overwrite WHEELS_DIR and set it empty to skip the if branch inside subroutine
+    $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+    $override_path = autotest::find_script('tests/start.pm');
+    is $override_path, $bmwqemu::vars{CASEDIR} . '/tests/start.pm', 'find script successful';
+};
+
+subtest make_snapshot => sub {
+    my $rsp = 0;
+    my $autotest_mock = Test::MockModule->new('autotest');
+    my %isotovideo_rsp = (snapshot_done => 1);
+    my @isotovideo_calls;
+    $autotest_mock->redefine(query_isotovideo => sub (@args) { push @isotovideo_calls, \@args; \%isotovideo_rsp });
+    stderr_like {
+        $rsp = autotest::make_snapshot('test-snapshot');
+    } qr/Creating a VM snapshot test-snapshot/, 'Snapshot Successful';
+    is_deeply $rsp, \%isotovideo_rsp, 'response from isotovideo returned';
+    $autotest_mock->unmock('query_isotovideo');
+};
+
 done_testing();
 
 END {
