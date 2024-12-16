@@ -70,8 +70,11 @@ use constant STATE_FILE => 'base_state.json';
 
 # Write a JSON representation of the process termination to disk
 sub serialize_state (%state) {
-    bmwqemu::fctwarn($state{msg}) if delete $state{error};
-    bmwqemu::diag($state{msg}) if delete $state{log};
+    my $message = $state{msg};
+    bmwqemu::fctwarn($message) if delete $state{error};
+    bmwqemu::diag($message) if delete $state{log};
+    # avoid adding message about termination from myjsonrpc as reason, can happen during shutdown and very unlikely about the actual problem
+    return undef if $message =~ m/myjsonrpc: remote end terminated/;
     return undef if -e STATE_FILE;
     eval { path(STATE_FILE)->spew(encode_json(\%state)) };
     bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
