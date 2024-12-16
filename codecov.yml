@@ -40,6 +40,7 @@ coverage:
           - testapi.pm
           - t/
           - xt/
+          - script/check_qemu_oom
     patch:
       default:
         branches: null
