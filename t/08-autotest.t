@@ -172,6 +172,7 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'stopping overall test execution early due to fatal test failure' => sub {
         $mock_basetest->redefine(runtest => sub { die "test died\n" });
         $vm_stopped = 0;
+        $bmwqemu::vars{DUMP_MEMORY_ON_FAIL} = 'true';
         stderr_like { autotest::run_all } qr/.*stopping overall test execution after a fatal test failure.*/, 'reason logged';
         ($died, $completed) = get_tests_done;
         is $died, 0, 'tests still not considered died if only a test module failed';
@@ -247,11 +248,12 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
         die "Got serial hard failure";
 });
 
+$bmwqemu::vars{MAKETESTSNAPSHOTS} = 1;
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'fatal serial failure test should not die');
 is($completed, 0, 'fatal serial failure test should not complete');
-
+$bmwqemu::vars{MAKETESTSNAPSHOTS} = 0;
 # make the serial failure non-fatal
 $mock_basetest->unmock('search_for_expected_serial_failures');
 $mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
@@ -424,10 +426,13 @@ subtest rollback_activated_consoles => sub {
 
 subtest find_script => sub {
     my $override_path = 0;
-    $bmwqemu::vars{WHEELS_DIR} = '';    # overwrite WHEELS_DIR and set it empty to skip the if branch inside subroutine
+    $bmwqemu::vars{WHEELS_DIR} = '';    # overwrite WHEELS_DIR and set it empty
+    $bmwqemu::vars{ASSETDIR} = Cwd::getcwd . '/t/data/assets';
     $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
-    $override_path = autotest::find_script('tests/start.pm');
-    is $override_path, $bmwqemu::vars{CASEDIR} . '/tests/start.pm', 'find script successful';
+    stderr_like {
+        $override_path = autotest::find_script('start.pm');
+    } qr/Found override test module for/, 'Using Override Path';
+    is $override_path, '../data/assets/other/start.pm', 'find script successful';
 };
 
 subtest make_snapshot => sub {
@@ -441,6 +446,26 @@ subtest make_snapshot => sub {
     } qr/Creating a VM snapshot test-snapshot/, 'Snapshot Successful';
     is_deeply $rsp, \%isotovideo_rsp, 'response from isotovideo returned';
     $autotest_mock->unmock('query_isotovideo');
+};
+
+subtest loadtestdir => sub {
+    throws_ok {
+        autotest::loadtestdir('test-snapshot');
+    } qr/does not exist!/,'test died as expected';
+};
+
+subtest croak => sub {
+    my $autotest_mock = Test::MockModule->new('autotest');
+    my %isotovideo_rsp = (ignore_failure => 0);
+    my @isotovideo_calls;
+    $autotest_mock->redefine(query_isotovideo => sub (@args) { push @isotovideo_calls, \@args; \%isotovideo_rsp });
+    throws_ok { autotest::croak('ls', 'test error from croak') } qr/test error from croak/, 'Croak test error caught';
+    $autotest_mock->unmock('query_isotovideo');
+};
+
+subtest 'test skipping tests' => sub {
+    $bmwqemu::vars{SKIPTO} = 'pythontest.py';
+    stderr_like { autotest::runalltests } qr/skipping/, 'Skipping Test Run';
 };
 
 done_testing();
