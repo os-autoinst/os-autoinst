@@ -172,7 +172,7 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'stopping overall test execution early due to fatal test failure' => sub {
         $mock_basetest->redefine(runtest => sub { die "test died\n" });
         $vm_stopped = 0;
-        $bmwqemu::vars{DUMP_MEMORY_ON_FAIL} = 'true';
+        $bmwqemu::vars{DUMP_MEMORY_ON_FAIL} = 1;
         stderr_like { autotest::run_all } qr/.*stopping overall test execution after a fatal test failure.*/, 'reason logged';
         ($died, $completed) = get_tests_done;
         is $died, 0, 'tests still not considered died if only a test module failed';
@@ -451,7 +451,7 @@ subtest make_snapshot => sub {
 subtest loadtestdir => sub {
     throws_ok {
         autotest::loadtestdir('test-snapshot');
-    } qr/does not exist!/,'test died as expected';
+    } qr/does not exist!/, 'test died as expected';
 };
 
 subtest croak => sub {
