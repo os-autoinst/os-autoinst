@@ -66,8 +66,6 @@ sub current_screen ($self) {
     return $self->{vnc}->_framebuffer;
 }
 
-sub _typing_limit () { $bmwqemu::vars{VNC_TYPING_LIMIT} // VNC_TYPING_LIMIT_DEFAULT || 1 }
-
 sub send_key_event ($self, $key, $press_release_delay) {
     $self->{vnc}->map_and_send_key($key, undef, $press_release_delay);
 }
