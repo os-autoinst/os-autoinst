@@ -13,14 +13,10 @@ use bmwqemu ();
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => consoles::video_base::TYPING_LIMIT_DEFAULT;
 
-sub screen ($self) { $self }
-
 sub disable ($self) {
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
 }
-
-sub get_last_mouse_set ($self, $args) { $self->{mouse} }
 
 sub disable_vnc_stalls ($self) {
     return unless $self->{vnc};

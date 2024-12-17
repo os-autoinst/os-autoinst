@@ -21,6 +21,7 @@ coverage:
           - consoles/console.pm
           - consoles/VMWare.pm
           - consoles/VNC.pm
+          - consoles/video_base.pm
           - consoles/localXvnc.pm
           - consoles/network_console.pm
           - consoles/serial_screen.pm
