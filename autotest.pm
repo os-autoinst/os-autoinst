@@ -208,9 +208,7 @@ sub parse_test_path ($script_path) {
     if ($category ne 'other') {
         # show full folder hierarchy as category for non-sideloaded tests
         my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
-        if ($script_path =~ $pattern) {
-            $category = $2;
-        }
+        $category = $2 if $script_path =~ $pattern;
     }
     return ($name, $category);
 }
@@ -337,10 +335,7 @@ sub start_process () {
 
 sub query_isotovideo ($cmd, $args = undef) {
     # deep copy
-    my %json;
-    if ($args) {
-        %json = %$args;
-    }
+    my %json = %{$args || {}};
     $json{cmd} = $cmd;
 
     die "isotovideo is not initialized. Ensure that you only call test API functions from test modules, not schedule code\n" unless defined $isotovideo;
@@ -420,13 +415,9 @@ sub runalltests () {
 
         if ($error) {
             my $msg = $error;
-            if ($msg !~ /^test.*died/) {
-                # avoid duplicating the message
-                bmwqemu::diag $msg;
-            }
-            if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
-                query_isotovideo('backend_save_memory_dump', {filename => $fullname});
-            }
+            # avoid duplicating the message
+            bmwqemu::diag $msg if $msg !~ /^test.*died/;
+            query_isotovideo('backend_save_memory_dump', {filename => $fullname}) if $bmwqemu::vars{DUMP_MEMORY_ON_FAIL};
             if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
                 my $reason = ($t->{fatal_failure} || $flags->{fatal})
                   ? 'after a fatal test failure'
@@ -471,9 +462,7 @@ sub loadtestdir ($dir) {
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
-    foreach my $script (glob "$dir/*.pm") {
-        loadtest($script);
-    }
+    loadtest($_) for (glob "$dir/*.pm");
 }
 
 # This is called if the framework loaded a VM snapshot. All consoles
