@@ -13,6 +13,7 @@ use bmwqemu;
 use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
+use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 my $screen = consoles::ssh_screen->new(ssh_connection => 'My_Con', ssh_channel => 'My_Chan');
 is($screen->{fd_read}, 'My_Chan', 'SSH channel is used for reading');
@@ -27,6 +28,24 @@ subtest 'Correct message when type_string timeouts' => sub {
     $mock_bmwqemu->noop('log_call');
     my $sshscreen = consoles::ssh_screen->new(ssh_connection => $mock_ssh, ssh_channel => $mock_channel);
     throws_ok { $sshscreen->type_string({text => 'This should timeout'}) } qr/consoles::ssh_screen::type_string: Timed out after 1000 seconds/, "sub dies with correct error message and display the correct caller";
+};
+
+subtest 'test old net ssh2 error handling' => sub {
+    my $mock_screenconsole = Test::MockModule->new('consoles::serial_screen');
+    $mock_screenconsole->mock('error', sub {
+            return (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', 'Resource temporarily unavailable');
+    });
+    $mock_screenconsole->mock('write', sub {
+            my ($self, $text) = @_;
+            return $self->{return_value};
+    });
+    my $mock_ssh = Test::MockObject->new();
+    my $mock_channel = Test::MockObject->new();
+    $mock_channel->{return_value} = LIBSSH2_ERROR_EAGAIN;
+    my $sshscreen = consoles::ssh_screen->new(ssh_connection => $mock_ssh, ssh_channel => $mock_channel);
+    lives_ok(
+        sub { $sshscreen->type_string({text => 'test'}) }, 'error should not cause death'
+    );
 };
 
 done_testing;
