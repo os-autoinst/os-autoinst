@@ -5,17 +5,17 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
-use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Test::MockModule;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use distribution;
+use OpenQA::Test::TimeLimit '5';
 
 my @wait_serial_calls;
 
 subtest 'script_run' => sub {
-    require distribution;
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(type_string => undef);
@@ -59,6 +59,45 @@ subtest 'script_run' => sub {
     $d->script_run('long_command' x 512);
     $cmdcall = $wait_serial_calls[1];
     is $cmdcall->{buffer_size}, 6272, 'appropriate buffer size used for long command';
+};
+
+subtest 'set expected serial and autoinst failures' => sub {
+    my $d = distribution->new;
+    # Define the expected failures data
+    my @failures = (
+        {type => 'Soft', message => '%s Failure Message 1', pattern => 'Test Pattern1'},
+        {type => 'Hard', message => '%s Failure Message 2', pattern => 'Test Pattern2'},
+    );
+    # Subroutine to generate failure data with formatted messages
+    my sub _generate_failures ($type, %details) {
+        return [
+            map {
+                {
+                    message => sprintf($details{message}, $type),
+                    pattern => qr/$details{pattern}/
+                }
+            } @failures
+        ];
+    }
+    my %soft_failure = (
+        message => "$failures[0]->{message}",
+        pattern => "$failures[0]->{pattern}"
+    );
+    # Set and test Soft failures
+    $d->set_expected_serial_failures(_generate_failures('Soft', %soft_failure));
+    is_deeply($d->{serial_failures}, _generate_failures('Soft', %soft_failure), 'Expected Soft serial_failures matched');
+    $d->set_expected_autoinst_failures(_generate_failures('Soft', %soft_failure));
+    is_deeply($d->{autoinst_failures}, _generate_failures('Soft', %soft_failure), 'Expected Soft autoinst_failures matched');
+
+    my %hard_failure = (
+        message => "$failures[1]->{message}",
+        pattern => "$failures[1]->{pattern}"
+    );
+    # Set and test Hard failures
+    $d->set_expected_serial_failures(_generate_failures('Hard', %hard_failure));
+    is_deeply($d->{serial_failures}, _generate_failures('Hard', %hard_failure), 'Expected Hard serial_failures matched');
+    $d->set_expected_autoinst_failures(_generate_failures('Hard', %hard_failure));
+    is_deeply($d->{autoinst_failures}, _generate_failures('Hard', %hard_failure), 'Expected Hard autoinst_failures matched');
 };
 
 done_testing;
