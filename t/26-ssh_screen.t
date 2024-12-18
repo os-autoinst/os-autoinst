@@ -32,21 +32,19 @@ subtest 'Correct message when type_string timeouts' => sub {
 
 subtest 'test old net ssh2 error handling' => sub {
     my $mock_screenconsole = Test::MockModule->new('consoles::serial_screen');
-    $mock_screenconsole->mock('elapsed', sub { 1000 });
     my $mock_connection = Test::MockObject->new();
-    $mock_connection->mock('error', sub {
-            return (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', '');
-    });
+    my $mock_write_attempts = 0;
     my $mock_channel = Test::MockObject->new();
     $mock_channel->mock('write', sub {
-            my ($self, $text) = @_;
-            return LIBSSH2_ERROR_EAGAIN;
+            $mock_write_attempts++;
+            return -37 if $mock_write_attempts <= 3;    # Return EAGAIN a few times
+            return length($_[1]);    # Then succeed
     });
+
     my $sshscreen = consoles::ssh_screen->new(ssh_connection => $mock_connection, ssh_channel => $mock_channel);
-    throws_ok(
+    lives_ok(
         sub { $sshscreen->type_string({text => 'test'}) },
-        qr/consoles::ssh_screen::type_string: Timed out after 1000 seconds/,
-        'Should timeout after repeated EAGAIN errors'
+        'Should continue after EAGAIN errors'
     );
 };
 
