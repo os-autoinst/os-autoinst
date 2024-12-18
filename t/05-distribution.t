@@ -5,17 +5,17 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
-use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Test::MockModule;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use distribution;
+use OpenQA::Test::TimeLimit '5';
 
 my @wait_serial_calls;
 
 subtest 'script_run' => sub {
-    require distribution;
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(type_string => undef);
@@ -59,6 +59,40 @@ subtest 'script_run' => sub {
     $d->script_run('long_command' x 512);
     $cmdcall = $wait_serial_calls[1];
     is $cmdcall->{buffer_size}, 6272, 'appropriate buffer size used for long command';
+};
+
+subtest 'set expected serial and autoinst failures' => sub {
+
+    my $d = distribution->new;
+
+    # Define the expected failures data
+    my @failures = (
+        {type => 'soft', message => 'Soft %s Failure Message 1', pattern => 'Test Pattern1'},
+        {type => 'soft', message => 'Soft %s Failure Message 2', pattern => 'Test Pattern2'},
+        {type => 'hard', message => 'Hard %s Failure Message 3', pattern => 'Test Pattern3'},
+    );
+
+    # Subroutine to generate failure data with formatted messages
+    my sub _generate_failures {
+        my $type = shift;
+        return [
+            map {
+                {
+                    %{$_},
+                      message => sprintf($_->{message}, $type),
+                      pattern => qr/$_->{pattern}/
+                }
+            } @failures
+        ];
+    }
+
+    # Set and test serial failures
+    $d->set_expected_serial_failures(_generate_failures('Serial'));
+    is_deeply($d->{serial_failures}, _generate_failures('Serial'), 'Expected serial_failures matched');
+
+    # Set and test autoinst failures
+    $d->set_expected_autoinst_failures(_generate_failures('autoinst'));
+    is_deeply($d->{autoinst_failures}, _generate_failures('autoinst'), 'Expected autoinst_failures matched');
 };
 
 done_testing;
