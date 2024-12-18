@@ -31,6 +31,8 @@ subtest 'Correct message when type_string timeouts' => sub {
 };
 
 subtest 'test old net ssh2 error handling' => sub {
+    my $mock_screenconsole = Test::MockModule->new('consoles::serial_screen');
+    $mock_screenconsole->mock('elapsed', sub { 1000 });
     my $mock_connection = Test::MockObject->new();
     $mock_connection->mock('error', sub {
             return (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', '');
@@ -41,8 +43,10 @@ subtest 'test old net ssh2 error handling' => sub {
             return LIBSSH2_ERROR_EAGAIN;
     });
     my $sshscreen = consoles::ssh_screen->new(ssh_connection => $mock_connection, ssh_channel => $mock_channel);
-    lives_ok(
-        sub { $sshscreen->type_string({text => 'test'}) }, 'error should not cause death'
+    throws_ok(
+        sub { $sshscreen->type_string({text => 'test'}) },
+        qr/consoles::ssh_screen::type_string: Timed out after 1000 seconds/,
+        'Should timeout after repeated EAGAIN errors'
     );
 };
 
