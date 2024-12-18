@@ -84,7 +84,7 @@ sub type_string ($self, $nargs) {
         } elsif ($chunk < 0) {
             # Old Net::SSH2 error signaling
             # TODO: from here
-            print "-------------\n";
+            print "$chunk\n";
             croak "Lost SSH connection to SUT: $chunk"
               if $chunk != LIBSSH2_ERROR_EAGAIN;
             select(undef, undef, undef, 0.1);
