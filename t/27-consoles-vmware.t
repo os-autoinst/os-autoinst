@@ -232,7 +232,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     $vmware->_cleanup_previous_dewebsockify_process;
 
     # test error handling of dewebsockify
-    my $dewebsockify_cmd_start = "$bmwqemu::topdir/script/dewebsockify --listenport $tcp_port --websocketurl";
+    my $dewebsockify_cmd_start = "$bmwqemu::topdir/script/dewebsockify.pm --listenport $tcp_port --websocketurl";
     my $assert_log = sub ($dewebsockify_pipe, $expected) {
         my $dewebsockify_log;
         read($dewebsockify_pipe, $dewebsockify_log, 1000) or die "Unable read dewebsockify pipe: $!";
@@ -240,7 +240,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
         close $dewebsockify_pipe;    # might fail because dewebsockify has already exited but that's ok
     };
     subtest 'handle error when WebSocket server is not reachable' => sub {
-        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:0 2>&1 |") or die "Unable to start dewebsockify: $!";
+        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.:4 2>&1 |") or die "Unable to start dewebsockify: $!";
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 1, wait_pid => $dewebsockify_pid);
         $assert_log->($dewebsockify_pipe, qr/WebSocket connection error:/);
     };
@@ -283,7 +283,7 @@ subtest 'test against real VMWare instance' => sub {
 
     # spawn test instance of dewebsockify for manually testing with vncviewer
     if (my $port = $ENV{OS_AUTOINST_DEWEBSOCKIFY_PORT}) {    # uncoverable statement
-        system "'$bmwqemu::topdir/script/dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure"; # uncoverable statement
+        system "'$bmwqemu::topdir/script/dewebsockify.pm' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure"; # uncoverable statement
 
     }
 };
