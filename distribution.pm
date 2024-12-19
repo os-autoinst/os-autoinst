@@ -274,6 +274,7 @@ sub script_output ($self, $script, @args) {
         close $fh;
         testapi::assert_script_run("curl -f -v " . testapi::autoinst_url("/current_script") . " > $script_path");
         testapi::script_run "clear";
+        unlink 'current_script';
     }
 
     # Surround the actual script output with special markers so that we can
