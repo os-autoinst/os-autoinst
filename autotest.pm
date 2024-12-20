@@ -252,11 +252,11 @@ sub load_snapshot ($sname) {
     return unless ($command // '') eq 'vmware_fixup';
     my $ret = testapi::select_console('sut');    # uncoverable statement
     die $ret->{error} if $ret->{error};    # uncoverable statement
-    query_isotovideo('backend_stop_serial_grab');
-    query_isotovideo('backend_start_serial_grab');
+    query_isotovideo('backend_stop_serial_grab');    # uncoverable statement
+    query_isotovideo('backend_start_serial_grab');    # uncoverable statement
 }
 
-sub _terminate () {
+sub _terminate () {    # uncoverable statement
     close $isotovideo;    # uncoverable statement
     Devel::Cover::report() if Devel::Cover->can('report');    # uncoverable statement
     _exit(0);    # uncoverable statement
@@ -280,13 +280,13 @@ sub run_all () {
     _terminate;
 }
 
-sub handle_sigterm ($sig) {
+sub handle_sigterm ($sig) {    # uncoverable statement
     if ($current_test) {
-        bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");
-        $current_test->result('canceled');
-        $current_test->save_test_result();
+        bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");    # uncoverable statement
+        $current_test->result('canceled');    # uncoverable statement
+        $current_test->save_test_result();    # uncoverable statement
     }
-    _exit(1);
+    _exit(1);    # uncoverable statement
 }
 
 sub start_process () {
@@ -313,7 +313,7 @@ sub start_process () {
             $0 = "$0: autotest";
             my $line = <$isotovideo>;
             if (!$line) {
-                _exit(0);
+                _exit(0);    # uncoverable statement
             }
             print "GOT $line\n";
             # the backend process might have added some defaults for the backend
