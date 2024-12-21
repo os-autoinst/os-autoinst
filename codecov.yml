@@ -28,6 +28,7 @@ coverage:
           - consoles/sshSerial.pm
           - consoles/sshVirtsh.pm
           - consoles/sshIucvconn.pm
+          - consoles/ssh_screen.pm
           - consoles/virtio_terminal.pm
           - consoles/vnc_base.pm
           - myjsonrpc.pm
