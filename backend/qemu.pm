@@ -240,27 +240,49 @@ sub _migrate_to_file ($self, %args) {
     my $fdname = 'dumpfd';
     my $compress_level = $args{compress_level} || 0;
     my $compress_threads = $args{compress_threads} // 2;
+    my $multifd_channels = $args{multifd_channels} // 2;
     my $filename = $args{filename};
     my $max_bandwidth = $args{max_bandwidth} // LONG_MAX;
+    # poo#167218: From qemu 9.1, the "compress" migration capability has been removed,
+    # but multifd migration is able to do compression and can be used instead.
+    my $migration_use_multifd = $args{migration_use_multifd} // (version->declare($self->{qemu_version}) ge version->declare(9.1));
+
+    $self->set_migrate_capability('events', 1);
 
     # Internally compressed dumps can't be opened by crash. They need to be
     # fed back into QEMU as an incoming migration.
-    $self->set_migrate_capability('compress', 1) if $compress_level > 0;
-    $self->set_migrate_capability('events', 1);
-
-    $self->handle_qmp_command(
-        {
-            execute => 'migrate-set-parameters',
-            arguments => {
-                # This is ignored if the compress capability is not set
-                'compress-level' => $compress_level + 0,
-                'compress-threads' => $compress_threads + 0,
-                # Ensure slow dump times are not due to a transfer rate cap
-                'max-bandwidth' => $max_bandwidth + 0,
-            }
-        },
-        fatal => 1
-    );
+    if ($migration_use_multifd) {
+        $self->set_migrate_capability('multifd', 1);
+        $self->set_migrate_capability('mapped-ram', 1);
+        $self->handle_qmp_command(
+            {
+                execute => 'migrate-set-parameters',
+                arguments => {
+                    'multifd-channels' => $multifd_channels + 0,
+                    'direct-io' => Mojo::JSON->true,
+                    # Ensure slow dump times are not due to a transfer rate cap
+                    'max-bandwidth' => $max_bandwidth + 0,
+                }
+            },
+            fatal => 1
+        );
+    }
+    else {
+        $self->set_migrate_capability('compress', 1) if $compress_level > 0;
+        $self->handle_qmp_command(
+            {
+                execute => 'migrate-set-parameters',
+                arguments => {
+                    # This is ignored if the compress capability is not set
+                    'compress-level' => $compress_level + 0,
+                    'compress-threads' => $compress_threads + 0,
+                    # Ensure slow dump times are not due to a transfer rate cap
+                    'max-bandwidth' => $max_bandwidth + 0,
+                }
+            },
+            fatal => 1
+        );
+    }
 
     $self->open_file_and_send_fd_to_qemu($filename, $fdname);
 
@@ -268,10 +290,11 @@ sub _migrate_to_file ($self, %args) {
     # mark. However it is easier for QEMU if the VM is already frozen.
     $self->freeze_vm();
     # migrate consumes the file descriptor, so we do not need to call closefd
+    my $migration_strategy = $migration_use_multifd ? "file" : "fd";
     $self->handle_qmp_command(
         {
             execute => 'migrate',
-            arguments => {uri => "fd:$fdname"}
+            arguments => {uri => "$migration_strategy:$fdname"}
         },
         fatal => 1
     );
@@ -292,6 +315,8 @@ sub save_memory_dump ($self, $args) {
     my $compress_method = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
     my $compress_level = $vars->{QEMU_COMPRESS_LEVEL} || 6;
     my $compress_threads = $vars->{QEMU_COMPRESS_THREADS} || $vars->{QEMUCPUS} || 2;
+    my $migration_use_multifd = (version->declare($self->{qemu_version}) ge version->declare(9.1));
+    my $multifd_channels = $vars->{QEMU_MULTIFD_CHANNELS} || 2;
     my $filename = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
@@ -301,6 +326,8 @@ sub save_memory_dump ($self, $args) {
     mkpath('ulogs');
     $self->_migrate_to_file(compress_level => $compress_method eq 'internal' ? $compress_level : 0,
         compress_threads => $compress_threads,
+        multifd_channels => $multifd_channels,
+        migration_use_multifd => $migration_use_multifd,
         filename => "ulogs/$filename",
         max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
 
@@ -442,6 +469,8 @@ sub save_snapshot ($self, $args) {
         filename => path(VM_SNAPSHOTS_DIR, $snapshot->name),
         compress_level => $vars->{QEMU_COMPRESS_LEVEL} || 6,
         compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
+        multifd_channels => $vars->{QEMU_MULTIFD_CHANNELS} || 2,
+        migration_use_multifd => (version->declare($self->{qemu_version}) ge version->declare(9.1)),
         max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
     diag('Snapshot complete');
 
@@ -454,6 +483,10 @@ sub save_snapshot ($self, $args) {
 
 sub load_snapshot ($self, $args) {
     my $vmname = $args->{name};
+    # poo#167218: From qemu 9.1, the "compress" migration capability has been removed,
+    # but multifd migration is able to do compression and can be used instead.
+    my $migration_use_multifd = (version->declare($self->{qemu_version}) ge version->declare(9.1));
+    my $fdname = 'dumpfd';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     bmwqemu::diag("Loading snapshot (Current VM state is $rsp->{return}->{status})");
@@ -478,18 +511,22 @@ sub load_snapshot ($self, $args) {
     $self->{select_read}->add($qemu_pipe, 'qemu::load_snapshot::qemu_pipe');
     $self->{select_write}->add($qemu_pipe, 'qemu::load_snapshot::qemu_pipe');
 
-    # Ideally we want to send a file descriptor to QEMU, but it doesn't seem
-    # to work for incoming migrations, so we are forced to use exec:cat instead.
-    #
-    # my $fdname = 'incoming';
-    # $self->open_file_and_send_fd_to_qemu(VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
-    #                                     $fdname);
-    $self->set_migrate_capability('compress', 1);
     $self->set_migrate_capability('events', 1);
-    $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
-            arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}},
-        #arguments => { uri => "fd:$fdname" }},
-        fatal => 1);
+
+    if ($migration_use_multifd) {
+        $self->set_migrate_capability('multifd', 1);
+        $self->set_migrate_capability('mapped-ram', 1) if (version->declare($self->{qemu_version}) ge version->declare(9.0));
+        $self->open_file_and_send_fd_to_qemu(VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+            $fdname);
+        $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
+                arguments => {uri => "file:$fdname"}},
+            fatal => 1);
+    } else {
+        $self->set_migrate_capability('compress', 1);
+        $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
+                arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}},
+            fatal => 1);
+    }
 
     $self->load_console_snapshots($vmname);
 
