@@ -252,6 +252,10 @@ rm t/27-consoles-vmware.t
 %if %{without ocr}
 rm t/02-test_ocr.t
 %endif
+%if 0%{?qemu_user_space_build}
+# qemu emulation always starts a separate thread
+rm t/28-signalblocker.t
+%endif
 
 %build
 %define __builder ninja
