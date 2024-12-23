@@ -468,6 +468,24 @@ subtest 'test skipping tests' => sub {
     stderr_like { autotest::runalltests } qr/skipping/, 'Skipping Test Run';
 };
 
+subtest 'start_process' => sub {
+    my $fh;
+    open $fh, '<', \"fake-file";
+    $autotest::isotovideo = $fh;
+    # Test the start_process subroutine
+    my ($process, $child) = autotest::start_process();
+
+    isa_ok $process, 'HASH', 'start_process returns a HASH reference';
+    isa_ok $child, 'GLOB', '$child is a GLOB reference';
+
+    ok $child->autoflush, 'autoflush was called on child handle';
+    ok $fh->autoflush, 'autoflush was called on isotovideo handle';
+
+    open $fh, '<', \"fake-file";
+    $autotest::isotovideo = $fh;
+    stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
+};
+
 done_testing();
 
 END {
