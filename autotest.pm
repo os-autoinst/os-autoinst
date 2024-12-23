@@ -315,7 +315,7 @@ sub start_process () {
             if (!$line) {
                 _exit(0);    # uncoverable statement
             }
-            print "GOT $line\n";
+            bmwqemu::diag("GOT $line\n");
             # the backend process might have added some defaults for the backend
             bmwqemu::load_vars();
 
