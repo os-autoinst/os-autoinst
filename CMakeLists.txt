@@ -60,6 +60,7 @@ set(PERL_FILES
     OpenQA/Exceptions.pm
     OpenQA/Isotovideo/Backend.pm
     OpenQA/Isotovideo/CommandHandler.pm
+    OpenQA/Isotovideo/Dewebsockify.pm
     OpenQA/Isotovideo/Interface.pm
     OpenQA/Isotovideo/NeedleDownloader.pm
     OpenQA/Isotovideo/Runner.pm
