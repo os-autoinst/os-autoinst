@@ -367,6 +367,13 @@ subtest 'script_run' => sub {
     $fake_exit = 1234;
     is(background_script_run('sleep 10'), '1234', 'background_script_run returns a PID');
     is(background_script_run('sleep 10', output => 'foo'), '1234', 'background_script_run with output returns valid PID');
+
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(is_serial_terminal => 1);
+    $mock_testapi->redefine(wait_serial => 'XXXfoo-SCRIPT_FINISHEDXXX');
+
+    throws_ok { background_script_run('foo') } qr/PID marker not found/, 'dies without PID marker';
+    $mock_testapi->unmock('wait_serial');
 };
 
 sub assert_script_sudo_test ($waittime, $is_serial_terminal) {
@@ -624,6 +631,11 @@ subtest 'script_sudo' => sub {
             }
     ]);
     $cmds = [];
+    script_sudo("ls /", 0);
+    is $cmds->[0]{text}, "sudo ls /\n", 'text argument of script_sudo matched';
+    is_deeply $cmds->[0], {text => "sudo ls /\n", cmd => 'backend_type_string'}, 'sudo command is typed';
+    ok $cmds->[2]{secret}, 'password is treated as secret';
+    $cmds = [];
 };
 
 subtest 'parse_extra_log' => sub {
@@ -751,7 +763,9 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(is_serial_terminal => sub { return $is_serial_terminal });
 
     $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-0-");
+    $bmwqemu::vars{'OFFLINE_SUT'} = 1;
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
+    $bmwqemu::vars{'OFFLINE_SUT'} = 0;
 
     $mock_testapi->redefine(wait_serial => 'SCRIPT_FINISHEDXXX-0-');
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
@@ -787,6 +801,8 @@ sub script_output_test ($is_serial_terminal) {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 1), 'foo', '');
+    $mock_testapi->redefine(wait_serial => "This is a simulated output on the serial dev\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
+    is script_output('echo foo', type_command => 0), 'foo', 'script_output with type_command => 0 output in a file';
 }
 
 subtest 'script_output' => sub {
