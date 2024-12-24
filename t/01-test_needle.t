@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Test::MockModule 'strict';
 use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -58,6 +59,19 @@ subtest 'handle broken JSON file' => sub {
             my $needle = needle->new($broken_json_path->basename);
             is($needle, undef, 'needle object not created with broken JSON');
     }, qr/broken json.*broken\.json/, 'warning shown for broken JSON file');
+};
+
+subtest 'handle invalid click point' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $invalid_click_point_json_path = path($sandbox, 'invalid-click-point.json');
+
+    $invalid_click_point_json_path->spew('{"area": [{"click_point": "invalid"}]}');
+
+    like(warning {
+            my $needle = needle->new($invalid_click_point_json_path->basename);
+            is $needle, undef, 'needle object not created with invalid click point';
+    }, qr/invalid-click-point\.json has an area with invalid click point/, 'warning shown for invalid click point');
 };
 
 sub needle_init () {
