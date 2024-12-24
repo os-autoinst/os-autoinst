@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Test::MockModule 'strict';
 use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -36,6 +37,42 @@ throws_ok(
     qr{needles not initialized}s,
     'died when constructing needle without prior call to needle::init()'
 );
+
+subtest 'needle JSON file not under needle directory' => sub {
+    my $misc_needles_dir = Cwd::cwd;
+    needle::set_needles_dir($misc_needles_dir);
+    my $invalid_json_path = 'invalid/path/to/file.json';
+    throws_ok {
+        needle->new($invalid_json_path);
+    } qr/Needle $invalid_json_path is not under needle directory $misc_needles_dir/,
+      'throws error when needle JSON file is not under needle directory';
+};
+
+subtest 'handle broken JSON file' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $broken_json_path = path($sandbox, 'broken.json');
+
+    path($broken_json_path)->spew('{ "tags": ["test');
+
+    like(warning {
+            my $needle = needle->new($broken_json_path->basename);
+            is($needle, undef, 'needle object not created with broken JSON');
+    }, qr/broken json.*broken\.json/, 'warning shown for broken JSON file');
+};
+
+subtest 'handle invalid click point' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $invalid_click_point_json_path = path($sandbox, 'invalid-click-point.json');
+
+    path($invalid_click_point_json_path)->spew('{"area": [{"click_point": "invalid"}]}');
+
+    like(warning {
+            my $needle = needle->new($invalid_click_point_json_path->basename);
+            is($needle, undef, 'needle object not created with invalid click point');
+    }, qr/invalid-click-point\.json has an area with invalid click point/, 'warning shown for invalid click point');
+};
 
 sub needle_init () {
     my $ret;
