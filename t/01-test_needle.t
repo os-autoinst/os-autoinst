@@ -37,6 +37,16 @@ throws_ok(
     'died when constructing needle without prior call to needle::init()'
 );
 
+subtest 'needle JSON file not under needle directory' => sub {
+    my $misc_needles_dir = Cwd::cwd;
+    needle::set_needles_dir($misc_needles_dir);
+    my $invalid_json_path = 'invalid/path/to/file.json';
+    throws_ok {
+        needle->new($invalid_json_path);
+    } qr/Needle $invalid_json_path is not under needle directory $misc_needles_dir/,
+      'throws error when needle JSON file is not under needle directory';
+};
+
 sub needle_init () {
     my $ret;
     stderr_like { $ret = needle::init } qr/loaded.*needles/, 'log output for needle init';
