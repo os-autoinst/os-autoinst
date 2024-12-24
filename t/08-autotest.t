@@ -449,9 +449,14 @@ subtest make_snapshot => sub {
 };
 
 subtest loadtestdir => sub {
-    throws_ok {
-        autotest::loadtestdir('test-snapshot');
-    } qr/does not exist!/, 'test died as expected';
+    use lib qw(t/data/tests);
+    $bmwqemu::vars{CASEDIR} = 't/data/tests';
+    stderr_like {
+        like warning {
+            autotest::loadtestdir('tests');
+        }, qr/ARRAY/, 'script found';
+    } qr/scheduling/, 'loadscript success';
+
 };
 
 subtest croak => sub {

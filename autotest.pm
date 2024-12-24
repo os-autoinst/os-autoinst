@@ -281,7 +281,7 @@ sub run_all () {
 }
 
 sub handle_sigterm ($sig) {    # uncoverable statement
-    if ($current_test) {
+    if ($current_test) {    # uncoverable statement
         bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");    # uncoverable statement
         $current_test->result('canceled');    # uncoverable statement
         $current_test->save_test_result();    # uncoverable statement
