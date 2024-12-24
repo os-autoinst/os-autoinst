@@ -32,6 +32,7 @@ coverage:
           - consoles/virtio_terminal.pm
           - consoles/vnc_base.pm
           - distribution.pm
+          - autotest.pm
           - myjsonrpc.pm
           - lockapi.pm
           - basetest.pm
