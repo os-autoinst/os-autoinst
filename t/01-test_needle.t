@@ -47,6 +47,19 @@ subtest 'needle JSON file not under needle directory' => sub {
       'throws error when needle JSON file is not under needle directory';
 };
 
+subtest 'handle broken JSON file' => sub {
+    my $misc_needles_dir = Cwd::cwd;
+    needle::set_needles_dir($misc_needles_dir);
+    my $broken_json_path = 'broken.json';
+
+    path($broken_json_path)->spew('{ "tags": ["test');
+
+    like(warning {
+            my $needle = needle->new($broken_json_path);
+            is($needle, undef, 'needle object not created with broken JSON');
+    }, qr/broken json.*$broken_json_path/, 'warning shown for broken JSON file');
+};
+
 sub needle_init () {
     my $ret;
     stderr_like { $ret = needle::init } qr/loaded.*needles/, 'log output for needle init';
