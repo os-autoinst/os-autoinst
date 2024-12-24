@@ -639,6 +639,7 @@ subtest 'script_sudo' => sub {
 };
 
 subtest 'parse_extra_log' => sub {
+    $bmwqemu::vars{WORKER_HOSTNAME} = 'my_worker_host';
     my $mock_parser = Test::MockObject->new();
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->define(parser => sub { $mock_parser });
