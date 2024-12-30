@@ -156,10 +156,7 @@ sub unregister ($self, $reason = undef) {
 sub register ($self) {
     my %check_dups;
     for my $g (@{$self->{tags}}) {
-        if ($check_dups{$g}) {
-            bmwqemu::diag("$self->{name} contains $g twice");
-            next;
-        }
+        bmwqemu::diag("$self->{name} contains $g twice"), next if ($check_dups{$g});
         $check_dups{$g} = 1;
         $tags{$g} ||= [];
         push(@{$tags{$g}}, $self);
