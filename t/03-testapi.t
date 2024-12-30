@@ -1252,7 +1252,6 @@ is get_test_data('foo'), undef, 'get_test_data can be called';
 $bmwqemu::vars{CASEDIR} = 't';
 like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 lives_ok { become_root } 'become_root can be called';
-like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
 lives_ok { hold_key('ret') } 'hold_key can be called';
 lives_ok { release_key('ret') } 'release_key can be called';
 lives_ok { reset_consoles } 'reset_consoles can be called';
@@ -1284,6 +1283,17 @@ subtest 'upload_asset and parse_junit_log' => sub {
     delete $bmwqemu::vars{OFFLINE_SUT};
     $mock_testapi->redefine(upload_logs => sub { die 'foo' });
     like(exception { parse_junit_log('foo') }, qr/foo/, 'parse_junit_log calls upload_logs');
+};
+
+subtest 'ensure_installed test' => sub {
+    like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
+
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->noop('x11_start_program', 'wait_still_screen');
+    $bmwqemu::vars{DISTRI} = 'fedora';
+    ensure_installed(['openQA', 'os-autoinst-devel']);
+    $bmwqemu::vars{DISTRI} = 'debian';
+    ensure_installed(['openQA', 'os-autoinst-devel']);
 };
 
 done_testing;

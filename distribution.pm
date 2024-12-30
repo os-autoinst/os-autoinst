@@ -73,8 +73,8 @@ sub ensure_installed ($self, @pkglist) {
     else {
         die "TODO: implement 'ensure_installed' for your distri " . testapi::get_var('DISTRI', '');
     }
-    if ($testapi::password) { testapi::type_password; testapi::send_key("ret", 1); }
-    wait_still_screen(7, 90);    # wait for install
+    if ($testapi::password) { testapi::type_password; testapi::send_key("ret", 1, 0); }
+    testapi::wait_still_screen(7, 90);    # wait for install
 }
 
 sub become_root ($self) {
