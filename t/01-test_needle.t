@@ -61,6 +61,20 @@ subtest 'handle broken JSON file' => sub {
     }, qr/broken json.*broken\.json/, 'warning shown for broken JSON file');
 };
 
+subtest 'handle tags duplicates' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $tag_json_path = path($sandbox, 'tag.json');
+    my $tag_png_path = path($sandbox, 'tag.png');
+
+    $tag_png_path->spew('foobar');
+    $tag_json_path->spew('{"area": [{"x" : 123, "y" : 456}],"tags": ["tag1", "tag1"]}');
+
+    my $needle;
+    combined_like { $needle = needle->new($tag_json_path->basename) } qr/\[debug\].*tag contains tag1 twice/, 'tag contains tag1 twice';
+    is($needle->has_tag('tag1'), 1, "tag found");
+};
+
 subtest 'handle invalid click point' => sub {
     my $sandbox = tempdir(CLEANUP => 1);
     needle::set_needles_dir($sandbox);
