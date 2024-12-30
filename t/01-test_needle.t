@@ -437,6 +437,8 @@ ok(defined $img1, 'image returned');
 is(needle::image_cache_size, 1, 'cache size increased');
 is($needle->get_image, $img1, 'cached image returned on next call');
 is(needle::image_cache_size, 1, 'cache size not further increased');
+my $img_area = $needle->get_image($needle->{area}->[0]);
+ok($img_area != $img1, 'different image returned for when get_image with area');
 my $other_needle = needle->new('xorg_vt-Xorg-20140729.json');
 $other_needle->{png} = $data_dir . 'xorg_vt-Xorg-20140729.test.png';
 $img2 = $other_needle->get_image;
