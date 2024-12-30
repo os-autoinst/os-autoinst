@@ -169,9 +169,9 @@ sub _load_image ($self, $image_path) {
     $watch->start();
     my $image = tinycv::read($image_path);
     $watch->stop();
-    if ($watch->as_data()->{total_time} > 0.1) {
-        bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
-    }
+
+    bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time})) if ($watch->as_data()->{total_time} > 0.1);
+
     return undef unless $image;
 
     # call replacerect for exclude areas
