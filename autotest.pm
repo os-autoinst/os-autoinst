@@ -312,10 +312,9 @@ sub start_process () {
 
             $0 = "$0: autotest";
             my $line = <$isotovideo>;
-            if (!$line) {
-                _exit(0);    # uncoverable statement
-            }
-            bmwqemu::diag("GOT $line\n");
+            _exit(0) unless $line;    # uncoverable statement
+            chomp($line);
+            bmwqemu::diag "GOT $line";
             # the backend process might have added some defaults for the backend
             bmwqemu::load_vars();
 
