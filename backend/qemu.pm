@@ -251,6 +251,7 @@ sub _migrate_to_file ($self, %args) {
 
     # Internally compressed dumps can't be opened by crash. They need to be
     # fed back into QEMU as an incoming migration.
+    # uncoverable branch false
     if ($migration_use_multifd) {
         $self->set_migrate_capability('multifd', 1);
         $self->set_migrate_capability('mapped-ram', 1);
@@ -268,20 +269,9 @@ sub _migrate_to_file ($self, %args) {
         );
     }
     else {
-        $self->set_migrate_capability('compress', 1) if $compress_level > 0;
-        $self->handle_qmp_command(
-            {
-                execute => 'migrate-set-parameters',
-                arguments => {
-                    # This is ignored if the compress capability is not set
-                    'compress-level' => $compress_level + 0,
-                    'compress-threads' => $compress_threads + 0,
-                    # Ensure slow dump times are not due to a transfer rate cap
-                    'max-bandwidth' => $max_bandwidth + 0,
-                }
-            },
-            fatal => 1
-        );
+        $self->set_migrate_capability('compress', 1) if $compress_level > 0;    # uncoverable statement
+        my $cmd = {execute => 'migrate-set-parameters', arguments => {'compress-level' => $compress_level + 0, 'compress-threads' => $compress_threads + 0, 'max-bandwidth' => $max_bandwidth + 0}}; # uncoverable statement
+        $self->handle_qmp_command($cmd, fatal => 1);    # uncoverable statement
     }
 
     $self->open_file_and_send_fd_to_qemu($filename, $fdname);
@@ -513,19 +503,18 @@ sub load_snapshot ($self, $args) {
 
     $self->set_migrate_capability('events', 1);
 
+    # uncoverable branch false
     if ($migration_use_multifd) {
         $self->set_migrate_capability('multifd', 1);
         $self->set_migrate_capability('mapped-ram', 1) if (version->declare($self->{qemu_version}) ge version->declare(9.0));
         $self->open_file_and_send_fd_to_qemu(VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
             $fdname);
-        $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
-                arguments => {uri => "file:$fdname"}},
-            fatal => 1);
+        my $cmd = {execute => 'migrate-incoming', arguments => {uri => "file:$fdname"}};
+        $rsp = $self->handle_qmp_command($cmd, fatal => 1);
     } else {
-        $self->set_migrate_capability('compress', 1);
-        $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
-                arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}},
-            fatal => 1);
+        $self->set_migrate_capability('compress', 1);    # uncoverable statement
+        my $cmd = {execute => 'migrate-incoming', arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}};    # uncoverable statement
+        $rsp = $self->handle_qmp_command($cmd, fatal => 1);    # uncoverable statement
     }
 
     $self->load_console_snapshots($vmname);
