@@ -1,18 +1,16 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
-#
 
 package OpenQA::Isotovideo::Dewebsockify;
 
 use Mojo::Base -strict, -signatures;
-
 use Mojo::IOLoop::Server;
 use Mojo::IOLoop::Stream;
 use Mojo::Log;
 use Mojo::UserAgent;
 
 sub main ($args) {
-    die "Arguments must be a hash reference\n" unless defined $args && ref($args) eq 'HASH';
+    die "Arguments must be a hash reference!" unless defined $args && ref($args) eq 'HASH';
 
     my $ws_url = $args->{websocketurl} or die "websocket URL missing\n";
     my $port = $args->{listenport} // 5900;
@@ -52,14 +50,12 @@ sub main ($args) {
                 $headers->add(Pragma => 'no-cache');
                 $headers->add('Sec-WebSocket-Protocol' => 'binary, vmware-vvc');
                 $ua->start($tx => sub ($ua, $tx) {
-
                         # handle errors
                         if (!$tx->is_websocket) {
                             if (my $err = $tx->error) {
                                 $log->error($err->{code} ? "WebSocket $err->{code} response: $err->{message}"
                                     : "WebSocket connection error: $err->{message}");
-                            }
-                            else {
+                            } else {
                                 $log->error('Unable to upgrade to WebSocket connection');
                             }
                             my $body = $tx->res->body;
@@ -99,12 +95,11 @@ sub main ($args) {
             # pass data from raw socket to websocket
             $stream->on(read => sub ($s, $bytes) {
                     if ($ws_connection) {
-                        $log->debug("Raw socket message:\n" . sprintf("%v02X", $bytes));    # uncoverable statement
-                        $ws_connection->send({binary => $bytes});    # uncoverable statement
-                    }
-                    else {
-                        $log->debug("Raw socket message (forwarding later):\n" . sprintf("%v02X", $bytes));    # uncoverable statement
-                        push @tosend, $bytes;    # uncoverable statement
+                        $log->debug("Raw socket message:\n" . sprintf("%v02X", $bytes));
+                        $ws_connection->send({binary => $bytes});
+                    } else {
+                        $log->debug("Raw socket message (forwarding later):\n" . sprintf("%v02X", $bytes));
+                        push @tosend, $bytes;
                     }
             });
 
@@ -115,7 +110,7 @@ sub main ($args) {
                     $ws_connection ? $ws_connection->finish : Mojo::IOLoop->stop_gracefully;
             });
             $stream->on(error => sub ($stream, $err) {
-                    $log->error("Client error: $err");    # uncoverable statement
+                    $log->error("Client error: $err");
             });
 
             $log->info('Client accepted');

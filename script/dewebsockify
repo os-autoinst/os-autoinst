@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 # Copyright 2022 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
-#
 
 use Mojo::Base -strict, -signatures;
 
@@ -15,6 +14,8 @@ OpenQA::Isotovideo::Dewebsockify::main(parse_args()) unless caller();
 sub usage () {
     print <<"END_USAGE";
 Usage: $0 --websocketurl <URL> [--listenport <PORT>] [--cookie <COOKIE>] [--loglevel <LEVEL>] [--insecure]
+Listens on a TCP port forwarding data to the specified websocket server
+    example: --websocketurl wss://... --listenport 590x --cookie "vmware_client=VMware; some_session=foobar" --insecure'
 Options:
   --websocketurl   The WebSocket server URL (required).
   --listenport     Port to listen on (default: 5900).
