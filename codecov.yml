@@ -14,7 +14,7 @@ coverage:
         target: 94.0
         threshold: 0.1
       fully_covered:
-        target: 99.95
+        target: 100.0
         paths:
           - OpenQA/
           - backend/
