@@ -359,13 +359,24 @@ subtest 'migration to file' => sub {
     $$invoked_qmp_cmds = undef;
     $backend->_migrate_to_file(filename => 'foo');
     is_deeply \@wait_for_migrate_args, [$backend], 'migration awaited';
-    is_deeply $$invoked_qmp_cmds, [
+    my @expected = (
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
-        {execute => 'migrate-set-parameters', arguments => {'compress-level' => 0, 'compress-threads' => 2, 'max-bandwidth' => '9223372036854775807'}},
+    );
+    if ($backend->{qemu_version} ge version->declare(9.1)) {
+        push @expected, (
+            {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]}},
+            {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]}},
+            {execute => 'migrate-set-parameters', arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'}},
+        );
+    }
+    push @expected, (
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
-        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
-    ], 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
+    );
+    if ($backend->{qemu_version} ge version->declare(9.1)) {
+        push @expected, ({execute => 'migrate', arguments => {uri => 'file:dumpfd'}});
+    }
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
 };
 
 subtest 'misc functions' => sub {
@@ -402,21 +413,40 @@ subtest 'saving memory dump' => sub {
     $fake_qmp_answer = {return => {status => 'running'}};
     $called{handle_qmp_command} = undef;
     combined_like { $backend->save_memory_dump({filename => 'foo'}) } qr/memory dump completed/i, 'completion logged';
-    is_deeply $called{handle_qmp_command}, [
+    # command varies based on qemu version, so we have to construct the
+    # expected command carefully
+    my @expected = (
         {execute => 'query-status'},
         {
             execute => 'migrate-set-capabilities',
             arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]},
-        },
-        {
-            execute => 'migrate-set-parameters',
-            arguments => {'compress-level' => 0, 'compress-threads' => 1, 'max-bandwidth' => '9223372036854775807'},
-        },
+        }
+    );
+    if ($backend->{qemu_version} ge version->declare(9.1)) {
+        push @expected, (
+            {
+                execute => 'migrate-set-capabilities',
+                arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]},
+            },
+            {
+                execute => 'migrate-set-capabilities',
+                arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]},
+            },
+            {
+                execute => 'migrate-set-parameters',
+                arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'},
+            },
+        );
+    }
+    push @expected, (
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
-        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
-        {execute => 'cont'},
-    ], 'expected QMP command called for "save_memory_dump"' or diag explain $called{handle_qmp_command};
+    );
+    if ($backend->{qemu_version} ge version->declare(9.1)) {
+        push @expected, ({execute => 'migrate', arguments => {uri => 'file:dumpfd'}});
+    }
+    push @expected, ({execute => 'cont'});
+    is_deeply $called{handle_qmp_command}, \@expected, 'expected QMP command called for "save_memory_dump"' or diag explain $called{handle_qmp_command};
     is $runcmd, 'xz --no-warn -T 1 -v6 ulogs/foo-vm-memory-dump', 'expected compression command invoked';
 
     $which_mock->redefine(which => undef);
@@ -485,15 +515,22 @@ subtest 'snapshot handling' => sub {
 
     $$invoked_qmp_cmds = undef;
     combined_like { $backend->load_snapshot({name => 'fakevm'}) } qr/restored snapshot/i, 'restoration logged';
-    is_deeply $$invoked_qmp_cmds, [
+    my @expected = (
         {execute => 'query-status'},
         {execute => 'stop'},
         {execute => 'qmp_capabilities'},
-        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'compress', state => Mojo::JSON->true}]}},
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
-        {execute => 'migrate-incoming', arguments => {uri => 'exec:cat vm-snapshots/fakevm'}},
-        {execute => 'cont'},
-    ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
+    );
+    if ($backend->{qemu_version} ge version->declare(9.1)) {
+        push @expected, (
+            {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]}},
+            {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]}},
+            {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
+            {execute => 'migrate-incoming', arguments => {uri => 'file:dumpfd'}},
+        );
+    }
+    push @expected, ({execute => 'cont'});
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
 };
 
 subtest 'save storage' => sub {
