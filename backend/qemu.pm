@@ -267,8 +267,7 @@ sub _migrate_to_file ($self, %args) {
             },
             fatal => 1
         );
-    }
-    else {
+    } else {
         $self->set_migrate_capability('compress', 1) if $compress_level > 0;    # uncoverable statement
         my $cmd = {execute => 'migrate-set-parameters', arguments => {'compress-level' => $compress_level + 0, 'compress-threads' => $compress_threads + 0, 'max-bandwidth' => $max_bandwidth + 0}}; # uncoverable statement
         $self->handle_qmp_command($cmd, fatal => 1);    # uncoverable statement
