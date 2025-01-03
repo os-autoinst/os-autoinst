@@ -114,8 +114,6 @@ sub save_vars (%args) {
     return;
 }
 
-our $gocrbin = "/usr/bin/gocr";
-
 # set from isotovideo during initialization
 our $topdir;
 
@@ -154,10 +152,6 @@ sub ensure_valid_vars () {
     $vars{VNC} ||= 90;
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
-
-    if ($gocrbin && !-x $gocrbin) {
-        $gocrbin = undef;
-    }
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
     die "No scripts in CASEDIR '$vars{CASEDIR}'\n" unless -e $vars{CASEDIR};
