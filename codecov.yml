@@ -31,6 +31,7 @@ coverage:
           - consoles/ssh_screen.pm
           - consoles/virtio_terminal.pm
           - consoles/vnc_base.pm
+          - commands.pm
           - distribution.pm
           - autotest.pm
           - myjsonrpc.pm
