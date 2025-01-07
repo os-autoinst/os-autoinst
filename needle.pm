@@ -113,13 +113,13 @@ sub new ($classname, $jsonfile) {
     }
 
     # one match is mandatory
-    warn "$jsonfile missing match area\n" && return unless $gotmatch;
+    warn "$jsonfile missing match area\n" and return unless $gotmatch;
 
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
 
     $self->{png} = path(dirname($jsonfile), $png)->to_string;
-    warn "Can't find $self->{png}" && return unless -s $self->{png};
+    warn "Can't find $self->{png}" and return unless -s $self->{png};
     $self = bless $self, $classname;
     $self->register();
     return $self;
