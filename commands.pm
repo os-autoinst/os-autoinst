@@ -11,10 +11,11 @@ require IPC::System::Simple;
 use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
-use myjsonrpc;
-use bmwqemu;
 use Mojo::JSON 'to_json';
 use Mojo::File 'path';
+use myjsonrpc;
+use bmwqemu;
+use testapi ();
 
 BEGIN {
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
@@ -60,16 +61,16 @@ sub _test_data_dir ($self, $base) {
         $file = $file->to_string();
         my @s = stat $file;
         unless (@s) {
-            $self->app->log->error("Error stating test distribution file '$file': $!");
-            next;
+            $self->app->log->error("Error stating test distribution file '$file': $!");    # uncoverable statement
+            next;    # uncoverable statement
         }
         my $fn = 'data/' . substr($file, length($base));
         local $/;    # enable localized slurp mode
         my $fd;
         eval { (open($fd, '<:raw', $file)) };
         if (my $E = $@) {
-            $self->app->log->error("Error reading test distribution file '$file': $!");
-            next;
+            $self->app->log->error("Error reading test distribution file '$file': $!");    # uncoverable statement
+            next;    # uncoverable statement
         }
         my ($header, $pad) = _makecpiohead($fn, \@s);
         $data .= $header;
@@ -258,7 +259,7 @@ sub run_daemon ($port, $isotovideo) {
     # listen to all IPv4 and IPv6 interfaces (if ipv6 is supported)
     my $address = '[::]';
     if (!IO::Socket::IP->new(Listen => 5, LocalAddr => $address)) {
-        $address = '0.0.0.0';
+        $address = '0.0.0.0';    # uncoverable statement
     }
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://$address:$port"]);
     $daemon->silent;
@@ -286,8 +287,8 @@ sub run_daemon ($port, $isotovideo) {
         $daemon->run;
     }
     catch {
-        print "cmdsrv: failed to run daemon $_\n";
-        _exit(1);
+        print "cmdsrv: failed to run daemon $_\n";    # uncoverable statement
+        _exit(1);    # uncoverable statement
     };
 }
 
@@ -309,7 +310,7 @@ sub start_server ($port) {
             $0 = "$0: commands";
             run_daemon($port, $isotovideo);
             Devel::Cover::report() if Devel::Cover->can('report');
-            _exit(0);
+            _exit(0);    # uncoverable statement
         },
         sleeptime_during_kill => 0.1,
         total_sleeptime_during_kill => 5,

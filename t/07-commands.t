@@ -86,6 +86,11 @@ subtest 'query isotovideo version' => sub {
     $t->json_is({VERSION => 'COOL'});
 };
 
+subtest 'isotovideo_post_command' => sub {
+    $t->post_ok("$base_url/$job/isotovideo/stop_processing_isotovideo_commands");
+    $t->status_is(404)->content_type_is('text/html;charset=UTF-8');
+};
+
 subtest 'web socket route' => sub {
     $t->websocket_ok("$base_url/$job/ws");
     $t->send_ok(
@@ -169,6 +174,7 @@ subtest 'asset api' => sub {
     };
     subtest 'asset not present' => sub {
         $t->get_ok("$base_url/$job/assets/other/01377522-autoinst.xml")->status_is(404);
+        $t->get_ok("$base_url/$job/assets/assettype/assetname/01377522-autoinst.xml")->status_is(404);
     };
     subtest 'file from parent directory not served' => sub {
         $t->get_ok("$base_url/$job/assets/../accept-ssh-host-key.png")->status_is(404);
@@ -201,6 +207,20 @@ subtest 'upload api' => sub {
         push @tempfiles, $pool_directory->child('assets_public/public-asset');
         is $pool_directory->child('assets_public/public-asset')->slurp, 'public-content', 'public asset created';
     };
+};
+
+subtest 'get_temp_file from worker' => sub {
+    $t->get_ok("$base_url/$job/files/non-existing-file.txt")->status_is(404)->content_type_is('text/html;charset=UTF-8');
+};
+
+subtest 'get_vars test' => sub {
+    $t->get_ok("$base_url/$job/vars")->status_is(200)->content_type_is('application/json;charset=UTF-8');
+    $t->content_like(qr/[A-Z]+DIR/, 'Content Has ASSETDIR and CASEDIR');
+    $t->content_like(qr/JOBTOKEN.+,/, 'Content Has Job Token');
+};
+
+subtest 'current_script test' => sub {
+    $t->get_ok("$base_url/$job/current_script")->status_is(200)->content_type_is('application/octet-stream');
 };
 
 kill TERM => $spid;
