@@ -125,28 +125,6 @@ sub new ($classname, $jsonfile) {
     return $self;
 }
 
-sub save ($self, $fn = $self->{file}) {
-    warn "Looking for JSON file: $fn\n";
-
-    my @area;
-    for my $area_from_json (@{$self->{area}}) {
-        my $area = {};
-        for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
-            $area->{$tag} = $area_from_json->{$tag} if defined $area_from_json->{$tag};
-        }
-        push @area, $area;
-    }
-    my $json = Cpanel::JSON::XS->new->pretty->utf8->canonical->encode(
-        {
-            tags => [sort(@{$self->{tags}})],
-            area => \@area,
-            properties => [$self->{properties}],
-        });
-    open(my $fh, '>', $fn);
-    print $fh $json;
-    close $fh;
-}
-
 sub unregister ($self, $reason = undef) {
     for my $g (@{$self->{tags}}) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
