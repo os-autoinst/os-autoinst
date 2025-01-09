@@ -177,7 +177,9 @@ sub loadtest ($script, %args) {
 
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
-        $test->{name} = join "#", $name, ++$nr;
+        my $new_name = join "#", $name, ++$nr;
+        $test->{name} = $new_name;
+        $test->{fullname} = "$category-$new_name";
     }
     $test->{name} = $args{name} if $args{name};
 

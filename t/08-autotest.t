@@ -96,8 +96,9 @@ is(keys %autotest::tests, 2, 'two tests have been scheduled');
 loadtest 'start', 'rescheduling same step later';
 is(keys %autotest::tests, 3, 'three steps have been scheduled (one twice)') || diag explain %autotest::tests;
 is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests');
+is($autotest::tests{'tests-start1'}->{fullname}, 'tests-start#1', 'duplicate test has correct fullname');
 is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
-  for qw(script fullname category class);
+  for qw(script category class);
 
 like warning {
     stderr_like { autotest::run_all } qr/Sending tests_done/, 'tests_done sent';
