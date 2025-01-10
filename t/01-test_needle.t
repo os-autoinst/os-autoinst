@@ -544,4 +544,24 @@ subtest 'clarify error message when needles directory does not exist' => sub {
     throws_ok { needle::init } qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/, 'combine CASEDIR when the default needles directory is a relative path';
 };
 
+subtest 'test tags method' => sub {
+    my $tag1 = 'tag1';
+    my $tag2 = 'tag2';
+    my $tag3 = 'tag3';
+    needle::set_needles_dir($misc_needles_dir);
+
+    needle->new($_) for qw(test_tag1.json test_tag2.json test_tag3.json);
+
+    $_->register() for needle::all();
+
+    my $result = needle::tags($tag1);
+    is scalar @$result, 2, "two needles found for tag1";
+    $result = needle::tags($tag2);
+    is scalar @$result, 2, "two needles found for tag2";
+    $result = needle::tags($tag3);
+    is scalar @$result, 1, "one needle found for tag3";
+    $result = needle::tags('nonexistent');
+    is scalar @$result, 0, "no needles found for nonexistent tag";
+};
+
 done_testing();
