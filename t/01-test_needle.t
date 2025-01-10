@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Test::MockModule 'strict';
 use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -36,6 +37,56 @@ throws_ok(
     qr{needles not initialized}s,
     'died when constructing needle without prior call to needle::init()'
 );
+
+subtest 'needle JSON file not under needle directory' => sub {
+    my $misc_needles_dir = Cwd::cwd;
+    needle::set_needles_dir($misc_needles_dir);
+    my $invalid_json_path = 'invalid/path/to/file.json';
+    throws_ok {
+        needle->new($invalid_json_path);
+    } qr/Needle $invalid_json_path is not under needle directory $misc_needles_dir/,
+      'throws error when needle JSON file is not under needle directory';
+};
+
+subtest 'handle broken JSON file' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $broken_json_path = path($sandbox, 'broken.json');
+
+    $broken_json_path->spew('{ "tags": ["test');
+
+    like(warning {
+            my $needle = needle->new($broken_json_path->basename);
+            is($needle, undef, 'needle object not created with broken JSON');
+    }, qr/broken json.*broken\.json/, 'warning shown for broken JSON file');
+};
+
+subtest 'handle tags duplicates' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $tag_json_path = path($sandbox, 'tag.json');
+    my $tag_png_path = path($sandbox, 'tag.png');
+
+    $tag_png_path->spew('foobar');
+    $tag_json_path->spew('{"area": [{"x" : 123, "y" : 456}],"tags": ["tag1", "tag1"]}');
+
+    my $needle;
+    combined_like { $needle = needle->new($tag_json_path->basename) } qr/\[debug\].*tag contains tag1 twice/, 'tag contains tag1 twice';
+    is($needle->has_tag('tag1'), 1, "tag found");
+};
+
+subtest 'handle invalid click point' => sub {
+    my $sandbox = tempdir(CLEANUP => 1);
+    needle::set_needles_dir($sandbox);
+    my $invalid_click_point_json_path = path($sandbox, 'invalid-click-point.json');
+
+    $invalid_click_point_json_path->spew('{"area": [{"click_point": "invalid"}]}');
+
+    like(warning {
+            my $needle = needle->new($invalid_click_point_json_path->basename);
+            is $needle, undef, 'needle object not created with invalid click point';
+    }, qr/invalid-click-point\.json has an area with invalid click point/, 'warning shown for invalid click point');
+};
 
 sub needle_init () {
     my $ret;
@@ -386,6 +437,8 @@ ok(defined $img1, 'image returned');
 is(needle::image_cache_size, 1, 'cache size increased');
 is($needle->get_image, $img1, 'cached image returned on next call');
 is(needle::image_cache_size, 1, 'cache size not further increased');
+my $img_area = $needle->get_image($needle->{area}->[0]);
+ok($img_area != $img1, 'different image returned for when get_image with area');
 my $other_needle = needle->new('xorg_vt-Xorg-20140729.json');
 $other_needle->{png} = $data_dir . 'xorg_vt-Xorg-20140729.test.png';
 $img2 = $other_needle->get_image;
@@ -489,6 +542,26 @@ subtest 'clarify error message when needles directory does not exist' => sub {
 
     $bmwqemu::vars{PRODUCTDIR} = 'boo/products/boo';
     throws_ok { needle::init } qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/, 'combine CASEDIR when the default needles directory is a relative path';
+};
+
+subtest 'test tags method' => sub {
+    my $tag1 = 'tag1';
+    my $tag2 = 'tag2';
+    my $tag3 = 'tag3';
+    needle::set_needles_dir($misc_needles_dir);
+
+    needle->new($_) for qw(test_tag1.json test_tag2.json test_tag3.json);
+
+    $_->register() for needle::all();
+
+    my $result = needle::tags($tag1);
+    is scalar @$result, 2, "two needles found for tag1";
+    $result = needle::tags($tag2);
+    is scalar @$result, 2, "two needles found for tag2";
+    $result = needle::tags($tag3);
+    is scalar @$result, 1, "one needle found for tag3";
+    $result = needle::tags('nonexistent');
+    is scalar @$result, 0, "no needles found for nonexistent tag";
 };
 
 done_testing();

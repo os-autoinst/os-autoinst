@@ -119,30 +119,10 @@ sub new ($classname, $jsonfile) {
     my $png = $self->{png} || $self->{name} . ".png";
 
     $self->{png} = path(dirname($jsonfile), $png)->to_string;
-    warn "Can't find $self->{png}" and return unless -s $self->{png};
+    warn "$self->{png} is empty or not found" and return unless -s $self->{png};
     $self = bless $self, $classname;
     $self->register();
     return $self;
-}
-
-sub save ($self, $fn = $self->{file}) {
-    my @area;
-    for my $area_from_json (@{$self->{area}}) {
-        my $area = {};
-        for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
-            $area->{$tag} = $area_from_json->{$tag} if defined $area_from_json->{$tag};
-        }
-        push @area, $area;
-    }
-    my $json = Cpanel::JSON::XS->new->pretty->utf8->canonical->encode(
-        {
-            tags => [sort(@{$self->{tags}})],
-            area => \@area,
-            properties => [$self->{properties}],
-        });
-    open(my $fh, '>', $fn);
-    print $fh $json;
-    close $fh;
 }
 
 sub unregister ($self, $reason = undef) {
@@ -172,9 +152,9 @@ sub _load_image ($self, $image_path) {
     $watch->start();
     my $image = tinycv::read($image_path);
     $watch->stop();
-    if ($watch->as_data()->{total_time} > 0.1) {
-        bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
-    }
+
+    bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time})) if ($watch->as_data()->{total_time} > 0.1);
+
     return undef unless $image;
 
     # call replacerect for exclude areas
