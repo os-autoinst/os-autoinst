@@ -52,7 +52,7 @@ devel_requires:
   perl(Devel::Cover):
   perl(Module::CPANfile):
   perl(Template::Toolkit):
-  perl(Perl::Tidy): == 20240511.0.0
+  perl(Perl::Tidy): == 20240903.0.0
   ShellCheck:
   shfmt:
 
