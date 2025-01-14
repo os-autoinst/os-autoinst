@@ -159,38 +159,38 @@ subtest 'setting graphics backend' => sub {
     local *backend::qemu::sp = sub (@args) { @params = @args };
     $bmwqemu::vars{ARCH} = 'x86_64';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'default backend is VGA with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or diag explain \@params;
+    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'default backend is VGA with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or always_explain \@params;
 
     $bmwqemu::vars{ARCH} = 'aarch64';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'virtio-gpu-pci,edid=on,xres=1024,yres=768'], 'default backend for ARM is virtio with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or diag explain \@params;
+    is_deeply \@params, [device => 'virtio-gpu-pci,edid=on,xres=1024,yres=768'], 'default backend for ARM is virtio with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or always_explain \@params;
 
     $bmwqemu::vars{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64} = '1';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 changes ARM default to VGA' or diag explain \@params;
+    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 changes ARM default to VGA' or always_explain \@params;
     delete $bmwqemu::vars{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64};
 
     $bmwqemu::vars{ARCH} = 's390x';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'virtio-gpu,edid=on,xres=1024,yres=768'], 'default backend for s390x sets graphics backend' or diag explain \@params;
+    is_deeply \@params, [device => 'virtio-gpu,edid=on,xres=1024,yres=768'], 'default backend for s390x sets graphics backend' or always_explain \@params;
 
     $bmwqemu::vars{ARCH} = 'x86_64';
     $bmwqemu::vars{QEMUVGA} = 'virtio';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMUVGA=virtio results in device virtio-vga with EDID info' or diag explain \@params;
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMUVGA=virtio results in device virtio-vga with EDID info' or always_explain \@params;
 
     $bmwqemu::vars{QEMUVGA} = 'cirrus';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'cirrus-vga'], 'QEMUVGA=cirrus results in device cirrus-vga with no EDID info' or diag explain \@params;
+    is_deeply \@params, [device => 'cirrus-vga'], 'QEMUVGA=cirrus results in device cirrus-vga with no EDID info' or always_explain \@params;
 
     $bmwqemu::vars{QEMU_VIDEO_DEVICE} = 'virtio-vga';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMU_VIDEO_DEVICE wins if both it and QEMUVGA are set' or diag explain \@params;
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMU_VIDEO_DEVICE wins if both it and QEMUVGA are set' or always_explain \@params;
 
     delete $bmwqemu::vars{QEMUVGA};
     $bmwqemu::vars{QEMU_VIDEO_DEVICE_OPTIONS} = 'foo=bar';
     $backend->_set_graphics_backend();
-    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768,foo=bar'], 'QEMU_VIDEO_DEVICE_OPTIONS gets appended to EDID values' or diag explain \@params;
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768,foo=bar'], 'QEMU_VIDEO_DEVICE_OPTIONS gets appended to EDID values' or always_explain \@params;
 };
 
 sub qemu_cmdline (%args) {
@@ -317,7 +317,7 @@ subtest 'capturing audio' => sub {
         }, {
             arguments => {'command-line' => 'stopcapture 0'},
             execute => 'human-monitor-command',
-        }], 'expected QMP command called' or diag explain $called{handle_qmp_command};
+        }], 'expected QMP command called' or always_explain $called{handle_qmp_command};
 };
 
 subtest 'wait functions' => sub {
@@ -348,8 +348,8 @@ subtest 'wait functions' => sub {
         $fake_qmp_answer = {return => {status => 'completed', ram => {total => 41, remaining => 15}}};
         $$invoked_qmp_cmds = undef;
         $backend->_wait_for_migrate;
-        is_deeply $$invoked_qmp_cmds, [{execute => 'query-migrate'}], 'migration queried' or diag explain $$invoked_qmp_cmds;
-        is_deeply \@wait_args, [$backend, qr/paused|finish-migrate/], 'waited for status change' or diag explain \@wait_args;
+        is_deeply $$invoked_qmp_cmds, [{execute => 'query-migrate'}], 'migration queried' or always_explain $$invoked_qmp_cmds;
+        is_deeply \@wait_args, [$backend, qr/paused|finish-migrate/], 'waited for status change' or always_explain \@wait_args;
     };
 };
 
@@ -368,7 +368,7 @@ subtest 'migration to file_qemu8' => sub {
         {execute => 'stop'},
         {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}}
     );
-    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked' or always_explain $$invoked_qmp_cmds;
     $backend_mock->unmock('determine_qemu_version');
 };
 
@@ -389,14 +389,14 @@ subtest 'migration to file_qemu9' => sub {
         {execute => 'stop'},
         {execute => 'migrate', arguments => {uri => 'file:dumpfd'}}
     );
-    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked' or always_explain $$invoked_qmp_cmds;
     $backend_mock->unmock('determine_qemu_version');
 };
 
 subtest 'misc functions' => sub {
     $backend->{proc}->_process(Test::MockObject->set_always(pid => $$));
     my $res = $backend->cpu_stat;
-    is scalar @$res, 2, 'cpu_stat returns two values' or diag explain $res;
+    is scalar @$res, 2, 'cpu_stat returns two values' or always_explain $res;
     ok looks_like_number($res->[$_]), "cpu_stat value $_ is a number" for (0, 1);
 
     $bmwqemu::vars{HDDMODEL} = 'nvme';
@@ -407,14 +407,14 @@ subtest 'misc functions' => sub {
     is_deeply $called{handle_qmp_command}, [{
             execute => 'migrate-set-capabilities',
             arguments => {capabilities => [{capability => 'foo', state => Mojo::JSON::false}]},
-    }], 'expected QMP command called for "set_migrate_capability"' or diag explain $called{handle_qmp_command};
+    }], 'expected QMP command called for "set_migrate_capability"' or always_explain $called{handle_qmp_command};
 
     $called{handle_qmp_command} = undef;
     $backend->open_file_and_send_fd_to_qemu("$Bin/$Script", 'foo');
     is_deeply $called{handle_qmp_command}, [{
             execute => 'getfd',
             arguments => {fdname => 'foo'},
-    }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or diag explain $called{handle_qmp_command};
+    }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or always_explain $called{handle_qmp_command};
 
     @bmwqemu::ovmf_locations = ('does not exist', "$Bin/$Script", 'does not exist either');
     is backend::qemu::find_ovmf, "$Bin/$Script", 'locating ovmf (normally "/usr/share/qemu/ovmf-x86_64-ms-code.bin")';
@@ -446,7 +446,7 @@ subtest 'saving memory dump qemu8' => sub {
         {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
         {execute => 'cont'}
     );
-    is_deeply $called{handle_qmp_command}, \@expected, 'expected QMP command called for "save_memory_dump"' or diag explain $called{handle_qmp_command};
+    is_deeply $called{handle_qmp_command}, \@expected, 'expected QMP command called for "save_memory_dump"' or always_explain $called{handle_qmp_command};
     is $runcmd, 'xz --no-warn -T 1 -v6 ulogs/foo-vm-memory-dump', 'expected compression command invoked';
 
     $which_mock->redefine(which => undef);
@@ -502,19 +502,19 @@ subtest '"balloon" handling' => sub {
     $$invoked_qmp_cmds = undef;
     $backend->inflate_balloon;
     $backend->deflate_balloon;
-    is_deeply $$invoked_qmp_cmds, undef, 'no QMP commands invoked without QEMU_BALLOON_TARGET' or diag explain $$invoked_qmp_cmds;
+    is_deeply $$invoked_qmp_cmds, undef, 'no QMP commands invoked without QEMU_BALLOON_TARGET' or always_explain $$invoked_qmp_cmds;
 
     $bmwqemu::vars{QEMU_BALLOON_TARGET} = 1;
     $backend->inflate_balloon;
     is_deeply $$invoked_qmp_cmds, [
         {execute => 'balloon', arguments => {value => 1048576}}, {execute => 'query-balloon'}, {execute => 'query-balloon'}
-    ], 'expected QMP commands invoked when "inflating balloon"' or diag explain $$invoked_qmp_cmds;
+    ], 'expected QMP commands invoked when "inflating balloon"' or always_explain $$invoked_qmp_cmds;
 
     $$invoked_qmp_cmds = undef;
     $backend->deflate_balloon;
     is_deeply $$invoked_qmp_cmds, [
         {execute => 'balloon', arguments => {value => 1073741824}}    # QEMURAM * 1048576
-    ], 'expected QMP commands invoked when "deflating balloon"' or diag explain $$invoked_qmp_cmds;
+    ], 'expected QMP commands invoked when "deflating balloon"' or always_explain $$invoked_qmp_cmds;
 };
 
 subtest 'snapshot handling' => sub {
@@ -537,7 +537,7 @@ subtest 'snapshot handling' => sub {
                 format => 'qcow2', 'node-name' => 'some-id', 'snapshot-file' => "$dir/raid/some-id-overlay1", 'snapshot-node-name' => 'some-id-overlay1'},
         },
         {execute => 'cont'},
-    ], 'expected QMP commands invoked when saving snapshot' or diag explain $$invoked_qmp_cmds;
+    ], 'expected QMP commands invoked when saving snapshot' or always_explain $$invoked_qmp_cmds;
 
     # save the snapshot again again assuming the blockdev-snapshot-sync call fails
     my %first_overlay = (
@@ -554,7 +554,7 @@ subtest 'snapshot handling' => sub {
     combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged (2)';
     is_deeply $$invoked_qmp_cmds, [
         {execute => 'query-status'}, {execute => 'stop'}, \%first_overlay, \%first_overlay, \%second_overlay, \%second_overlay, {execute => 'cont'},
-    ], 'expected QMP commands invoked when saving snapshot with error' or diag explain $$invoked_qmp_cmds;
+    ], 'expected QMP commands invoked when saving snapshot with error' or always_explain $$invoked_qmp_cmds;
 
     # load snapshot with different mocked qemu versions to test args
     $backend_mock->redefine(determine_qemu_version => sub ($self, $qemubin) { $self->{qemu_version} = '8.2' });
@@ -570,7 +570,7 @@ subtest 'snapshot handling' => sub {
         {execute => 'migrate-incoming', arguments => {uri => 'exec:cat vm-snapshots/fakevm'}},
         {execute => 'cont'}
     );
-    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked when loading snapshot (qemu 8)' or diag explain $$invoked_qmp_cmds;
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked when loading snapshot (qemu 8)' or always_explain $$invoked_qmp_cmds;
     $$invoked_qmp_cmds = undef;
     $backend_mock->redefine(determine_qemu_version => sub ($self, $qemubin) { $self->{qemu_version} = '9.2' });
     $backend->determine_qemu_version('foo');
@@ -586,7 +586,7 @@ subtest 'snapshot handling' => sub {
         {execute => 'migrate-incoming', arguments => {uri => 'file:dumpfd'}},
         {execute => 'cont'}
     );
-    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked when loading snapshot (qemu 9)' or diag explain $$invoked_qmp_cmds;
+    is_deeply $$invoked_qmp_cmds, \@expected, 'expected QMP commands invoked when loading snapshot (qemu 9)' or always_explain $$invoked_qmp_cmds;
     $backend_mock->unmock('determine_qemu_version');
 };
 
@@ -642,7 +642,7 @@ subtest 'save storage' => sub {
             },
             execute => 'blockdev-backup'},
         {execute => 'query-jobs'},
-        {execute => 'cont'}], 'excepted QMP commands when saving storage' or diag explain $$invoked_qmp_cmds;
+        {execute => 'cont'}], 'excepted QMP commands when saving storage' or always_explain $$invoked_qmp_cmds;
     # timeout exceeded
     $bmwqemu::vars{SAVE_STORAGE_TIMEOUT} = 2;
     $i = 0;
@@ -704,7 +704,7 @@ subtest 'special cases when starting QEMU' => sub {
         'vdecmd -s ./vde.mgmt port/remove 86', 'vdecmd -s ./vde.mgmt port/create 86', 'vdecmd -s ./vde.mgmt vlan/create foovlan',
         'vdecmd -s ./vde.mgmt port/setvlan 86 foovlan', 'vdecmd -s ./vde.mgmt port/setvlan 87 foovlan',
         "swtpm socket --tpmstate dir=$dir/mytpm6 --ctrl type=unixio,path=$dir/mytpm6/swtpm-sock --log level=20 -d"
-    ], 'vde and swtpm commands invoked' or diag explain \@invoked_cmds;
+    ], 'vde and swtpm commands invoked' or always_explain \@invoked_cmds;
 
     # set different parameters to test more cases
     $bmwqemu::vars{UEFI} = $bmwqemu::vars{UEFI_PFLASH} = 0;
@@ -732,8 +732,8 @@ subtest 'special cases when starting QEMU' => sub {
     is $bmwqemu::vars{BOOTFROM}, 'd', 'BOOTFROM set to "d" for "cdrom"';
     like $qemu_params, qr{canokey,file=canokey}, 'canokey parameter present due to FIDO2=1';
     is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
-    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 'foovlan'], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
-    is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;
+    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 'foovlan'], 'vlan set for tap device via D-Bus call' or always_explain \@dbus_invocations;
+    is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or always_explain \@dbus_invocations;
     if (is ref $callbacks{cleanup}, 'CODE', 'cleanup callback set') {
         $callbacks{cleanup}->();
         is_deeply $dbus_invocations[2], [$backend, unset_vlan => 'tap2', 'foovlan'], 'vlan unset in cleanup handler via D-Bus call';

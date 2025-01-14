@@ -80,8 +80,8 @@ subtest 'start VM' => sub {
     is_deeply(\@invoked_cmds, [
             [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
             ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
-    ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
-    is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or diag explain \@vnc_logins;
+    ], 'poweroff/on commands invoked') or always_explain \@invoked_cmds;
+    is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or always_explain \@vnc_logins;
 };
 
 subtest 'start VM with video' => sub {
@@ -94,8 +94,8 @@ subtest 'start VM with video' => sub {
     is_deeply(\@invoked_cmds, [
             [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
             ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
-    ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
-    is_deeply(\@video_connects, [['udp://@:5004']], 'tried to connect to video stream') or diag explain \@vnc_logins;
+    ], 'poweroff/on commands invoked') or always_explain \@invoked_cmds;
+    is_deeply(\@video_connects, [['udp://@:5004']], 'tried to connect to video stream') or always_explain \@vnc_logins;
 };
 
 subtest 'hdd args' => sub {
@@ -109,7 +109,7 @@ subtest 'hdd args' => sub {
 subtest 'stop VM' => sub {
     @invoked_cmds = ();
     is_deeply($backend->do_stop_vm, {}, 'return value');
-    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or always_explain \@invoked_cmds;
 };
 
 subtest 'eject_cd' => sub {
@@ -121,7 +121,7 @@ subtest 'eject_cd' => sub {
             [$cmd_ctl, 'eject'],
             [$cmd_ctl, 'eject', '--id=cd1'],
             [$cmd_ctl, 'eject', '--force'],
-    ], 'eject commands invoked') or diag explain \@invoked_cmds;
+    ], 'eject commands invoked') or always_explain \@invoked_cmds;
 };
 
 subtest 'error handling' => sub {
@@ -156,7 +156,7 @@ subtest 'handling power commands' => sub {
     $mock->redefine(run_cmd => sub ($self, $cmd, @extra_args) { push @invoked_cmds, $cmd });
     $backend->power({action => 'on'});
     $backend->power({action => 'off'});
-    is_deeply \@invoked_cmds, ['GENERAL_HW_POWERON_CMD', 'GENERAL_HW_POWEROFF_CMD'], 'power commands invoked' or diag explain \@invoked_cmds;
+    is_deeply \@invoked_cmds, ['GENERAL_HW_POWERON_CMD', 'GENERAL_HW_POWEROFF_CMD'], 'power commands invoked' or always_explain \@invoked_cmds;
     throws_ok { $backend->power({action => 'foo'}) } qr/not implemented/, 'dies on invalid action';
 };
 
@@ -204,8 +204,8 @@ subtest 'extracting assets' => sub {
     my (@invoked_cmds, @extra_args);
     $mock->redefine(run_cmd => sub ($self, $cmd, @args) { push @invoked_cmds, $cmd; push @extra_args, @args });
     $backend->do_extract_assets({@args});
-    is_deeply \@invoked_cmds, ['GENERAL_HW_IMAGE_CMD'], 'image command invoked' or diag explain \@invoked_cmds;
-    is_deeply \@extra_args, [41, 'bar/foo'], 'image path passed' or diag explain \@extra_args;
+    is_deeply \@invoked_cmds, ['GENERAL_HW_IMAGE_CMD'], 'image command invoked' or always_explain \@invoked_cmds;
+    is_deeply \@extra_args, [41, 'bar/foo'], 'image path passed' or always_explain \@extra_args;
 };
 
 done_testing();

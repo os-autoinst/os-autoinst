@@ -27,7 +27,7 @@ sub _cmp_similarity ($area, $expected_similarity) {
     my $similarity = delete $area->{similarity};
     my $difference = abs($similarity - $expected_similarity);
     cmp_ok $difference, '<', '0.01', 'similarity within tolerance'
-      or diag explain "actual similarity: $similarity, expected similarity: $expected_similarity";
+      or always_explain "actual similarity: $similarity, expected similarity: $expected_similarity";
 }
 
 throws_ok(
@@ -158,9 +158,9 @@ subtest 'handle failure to load image' => sub {
         my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
         ok($best_candidate, 'has best candidate');
         is($best_candidate->{needle}, $needle_with_png, 'needle with png is best candidate')
-          or diag explain $best_candidate;
+          or always_explain $best_candidate;
         is_deeply($candidates, [], 'missing needle not even considered as candidate')
-          or diag explain $candidates;
+          or always_explain $candidates;
     }
     qr{.*Could not open image .*$missing_needle_path.*\n.*skipping console\.ref\: missing PNG.*},
       'needle with missing PNG skipped';

@@ -219,7 +219,7 @@ subtest 'SSH utilities' => sub {
     # New connection using agent (instead of password)
     $exp_log_new = qr/SSH connection to foo912\@foo\.bar established/;
     stderr_like { $ssh9 = $baseclass->new_ssh_connection(keep_open => 0, %ssh_creds, username => 'foo912', password => undef) } $exp_log_new, 'New SSH connection announced in logs -- username=foo912';
-    is scalar @agent, 1, 'auth agent called once' or diag explain \@agent;
+    is scalar @agent, 1, 'auth agent called once' or always_explain \@agent;
 
     $ssh_expect->{username} = 'root';
 
@@ -472,14 +472,14 @@ subtest 'waiting for screen change or still screen' => sub {
         $baseclass->{_wait_screen_change}->{starttime} = 20;
         ok !$baseclass->_check_for_screen_change(30), 'falsy return';    # assume time difference of 10 seconds, exactly within timeout
         is ref $baseclass->{_wait_screen_change}, 'HASH', 'still waiting for screen change';
-        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [], 'no response sent' or always_explain \@sent_json;
     };
     subtest 'screen has changed' => sub {
         $baseclass->{_wait_screen_change}->{starttime} = 20;
         $baseclass->{_wait_screen_change}->{similarity_level} += 1;    # let's just be satisfied with a higher similarity
         ok $baseclass->_check_for_screen_change(30), 'truthy return';    # assume time difference of 10 seconds, exactly within timeout
         ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
-        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or always_explain \@sent_json;
     };
     subtest 'timeout exceeded' => sub {
         is_deeply $baseclass->wait_screen_change({similarity_level => 10, timeout => 4}), {postponed => 1}, 'reply is postponed';
@@ -489,7 +489,7 @@ subtest 'waiting for screen change or still screen' => sub {
         $expected_response{rsp}->{timed_out} = 1;
         $expected_response{rsp}->{elapsed} = 5;
         ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
-        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or always_explain \@sent_json;
     };
 
     my ($starttime, $set_reference_screenshot_called);
@@ -508,7 +508,7 @@ subtest 'waiting for screen change or still screen' => sub {
         is ref $baseclass->{_wait_still_screen}, 'HASH', 'still checking for still screen as it is not still for long enough';
         is $baseclass->{_wait_still_screen}->{lastchangetime}, $starttime, 'still "streak" continues';
         ok !$set_reference_screenshot_called, 'reference screenshot has not been updated';
-        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [], 'no response sent' or always_explain \@sent_json;
     };
     subtest 'screen has changed and timeout has not been exceeded' => sub {
         $baseclass_mock->redefine(similiarity_to_reference => {sim => 49});    # exactly one "level" below the set similarity level
@@ -516,7 +516,7 @@ subtest 'waiting for screen change or still screen' => sub {
         is ref $baseclass->{_wait_still_screen}, 'HASH', 'still checking for still screen as the streak has ended but timeout not exceeded';
         is $baseclass->{_wait_still_screen}->{lastchangetime}, $starttime + 10, 'still "streak" has ended';
         ok $set_reference_screenshot_called, 'reference screenshot has been updated';
-        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [], 'no response sent' or always_explain \@sent_json;
     };
     subtest 'broken streak means stilltime needs to be awaited again from the start' => sub {
         $baseclass_mock->redefine(similiarity_to_reference => {sim => 50});    # exactly "still" enough by the set similarity level
@@ -526,9 +526,9 @@ subtest 'waiting for screen change or still screen' => sub {
     subtest 'screen is still long enough and timeout has not been exceeded' => sub {
         $baseclass_mock->redefine(similiarity_to_reference => {sim => 50});    # exactly "still" enough by the set similarity level
         ok $baseclass->_check_for_still_screen($baseclass->{_wait_still_screen}->{lastchangetime} + 11), 'truthy return'; # assume time difference of 11 seconds since last change, exactly matching stilltime
-        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or diag explain $baseclass->{_wait_still_screen};
+        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or always_explain $baseclass->{_wait_still_screen};
         $expected_response{rsp} = {timed_out => 0, elapsed => 21, sim => 50};
-        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or always_explain \@sent_json;
 
         # note: Here we waited actually 21 seconds (1st streak broke after 10 s, 2st streak long enough after 11 s) which exceeds the timeout but it is
         # still not considered a timeout. That is ok because we have pretended that the _check_for_still_screen invocation happened after the timeout which
@@ -540,9 +540,9 @@ subtest 'waiting for screen change or still screen' => sub {
         is_deeply $baseclass->wait_still_screen({similarity_level => 50, timeout => 11, stilltime => 11}), {postponed => 1}, 'enqueued a new still screen wait';
         ok $baseclass_mock->redefine(similiarity_to_reference => {sim => 49}), 'truthy return';    # exactly one "level" below the set similarity level
         $baseclass->_check_for_still_screen($starttime + 12);    # assume time difference of 11 seconds since last change, just exceeding timeout
-        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or diag explain $baseclass->{_wait_still_screen};
+        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or always_explain $baseclass->{_wait_still_screen};
         $expected_response{rsp} = {timed_out => 1, elapsed => 12, sim => 49};
-        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or always_explain \@sent_json;
     };
 
     $baseclass_mock->noop('similarity_to_reference');
@@ -660,7 +660,7 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     is_deeply $baseclass->{writes},
       [['External encoder', 'data for external encoder', $external_video_encoder_fh]],
       'data written to external video encoder'
-      or diag explain $baseclass->{writes};
+      or always_explain $baseclass->{writes};
 
     # run again, this time assuming no handles are ready and we're waiting for a screen change with no_wait
     @io_select_res = ([], []);
@@ -691,7 +691,7 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     subtest 'params passed as expected' => sub {
         is $launched_video_encoder->{name}, 'external video encoder', 'name set';
         like $launched_video_encoder->{cmd}, qr/true -o video\.webm "trailing arg"/, 'command correct, %OUTPUT_FILE_NAME% substituted';
-    } or diag explain $video_encoders;
+    } or always_explain $video_encoders;
 
     # launch again without %OUTPUT_FILE_NAME%
     $video_encoders = $baseclass->{video_encoders} = {};
@@ -700,7 +700,7 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started (without %OUTPUT_FILE_NAME%)';
     like $video_encoders->{$video_encoder_pids[0]}->{cmd}, qr/true "trailing arg" 'video\.webm'/, 'command correct, output file appended'
-      or diag explain $video_encoders;
+      or always_explain $video_encoders;
 
     # now enqueue image data
     my $image_data = $baseclass->{external_video_encoder_image_data} = [];
@@ -785,7 +785,7 @@ subtest 'reduce to biggest changes' => sub {
         [$dummy_img, 'img 6', 2, 1_000_000, $dummy_img],
     );
     backend::baseclass::_reduce_to_biggest_changes(\@imglist, 5);    # pass limit of 5, we actually keep 6 images as the first one doesn't count
-    is_deeply \@imglist, \@expected, 'images reduced as expected' or diag explain \@imglist;
+    is_deeply \@imglist, \@expected, 'images reduced as expected' or always_explain \@imglist;
 
     # note: This test has been added retrospectively assuming the implementation was correct at this point.
 };
@@ -799,12 +799,12 @@ subtest 'stub functions' => sub {
 
 subtest 'verifying image' => sub {
     my $fail_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
-    is_deeply $fail_res, {candidates => []}, 'image not found (no candidates)' or diag explain $fail_res;
+    is_deeply $fail_res, {candidates => []}, 'image not found (no candidates)' or always_explain $fail_res;
 
     my $fake_image = Test::MockObject->new->mock(search => sub ($self, $needles, $threshold, $search_ratio) { (1, [qw(foo bar)]) });
     my $tinycv_mock = Test::MockModule->new('tinycv')->redefine(read => $fake_image);
     my $ok_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
-    is_deeply $ok_res, {found => 1, candidates => [qw(foo bar)]}, 'image found (mocked search)' or diag explain $ok_res;
+    is_deeply $ok_res, {found => 1, candidates => [qw(foo bar)]}, 'image found (mocked search)' or always_explain $ok_res;
 };
 
 subtest 'retrying assert screen' => sub {
@@ -838,7 +838,7 @@ subtest 'special cases of set_tags_to_assert' => sub {
         my $warning = warning {
             combined_like {
                 my $res = $baseclass->set_tags_to_assert({mustmatch => [{invalid => 'tags'}]});
-                is_deeply $res, {tags => []}, 'empty set of tags returned for invalid needle' or diag explain $res;
+                is_deeply $res, {tags => []}, 'empty set of tags returned for invalid needle' or always_explain $res;
             } qr/NO matching needles for/, 'no match logged for invalid needle'
         };
         like $warning, qr/invalid needle passed <HASH>.*invalid.*tags/s, 'warning about invalid needle';
@@ -848,7 +848,7 @@ subtest 'special cases of set_tags_to_assert' => sub {
     subtest 'multiple tags specified, multiple needles set for assertion' => sub {
         my @tags = (qw(inst-welcome not-existing));
         my $res = $baseclass->set_tags_to_assert({mustmatch => \@tags});
-        is_deeply $res, {tags => \@tags}, 'tags returned' or diag explain $res;
+        is_deeply $res, {tags => \@tags}, 'tags returned' or always_explain $res;
         my @needles = sort { $a->{name} cmp $b->{name} } @{$baseclass->assert_screen_needles};
         is scalar @needles, 2, 'matching needles assigned';
         is $needles[0]->{name}, 'inst-welcome-20140902', 'needle inst-welcome-20140902 matched';
@@ -868,7 +868,7 @@ subtest 'test _failed_screens_to_json when _reduce_to_biggest_changes removed fi
         {candidates => 'img 2', frame => 'bar', image => "aW1nLWRhdGE=\n"},
     );
     my $res = $baseclass->_failed_screens_to_json;
-    is_deeply $res, {timeout => 1, failed_screens => \@expected_failures}, 'expected res' or diag explain $res;
+    is_deeply $res, {timeout => 1, failed_screens => \@expected_failures}, 'expected res' or always_explain $res;
 };
 
 subtest 'check_asserted_screen takes too long' => sub {

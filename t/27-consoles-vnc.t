@@ -41,7 +41,7 @@ $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
 combined_like { is $c->login, undef, 'can call login' } qr/socket timeout/, 'would have set socket timeout';
 is $c->_receive_bell, 1, 'can call _receive_bell';
-is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or diag explain \@printed;
+is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or always_explain \@printed;
 @printed = ();
 
 # ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
@@ -57,14 +57,14 @@ subtest 'mocked read' => sub {
 
 subtest 'send update request' => sub {
     $c->width(1024)->height(512)->send_update_request;
-    is_deeply \@sent, [\%normal_update_request], 'update sent' or diag explain \@sent;
+    is_deeply \@sent, [\%normal_update_request], 'update sent' or always_explain \@sent;
 };
 
 subtest 'send forced update request' => sub {
     @sent = ();
     $c->width(1024)->height(512)->_last_update_received(0)->_framebuffer(1)->check_vnc_stalls(1)->send_update_request;
     my %forced_update_request = (x => 0, y => 0, width => 16, height => 16, incremental => 0);
-    is_deeply \@sent, [\%forced_update_request, \%normal_update_request], 'update sent' or diag explain \@sent;
+    is_deeply \@sent, [\%forced_update_request, \%normal_update_request], 'update sent' or always_explain \@sent;
 };
 
 subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
@@ -76,7 +76,7 @@ subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
             $c->send_update_request;
         } qr/Malformed RFB protocol: REB 003\.006/, 'dies on malformed RFB protocol';
     } qr/considering VNC stalled/, 'VNC stall logged';
-    is scalar @sent, 0, 'no further message sent' or diag explain \@sent;
+    is scalar @sent, 0, 'no further message sent' or always_explain \@sent;
 };
 
 subtest 'repeating handshake with max. version' => sub {
@@ -84,7 +84,7 @@ subtest 'repeating handshake with max. version' => sub {
     $c->socket($s);
     $c->_handshake_protocol_version;
     is $c->_rfb_version, '003.008', 'RFB version set to max. supported version';
-    is_deeply \@printed, ['RFB 003.008' . chr(0x0a)], 'replied max. RFB version' or diag explain \@printed;
+    is_deeply \@printed, ['RFB 003.008' . chr(0x0a)], 'replied max. RFB version' or always_explain \@printed;
     @printed = ();
 };
 
@@ -95,7 +95,7 @@ subtest 'setting socket timeout' => sub {
     $c->hostname('10.161.145.95');
     combined_like { throws_ok { $c->login } qr/unexpected end of data/, 'login dies on unexpected end of data' }
       qr/warn.*login.*Unable to set VNC socket timeout: .+/, 'timeout would have been passed to socket';
-    is $socket_args{Timeout}, 6, 'remote timeout passed to socket constructor' or diag explain \%socket_args;
+    is $socket_args{Timeout}, 6, 'remote timeout passed to socket constructor' or always_explain \%socket_args;
     @printed = ();
 };
 
@@ -119,7 +119,7 @@ subtest 'handling connect timeout' => sub {
     is $attempts, 12, 'login attempts for remote hostname';
 };
 
-is_deeply \@printed, [], 'nothing printed so far' or diag explain \@printed;
+is_deeply \@printed, [], 'nothing printed so far' or always_explain \@printed;
 $c->socket($s);
 $c->absolute(0);
 
@@ -136,7 +136,7 @@ subtest 'sending pointer events' => sub {
         pack(CCnn => 5, 4, 11, 13),    # mouse_right_click (right click)
         pack(CCnn => 5, 0, 11, 13),    # mouse_right_click (release)
     );
-    is_deeply \@printed, \@expected, 'sent mouse move' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'sent mouse move' or always_explain \@printed;
 };
 
 subtest 'sending key events' => sub {
@@ -156,7 +156,7 @@ subtest 'sending key events' => sub {
         pack(CCnN => 4, 1, 0, 0xffe1),    # key down event for '@' on regular VNC (shift)
         pack(CCnN => 4, 1, 0, 0x40),    # key down event for '@' on regular VNC ('@' itself)
     );
-    is_deeply \@printed, \@expected, 'sent key events' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'sent key events' or always_explain \@printed;
 };
 
 subtest 'update framebuffer' => sub {
@@ -244,7 +244,7 @@ subtest 'update framebuffer' => sub {
     $actual_image_data = pack(CCn => 10, 11, 444);    # anything but high quality
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
     combined_like { $c->update_framebuffer } qr/fixing quality/, 'enforcing high quality';
-    is_deeply \@printed, [pack(CCCn => 0x32, 0, 11, 444)], 'high quality requested' or diag explain \@printed;
+    is_deeply \@printed, [pack(CCCn => 0x32, 0, 11, 444)], 'high quality requested' or always_explain \@printed;
     ok $c->_framebuffer, 'framebuffer present again';
     ok $c->screen_on, 'screen on again';
 
@@ -252,7 +252,7 @@ subtest 'update framebuffer' => sub {
     $ikvm_specific_data = pack(NN => 0, length($actual_image_data));    # some "prefix" and data length
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
     $c->update_framebuffer;
-    is scalar @printed, 1, 'no further image requested' or diag explain \@printed;
+    is scalar @printed, 1, 'no further image requested' or always_explain \@printed;
 
     my $of_type_tight_with_coordinates_12_42_4_4 = pack(nnnnNC => 12, 42, 4, 4, 7);
     my $fill_compression = pack("C", 0x80);
@@ -343,7 +343,7 @@ subtest 'security handshake: DES' => sub {
         pack(C => 2),    # client confirms to use DES
         pack(NNNN => 0x80D03992, 0xB0DB4495, 0x80D03992, 0xB0DB4495),    # client solves challenge
     );
-    is_deeply \@printed, \@expected, 'expected response' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'expected response' or always_explain \@printed;
 };
 
 subtest 'security handshake: ikvm' => sub {
@@ -363,7 +363,7 @@ subtest 'security handshake: ikvm' => sub {
         pack(Z24 => $c->password)    # … and password
     );
     is $c->old_ikvm, 0, 'not considered old ikvm';
-    is_deeply \@printed, \@expected, 'expected response' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'expected response' or always_explain \@printed;
 };
 
 subtest 'security handshake: failue' => sub {
@@ -403,7 +403,7 @@ subtest 'server initialization' => sub {
     $c->depth(undef)->ikvm(1);
     combined_like { $c->_server_initialization } qr/IKVM specifics: 1 2 3 4 5/, 'ikvm specifics logged';
     is $c->depth, 32, 'depth assigned';
-    is_deeply \@printed, [], 'no further messages sent for ikvm' or diag explain \@printed;
+    is_deeply \@printed, [], 'no further messages sent for ikvm' or always_explain \@printed;
 
     # test as dell requesting 16-bit setpixelformat
     $s->set_series(mocked_read => $server_init);
@@ -425,7 +425,7 @@ subtest 'server initialization' => sub {
         pack(N => -257),    # VNC_ENCODING_POINTER_TYPE_CHANGE
         pack(N => -261),    # VNC_ENCODING_LED_STATE
     );
-    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or always_explain \@printed;
 
     # test with jpeg enabled
     @printed = ();
@@ -444,7 +444,7 @@ subtest 'server initialization' => sub {
         pack(N => -257),    # VNC_ENCODING_POINTER_TYPE_CHANGE
         pack(N => -261),    # VNC_ENCODING_LED_STATE
     );
-    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or diag explain \@printed;
+    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or always_explain \@printed;
 };
 
 subtest 'login on real VNC server via vnctest, request and receive frame buffer' => sub {
