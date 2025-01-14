@@ -102,7 +102,7 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     # run during a `git rebase -x 'make test'`
     delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
     my $git_init_output = qx{git init -q --bare repo.git 2>&1};
-    is($?, 0, 'initialized test repo') or diag explain $git_init_output;
+    is($?, 0, 'initialized test repo') or always_explain $git_init_output;
     # Ensure the checkout folder does not exist so that git clone tries to
     # create a new checkout on every test run
     remove_tree('repo');

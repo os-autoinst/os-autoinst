@@ -80,13 +80,13 @@ is_deeply($svirt_sut_console, {
         serial_port_no => 1,
         testapi_console => 'root-sut-serial',
         pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
-}, 'SUT serial console correctly initialized') or diag explain $consoles;
+}, 'SUT serial console correctly initialized') or always_explain $consoles;
 
 sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
     my $diff = XML::SemanticDiff->new(keeplinenums => 1);
     if (my @changes = $diff->compare($actual_xml_data, $expected_xml_file_path)) {
         fail 'XML not as expected';    # uncoverable statement
-        diag explain 'differences:', \@changes;    # uncoverable statement
+        always_explain 'differences:', \@changes;    # uncoverable statement
         note 'produced XML:';    # uncoverable statement
         note $actual_xml_data;    # uncoverable statement
         return 0;    # uncoverable statement
@@ -215,7 +215,7 @@ subtest 'starting VMware console' => sub {
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or diag explain \@cmds;
+    ], 'expected commands invoked' or always_explain \@cmds;
 };
 
 subtest 'test config encoding' => sub {
@@ -288,7 +288,7 @@ subtest 'starting VMware console with combustion' => sub {
         'echo \'guestinfo.combustion.script = "testingCombustion"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or diag explain \@cmds;
+    ], 'expected commands invoked' or always_explain \@cmds;
 };
 
 subtest 'starting VMware console with ignition' => sub {
@@ -324,7 +324,7 @@ subtest 'starting VMware console with ignition' => sub {
         'echo \'guestinfo.ignition.config.data = "ignitionTEST"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or diag explain \@cmds;
+    ], 'expected commands invoked' or always_explain \@cmds;
 };
 
 subtest 'starting VMware console with cloud-init' => sub {
@@ -362,7 +362,7 @@ subtest 'starting VMware console with cloud-init' => sub {
         'echo \'guestinfo.metadata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or diag explain \@cmds;
+    ], 'expected commands invoked' or always_explain \@cmds;
 };
 
 subtest 'SSH credentials' => sub {

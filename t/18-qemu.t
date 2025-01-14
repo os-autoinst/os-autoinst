@@ -418,7 +418,7 @@ subtest 'relative assets' => sub {
         [qw(create -f qcow2 -F raw -b), "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080],
         [qw(create -f qcow2 -F qcow2 -b), "$dir/some.qcow2", "raid/pflash-vars-overlay0", 512],
     );
-    is_deeply(\@gcmdl, \@cmdl, 'find the asset real path') or diag explain \@gcmdl;
+    is_deeply(\@gcmdl, \@cmdl, 'find the asset real path') or always_explain \@gcmdl;
 };
 
 subtest 'qemu was killed due to the system being out of memory' => sub {

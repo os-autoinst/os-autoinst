@@ -50,13 +50,13 @@ sub call ($function_name, @args) {
 # test without a server
 subtest 'mmapi: server not reachable' => sub {
     combined_like { is_deeply call($_), undef, "undef returned ($_)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
-    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
+    is_deeply(\@recorded_info, [], 'no info recorded') or always_explain \@recorded_info;
 };
 
 subtest 'lockapi: server not reachable' => sub {
     combined_like { is call($_, qw(name where info)), 0, "zero returned $_" } qr/Connection error/, "error logged ($_)"
       for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::barrier_create lockapi::barrier_try_wait));
-    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
+    is_deeply(\@recorded_info, [], 'no info recorded') or always_explain \@recorded_info;
 };
 
 # setup a fake server
@@ -164,7 +164,7 @@ subtest 'mmapi: general usage' => sub {
     $mmapi_mock->redefine(get_job_autoinst_url => sub { '/autoinst' });
     is_deeply(mmapi::get_job_autoinst_vars(100), {foo => 'bar'}, 'get autoinst vars');
 
-    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
+    is_deeply(\@recorded_info, [], 'no info recorded') or always_explain \@recorded_info;
 };
 
 subtest 'lockapi: misuse' => sub {
@@ -174,7 +174,7 @@ subtest 'lockapi: misuse' => sub {
       for (qw(lockapi::barrier_create lockapi::barrier_wait lockapi::barrier_destroy));
     combined_like { throws_ok { call($_, 'foo', '') } qr/mydie/, "no task throws ($_)" } qr/missing.*task/, "no task logged ($_)"
       for (qw(lockapi::barrier_create));
-    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
+    is_deeply(\@recorded_info, [], 'no info recorded') or always_explain \@recorded_info;
 };
 
 subtest 'lockapi: server returns error' => sub {
@@ -186,7 +186,7 @@ subtest 'lockapi: server returns error' => sub {
       for (qw(lockapi::mutex_try_lock lockapi::mutex_unlock lockapi::barrier_try_wait));
     combined_like { throws_ok { call($_, 'finished_lock') } qr/mydie/, "owner finished throws ($_)" } qr/owner already finished/, "finished logged ($_)"
       for (qw(lockapi::mutex_try_lock));
-    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
+    is_deeply(\@recorded_info, [], 'no info recorded') or always_explain \@recorded_info;
     # note: Omitting lockapi::mutex_lock and lockapi::barrier_wait here to avoid being blocked infinitely.
 };
 
@@ -204,7 +204,7 @@ subtest 'lockapi: successful use' => sub {
         is lockapi::barrier_try_wait('unblocked'), 1, 'tried waiting for barrier';
         is lockapi::barrier_destroy('deletable'), 1, 'barrier destroyed';
     } qr/mutex create.*mutex lock.*mutex try lock.*mutex unlock.*barrier create.*barrier wait.*barrier try wait.*barrier destroy/s, 'logging';
-    is scalar @recorded_info, 2, 'record info called expected number of times' or diag explain \@recorded_info;
+    is scalar @recorded_info, 2, 'record info called expected number of times' or always_explain \@recorded_info;
 };
 
 subtest 'lockapi::barrier_wait() failures' => sub {

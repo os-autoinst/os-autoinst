@@ -64,7 +64,7 @@ subtest 'test configuration with fake URL' => sub {
     $fake_vnc->called_pos_ok(6, 'description', 'description assigned');
     $fake_vnc->called_args_pos_is(6, 2, 'VNC over WebSockets server provided by VMWare', 'description set accordingly');
     is_deeply \@dewebsockify_args, [12345, 'wss://foo', 'session'], 'dewebsockify called with expected args'
-      or diag explain \@dewebsockify_args;
+      or always_explain \@dewebsockify_args;
     is $vmware->host, 'foo.bar', 'hostname set';
     is $vmware->vm_id, undef, 'no VM-ID set (as our URL did not include one)';
     is $vmware->username, 'root', 'username set';

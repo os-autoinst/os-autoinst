@@ -94,7 +94,7 @@ subtest run_post_fail_test => sub {
         is_deeply $cmds->[0], \%pause_on_failure, 'failure reported to pause if pausing on failures enabled';
         my %test_name_update = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)');
         is_deeply $cmds->[1], \%test_name_update, 'test name updated (to show post fail hook in developer mode)';
-    } or diag explain $cmds;
+    } or always_explain $cmds;
 
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
@@ -369,7 +369,7 @@ subtest record_screenmatch => sub {
                 result => 'ok',
             }
     ], 'screenmatch detail recorded as expected')
-      or diag explain $basetest->{details};
+      or always_explain $basetest->{details};
 
     # check a needle has workaround property
     my $basetest_for_workaround = basetest->new();
@@ -427,7 +427,7 @@ subtest record_screenmatch => sub {
                 dent => 1,
             }
     ], 'screenmatch detail with workaround property recorded as expected')
-      or diag explain $basetest_for_workaround->{details};
+      or always_explain $basetest_for_workaround->{details};
 };
 
 subtest 'register_extra_test_results' => sub {
@@ -500,7 +500,7 @@ $mock_bmwqemu->noop('fctres', 'fctinfo');
 subtest verify_sound_image => sub {
     my $test = basetest->new();
     my $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", 'notapath2', 'check');
-    is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or diag explain $res->{area};
+    is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or always_explain $res->{area};
     is($res->{needle}->{file}, 'foundneedle.json', 'needle file was returned');
     is($res->{needle}->{name}, 'foundneedle', 'needle name was returned');
     $suppress_match = 'yes';
@@ -508,11 +508,11 @@ subtest verify_sound_image => sub {
     my $mock_test = Test::MockModule->new('basetest');
     $mock_test->mock(record_screenfail => sub { my ($self, %args) = @_; $details = \%args; });
     $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", "$FindBin::Bin/data/frame2.ppm", 1);
-    is($res, undef, 'res is undef as expected') or diag explain $res;
-    is($details->{result}, 'unk', 'no needle match: unknown status correct') or diag explain $details;
+    is($res, undef, 'res is undef as expected') or always_explain $res;
+    is($details->{result}, 'unk', 'no needle match: unknown status correct') or always_explain $details;
     $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", "$FindBin::Bin/data/frame2.ppm", 0);
-    is($details->{result}, 'fail', 'no needle match: status fail') or diag explain $details;
-    is($details->{overall}, 'fail', 'no needle match: overall fail') or diag explain $details;
+    is($details->{result}, 'fail', 'no needle match: status fail') or always_explain $details;
+    is($details->{overall}, 'fail', 'no needle match: overall fail') or always_explain $details;
 };
 
 $mock_bmwqemu->noop('diag', 'modstate');

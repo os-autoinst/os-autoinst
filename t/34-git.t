@@ -176,7 +176,7 @@ subtest 'cloning with caching' => sub {
         is ref $repo_entry, 'HASH', "entry for '$repo_path' exists" or return;
         cmp_ok $repo_entry->{size}, '>', 0, 'valid size assigned';
         cmp_ok $repo_entry->{last_use}, '>=', $start_time, 'valid last use assigned';
-    } or diag explain $index;
+    } or always_explain $index;
 
     subtest 'limit size of cache directory' => sub {
         sleep 10;    # simulate time has passed via "Test::Mock::Time"

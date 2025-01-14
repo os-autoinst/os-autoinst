@@ -97,13 +97,13 @@ subtest 'add relevant downloads' => sub {
     qr/.*skipping downloading new needle: $needles_dir\/foo\.png seems already up-to-date.*/,
       'skipped downloads logged';
     is_deeply($downloader->files_to_download, \@expected_downloads, 'downloads added')
-      or diag explain $downloader->files_to_download;
+      or always_explain $downloader->files_to_download;
 
     subtest 'limit applied' => sub {
         $downloader->download_limit(3);
         $downloader->add_relevant_downloads(\@new_needles);
         is_deeply($downloader->files_to_download, \@expected_downloads, 'no more downloads added')
-          or diag explain $downloader->files_to_download;
+          or always_explain $downloader->files_to_download;
     };
 };
 

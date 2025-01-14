@@ -200,7 +200,7 @@ subtest 'type_string' => sub {
     is_deeply($cmds, [
             {cmd => 'backend_type_string', max_interval => 100, text => 'hallo'},
             {cmd => 'backend_wait_still_screen', similarity_level => 47, stilltime => 1, timeout => 30},
-    ]) or diag explain $cmds;
+    ]) or always_explain $cmds;
     $cmds = [];
 };
 
@@ -212,14 +212,14 @@ subtest 'wait_screen_change' => sub {
         {cmd => 'backend_set_reference_screenshot'},
         {cmd => 'backend_wait_screen_change', similarity_level => 50, timeout => 10},
     );
-    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (1)' or diag explain $cmds;
+    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (1)' or always_explain $cmds;
     $cmds = [];
 
     $fake_timeout = 1;
     $expected_cmds[1]->{timeout} = 1;
     $expected_cmds[1]->{similarity_level} = 51;
     ok !wait_screen_change(sub { $callback_invoked = 1 }, 1, similarity_level => 51), 'no change found';
-    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (2)' or diag explain $cmds;
+    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (2)' or always_explain $cmds;
     $cmds = [];
 };
 
@@ -238,11 +238,11 @@ subtest 'eject_cd' => sub {
 
 subtest 'switch_network' => sub {
     switch_network network_enabled => 0;
-    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 0}] or diag explain $cmds;
+    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 0}] or always_explain $cmds;
     $cmds = [];
 
     switch_network network_enabled => 1, network_link_name => 'bingo';
-    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 1, network_link_name => 'bingo'}] or diag explain $cmds;
+    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 1, network_link_name => 'bingo'}] or always_explain $cmds;
     $cmds = [];
 };
 
@@ -271,7 +271,7 @@ is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 's
 $cmds = [];
 
 send_key 'ret';
-is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
+is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || always_explain $cmds;
 $cmds = [];
 
 $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
@@ -281,7 +281,7 @@ subtest 'send_key with wait_screen_change' => sub {
     my $wait_screen_change_called = 0;
     $mock_testapi->redefine(wait_screen_change => sub : prototype(&@) { shift->(); $wait_screen_change_called = 1 });
     send_key 'ret', wait_screen_change => 1;
-    is(scalar @$cmds, 1, 'send_key waits for screen change') || diag explain $cmds;
+    is(scalar @$cmds, 1, 'send_key waits for screen change') || always_explain $cmds;
     $cmds = [];
     ok($wait_screen_change_called, 'wait_screen_change called by send_key');
 };
@@ -299,7 +299,7 @@ my $details = $autotest::current_test->{details}[-1];
 my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure added');
 $details_ok &= is($details->{result}, 'softfail', 'result correct');
 $details_ok &= like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
-diag explain $details unless $details_ok;
+always_explain $details unless $details_ok;
 $mock_bmwqemu->noop('log_call');
 
 require distribution;
@@ -361,7 +361,7 @@ subtest 'script_run' => sub {
     $autotest_mock->redefine(pause_on_failure => {ignore_failure => 1});
     lives_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } 'assert_script_run() timeout ignored if pausing on failure';
     is_deeply \@diag_messages, ["ignoring failure via developer mode: command 'sleep 13' timed out"], 'ignored failure logged'
-      or diag explain \@diag_messages;
+      or always_explain \@diag_messages;
 
     $fake_matched = 1;
     $fake_exit = 1234;
@@ -467,7 +467,7 @@ subtest 'check_assert_screen' => sub {
                     cmd => 'report_timeout',
                     msg => 'match=fake,tags timed out after 2 (check_screen)',
                     tags => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 1)') or diag explain $cmds;
+                }], 'RPC messages correct (especially check == 1)') or always_explain $cmds;
         is_deeply($autotest::current_test->{details}, [
                 {
                     result => 'unk',
@@ -476,7 +476,7 @@ subtest 'check_assert_screen' => sub {
                     tags => [qw(fake tags)],
                 }
         ], 'result (to create a new neede from) has been added')
-          or diag explain $autotest::current_test->{details};
+          or always_explain $autotest::current_test->{details};
     };
 
     $report_timeout_called = 0;
@@ -506,7 +506,7 @@ subtest 'check_assert_screen' => sub {
                     cmd => 'report_timeout',
                     msg => 'match=fake,tags timed out after 2 (assert_screen)',
                     tags => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 0)') or diag explain $cmds;
+                }], 'RPC messages correct (especially check == 0)') or always_explain $cmds;
 
         # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
         $report_timeout_called = 0;
@@ -535,8 +535,8 @@ subtest 'check_assert_screen' => sub {
         cmp_ok @{$autotest::current_test->{details}}, '>', $detail_count, 'new details recorded';
         $detail_count = @{$autotest::current_test->{details}};
         my $recorded_detail = $autotest::current_test->{details}->[-1];
-        is_deeply $recorded_detail->{result}, 'unk', 'mismatch with unknown result recorded' or diag explain $recorded_detail;
-        is_deeply $recorded_detail->{tags}, \@tags, 'mismatch contains expected tags' or diag explain $recorded_detail;
+        is_deeply $recorded_detail->{result}, 'unk', 'mismatch with unknown result recorded' or always_explain $recorded_detail;
+        is_deeply $recorded_detail->{tags}, \@tags, 'mismatch contains expected tags' or always_explain $recorded_detail;
     };
 
     subtest 'handling of stalled VNC connection when running into timeout' => sub {
@@ -687,7 +687,7 @@ subtest 'assert_and_click' => sub {
                 x => 100,
                 y => 100
             },
-    ], 'assert_and_click succeeds and move to old mouse set') or diag explain $cmds;
+    ], 'assert_and_click succeeds and move to old mouse set') or always_explain $cmds;
 
     $cmds = [];
     push(@areas, {x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7}});
@@ -696,7 +696,7 @@ subtest 'assert_and_click' => sub {
             cmd => 'backend_mouse_set',
             x => 55,
             y => 67,
-    }, 'assert_and_click clicks at the click point') or diag explain $cmds;
+    }, 'assert_and_click clicks at the click point') or always_explain $cmds;
 
     $cmds = [];
     @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => 'center'}, {x => 0, y => 0, w => 0, h => 0});
@@ -705,7 +705,7 @@ subtest 'assert_and_click' => sub {
             cmd => 'backend_mouse_set',
             x => 61,
             y => 70,
-    }, 'assert_and_click clicks at the click point specified as "center"') or diag explain $cmds;
+    }, 'assert_and_click clicks at the click point specified as "center"') or always_explain $cmds;
 
     $cmds = [];
     @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7, id => 'first'}}, {x => 0, y => 0, w => 10, h => 10, click_point => {xpos => 5, ypos => 7, id => 'second'}});
@@ -714,7 +714,7 @@ subtest 'assert_and_click' => sub {
             cmd => 'backend_mouse_set',
             x => 55,
             y => 67,
-    }, 'assert_and_click clicks at the click point with ID "first"') or diag explain $cmds;
+    }, 'assert_and_click clicks at the click point with ID "first"') or always_explain $cmds;
 
     $cmds = [];
     @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7, id => 'first'}}, {x => 0, y => 0, w => 10, h => 10, click_point => {xpos => 5, ypos => 7, id => 'second'}});
@@ -723,7 +723,7 @@ subtest 'assert_and_click' => sub {
             cmd => 'backend_mouse_set',
             x => 5,
             y => 7,
-    }, 'assert_and_click clicks at the click point with ID "second"') or diag explain $cmds;
+    }, 'assert_and_click clicks at the click point with ID "second"') or always_explain $cmds;
 
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
 
@@ -850,7 +850,7 @@ subtest 'validate_script_output' => sub {
         my $args = shift @exp_args_list;
         my $exp = shift @exp_args_list;
         validate_script_output('script', qr//, @$args);
-        is_deeply $arguments, $exp, 'Arguments passed to script_output' or diag explain $arguments;
+        is_deeply $arguments, $exp, 'Arguments passed to script_output' or always_explain $arguments;
     }
 };
 
@@ -1061,7 +1061,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd => 'backend_mouse_button'
             },
-    ], 'mouse drag (startpoint defined by a needle)') or diag explain $cmds;
+    ], 'mouse drag (startpoint defined by a needle)') or always_explain $cmds;
 
     # Startpoint from coordinates, endpoint from a needle.
     $cmds = [];
@@ -1087,7 +1087,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd => 'backend_mouse_button'
             },
-    ], 'mouse drag (endpoint defined by a needle)') or diag explain $cmds;
+    ], 'mouse drag (endpoint defined by a needle)') or always_explain $cmds;
 
     # Using coordinates only.
     $cmds = [];
@@ -1113,7 +1113,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd => 'backend_mouse_button'
             },
-    ], 'mouse drag (start and endpoints defined by coordinates)') or diag explain $cmds;
+    ], 'mouse drag (start and endpoints defined by coordinates)') or always_explain $cmds;
 
     # Both needle and coordinates provided for startpoint (coordinates should win).
     $cmds = [];
@@ -1139,7 +1139,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd => 'backend_mouse_button'
             },
-    ], 'mouse drag (redundant definition by a needle)') or diag explain $cmds;
+    ], 'mouse drag (redundant definition by a needle)') or always_explain $cmds;
     like exception { mouse_drag(endx => $endx, endy => $endy) }, qr/starting.*point.*not.*provided/, 'faile for no start';
     like exception { mouse_drag(startx => $endx, starty => $endy) }, qr/ending.*point.*not.*provided/, 'faile for no end';
 };
@@ -1181,7 +1181,7 @@ lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
 subtest 'set_var' => sub {
     $cmds = [];
     lives_ok { set_var('FOO', 'BAR', reload_needles => 1) } 'can call set_var with reload_needles';
-    is_deeply $cmds, [{cmd => 'backend_reload_needles'}], 'reload_needles called' or diag explain $cmds;
+    is_deeply $cmds, [{cmd => 'backend_reload_needles'}], 'reload_needles called' or always_explain $cmds;
 };
 
 subtest 'get_var_array and check_var_array' => sub {
@@ -1209,7 +1209,7 @@ subtest 'send_key_until_needlematch' => sub {
     $fake_needle_found = 1;
     $cmds = [];
     send_key_until_needlematch('tag', 'esc');
-    is(scalar @$cmds, 1, 'needle matches immediately, no key sent') || diag explain $cmds;
+    is(scalar @$cmds, 1, 'needle matches immediately, no key sent') || always_explain $cmds;
     is($cmds->[-1]->{cmd}, 'check_screen');
     is($cmds->[-1]->{timeout}, 0);
 
@@ -1229,7 +1229,7 @@ subtest 'send_key_until_needlematch' => sub {
         is($cmd->{timeout}, 1, "timeout for other check_screen is nonzero") if $cmd->{cmd} eq 'check_screen';
         $count_send_key++ if $cmd->{cmd} eq 'backend_send_key';
     }
-    is($count_send_key, 3, 'tried to send_key three times') || diag explain $cmds;
+    is($count_send_key, 3, 'tried to send_key three times') || always_explain $cmds;
     $cmds = [];
 
     $fake_needle_found = 1;
@@ -1238,13 +1238,13 @@ subtest 'send_key_until_needlematch' => sub {
 subtest 'mouse click' => sub {
     $cmds = [];
     mouse_click();
-    is $cmds->[0]{button}, 'left', 'mouse_click called with default button' or diag explain $cmds;
+    is $cmds->[0]{button}, 'left', 'mouse_click called with default button' or always_explain $cmds;
     $cmds = [];
     mouse_dclick();
-    is $cmds->[0]{button}, 'left', 'mouse_dclick called with default button' or diag explain $cmds;
+    is $cmds->[0]{button}, 'left', 'mouse_dclick called with default button' or always_explain $cmds;
     $cmds = [];
     mouse_tclick();
-    is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or diag explain $cmds;
+    is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or always_explain $cmds;
 };
 
 $bmwqemu::vars{CASEDIR} = 'foo';
@@ -1259,7 +1259,7 @@ lives_ok { reset_consoles } 'reset_consoles can be called';
 subtest 'assert/check recorded sound' => sub {
     $cmds = [];
     lives_ok { start_audiocapture } 'start_audiocapture can be called';
-    like $cmds->[0]->{filename}, qr/captured\.wav/, 'audiocapture started with expected args' or diag explain $cmds;
+    like $cmds->[0]->{filename}, qr/captured\.wav/, 'audiocapture started with expected args' or always_explain $cmds;
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->noop('_snd2png');
     $mock_basetest->noop('verify_sound_image');
