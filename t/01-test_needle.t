@@ -558,6 +558,10 @@ subtest 'test tags method' => sub {
     is scalar @$result, 2, "two needles found for tag1";
     $result = needle::tags($tag2);
     is scalar @$result, 2, "two needles found for tag2";
+    $result = needle::tags("$tag1 $tag2");
+    is scalar @$result, 1, "one needle found with tag1 and tag2";
+    $result = needle::tags("$tag2 $tag3");
+    is scalar @$result, 0, "no needle found with tag2 and tag3";
     $result = needle::tags($tag3);
     is scalar @$result, 1, "one needle found for tag3";
     $result = needle::tags('nonexistent');
