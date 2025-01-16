@@ -261,7 +261,7 @@ subtest 'get_ssh_credentials returns default values' => sub {
 
 subtest 'get_ssh_credentials parses the ssh configuration' => sub {
     $run_expect_cmd = [["vagrant", "ssh-config"]];
-    my $ssh_config_output = << 'END';
+    my $ssh_config_output = <<'END';
 Host default
   HostName 192.168.122.9
   User foobar
@@ -452,7 +452,7 @@ subtest 'is_shutdown reports the status correctly' => sub {
         ["vagrant", "status", "--machine-readable"],
         ["vagrant", "status", "--machine-readable"]
     ];
-    my $libvirt_running_stdout = << 'END';
+    my $libvirt_running_stdout = <<'END';
 1623931306,default,metadata,provider,libvirt
 1623931306,default,provider-name,libvirt
 1623931306,default,state,running
@@ -461,7 +461,7 @@ subtest 'is_shutdown reports the status correctly' => sub {
 1623931306,,ui,info,Current machine states:\n\ndefault                   running (libvirt)\n\nThe Libvirt domain is running. To stop this machine%!(VAGRANT_COMMA) you can run\n`vagrant halt`. To destroy the machine%!(VAGRANT_COMMA) you can run `vagrant destroy`.
 
 END
-    my $libvirt_not_running_stdout = << 'END';
+    my $libvirt_not_running_stdout = <<'END';
 1623931749,default,metadata,provider,libvirt
 1623931749,default,provider-name,libvirt
 1623931749,default,state,shutoff
