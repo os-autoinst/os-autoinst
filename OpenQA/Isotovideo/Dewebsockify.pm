@@ -11,7 +11,7 @@ use Mojo::UserAgent;
 
 sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection, $stream, $cookie = undef) {
     $log->info("Establishing WebSocket connection to $ws_url");
-    $tosend = [];
+    @$tosend = ();
     my $tx = $ua->build_websocket_tx($ws_url);
     my $req = $tx->req;
     my $headers = $tx->req->headers;
@@ -29,13 +29,13 @@ sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection,
                 }
                 my $body = $tx->res->body;
                 $log->trace($body) if $body;
-                $ws_connection = undef;
+                $$ws_connection = undef;
                 $stream->close_gracefully if $stream;
                 return undef;
             }
             $log->info('WebSocket connection established');
             $tx->max_websocket_size(1024**3);    # required to avoid 1009 error, at least when using raw encoding
-            $ws_connection = $tx;
+            $$ws_connection = $tx;
 
             # pass data from websocket to raw socket
             $tx->on(text => sub ($tx, $text) {
@@ -48,13 +48,13 @@ sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection,
 
             # pass pending data from raw socket to websocket
             $tx->send($_) for @$tosend;
-            $tosend = [];
+            @$tosend = ();
 
             # handle websocket connection finish
             # note: Terminating here because at least for VMWare one needed a new URL/ticket anyways.
             $tx->on(finish => sub ($tx, $code, $reason) {
                     $log->info("WebSocket closed with status $code.");
-                    $ws_connection = undef;
+                    $$ws_connection = undef;
                     $stream->close_gracefully if $stream;
                     Mojo::IOLoop->stop_gracefully;
             });
@@ -90,7 +90,7 @@ sub main ($args) {
             $stream = Mojo::IOLoop::Stream->new($handle);
             $stream->start;
             $stream->reactor->start unless $stream->reactor->is_running;
-            establish_websocket_connection($log, $ws_url, \@tosend, $ua, $ws_connection, $stream, $cookie = undef) unless $ws_connection;
+            establish_websocket_connection($log, $ws_url, \@tosend, $ua, \$ws_connection, $stream, $cookie) unless $ws_connection;
             # pass data from raw socket to websocket
             $stream->on(read => sub ($s, $bytes) {
                     if ($ws_connection) {
