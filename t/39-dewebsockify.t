@@ -2,8 +2,8 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Mojo::Base -strict, -signatures;
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::MockModule;
 use Test::Warnings;
 use Mojo::Log;
@@ -56,6 +56,7 @@ $mock_ua->mock(start => sub ($ua, $tx, $cb) {
 {
     package MockTxGeneric;    # uncoverable statement
     use Test::Most;
+    use Mojo::Base -strict, -signatures;
 
     sub is_websocket { 1 }
     sub max_websocket_size { }
