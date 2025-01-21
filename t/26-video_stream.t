@@ -106,6 +106,14 @@ subtest 'connect stream' => sub {
     is_deeply $cmd, [
         'ffmpeg', '-loglevel', 'fatal', '-i', '/dev/video0',
         '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
+
+    $mock_console->redefine(update_framebuffer => sub ($self) { $self->{_last_update_received} = 200; return 0; });
+    my $start_time = time;
+    $console->request_screen_update();
+    is $console->{dv_timings_supported}, 1, 'dv timings are supported';
+    cmp_ok $console->{dv_timings_last_check}, '>=', $start_time, 'dv_timings_last_check ok';
+    $mock_console->unmock('update_framebuffer');
+    $console->disable_video;
 };
 
 subtest 'connect stream ustreamer' => sub {
@@ -165,6 +173,14 @@ subtest 'frames parsing' => sub {
 
     my $received_update = $console->update_framebuffer();
     is $received_update, 0, "detected incomplete frame";
+    $console->disable_video;
+
+    # now invalid frame - not in PPM format to test exception
+    $mock_video_source = $data_dir . 'accept-ssh-host-key.png';
+    $console->connect_remote({url => 'udp://@:5004'});
+    waitpid($console->{ffmpegpid}, 0);
+
+    throws_ok { $console->update_framebuffer() } qr/Invalid PPM header/, 'dies ok - input is not in PPM format';
     $console->disable_video;
 };
 
@@ -266,7 +282,7 @@ subtest 'v4l2 resolution' => sub {
     %v4l2_ctl_results = (
         '--query-dv-timings' => '640x480p60',
     );
-    $console->{dv_timings_last_check} = time - 4;
+    $console->{dv_timings_last_check} = consoles::video_stream::DV_TIMINGS_CHECK_INTERVAL;
 
     $console->update_framebuffer();
     is $console->{dv_timings}, '640x480p60', 'correct resolution detected';
@@ -282,7 +298,7 @@ subtest 'v4l2 resolution' => sub {
         '--get-dv-timings' => '1024x768p60',
         '--set-dv-bt-timings query' => 'BT timings set',
     );
-    $console->{dv_timings_last_check} = time - 4;
+    $console->{dv_timings_last_check} = consoles::video_stream::DV_TIMINGS_CHECK_INTERVAL;
 
     $console->update_framebuffer();
     is $console->{dv_timings}, '1024x768p60', 'correct resolution detected';
@@ -291,6 +307,23 @@ subtest 'v4l2 resolution' => sub {
         [('/dev/video0', 'ssh host', '--set-dv-bt-timings query')],
         [('/dev/video0', 'ssh host', '--get-dv-timings')],
     ], "calls to v4l2-ctl";
+
+    @v4l2_ctl_calls = ();
+
+    # test video disconnection
+    %v4l2_ctl_results = (
+        '--query-dv-timings' => '0',
+        '--get-dv-timings' => '1024x768p60',
+        '--set-dv-bt-timings query' => 'BT timings set',
+    );
+    $console->{dv_timings_last_check} = consoles::video_stream::DV_TIMINGS_CHECK_INTERVAL;
+
+    $console->update_framebuffer();
+    is $console->{dv_timings}, '', 'correct dv_timings returned';
+    is_deeply \@v4l2_ctl_calls, [
+        [('/dev/video0', 'ssh host', '--query-dv-timings')]
+    ], "calls to v4l2-ctl matching";
+
     $console->disable_video;
 };
 
@@ -361,6 +394,12 @@ subtest 'input events' => sub {
         'http://127.0.0.42:42000/cmd?sendkey=ctrl-x',
         'http://127.0.0.42:42000/cmd?type=some+test%0A'
     ], "correct kbd emu requests sent";
+
+    $console->activate;
+    $console->mouse_set({x => 60, y => 60});
+    my $mouse_position = $console->get_last_mouse_set();
+    is_deeply($mouse_position, {x => 60, y => 60}, 'Got correct mouse position');
+    $console->disable;
 };
 
 done_testing;
