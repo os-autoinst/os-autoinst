@@ -450,13 +450,10 @@ subtest make_snapshot => sub {
 };
 
 subtest loadtestdir => sub {
-    use lib 't/data/tests';
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
     stderr_like {
-        like warning {
-            autotest::loadtestdir('tests');
-        }, qr/ARRAY/, 'script found';
-    } qr/scheduling/, 'loadscript success';
+        autotest::loadtestdir('tests');
+    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully';
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
 };
 

@@ -463,7 +463,7 @@ sub loadtestdir ($dir) {
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
-    loadtest($_) for (glob "$dir/*.pm");
+    loadtest($_) for map { s{^\Q$bmwqemu::vars{CASEDIR}/}{}r } (glob "$dir/*.pm");
 }
 
 # This is called if the framework loaded a VM snapshot. All consoles
