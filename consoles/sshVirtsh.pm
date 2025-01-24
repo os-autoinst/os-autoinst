@@ -366,6 +366,17 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     die "Can't create thin VMware image" if $retval;
 }
 
+sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_path) {
+    # If the nvram exists in the source vmx file, then copy the source file as destination nvram.
+    my $vmware_vmx_path = $vmware_disk_path =~ s/\.vmdk/\.vmx/r;
+    my $vmware_nvram_path = $vmware_disk_path =~ s/\.vmdk/\.nvram/r;
+    my $cmd =
+      "set -x; if [ -e $vmware_vmx_path ] && [ -e $vmware_nvram_path ]; then " .
+      "cp -f $vmware_nvram_path ${vmware_openqa_datastore}${name}.nvram; fi;";
+    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+    die "No nvram was set in the source vmx file" if $retval;
+}
+
 sub _system (@cmd) { system @cmd }    # uncoverable statement
 
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
@@ -395,6 +406,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
             $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
+            $self->_copy_nvram_vmware($name, $vmware_openqa_datastore, $vmware_disk_path) if ($backingfile);
         }
         else {
             $self->_copy_image_else($args->{file}, $file_basename, $basedir);
@@ -566,6 +578,12 @@ __END"
 
         # set default boot delay
         $self->run_cmd(qq{echo 'bios.bootDelay = "10000"' >> $vmx}, domain => 'sshVMwareServer');
+        # set default nvram
+        my $nvram = $self->name . '.nvram';
+        my $nvram_path = sprintf('/vmfs/volumes/%s/openQA/%s', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $nvram);
+        $ret = $self->run_cmd("test -e $nvram_path", domain => 'sshVMwareServer');
+        $self->run_cmd(qq{echo 'nvram = "$nvram"' >> $vmx}, domain => 'sshVMwareServer') unless ($ret);
+
         my $fb_tool = $bmwqemu::vars{GUESTINFO_CONFIG};
 
         if ($fb_tool && $fb_tool ne 'wizard') {

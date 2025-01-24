@@ -213,6 +213,8 @@ subtest 'starting VMware console' => sub {
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
+        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or always_explain \@cmds;
@@ -285,6 +287,8 @@ subtest 'starting VMware console with combustion' => sub {
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
+        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.combustion.script = "testingCombustion"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
@@ -320,6 +324,8 @@ subtest 'starting VMware console with ignition' => sub {
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
+        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.ignition.config.data.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.ignition.config.data = "ignitionTEST"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
@@ -356,6 +362,8 @@ subtest 'starting VMware console with cloud-init' => sub {
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
+        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.userdata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'echo \'guestinfo.userdata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
