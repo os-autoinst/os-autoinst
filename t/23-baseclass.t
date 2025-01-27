@@ -105,6 +105,7 @@ subtest 'SSH utilities' => sub {
     my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
     my $ssh_connect_error;
     my @net_ssh2_error = ();
+    my @timeouts = ();
     my $net_ssh2 = Test::MockModule->new('Net::SSH2');
     my @agent;
     $net_ssh2->redefine(new => sub {
@@ -189,6 +190,7 @@ subtest 'SSH utilities' => sub {
                     return $mock_channel;
             });
             $self->mock(die_with_error => \&Net::SSH2::die_with_error);
+            $self->mock(timeout => sub { @_ > 1 ? (push @timeouts, $_[1]) : ($timeouts[-1] // 42) });
             return $self;
     });
     sub refaddr ($host) { $host->{my_custom_id} }
@@ -262,9 +264,10 @@ subtest 'SSH utilities' => sub {
     my @output = $baseclass->run_ssh_cmd('echo -n "foo"', wantarray => 1, %ssh_creds);
     is_deeply(\@output, [0, 'foo', ''], 'Command successful exit with output');
 
-    # test handling read errors in run_ssh_cmd()
+    # test handling read errors and timeout parameter of run_ssh_cmd()
     ($fail_on_read2, @net_ssh2_error) = (1, -9, 'LIBSSH2_ERROR_TIMEOUT', 'Time out waiting for data');
-    throws_ok { $baseclass->run_ssh_cmd('sleep infinity', %ssh_creds) } qr/waiting for data.*timeout/i, 'read timeout is fatal error';
+    throws_ok { $baseclass->run_ssh_cmd('sleep infinity', %ssh_creds, timeout => 100) } qr/waiting for data.*timeout/i, 'read timeout is fatal error';
+    is_deeply \@timeouts, [100, 42], 'timeout increased to specified value, then set back to mocked default again';
     ($fail_on_read2, @net_ssh2_error) = ();
 
     # Create a SSH session implecit with `run_ssh_cmd()`

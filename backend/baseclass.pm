@@ -28,6 +28,7 @@ use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
 use Mojo::File 'path';
+use Mojo::Util 'scope_guard';
 use OpenQA::Exceptions;
 use Time::Seconds;
 use English -no_match_vars;
@@ -1308,6 +1309,12 @@ sub run_ssh_cmd ($self, $cmd, %args) {
         bmwqemu::diag("[run_ssh_cmd($cmd)] stdout:$/$stdout") if length $stdout;
         bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length $stderr;
     };
+    my $timeout_guard;
+    if (defined(my $new_timeout = $args{timeout})) {
+        my $initial_timeout = $ssh->timeout;
+        $timeout_guard = scope_guard sub { $ssh->timeout($initial_timeout) };
+        $ssh->timeout($new_timeout);
+    }
     until ($chan->eof) {
         if (my ($o, $e) = $chan->read2) {
             $stdout .= $o;

@@ -678,7 +678,7 @@ contains I<stdout> and I<stderr>.
 This function is B<deprecated>, you should use C<<$svirt->run_cmd()>> instead.
 =cut
 sub get_cmd_output ($self, $cmd, $args = {}) {
-    my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), wantarray => 1);
+    my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), timeout => $args->{timeout}, wantarray => 1);
     return $args->{wantarray} ? [$stdout, $stderr] : $stdout;
 }
 
