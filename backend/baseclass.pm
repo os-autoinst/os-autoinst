@@ -1292,8 +1292,13 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
 
 =head2 run_ssh_cmd
 
-   $ret = run_ssh_cmd($cmd [, username => ?][, password => ?][,host => ?]);
-   ($ret, $stdout, $stderr) = run_ssh_cmd($cmd [, username => ?][, password => ?][,host => ?], wantarray => 1);
+   $ret = run_ssh_cmd($cmd [, username => ?][, password => ?][,host => ?][,timeout => undef]);
+   ($ret, $stdout, $stderr) = run_ssh_cmd($cmd [, username => ?][, password => ?][,host => ?][,timeout => undef], wantarray => 1);
+
+   The timeout is in seconds and defaults to SSH_COMMAND_TIMEOUT_S. The timeout is enforced for each individual
+   operation, e.g. sending the command and reading its output as it is produced. That means the total runtime
+   of the command is allowed to be higher as long as the command can be sent in time and produces new output
+   frequently enough.
 
 =cut
 sub run_ssh_cmd ($self, $cmd, %args) {
