@@ -30,6 +30,7 @@ coverage:
           - consoles/sshIucvconn.pm
           - consoles/sshXtermVt.pm
           - consoles/ssh_screen.pm
+          - consoles/video_stream.pm
           - consoles/virtio_terminal.pm
           - consoles/vnc_base.pm
           - commands.pm
