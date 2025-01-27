@@ -1296,7 +1296,6 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
 
 =cut
 sub run_ssh_cmd ($self, $cmd, %args) {
-    my ($stdout, $stderr) = ('', '');
     $args{wantarray} //= 0;
     $args{keep_open} //= 1;
 
@@ -1304,15 +1303,23 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     my ($ssh, $chan) = $self->run_ssh($cmd, %args);
     $chan->send_eof;
 
+    my ($stdout, $stderr) = ('', '');
+    my $log_output = sub () {
+        bmwqemu::diag("[run_ssh_cmd($cmd)] stdout:$/$stdout") if length $stdout;
+        bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length $stderr;
+    };
     until ($chan->eof) {
         if (my ($o, $e) = $chan->read2) {
             $stdout .= $o;
             $stderr .= $e;
         }
+        else {
+            $log_output->();
+            $ssh->die_with_error;
+        }
     }
 
-    bmwqemu::diag("[run_ssh_cmd($cmd)] stdout:$/$stdout") if length($stdout);
-    bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length($stderr);
+    $log_output->();
     my $ret = $chan->exit_status();
     bmwqemu::diag("[run_ssh_cmd($cmd)] exit-code: $ret");
     $ssh->disconnect() unless $args{keep_open};
