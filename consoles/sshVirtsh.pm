@@ -671,14 +671,14 @@ sub run_cmd ($self, $cmd, %args) {
 
 =head2 get_cmd_output
 
-    $stdout = $svirt->get_cmd_output($cmd , $args = {domain => 'default', wantarray => 0});
+    $stdout = $svirt->get_cmd_output($cmd , $args = {domain => 'default', timeout => undef, wantarray => 0});
 
-With C<<wantarray => 1>> the function will return a reference to a list which
-contains I<stdout> and I<stderr>.
+With C<<wantarray => 1>> the function returns an array reference containing I<stdout> and
+I<stderr>.
 This function is B<deprecated>, you should use C<<$svirt->run_cmd()>> instead.
 =cut
 sub get_cmd_output ($self, $cmd, $args = {}) {
-    my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), wantarray => 1);
+    my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), timeout => $args->{timeout}, wantarray => 1);
     return $args->{wantarray} ? [$stdout, $stderr] : $stdout;
 }
 
