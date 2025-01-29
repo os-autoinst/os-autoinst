@@ -149,6 +149,40 @@ subtest '_download_file' => sub {
     like $stderr, qr{internal error occurred when downloading.*oops}, 'internal error was logged';
 };
 
+subtest 'sync assets hook used at the right time' => sub {
+    $downloader = OpenQA::Isotovideo::NeedleDownloader->new;
+    $bmwqemu::vars{SYNC_ASSETS_HOOK} = "touch -t 201801010000 '$needles_dir/foo.png' '$needles_dir/foo.json'; exit 32";
+    my @new_needles = (
+        {
+            id => 1,
+            name => 'foo',
+            directory => 'fixtures',
+            tags => [qw(some tag)],
+            json_path => '/needles/1/json',
+            image_path => '/needles/1/image',
+            t_created => '2018-01-01T00:00:00Z',
+            t_updated => '2018-01-01T00:00:00Z',
+        },
+        {
+            id => 2,
+            name => 'bar',
+            directory => 'fixtures',
+            tags => [qw(yet another tag)],
+            json_path => '/needles/2/json',
+            image_path => '/needles/2/image',
+            t_created => '2018-01-01T00:00:00Z',
+            t_updated => '2018-01-01T00:00:00Z',
+        },
+    );
+
+    # define expected downloads: nothing as download is skipped
+    my @expected_downloads = ();
+
+    $downloader->download_missing_needles(\@new_needles);
+    is_deeply($downloader->files_to_download, \@expected_downloads, 'download skipped')
+      or always_explain $downloader->files_to_download;
+};
+
 remove_tree($needles_dir);
 
 done_testing;

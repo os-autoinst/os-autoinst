@@ -124,6 +124,11 @@ sub download ($self) { $self->_download_file($_) for (@{$self->files_to_download
 # downloads missing needles considering $new_needles
 # (see t/21-needle-downloader.t for an example of $new_needles)
 sub download_missing_needles ($self, $new_needles) {
+    if ($new_needles && $bmwqemu::vars{SYNC_ASSETS_HOOK}) {
+        bmwqemu::diag("Running SYNC_ASSETS_HOOK");
+        my $ret = system($bmwqemu::vars{SYNC_ASSETS_HOOK});
+        return if ($ret == (32 << 8));
+    }
     $self->add_relevant_downloads($new_needles);
     $self->download();
 }
