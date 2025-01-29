@@ -393,7 +393,7 @@ sub save_storage ($self, $args) {
             # no need to save CDs
             return if ($node =~ qr/cd[0-9]-overlay/);
             my $my_node = "$node-$fname";
-            return unless $vars->{NAME};
+            return unless defined $vars->{NAME};
             my $bck_file = "assets_public/$my_node-$vars->{NAME}.qcow2";
             # create disk
             runcmd('qemu-img', 'create', '-f', 'qcow2', "$bck_file", $size);
