@@ -28,6 +28,7 @@ coverage:
           - consoles/sshSerial.pm
           - consoles/sshVirtsh.pm
           - consoles/sshIucvconn.pm
+          - consoles/sshXtermIPMI.pm
           - consoles/sshXtermVt.pm
           - consoles/ssh_screen.pm
           - consoles/video_stream.pm
