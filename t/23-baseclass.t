@@ -148,7 +148,7 @@ subtest 'SSH utilities' => sub {
                     shift->{connected} = 0;
                     return 1;
             });
-            $self->mock(error => sub { return @net_ssh2_error; });
+            $self->mock(error => sub { return @net_ssh2_error ? @net_ssh2_error : undef; });
             $self->mock(sock => sub {
                     my $self = shift;
                     unless ($self->{sock}) {
@@ -168,17 +168,18 @@ subtest 'SSH utilities' => sub {
                             my ($self, $cmd) = @_;
                             $self->{cmd} = $cmd;
                             $self->{eof} = 0;
-                            if ($cmd =~ /^(echo|test)/) {
-                                $self->{stdout} = qx{$cmd};
-                                $self->{exit_status} = $?;
-                                $self->{stderr} = '';
-                            }
+                            return 1 unless $cmd =~ /^(echo|test)/;
+                            my $output = qx{$cmd};
+                            $self->{exit_status} = $?;
+                            return 1 unless $cmd =~ /^echo/;
+                            $self->{stdout} = $output;
+                            $self->{stderr} = '';
                             return 1;
                     });
                     $mock_channel->mock(read2 => sub ($self) {
                             return () if $fail_on_read2;
                             $self->{eof} = 1;
-                            return ($self->{stdout}, $self->{stderr});
+                            return defined $self->{stdout} ? ($self->{stdout}, $self->{stderr}) : ();
                     });
                     $mock_channel->mock(eof => sub { return shift->{eof}; });
                     $mock_channel->mock(blocking => sub { return shift->{ssh}->blocking(shift) });
@@ -269,6 +270,8 @@ subtest 'SSH utilities' => sub {
     throws_ok { $baseclass->run_ssh_cmd('sleep infinity', %ssh_creds, timeout => 100) } qr/waiting for data.*timeout/i, 'read timeout is fatal error';
     is_deeply \@timeouts, [100, 42], 'timeout increased to specified value, then set back to mocked default again';
     ($fail_on_read2, @net_ssh2_error) = ();
+    @output = $baseclass->run_ssh_cmd('test foo', %ssh_creds, timeout => 100, wantarray => 1);
+    is_deeply \@output, [0, '', ''], 'command successful exit without output';
 
     # Create a SSH session implecit with `run_ssh_cmd()`
     $ssh_expect->{password} = '2+3=5';
