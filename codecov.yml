@@ -27,6 +27,7 @@ coverage:
           - consoles/serial_screen.pm
           - consoles/sshSerial.pm
           - consoles/sshVirtsh.pm
+          - consoles/sshVirtshSUT.pm
           - consoles/sshIucvconn.pm
           - consoles/sshXtermIPMI.pm
           - consoles/sshXtermVt.pm
