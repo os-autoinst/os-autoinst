@@ -69,7 +69,6 @@ subtest 'sshXtermIPMI activate' => sub {
     throws_ok {
         $sol_connection->activate();
     } qr/Unexpected IPMI response/, 'sshXterm dies with unexpected ipmi response';
-    $ipc_run_mock->unmock('run');
 };
 
 subtest 'sshXtermIPMI current_screen' => sub {
