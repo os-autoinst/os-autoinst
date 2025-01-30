@@ -1329,7 +1329,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
         # note: The example from the documentation suggests that a simple `else` is sufficient. However, this does
         #       not work when the command returns without producing any output and `die_with_error` dies with the
         #       error message `no libssh2 error registered` then.
-        elsif (defined $ssh->error) {
+        elsif ($ssh->error) {
             $log_output->();
             $ssh->die_with_error;
         }
