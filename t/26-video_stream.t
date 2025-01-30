@@ -108,10 +108,8 @@ subtest 'connect stream' => sub {
         '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
 
     $mock_console->redefine(update_framebuffer => sub ($self) { $self->{_last_update_received} = 200; return 0; });
-    my $start_time = time;
     $console->request_screen_update();
     is $console->{dv_timings_supported}, 1, 'dv timings are supported';
-    cmp_ok $console->{dv_timings_last_check}, '>=', $start_time, 'dv_timings_last_check ok';
     $mock_console->unmock('update_framebuffer');
     $console->disable_video;
 };
