@@ -7,6 +7,7 @@ package consoles::s3270;
 use Mojo::Base 'consoles::localXvnc', -signatures;
 use feature 'say';
 use Data::Dumper 'Dumper';
+use YAML::PP 'Dump';
 use Carp qw(confess cluck carp croak);
 require IPC::Run;
 use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
@@ -312,12 +313,12 @@ sub nice_3270_status ($self, $status_string) {
 }
 
 sub _connect_3270 ($self, $host) {
-    my $r = $self->send_3270("Connect($host)");
-    confess "connect to host >$host< failed.\n" . join("\n", @$r) if $r->{terminal_status} !~ / C\($host\) /;
+    my $sent = $self->send_3270("Connect($host)");
+    confess "connect to host >$host< failed.\n" . Dump($sent) if $sent->{terminal_status} !~ / C\($host\) /;
     $self->send_3270("Wait(InputField)");
-    $r = $self->expect_3270();
-    confess "doesn't look like zVM login prompt." unless grep /Fill in your USERID and PASSWORD and press ENTER/, @$r;
-    return $r;
+    my $lines = $self->expect_3270();
+    confess "doesn't look like zVM login prompt." unless grep /Fill in your USERID and PASSWORD and press ENTER/, @$lines;
+    return $lines;
 }
 
 sub _login_guest ($self, $guest, $password) {
