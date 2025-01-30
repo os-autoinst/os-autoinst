@@ -148,7 +148,7 @@ subtest 'SSH utilities' => sub {
                     shift->{connected} = 0;
                     return 1;
             });
-            $self->mock(error => sub { return @net_ssh2_error ? @net_ssh2_error : undef; });
+            $self->mock(error => sub { wantarray ? @net_ssh2_error : ($net_ssh2_error[0] // 0) });
             $self->mock(sock => sub {
                     my $self = shift;
                     unless ($self->{sock}) {
