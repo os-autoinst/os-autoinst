@@ -273,6 +273,7 @@ sub run_all () {
         warn $@;
         $died = 1;    # test execution died
     }
+    bmwqemu::debug_vars();
     eval {
         bmwqemu::save_vars(no_secret => 1);
         bmwqemu::diag("Sending tests_done");
