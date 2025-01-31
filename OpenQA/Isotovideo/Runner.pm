@@ -22,6 +22,7 @@ use autotest ();
 use needle ();
 use commands ();
 use distribution ();
+use Data::Dumper;
 
 has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
 
@@ -260,6 +261,7 @@ sub exit_code_from_test_results ($self) {
         my $result_file = path($result_file_path);
         my $test_result = decode_json($result_file->slurp)->{result};
         diag sprintf("Test result [%s] %s", $result_file->to_string, $test_result);
+
         # If a failure (anything different from ok & softfail) is found, keep it.
         next if $did_fail;
 

@@ -16,6 +16,7 @@ use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
+use Data::Dumper;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = "$Bin/..";
@@ -72,6 +73,13 @@ unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected term
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
     my $json = decode_json(path($result)->slurp);
+    # if ($result eq 'testresults/result-shutdown.json') {
+    #     diag("------\n");
+    #     diag(Dumper($json) . "\n");
+    #     diag("------\n");
+    #     # diag $log;
+    #     # diag("------\n");
+    # }
     is($json->{result}, 'ok', "Result in $result is ok");
 }
 
