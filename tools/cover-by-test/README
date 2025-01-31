@@ -1,0 +1,4 @@
+* Download cover-by-test.zip from github workflow
+* Unpack it to /path/to/cover-by-test
+* tools/cover-by-test/gatherdata.sh /path/to/cover-by-test /path/to/htmlreport sha
+* tools/cover-by-test/htmlreport.sh /path/to/htmlreport sha

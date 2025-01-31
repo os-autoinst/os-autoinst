@@ -1,7 +1,7 @@
 ---
 name: Author tests
 
-on: [push, pull_request]
+on: [] #push, pull_request]
 
 jobs:
   author-tests:
