@@ -127,8 +127,8 @@ sub handle_commands ($self) {
     $command_handler->on(tests_done => sub (@) {
             CORE::close($self->testfd);
             $self->testfd(undef);
-            $self->stop_autotest();
             $self->loop(0);
+            $self->stop_autotest();
     });
     # uncoverable statement count:1
     # uncoverable statement count:2

@@ -39,7 +39,7 @@ my @sent;    # array of messages sent with the fake json_send
 my @reset_consoles;
 my @selected_consoles;
 sub fake_send ($target, $msg) { push @sent, $msg }
-sub fake_read ($fd) {
+sub fake_read ($fd, $cmd_token = undef) {
     my $lcmd = $sent[-1];
     my $cmd = $lcmd->{cmd};
 
