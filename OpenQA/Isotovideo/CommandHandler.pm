@@ -295,6 +295,7 @@ sub _handle_command_tests_done ($self, $response, @) {
     $self->current_test_name('');
     $self->status('finished');
     $self->update_status_file;
+    $self->_respond_ok;
 }
 
 sub _handle_command_check_screen ($self, $response, @) {

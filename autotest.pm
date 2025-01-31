@@ -277,6 +277,7 @@ sub run_all () {
         bmwqemu::save_vars(no_secret => 1);
         bmwqemu::diag("Sending tests_done");
         myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
+        myjsonrpc::read_json($isotovideo);    # wait for response from isotovideo before exiting
     };
     warn "Error at the end of run_all: $@" if $@;
     _terminate;
