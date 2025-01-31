@@ -236,7 +236,7 @@ use Mojo::Base -strict, -signatures;
 use Net::DBus;
 use Net::DBus::Reactor;
 
-my $bus = Net::DBus->system;
+my $bus = Net::DBus->session;
 
 my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
 my $object = OVS->new($service);
