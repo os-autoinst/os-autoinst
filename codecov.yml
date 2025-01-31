@@ -51,6 +51,7 @@ coverage:
           - t/
           - xt/
           - script/check_qemu_oom
+          - script/vnctest
     patch:
       default:
         branches: null
