@@ -390,7 +390,7 @@ subtest 'python with bad run method' => sub {
     my $p1 = $autotest::tests{'tests-pythontest_with_bad_run_fn'};
 
     stderr_like {
-        throws_ok(sub { $p1->runtest }, qr{test pythontest_with_bad_run_fn died}, "expected failure on python side");
+        throws_ok { $p1->runtest } qr{test pythontest_with_bad_run_fn died}, "expected failure on python side";
     } qr{TypeError: run\(\) takes 0 positional arguments but 1 was given}, 'Expected output from pythontest_with_bad_runargs.py';
     is $bmwqemu::vars{PY_SUPPORT_FN_NOT_CALLED}, undef, 'set_var() was never called';
 };

@@ -31,9 +31,9 @@ subtest 'script_run' => sub {
     like $typed_string, qr/foo; echo .* > .*serial/, 'command is typed plus marker and redirection';
     $typed_string = '';
     throws_ok { $d->script_run('foo &') } qr/Terminator.*found.*background_script_run/, 'script_run with terminator is caught';
-    lives_ok sub { $d->script_run('foo\&') }, 'escaped terminator is accepted';
-    lives_ok sub { $d->script_run('foo && bar') }, 'AND operator is accepted';
-    lives_ok sub { $d->script_run('foo "x&"') }, 'quoted & is accepted';
+    lives_ok { $d->script_run('foo\&') } 'escaped terminator is accepted';
+    lives_ok { $d->script_run('foo && bar') } 'AND operator is accepted';
+    lives_ok { $d->script_run('foo "x&"') } 'quoted & is accepted';
     $mock_testapi->redefine(wait_serial => sub {
             my $regexp = shift;
             push @wait_serial_calls, {

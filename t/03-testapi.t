@@ -413,12 +413,12 @@ subtest 'check_assert_screen' => sub {
     my $mock_tinycv = Test::MockModule->new('tinycv');
     $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless({} => __PACKAGE__); });
 
-    throws_ok(sub { assert_screen(''); }, qr/no tags specified/, 'error if tag(s) is falsy scalar');
-    throws_ok(sub { assert_screen([]); }, qr/no tags specified/, 'error if tag(s) is empty array');
+    throws_ok { assert_screen('') } qr/no tags specified/, 'error if tag(s) is falsy scalar';
+    throws_ok { assert_screen([]) } qr/no tags specified/, 'error if tag(s) is empty array';
 
     my $current_test = $autotest::current_test;
     $autotest::current_test = undef;
-    throws_ok(sub { assert_screen('foo', 1); }, qr/current_test undefined/, 'error if current test undefined');
+    throws_ok { assert_screen('foo', 1) } qr/current_test undefined/, 'error if current test undefined';
     $autotest::current_test = $current_test;
 
     $mock_bmwqemu->unmock('log_call');
@@ -477,10 +477,9 @@ subtest 'check_assert_screen' => sub {
         $cmds = [];
 
         # simulate that we don't want to pause at all and just let it fail
-        throws_ok(sub { assert_screen('foo', 3, timeout => 2) },
-            qr/no candidate needle with tag\(s\) \'foo\' matched/,
-            'no candidate needle matched tags'
-        );
+        throws_ok { assert_screen('foo', 3, timeout => 2) }
+        qr/no candidate needle with tag\(s\) \'foo\' matched/,
+          'no candidate needle matched tags';
         is($report_timeout_called, 1, 'report_timeout called on timeout');
         is_deeply($cmds, [{
                     timeout => 2,
@@ -503,10 +502,9 @@ subtest 'check_assert_screen' => sub {
         # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
         $report_timeout_called = 0;
         $fake_pause_on_timeout = 1;
-        throws_ok(sub { assert_screen('foo', 3, timeout => 2) },
-            qr/no candidate needle with tag\(s\) \'foo\' matched/,
-            'no candidate needle matched tags'
-        );
+        throws_ok { assert_screen('foo', 3, timeout => 2) }
+        qr/no candidate needle with tag\(s\) \'foo\' matched/,
+          'no candidate needle matched tags';
         is($report_timeout_called, 2, 'report_timeout called once, and then again after pause');
 
         # simulate a match after pausing due to timeout
@@ -1209,10 +1207,7 @@ subtest 'send_key_until_needlematch' => sub {
     $mock_testapi->unmock('send_key');
     $fake_needle_found = $fake_needle_found_after_pause = 0;
     $cmds = [];
-    throws_ok(sub { send_key_until_needlematch('tag', 'esc', 3); },
-        qr/assert_screen reached/,
-        'no candidate needle matched tags'
-    );
+    throws_ok { send_key_until_needlematch('tag', 'esc', 3) } qr/assert_screen reached/, 'no candidate needle matched tags';
 
     my $count_send_key = 0;
     # Skip the first check_screen
