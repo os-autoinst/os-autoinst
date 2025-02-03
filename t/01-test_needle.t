@@ -7,7 +7,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Cwd 'abs_path';
-use Test::Exception;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(warning :report_warnings);
 use File::Basename;

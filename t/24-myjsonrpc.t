@@ -5,7 +5,6 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
-use Test::Exception;
 use Test::MockModule 'strict';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

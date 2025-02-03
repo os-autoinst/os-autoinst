@@ -5,7 +5,6 @@ use Mojo::Base -strict, -signatures;
 use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Test::Exception;
 use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;

@@ -7,7 +7,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
-use Test::Exception;
 use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;

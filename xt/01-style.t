@@ -12,6 +12,7 @@ ok system(qq{git grep -I -l 'This program is free software.*if not, see <http://
 ok system(qq{git grep -I -l '[#/ ]*SPDX-License-Identifier ' ':!COPYING' ':!external/' ':!xt/01-style.t'}) != 0, 'SPDX-License-Identifier correctly terminated';
 is qx{git grep -I -L '^use Test::Most' t/**.t}, '', 'All tests use Test::Most';
 is qx{git grep -I -L '^use Test::Warnings' t/**.t}, '', 'All tests use Test::Warnings';
+is qx{git grep -I -l '^use Test::Exception' t/**.t}, '', 'Test::Most already includes Test::Exception, no need to use Test::Exception';
 is qx{git grep -I -l '^use testapi' backend/ consoles/}, '', 'No backend or console files use external facing testapi';
 is qx{git grep -l -e '^sub \\S\\+ [^(]\\+' --and --not -e 'sub [(\{]' --and --not -e 'sub \\S\\+(' --and --not -e 'sub \\S\\+;' --and --not -e '# no:style:signatures' ':!external/'}, '', 'All files use sub signatures everywhere (nameless and in-place definitions still allowed)';
 is qx{git grep -L '^#!.*perl' t/**.t}, '', 'All test files have shebang';

@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
 use Test::Most;
-use Test::Exception;
 use Test::Warnings;
 use Mojo::Base -strict, -signatures;
 

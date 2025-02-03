@@ -14,7 +14,6 @@ use Mojo::Util qw(b64_encode);
 use Test::Output qw(combined_like stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Exception;
 use Scalar::Util 'looks_like_number';
 
 use OpenQA::Isotovideo::Interface;
