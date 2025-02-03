@@ -10,7 +10,6 @@ use OpenQA::Test::TimeLimit '5';
 use consoles::ssh_screen;
 use consoles::serial_screen;
 use bmwqemu;
-use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
 use Test::Output qw(combined_like);

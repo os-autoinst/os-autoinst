@@ -6,7 +6,6 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
-use Test::Fatal;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -17,7 +16,7 @@ my $mutparams = OpenQA::Qemu::MutParams->new;
 
 my @methods = qw(gen_cmdline to_map from_map has_state);
 for my $method (@methods) {
-    like(exception { $mutparams->$method }, qr{has not implemented $method}, "Exception for not implemented $method");
+    throws_ok { $mutparams->$method } qr{has not implemented $method}, "Exception for not implemented $method";
 }
 
 done_testing;

@@ -535,12 +535,12 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     $bmwqemu::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';
     my $expected_serial_file = '/tmp/' . $svirt->SERIAL_TERMINAL_LOG_PATH . '.CHECK_DELETE_TOKEN';
     $test_log_cnt = 11;
-    dies_ok(sub { $svirt->open_serial_console_via_ssh('NAME') }, "die() when log file wasn't created");
+    dies_ok { $svirt->open_serial_console_via_ssh('NAME') } "die() when log file wasn't created";
     is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
 
     $test_log_cnt = 0;
     $grep_return = 0;
-    dies_ok(sub { $svirt->open_serial_console_via_ssh('NAME') }, 'die() when emulate CONSOLE_EXIT token in log file');
+    dies_ok { $svirt->open_serial_console_via_ssh('NAME') } 'die() when emulate CONSOLE_EXIT token in log file';
     is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
 };
 

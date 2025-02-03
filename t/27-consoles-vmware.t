@@ -17,7 +17,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
 
-use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
 use Test::Mojo;

@@ -9,7 +9,6 @@ use utf8;
 
 use Mojo::File qw(path);
 use Test::Warnings qw(:all :report_warnings);
-use Test::Exception;
 use Test::Output qw(combined_like);
 use Test::MockModule;
 use Test::MockObject;

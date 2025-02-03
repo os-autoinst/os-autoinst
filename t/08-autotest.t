@@ -7,8 +7,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
-use Test::Exception;
-use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
 use Test::MockObject;
@@ -21,11 +19,11 @@ use OpenQA::Test::RunArgs;
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
-like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
+throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
-    like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
-        'loadtest catches incorrect test script paths')
-},
+    throws_ok { autotest::loadtest 'does/not/match' } qr/loadtest.*does not match required pattern/,
+    'loadtest catches incorrect test script paths'
+  },
   qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 
@@ -392,7 +390,7 @@ subtest 'python with bad run method' => sub {
     my $p1 = $autotest::tests{'tests-pythontest_with_bad_run_fn'};
 
     stderr_like {
-        throws_ok(sub { $p1->runtest }, qr{test pythontest_with_bad_run_fn died}, "expected failure on python side");
+        throws_ok { $p1->runtest } qr{test pythontest_with_bad_run_fn died}, "expected failure on python side";
     } qr{TypeError: run\(\) takes 0 positional arguments but 1 was given}, 'Expected output from pythontest_with_bad_runargs.py';
     is $bmwqemu::vars{PY_SUPPORT_FN_NOT_CALLED}, undef, 'set_var() was never called';
 };

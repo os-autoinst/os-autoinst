@@ -16,7 +16,6 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
-use Test::Fatal;
 
 use consoles::video_stream;
 use tinycv;

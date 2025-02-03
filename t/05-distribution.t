@@ -6,7 +6,6 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Fatal;
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -20,7 +19,7 @@ subtest 'script_run' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(type_string => undef);
     $mock_testapi->redefine(wait_serial => undef);
-    like(exception { $d->script_run }, qr/^Too few arguments/, 'Error on incorrect usage');
+    throws_ok { $d->script_run() } qr/^Too few arguments/, 'Error on incorrect usage';
     like(warning { $d->script_run('foo') }, qr/^Use of uninitialized.*serialdev/, 'Warning on undefined serialdev');
     {
         no warnings 'once';
@@ -31,10 +30,10 @@ subtest 'script_run' => sub {
     lives_ok { $d->script_run('foo') } 'script_run succeeds with trivial command';
     like $typed_string, qr/foo; echo .* > .*serial/, 'command is typed plus marker and redirection';
     $typed_string = '';
-    like(exception { $d->script_run('foo &') }, qr/Terminator.*found.*background_script_run/, 'script_run with terminator is caught');
-    lives_ok sub { $d->script_run('foo\&') }, 'escaped terminator is accepted';
-    lives_ok sub { $d->script_run('foo && bar') }, 'AND operator is accepted';
-    lives_ok sub { $d->script_run('foo "x&"') }, 'quoted & is accepted';
+    throws_ok { $d->script_run('foo &') } qr/Terminator.*found.*background_script_run/, 'script_run with terminator is caught';
+    lives_ok { $d->script_run('foo\&') } 'escaped terminator is accepted';
+    lives_ok { $d->script_run('foo && bar') } 'AND operator is accepted';
+    lives_ok { $d->script_run('foo "x&"') } 'quoted & is accepted';
     $mock_testapi->redefine(wait_serial => sub {
             my $regexp = shift;
             push @wait_serial_calls, {
