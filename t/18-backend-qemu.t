@@ -11,7 +11,6 @@ use Test::MockObject;
 use Test::Mock::Time;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
-use Test::Fatal;
 use Carp;
 use Mojo::Collection;
 use Mojo::File qw(tempdir path);
@@ -65,12 +64,12 @@ is($called{add_console}, 1, 'one console has been added');
 subtest 'using Open vSwitch D-Bus service' => sub {
     my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not provided|Failed to connect)/;
     my $msg = 'error about missing service';
-    like exception { $backend->_dbus_call('show', 'foo', 'bar') }, $expected, $msg . ' in exception';
+    throws_ok { $backend->_dbus_call('show', 'foo', 'bar') } $expected, $msg . ' in exception';
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
     combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
-    like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
+    throws_ok { $backend->_dbus_call('show') } qr/failed/, 'failed dbus call throws exception';
 
     # test one unmocked _dbus_do_call againsted mocked Net::DBus
     $backend_mock->unmock('_dbus_do_call');

@@ -15,7 +15,6 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Fatal;
 use Mojo::File qw(tempdir tempfile);
 use Scalar::Util qw(blessed openhandle);
 use POSIX qw(waitpid WNOHANG);

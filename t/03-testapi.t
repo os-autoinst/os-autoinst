@@ -12,7 +12,6 @@ use File::Temp;
 use Mojo::File qw(path);
 use Mojo::Util qw(b64_encode);
 use Test::Output qw(combined_like stderr_like stderr_unlike);
-use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
 use Scalar::Util 'looks_like_number';
 
@@ -321,23 +320,17 @@ subtest 'script_run' => sub {
     stderr_like { is(assert_script_run('true'), undef, 'nothing happens on success') } qr/wait_serial/, 'log';
     $mock_bmwqemu->noop('fctres');
     $fake_exit = 1;
-    like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');
-    like(exception { assert_script_run 'false', 0; }, qr/command.*false.*timed out/, 'exception message distinguishes failed/timed out');
-    like(
-        exception { assert_script_run 'false', 7, 'my custom fail message'; },
-        qr/command.*false.*failed: my custom fail message at/,
-        'custom message on die (deprecated mode)'
-    );
-    like(
-        exception { assert_script_run('false', fail_message => 'my custom fail message'); },
-        qr/command.*false.*failed: my custom fail message at/,
-        'using named arguments'
-    );
-    like(
-        exception { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); },
-        qr/command.*false.*timed out/,
-        'using two named arguments; fail message does not apply on timeout'
-    );
+    throws_ok { assert_script_run 'false', 42 } qr/command.*false.*failed at/, 'with timeout option (deprecated mode)';
+    throws_ok { assert_script_run 'false', 0; } qr/command.*false.*timed out/, 'exception message distinguishes failed/timed out';
+    throws_ok { assert_script_run 'false', 7, 'my custom fail message'; }
+    qr/command.*false.*failed: my custom fail message at/,
+      'custom message on die (deprecated mode)';
+    throws_ok { assert_script_run('false', fail_message => 'my custom fail message'); }
+    qr/command.*false.*failed: my custom fail message at/,
+      'using named arguments';
+    throws_ok { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); }
+    qr/command.*false.*timed out/,
+      'using two named arguments; fail message does not apply on timeout';
     $fake_exit = 0;
     $cmds = [];
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
@@ -750,7 +743,7 @@ subtest 'assert_and_dclick' => sub {
 subtest 'record_info' => sub {
     ok(record_info('my title', "my output\nnext line"), 'simple call');
     ok(record_info('my title', 'output', result => 'ok', resultname => 'foo'), 'all arguments');
-    like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
+    throws_ok { record_info('my title', 'output', result => 'not supported', resultname => 'foo') } qr/unsupported/, 'invalid result';
 };
 
 sub script_output_test ($is_serial_terminal) {
@@ -776,12 +769,12 @@ sub script_output_test ($is_serial_terminal) {
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
     $mock_testapi->redefine(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
-    like(exception { script_output('timeout'); }, qr/timeout/, 'die expected with timeout');
+    throws_ok { script_output('timeout'); } qr/timeout/, 'die expected with timeout';
 
     subtest 'script_output check error codes' => sub {
         for my $ret ((1, 10, 100, 255)) {
             $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-");
-            like(exception { script_output('false'); }, qr/script failed/, "script_output die expected on exitcode $ret");
+            throws_ok { script_output('false'); } qr/script failed/, "script_output die expected on exitcode $ret";
         }
     };
 
@@ -877,8 +870,8 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
     ok(assert_still_screen, 'default arguments to assert_still_screen');
     my $testapi = Test::MockModule->new('testapi');
     $testapi->redefine(wait_still_screen => sub { die "wait_still_screen(@_)" });
-    like(exception { assert_still_screen similarity_level => 9999; }, qr/wait_still_screen\(similarity_level 9999\)/,
-        'assert_still_screen forwards arguments to wait_still_screen');
+    throws_ok { assert_still_screen similarity_level => 9999; } qr/wait_still_screen\(similarity_level 9999\)/,
+      'assert_still_screen forwards arguments to wait_still_screen';
     $fake_timeout = 1;
     ok !wait_still_screen, 'falsy return value on timeout';
 };
@@ -1139,8 +1132,8 @@ subtest 'mouse_drag' => sub {
                 cmd => 'backend_mouse_button'
             },
     ], 'mouse drag (redundant definition by a needle)') or always_explain $cmds;
-    like exception { mouse_drag(endx => $endx, endy => $endy) }, qr/starting.*point.*not.*provided/, 'faile for no start';
-    like exception { mouse_drag(startx => $endx, starty => $endy) }, qr/ending.*point.*not.*provided/, 'faile for no end';
+    throws_ok { mouse_drag(endx => $endx, endy => $endy) } qr/starting.*point.*not.*provided/, 'faile for no start';
+    throws_ok { mouse_drag(startx => $endx, starty => $endy) } qr/ending.*point.*not.*provided/, 'faile for no end';
 };
 
 subtest 'show_curl_progress_meter' => sub {
@@ -1189,7 +1182,7 @@ subtest 'get_var_array and check_var_array' => sub {
     ok !check_var_array('MY_ARRAY', '4'), 'not present entry returns false';
 };
 
-like(exception { x11_start_program 'true' }, qr/implement x11_start_program/, 'x11_start_program needs specific implementation');
+throws_ok { x11_start_program 'true' } qr/implement x11_start_program/, 'x11_start_program needs specific implementation';
 
 subtest 'send_key_until_needlematch' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
@@ -1281,11 +1274,11 @@ subtest 'upload_asset and parse_junit_log' => sub {
     is upload_asset('foo'), undef, 'upload_asset can be called offline (but does nothing)';
     delete $bmwqemu::vars{OFFLINE_SUT};
     $mock_testapi->redefine(upload_logs => sub { die 'foo' });
-    like(exception { parse_junit_log('foo') }, qr/foo/, 'parse_junit_log calls upload_logs');
+    throws_ok { parse_junit_log('foo') } qr/foo/, 'parse_junit_log calls upload_logs';
 };
 
 subtest 'ensure_installed test' => sub {
-    like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
+    throws_ok { ensure_installed } qr/implement.*for your distri/, 'ensure_installed can be called';
 
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->noop('x11_start_program', 'wait_still_screen');

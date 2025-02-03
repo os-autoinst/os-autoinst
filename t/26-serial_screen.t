@@ -4,7 +4,6 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
-use Test::Fatal;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';

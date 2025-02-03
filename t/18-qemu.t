@@ -6,7 +6,6 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Test::Fatal;
 use Test::Warnings qw(warnings :report_warnings);
 use Test::Output qw(stderr_from);
 use Mojo::File qw(tempfile tempdir path);
@@ -182,7 +181,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deser
 $ENV{QEMU_IMG_CREATE_TRIES} = 2;
 my $expected = qr/failed after 2 tries.*No such.*directory/s;
 my @warnings = warnings {
-    like exception { $proc->init_blockdev_images() }, $expected, 'init_blockdev_images can report error';
+    throws_ok { $proc->init_blockdev_images() } $expected, 'init_blockdev_images can report error';
 };
 like $warnings[0], qr/No such.*directory/, 'failure message for no directory';
 mkdir 'raid';
@@ -454,11 +453,9 @@ subtest configure_controllers => sub {
     local $SIG{__DIE__} = undef;
     my $proc = OpenQA::Qemu::Proc->new;
     my %vars = (HDDMODEL => 'virtio-scsi-foo');
-    my $exception = exception { $proc->configure_controllers(\%vars) };
-    like $exception, qr{Set HDDMODEL to scsi-hd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for HDDMODEL';
+    throws_ok { $proc->configure_controllers(\%vars) } qr{Set HDDMODEL to scsi-hd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for HDDMODEL';
     %vars = (HDDMODEL => '', CDMODEL => 'virtio-scsi-foo');
-    $exception = exception { $proc->configure_controllers(\%vars) };
-    like $exception, qr{Set CDMODEL to scsi-cd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for CDMODEL';
+    throws_ok { $proc->configure_controllers(\%vars) } qr{Set CDMODEL to scsi-cd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for CDMODEL';
 
     my @controllers;
     $cc->redefine(add_controller => sub ($self, $x, $y) {
@@ -528,8 +525,7 @@ subtest configure_pflash => sub {
     my $proc = OpenQA::Qemu::Proc->new;
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
     my %vars = (UEFI => 1, UEFI_PFLASH => 1, UEFI_PFLASH_CODE => 'x');
-    my $exc = exception { $proc->configure_pflash(\%vars) };
-    like $exc, qr{Mixing old and new PFLASH variables}, 'Fatal mixing of old and new PFLASH';
+    throws_ok { $proc->configure_pflash(\%vars) } qr{Mixing old and new PFLASH variables}, 'Fatal mixing of old and new PFLASH';
 
     my $bdc = Test::MockModule->new('OpenQA::Qemu::BlockDevConf');
     my @flash;
@@ -546,16 +542,14 @@ subtest configure_pflash => sub {
     is_deeply \@flash, [[qw(pflash foo 3)]], 'add_pflash_drive correctly called';
 
     %vars = (UEFI => 1, UEFI_PFLASH_VARS => 'vars');
-    $exc = exception { $proc->configure_pflash(\%vars) };
-    like $exc, qr{Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS}, 'Fatal UEFI_PFLASH_VARS without UEFI_PFLASH_CODE';
+    throws_ok { $proc->configure_pflash(\%vars) } qr{Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS}, 'Fatal UEFI_PFLASH_VARS without UEFI_PFLASH_CODE';
 };
 
 subtest connect_qmp => sub {
     local $SIG{__DIE__} = undef;
     local $ENV{QEMU_QMP_CONNECT_ATTEMPTS} = -1;
     my $proc = OpenQA::Qemu::Proc->new;
-    my $exc = exception { $proc->connect_qmp };
-    like $exc, qr{Can't open QMP socket}, 'Fatal connect_qmp';
+    throws_ok { $proc->connect_qmp } qr{Can't open QMP socket}, 'Fatal connect_qmp';
 };
 
 subtest save_state => sub {

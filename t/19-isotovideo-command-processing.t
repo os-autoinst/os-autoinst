@@ -9,7 +9,6 @@ use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Output qw(stderr_like stderr_unlike combined_like);
 use Test::Warnings ':report_warnings';
-use Test::Fatal;
 use Mojo::JSON 'encode_json';
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
@@ -363,12 +362,12 @@ subtest 'send_clients' => sub {
 };
 
 subtest 'invalid command' => sub {
-    like exception {
+    throws_ok {
         $command_handler->process_command($answer_fd, {
                 cmd => 'foobar',
                 lala => 23,
         });
-    }, qr{isotovideo: unknown command foobar}, 'Correct error message for unknown command';
+    } qr{isotovideo: unknown command foobar}, 'Correct error message for unknown command';
 };
 
 subtest '_is_configured_to_pause_on_timeout' => sub {

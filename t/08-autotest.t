@@ -7,7 +7,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
-use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
 use Test::MockObject;
@@ -20,11 +19,11 @@ use OpenQA::Test::RunArgs;
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
-like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
+throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
-    like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
-        'loadtest catches incorrect test script paths')
-},
+    throws_ok { autotest::loadtest 'does/not/match' } qr/loadtest.*does not match required pattern/,
+    'loadtest catches incorrect test script paths'
+  },
   qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 

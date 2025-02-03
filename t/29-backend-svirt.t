@@ -6,7 +6,6 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Fatal;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Mock::Time;
