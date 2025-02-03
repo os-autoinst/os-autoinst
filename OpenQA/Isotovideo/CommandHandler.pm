@@ -291,6 +291,7 @@ sub _handle_command_set_current_test ($self, $response, @) {
 sub _handle_command_tests_done ($self, $response, @) {
     $self->test_died($response->{died});
     $self->test_completed($response->{completed});
+    $self->_respond_ok;
     $self->emit(tests_done => $response);
     $self->current_test_name('');
     $self->status('finished');
