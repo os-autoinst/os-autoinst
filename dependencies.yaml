@@ -94,7 +94,6 @@ test_base_requires:
   perl(Devel::Cover):
   perl(FindBin):
   perl(Pod::Coverage):
-  perl(Test::Fatal):
   perl(Test::MockModule):
   perl(Test::MockObject):
   perl(Test::MockRandom):
