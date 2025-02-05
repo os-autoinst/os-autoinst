@@ -3,9 +3,9 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::MockModule 'strict';
-use Test::Warnings qw(:all :report_warnings);
 use Test::MockObject;
-use Test::Output qw(combined_like stderr_like);
+use Test::Warnings qw(:report_warnings warnings);
+use Test::Output qw(combined_like);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
@@ -73,10 +73,12 @@ subtest 's3270_console connect_and_login' => sub {
             $count += 1;
             return $return_lines;
     });
-
-    stderr_like {
-        $s3270_console->connect_and_login();
-    } qr/connect_and_login:.*RECONNECT.*trying hard shutdown and reconnect.*/s, 'Reconnect attempted';
+    cmp_deeply(
+        [warnings { $s3270_console->connect_and_login(); }],
+        bag(
+            re(qr/connect_and_login.*\nRECONNECT.*\n/), re(qr/trying hard shutdown and reconnect.*/),
+        ), 'got reboot attempt',
+    );
 };
 
 done_testing();
