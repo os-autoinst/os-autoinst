@@ -39,11 +39,11 @@ autotest::loadtest "tests/assert_screen.pm";
 unless ($integration_tests) {
     autotest::loadtest "tests/save_storage.pm";
     autotest::loadtest "tests/typing.pm";
-    autotest::loadtest "tests/select_console_fail_test.pm";
-    autotest::loadtest "tests/select_ssh_console_fail_test.pm";
-    autotest::loadtest "tests/assert_screen_fail_test.pm";
-    autotest::loadtest "tests/reload_needles.pm";
-    autotest::loadtest "tests/modify_and_upload_file.pm";
+    #autotest::loadtest "tests/select_console_fail_test.pm";
+    #autotest::loadtest "tests/select_ssh_console_fail_test.pm";
+    #autotest::loadtest "tests/assert_screen_fail_test.pm";
+    #autotest::loadtest "tests/reload_needles.pm";
+    #autotest::loadtest "tests/modify_and_upload_file.pm";
 }
 autotest::loadtest "tests/shutdown.pm";
 

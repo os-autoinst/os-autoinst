@@ -66,12 +66,16 @@ sub stop_audiocapture ($self, $args) {
     $self->handle_qmp_command(_wrap_hmc("stopcapture 0"));
 }
 
-# parameters: acpi, reset, (on), off
+# parameters: acpi, reset, (on), off 
 sub power ($self, $args) {
     my %action_to_cmd = (
         acpi => 'system_powerdown',
         reset => 'system_reset',
-        off => 'quit',
+        off => 'input-send-event',  arguments => {events => [
+            { type=> 'key', data => { down => 'true', key=> {type => "qcode", data =>"ctrl" } } },
+            { type=> "key", data => { down => 'true', key=> {type => "qcode", data=> "alt" } } },
+            { type=> "key", data => { down => 'true', key=> {type => "qcode", data=> "delete" } } }
+        ]},
     );
     $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
