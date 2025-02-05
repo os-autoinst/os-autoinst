@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
-use Data::Dumper;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::MockModule 'strict';
+use Test::Warnings qw(:all :report_warnings);
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use FindBin '$Bin';
@@ -66,15 +66,11 @@ subtest 's3270_console connect_and_login' => sub {
             return {terminal_status => "Connection to C($bmwqemu::vars{ZVM_HOST}) OK"} if $command =~ /Connect\(\w.+\)/;
     });
     $s3270_console_mock->redefine(expect_3270 => sub ($self, %arg) {
+            return ['Fill in your USERID and PASSWORD and press ENTER'] unless keys %arg == 1 && exists $arg{buffer_ready};
             my $return_lines;
-            if ((keys %arg == 1) && exists $arg{buffer_ready}) {
-                $return_lines = ['RECONNECT'] if $count == 0;
-                $return_lines = ['CONNECTED'] if $count == 1;
-                $count += 1;
-            }
-            else {
-                $return_lines = ['Fill in your USERID and PASSWORD and press ENTER'];
-            }
+            $return_lines = ['RECONNECT'] if $count == 0;
+            $return_lines = ['CONNECTED'] if $count == 1;
+            $count += 1;
             return $return_lines;
     });
 
