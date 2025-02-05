@@ -5,7 +5,7 @@ use Mojo::Base -strict, -signatures;
 use Test::MockModule 'strict';
 use Test::MockObject;
 use Test::Warnings qw(:report_warnings warnings);
-use Test::Output qw(combined_like);
+use Test::Output qw(combined_like stdout_like);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
@@ -77,8 +77,48 @@ subtest 's3270_console connect_and_login' => sub {
         [warnings { $s3270_console->connect_and_login(); }],
         bag(
             re(qr/connect_and_login.*\nRECONNECT.*\n/), re(qr/trying hard shutdown and reconnect.*/),
-        ), 'got reboot attempt',
+        ), 'reconnect attempt',
     );
+
+    $s3270_console_mock->redefine(expect_3270 => sub ($self, %arg) {
+            return ['Fill in your USERID and PASSWORD and press ENTER'] unless keys %arg == 1 && exists $arg{buffer_ready};
+            return ['RECONNECT'];
+    });
+    cmp_deeply(
+        [
+            warnings {
+                throws_ok {
+                    $s3270_console->connect_and_login();
+                } qr/Could not reclaim.*\n.*/, 'Dies';
+            }
+        ],
+        bag(
+            re(qr/connect_and_login.*\nRECONNECT.*\n/),
+            re(qr/trying hard shutdown and reconnect.*/),
+            re(qr/trying hard shutdown and reconnect.*/),
+            re(qr/connect_and_login.*\nRECONNECT.*\n/),
+            re(qr/connect_and_login.*\nRECONNECT.*\n/),
+            re(qr/Still connected, it's s390, so.*/),
+        ), 'reconnect attempt',
+    );
+};
+
+subtest 'expect_3270 tests' => sub {
+    my $count = 0;
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
+            if ($command =~ /Wait\(0,Output\)/) {
+                return {'command_output' => ['success'], 'command_status' => 'ok'};
+            }
+            return {'command_output' => ['OutputArea', 'InputLine', 'RUNNING']} if $command eq 'Snap(Ascii)';
+
+    });
+    my $ret = 0;
+
+    stdout_like {
+        $ret = $s3270_console->expect_3270();
+    } qr/expect_3270 queue.*\n.*/, 'Result matches';
+    is_deeply($ret->[0], 'OutputArea', 'Output Matches');
 };
 
 done_testing();
