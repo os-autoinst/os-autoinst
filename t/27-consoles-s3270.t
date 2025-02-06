@@ -2,13 +2,14 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Test::Mock::Time;
 use Test::MockModule 'strict';
 use Test::MockObject;
 use Test::Warnings qw(:report_warnings warnings);
 use Test::Output qw(combined_like stdout_like);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '10';
+use OpenQA::Test::TimeLimit '5';
 use consoles::s3270;
 
 $bmwqemu::vars{ZVM_HOST} = "localhost.localdomain";
