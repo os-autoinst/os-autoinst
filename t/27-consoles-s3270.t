@@ -86,13 +86,7 @@ subtest 's3270_console connect_and_login' => sub {
             return ['RECONNECT'];
     });
     cmp_deeply(
-        [
-            warnings {
-                throws_ok {
-                    $s3270_console->connect_and_login();
-                } qr/Could not reclaim.*\n.*/, 'Dies';
-            }
-        ],
+        [warnings { throws_ok { $s3270_console->connect_and_login() } qr/Could not reclaim.*\n.*/, 'dies' }],
         bag(
             re(qr/connect_and_login.*\nRECONNECT/),
             re(qr/trying hard shutdown and reconnect/),
@@ -105,19 +99,16 @@ subtest 's3270_console connect_and_login' => sub {
 };
 
 subtest 'expect_3270 tests' => sub {
-    my $count = 0;
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
     $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
             return {'command_output' => ['success'], 'command_status' => 'ok'} if $command =~ /Wait\(0,Output\)/;
             return {'command_output' => ['OutputArea', 'InputLine', 'RUNNING']} if $command eq 'Snap(Ascii)';
 
     });
-    my $ret = 0;
 
-    stdout_like {
-        $ret = $s3270_console->expect_3270();
-    } qr/expect_3270 queue.*\n.*/, 'Result matches';
-    is_deeply($ret->[0], 'OutputArea', 'Output Matches');
+    my $ret = 0;
+    stdout_like { $ret = $s3270_console->expect_3270() } qr/expect_3270 queue.*\n.*/, 'result matches';
+    is $ret->[0], 'OutputArea', 'output matches';
 };
 
 done_testing();
