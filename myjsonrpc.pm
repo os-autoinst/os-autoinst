@@ -83,7 +83,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
             bmwqemu::diag(sprintf("read_json(%d) json_cmd_token=%s", $fd, $hash->{json_cmd_token} // 'no-token')) if is_debug();
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
-                push @results, undef;
+                push @results, $hash;
                 last;
             }
             confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement

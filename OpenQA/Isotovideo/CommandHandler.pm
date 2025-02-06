@@ -119,6 +119,7 @@ sub _send_to_cmd_srv ($self, $data) { myjsonrpc::send_json($self->cmd_srv_fd, $d
 sub _send_to_backend ($self, $data) { myjsonrpc::send_json($self->backend_fd, $data) }
 
 sub send_to_backend_requester ($self, $data) {
+    return undef unless $self->backend_requester;
     myjsonrpc::send_json($self->backend_requester, $data);
     $self->backend_requester(undef);
 }

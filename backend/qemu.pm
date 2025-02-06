@@ -1121,8 +1121,14 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
         bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }
-    my $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
-    die "handle_qmp_command: syswrite failed $!" unless ($wb == length($line));
+    local $SIG{__DIE__} = undef;    # prevent custom die handler so that a broken pipe can be handled
+    my $wb;
+    try { $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line) }
+    catch ($e) {
+        return {return => {status => 'shutdown'}} if $e =~ qr/Broken pipe/;
+        die "handle_qmp_command: Unexpected error: $e";
+    }
+    die "handle_qmp_command: syswrite failed $!" unless $wb && $wb == length($line);
 
     my $hash;
     do {
