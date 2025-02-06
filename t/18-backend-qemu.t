@@ -62,7 +62,7 @@ ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
 
 subtest 'using Open vSwitch D-Bus service' => sub {
-    my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not provided|Failed to connect)/;
+    my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not (provided|activatable)|Failed to connect)/;
     my $msg = 'error about missing service';
     throws_ok { $backend->_dbus_call('show', 'foo', 'bar') } $expected, $msg . ' in exception';
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
