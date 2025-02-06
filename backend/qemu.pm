@@ -41,6 +41,7 @@ sub new ($class) {
     $self->{pidfilename} = 'qemu.pid';
     $self->{proc} = OpenQA::Qemu::Proc->new();
     $self->{proc}->_process->pidfile($self->{pidfilename});
+    $self->{expected_shutdown} = 0;
     return $self;
 }
 
@@ -74,6 +75,11 @@ sub power ($self, $args) {
         reset => 'system_reset',
         off => 'quit',
     );
+    if ($args->{action} eq 'off') {
+        $self->{expected_shutdown} = 1;
+        $self->disable_consoles();
+    }
+    bmwqemu::diag("POWER: action: $args->{action}, expected_shutdown: $self->{expected_shutdown}");
     $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
 
@@ -1120,8 +1126,18 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
         bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }
-    my $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
-    die "handle_qmp_command: syswrite failed $!" unless ($wb == length($line));
+    local $SIG{__DIE__} = undef;    # prevent custom die handler so that a broken pipe can be handled
+    my $wb;
+    try { $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line) }
+    catch ($e) {
+        if ($line =~ qr/query-status/ && $self->{expected_shutdown} && $e =~ qr/(Broken pipe|Bad file descriptor)/) {
+            return {return => {status => 'shutdown'}};
+        }
+        # these two lines are actually covered via t/99-full-stack-stop.t but the coverage doesn't detect it
+        bmwqemu::fctwarn("The following qmp_command failed because qemu was explicitly stopped from test code via power('off'):\n$line") if $self->{expected_shutdown}; # uncoverable statement
+        die "handle_qmp_command: Unexpected error: $e";    # uncoverable statement
+    }
+    die "handle_qmp_command: syswrite failed $!" unless $wb && $wb == length($line);
 
     my $hash;
     do {
@@ -1157,7 +1173,8 @@ sub read_qemupipe ($self) {
     return $bytes;
 }
 
-sub close_pipes ($self) {
+sub close_pipes ($self, $closeall = 0) {
+    # if closeall is 1, close not only pipes to qemu but also jsonrpc connection to autotest
     $self->do_stop_vm() if $self->{started};
 
     if (my $qemu_pipe = $self->{qemupipe}) {
@@ -1175,7 +1192,7 @@ sub close_pipes ($self) {
         $self->{qmpsocket} = undef;
     }
 
-    $self->SUPER::close_pipes() unless exists $self->{stop_only_qemu} && $self->{stop_only_qemu};
+    $self->SUPER::close_pipes() if $closeall || !((exists $self->{stop_only_qemu} && $self->{stop_only_qemu}) || $self->{expected_shutdown});
 }
 
 sub is_shutdown ($self, @) {

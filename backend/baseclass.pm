@@ -453,7 +453,7 @@ sub stop_vm ($self, @) {
     }
     $self->_stop_video_encoder();
     $self->close_ssh_connections();
-    $self->close_pipes();    # does not return
+    $self->close_pipes(1);    # does not return
     return;
 }
 
@@ -588,7 +588,7 @@ sub wait_still_screen ($self, $args) {
     return {postponed => 1};
 }
 
-sub close_pipes ($self) {
+sub close_pipes ($self, $closeall = 0) {
     if ($self->{cmdpipe}) {
         close($self->{cmdpipe}) || die "close $!\n";
         $self->{cmdpipe} = undef;
