@@ -22,6 +22,7 @@ package OpenQA::Qemu::Proc;
 use Mojo::Base -base, -signatures;
 
 use Data::Dumper;
+use Feature::Compat::Try;
 use File::Basename;
 use File::Which;
 use Mojo::JSON qw(encode_json decode_json);
@@ -127,11 +128,11 @@ sub get_img_json_field ($self, $path, $field) {
     # JSON decode failures and assume the previous command has printed the
     # error string already
     my $map;
-    {
+    try {
         local $SIG{__DIE__} = 'DEFAULT';
-        $map = eval { decode_json($json) }
-    };
-    die "$json\n" if $@;
+        $map = decode_json($json)
+    }
+    catch ($e) { die "$json\n" }
     die "No $field field in: " . Dumper($map) unless defined $map->{$field};
     return $map->{$field};
 }
@@ -280,6 +281,22 @@ sub gen_cmdline ($self) {
         map { $_->gen_cmdline() } @{$self->_mut_params});
 }
 
+sub _run_img_cmd ($self, $cmd) {
+    my $tries = $ENV{QEMU_IMG_CREATE_TRIES} // 3;
+    my $error;
+    for (1 .. $tries) {
+        try {
+            runcmd($self->qemu_img_bin, @$cmd);
+            return;
+        }
+        catch ($e) {
+            bmwqemu::diag("init_blockdev_images: '@$cmd' failed: $e, try $_ out of $tries");
+            $error = $e;
+        }
+    }
+    die "init_blockdev_images: '@$cmd' failed after $tries tries: $error";
+}
+
 =head3 init_blockdev_images
 
 Create and delete storage device images based on the current state of the
@@ -294,18 +311,7 @@ sub init_blockdev_images ($self) {
         no autodie 'unlink';
         unlink($file) if -e $file;
     }
-
-    my $tries = $ENV{QEMU_IMG_CREATE_TRIES} // 3;
-    for my $qicmd ($self->blockdev_conf->gen_qemu_img_cmdlines()) {
-        for (1 .. $tries) {
-            undef $@;
-            eval { runcmd($self->qemu_img_bin, @$qicmd) };
-            last unless $@;
-            bmwqemu::diag("init_blockdev_images: '@$qicmd' failed: $@, try $_ out of $tries");
-        }
-        die "init_blockdev_images: '@$qicmd' failed after $tries tries: $@" if $@;
-    }
-
+    $self->_run_img_cmd($_) for $self->blockdev_conf->gen_qemu_img_cmdlines();
     bmwqemu::diag('init_blockdev_images: Finished creating block devices');
     $self->blockdev_conf->mark_all_created();
 }
