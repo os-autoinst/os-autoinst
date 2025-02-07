@@ -10,7 +10,6 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '450';
 use Test::Warnings ':report_warnings';
-use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
