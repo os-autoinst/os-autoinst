@@ -79,6 +79,7 @@ RUN zypper in -y -C \
        'perl(Exporter)' \
        'perl(ExtUtils::testlib)' \
        'perl(Fcntl)' \
+       'perl(Feature::Compat::Try)' \
        'perl(File::Basename)' \
        'perl(File::Find)' \
        'perl(File::Map)' \

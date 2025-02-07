@@ -20,6 +20,7 @@ requires 'Exception::Class';
 requires 'Exporter';
 requires 'ExtUtils::testlib';
 requires 'Fcntl';
+requires 'Feature::Compat::Try';
 requires 'File::Basename';
 requires 'File::Find';
 requires 'File::Map';
