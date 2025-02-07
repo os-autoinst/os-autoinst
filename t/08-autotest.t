@@ -210,8 +210,7 @@ stderr_like { autotest::run_all } qr/Snapshots are not supported/, 'run_all outp
 is($died, 0, 'run_args test should not die if there is no run_args');
 is($completed, 0, 'run_args test should not complete if there is no run_args');
 
-eval { autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => {foo => 'bar'}); };
-like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error message mentions RunArgs');
+throws_ok { autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => {foo => 'bar'}) } qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error message mentions RunArgs';
 
 # now let's make the tests fail...but so far none is fatal. We also
 # have to mock query_isotovideo so we think snapshots are supported.
@@ -369,8 +368,7 @@ subtest 'python run_args' => sub {
     my $targs = OpenQA::Test::RunArgs->new();
     $targs->{data} = 23;
 
-    eval { autotest::loadtest('tests/pythontest_with_runargs.py', run_args => $targs); };
-    like($@, qr/run_args is not supported in Python test modules/, 'error message mentions run_args and python');
+    throws_ok { autotest::loadtest('tests/pythontest_with_runargs.py', run_args => $targs) } qr/run_args is not supported in Python test modules/, 'error message mentions run_args and python';
 };
 
 subtest 'python with bad run method' => sub {

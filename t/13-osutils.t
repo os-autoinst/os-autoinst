@@ -154,9 +154,9 @@ subtest runcmd => sub {
     is $ret, 0, "qemu-image creation and get its return code";
     stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running `rm/, 'debug runcmd output with rm';
     is $ret, 0, "delete image and get its return code";
-    local $@;
-    stderr_like { eval { runcmd('ls', 'image.qcow2') } } qr/No such file or directory/, 'no image found as expected';
-    like $@, qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die";
+    stderr_like {
+        throws_ok { runcmd('ls', 'image.qcow2') } qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die"
+    } qr/No such file or directory/, 'no image found as expected';
 };
 
 subtest run_diag => sub {

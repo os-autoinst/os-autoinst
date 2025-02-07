@@ -379,15 +379,12 @@ sub qemu_proc ($static_params, $vars) {
 
 subtest 'non-existing-iso' => sub {
     $vars{ISO} .= 'XXX';
-    my $err;
-    my @warnings = warnings {
-        eval {
-            $proc = qemu_proc('-static-args', \%vars);
-        };
-        $err = $@;
-    };
     my $expected = qr{qemu-img: Could not open.*data/Core-7.2.isoXXX.*No such file};
-    like $err, $expected, 'Got expected eval error';
+    my @warnings = warnings {
+        throws_ok {
+            $proc = qemu_proc('-static-args', \%vars)
+        } $expected, 'Got expected error';
+    };
     is @warnings, 1, 'only a single-line failure message';
     like $warnings[0], $expected, 'Got expected warning';
     unlike $warnings[0], qr{malformed JSON}, 'No confusing JSON parsing error';

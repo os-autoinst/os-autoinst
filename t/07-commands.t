@@ -225,7 +225,7 @@ subtest 'current_script test' => sub {
 
 kill TERM => $spid;
 waitpid($spid, 0);
-combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'commands server stopped';
+combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
 
 subtest 'decode failure' => sub {
     my $jsonrpc = Test::MockModule->new('myjsonrpc');

@@ -98,12 +98,11 @@ subtest 'CASEDIR is mandatory' => sub {
     my $dir = '/var/lib/openqa';
     create_vars({DISTRI => 'test'});
 
-    eval {
+    throws_ok {
         use bmwqemu ();
         bmwqemu::init;
         bmwqemu::ensure_valid_vars();
-    };
-    like($@, qr(CASEDIR variable not set.*), 'bmwqemu refuses to init');
+    } qr(CASEDIR variable not set.*), 'bmwqemu refuses to init';
 
 
     my %vars = %{read_vars()};
@@ -116,12 +115,11 @@ subtest 'save_vars' => sub {
     create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials'});
     $bmwqemu::openqa_default_share = $data_dir;
 
-    eval {
+    lives_ok {
         use bmwqemu ();
         bmwqemu::init;
         bmwqemu::save_vars();
-    };
-    ok(!$@, 'init successful');
+    } 'init successful';
 
     my %vars = %{read_vars()};
     is($vars{_SECRET_TEST}, 'my_credentials', '_SECRET_TEST unchanged');
@@ -133,12 +131,11 @@ subtest 'save_vars no_secret' => sub {
     create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials', MY_PASSWORD => 'secret'});
     $bmwqemu::openqa_default_share = $data_dir;
 
-    eval {
+    lives_ok {
         use bmwqemu ();
         bmwqemu::init;
         bmwqemu::save_vars(no_secret => 1);
-    };
-    ok(!$@, 'init successful');
+    } 'init successful';
 
     my %vars = %{read_vars()};
     ok(!$vars{_SECRET_TEST}, '_SECRET_TEST not written to vars.json');
