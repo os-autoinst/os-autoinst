@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Feature::Compat::Try;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -305,8 +306,8 @@ sub test_terminal_disabled () {
     testapi::set_var('VIRTIO_CONSOLE', 0);
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {});
-    eval { $term->activate };
-    die "Expected message about unavailable terminal" unless $@ =~ /no virtio-serial.*available/;
+    try { $term->activate }
+    catch ($e) { die "Expected message about unavailable terminal" unless $e =~ /no virtio-serial.*available/ }
 }
 
 # Called after waitpid to check child's exit
@@ -395,9 +396,10 @@ sub retrieve_child_tests () {
     flock $fh, LOCK_SH;
     my %tests;
     while (my $json = <$fh>) {
-        my $data = eval { decode_json($json) };
-        if (my $error = $@) {
-            diag("Error decoding '$json': $error");    # uncoverable statement
+        my $data;
+        try { $data = decode_json($json) }
+        catch ($e) {
+            diag("Error decoding '$json': $e");    # uncoverable statement
             ok(0, "Valid JSON");    # uncoverable statement
             next;    # uncoverable statement
         }

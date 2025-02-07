@@ -6,6 +6,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Mock::Time;
+use Feature::Compat::Try;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -33,8 +34,8 @@ sub read_vars () {
     local $/;
     open(my $varsfh, '<', 'vars.json') || BAIL_OUT('can not open vars.json for reading');
     my $ret;
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$varsfh>); };
-    die "parse error in vars.json:\n$@" if $@;
+    try { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$varsfh>) }
+    catch ($e) { die "parse error in vars.json:\n$e" }    # uncoverable statement
     close($varsfh);
     return $ret;
 }

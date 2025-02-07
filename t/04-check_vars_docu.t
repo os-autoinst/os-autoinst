@@ -8,6 +8,7 @@ use Test::Most;
 use Mojo::Base -strict, -signatures;
 
 use Test::Warnings ':report_warnings';
+use Feature::Compat::Try;
 use FindBin;
 use File::Find;
 require IPC::System::Simple;
@@ -112,8 +113,8 @@ sub read_backend_pm {    # no:style:signatures
     $backend = uc $backend;
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
     my $fh;
-    eval { open($fh, '<', $File::Find::name) };
-    return fail 'Unable to open ' . $File::Find::name if $@;
+    try { open($fh, '<', $File::Find::name) }
+    catch ($e) { return fail 'Unable to open ' . $File::Find::name }    # uncoverable statement
     for my $line (<$fh>) {
         my @vars = $line =~ /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {
