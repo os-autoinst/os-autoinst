@@ -309,11 +309,11 @@ $self->{cmdpipe} is closed, whichever occurs first.
 sub run_capture_loop ($self, $timeout = undef) {
     my $starttime = gettimeofday;
     $self->last_screenshot($starttime) unless $self->last_screenshot;
-
-    eval { $self->do_capture($timeout, $starttime) };
-    return unless $@;
-    bmwqemu::fctwarn "capture loop failed $@";
-    $self->close_pipes();
+    try { $self->do_capture($timeout, $starttime) }
+    catch ($e) {
+        bmwqemu::fctwarn "capture loop failed $e";
+        $self->close_pipes();
+    }
 }
 
 # wait_time_limit = seconds
@@ -810,14 +810,14 @@ sub proxy_console_call ($self, $wrapped_call) {
 
     my $wrapped_result = {};
 
-    eval {
+    try {
         # Do not die in here.
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
         $wrapped_result->{result} = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
-    };
-    $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@) if $@;
+    }
+    catch ($e) { $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $e) }
     return $wrapped_result;
 }
 
