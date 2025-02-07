@@ -7,6 +7,7 @@ package bmwqemu;
 use Mojo::Base -strict, -signatures;
 use autodie ':all';
 use Fcntl ':flock';
+use Feature::Compat::Try;
 use Time::HiRes qw(sleep);
 use IO::Socket;
 use Carp;
@@ -76,8 +77,8 @@ sub serialize_state (%state) {
     # avoid adding message about termination from myjsonrpc as reason, can happen during shutdown and very unlikely about the actual problem
     return undef if $message =~ m/myjsonrpc: remote end terminated/;
     return undef if -e STATE_FILE;
-    eval { path(STATE_FILE)->spew(encode_json(\%state)) };
-    bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
+    try { path(STATE_FILE)->spew(encode_json(\%state)) }
+    catch ($e) { bmwqemu::diag("Unable to serialize fatal error: $e") }    # uncoverable statement
 }
 
 sub load_vars () {
@@ -85,10 +86,10 @@ sub load_vars () {
     my $ret = {};
     local $/;
     my $fh;
-    eval { open($fh, '<', $fn) };
-    return 0 if $@;
-    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
-    die "parse error in vars.json:\n$@" if $@;
+    try { open($fh, '<', $fn) }
+    catch ($e) { return 0 }
+    try { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>) }
+    catch ($e) { die "parse error in vars.json:\n$@" }    # uncoverable statement
     close($fh);
     %vars = %{$ret};
     return;
@@ -269,10 +270,11 @@ sub mydie ($cause_of_death) {
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
     open(my $fd, ">", "$fn.new");
-    my $json = eval { Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) };
-    if (my $err = $@) {
+    my $json;
+    try { $json = Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) }
+    catch ($e) {
         my $dump = Data::Dumper->Dump([$result], ['result']);
-        croak "Cannot encode input: $@\n$dump";
+        croak "Cannot encode input: $e\n$dump";
     }
     print $fd $json;
     close($fd);
