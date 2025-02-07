@@ -67,8 +67,8 @@ sub _test_data_dir ($self, $base) {
         my $fn = 'data/' . substr($file, length($base));
         local $/;    # enable localized slurp mode
         my $fd;
-        eval { (open($fd, '<:raw', $file)) };
-        if (my $E = $@) {
+        try { (open($fd, '<:raw', $file)) }
+        catch ($e) {
             $self->app->log->error("Error reading test distribution file '$file': $!");    # uncoverable statement
             next;    # uncoverable statement
         }
@@ -141,8 +141,8 @@ sub upload_file ($self) {
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
-    eval { mkdir $target unless -d $target };
-    if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
+    try { mkdir $target unless -d $target }
+    catch ($e) { return $self->render(text => "Unable to create directory for upload: $e", status => 500) }
 
     my $upname = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));
