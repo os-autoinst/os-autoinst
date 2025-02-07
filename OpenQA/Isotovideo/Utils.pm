@@ -5,6 +5,7 @@ package OpenQA::Isotovideo::Utils;
 use Fcntl qw(:flock);
 use IPC::Run;
 use Mojo::Base -base, -signatures;
+use Feature::Compat::Try;
 use Mojo::URL;
 use Mojo::File qw(path);
 use Mojo::Util qw(scope_guard);
@@ -18,7 +19,6 @@ use YAML::PP;
 use Exporter 'import';
 use bmwqemu;
 use autotest;
-use Try::Tiny;
 
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   limit_git_cache_dir
@@ -409,12 +409,10 @@ sub load_test_schedule (@) {
             die "'SCHEDULE' not set and $main_path not found, need one of both";
         }
     }
-    catch {
-        # record that the exception is caused by the tests themselves before letting it pass
-        my $error_message = $_;
+    catch ($e) {
         bmwqemu::serialize_state(component => 'tests', msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)');
-        die "$error_message\n";
-    };
+        die "$e\n";
+    }
     @INC = @oldINC;
 
     if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {

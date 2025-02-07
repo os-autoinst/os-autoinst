@@ -8,7 +8,7 @@ use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 require IPC::System::Simple;
-use Try::Tiny;
+use Feature::Compat::Try;
 use Socket;
 use POSIX '_exit', 'strftime';
 use Mojo::JSON 'to_json';
@@ -283,13 +283,11 @@ sub run_daemon ($port, $isotovideo) {
     })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
     app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
-    try {
-        $daemon->run;
-    }
-    catch {
-        print "cmdsrv: failed to run daemon $_\n";    # uncoverable statement
+    try { $daemon->run }
+    catch ($e) {
+        print "cmdsrv: failed to run daemon $e\n";    # uncoverable statement
         _exit(1);    # uncoverable statement
-    };
+    }
 }
 
 sub start_server ($port) {

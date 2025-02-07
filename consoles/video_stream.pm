@@ -16,7 +16,6 @@ use Fcntl;
 use File::Map qw(map_handle unmap);
 use IPC::Open2 qw(open2);
 
-use Try::Tiny;
 use bmwqemu;
 
 # speed limit: 30 keys per second

@@ -8,7 +8,7 @@ use Mojo::UserAgent;
 use Mojo::URL;
 use Mojo::File qw(path);
 use File::stat;
-use Try::Tiny;
+use Feature::Compat::Try;
 use POSIX 'strftime';
 use bmwqemu;
 use needle;
@@ -92,9 +92,7 @@ sub _download_file ($self, $download) {
             $download_res = undef;
         }
     }
-    catch {
-        bmwqemu::fctinfo("internal error occurred when downloading $download_url: $_");
-    };
+    catch ($e) { bmwqemu::fctinfo("internal error occurred when downloading $download_url: $e") }
 
     # store the file on disk
     return unless ($download_res);
@@ -102,9 +100,7 @@ sub _download_file ($self, $download) {
         unlink($download_target);
         path($download_target)->spew($download_res->body);
     }
-    catch {
-        bmwqemu::diag("unable to store download under $download_target: $_");
-    };
+    catch ($e) { bmwqemu::diag("unable to store download under $download_target: $e") }
 }
 
 # adds downloads for the specified $new_needles if those are missing/outdated locally
