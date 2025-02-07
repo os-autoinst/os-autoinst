@@ -7,6 +7,7 @@ package consoles::sshXtermIPMI;
 use Mojo::Base 'consoles::localXvnc', -signatures;
 use autodie ':all';
 require IPC::System::Simple;
+use Feature::Compat::Try;
 use File::Which;
 use Time::HiRes qw(usleep);
 use POSIX qw(waitpid WNOHANG);
@@ -20,14 +21,9 @@ sub start_sol ($self) {
     my $cstr = join(' ', @command);
 
     # Try to deactivate IPMI SOL before activate
-    eval { $self->backend->ipmitool("sol deactivate"); };
-    my $ipmi_response = $@;
-    if ($ipmi_response) {
-        # IPMI response like SOL payload already de-activated is expected
-        die "Unexpected IPMI response: $ipmi_response" unless
-          ($ipmi_response =~ /SOL payload already de-activated/);
-    }
-
+    # IPMI response like SOL payload already de-activated is expected
+    try { $self->backend->ipmitool("sol deactivate") }
+    catch ($e) { die "Unexpected IPMI response: $e" unless $e =~ /SOL payload already de-activated/ }
     $self->{xterm_pid} = $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
 
