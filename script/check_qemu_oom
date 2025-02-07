@@ -14,6 +14,7 @@ check_qemu_oom qemu_pid
 =cut
 
 use Mojo::Base -strict, -signatures;
+use Feature::Compat::Try;
 use Getopt::Long;
 
 Getopt::Long::Configure("no_ignore_case");
@@ -21,8 +22,8 @@ Getopt::Long::Configure("no_ignore_case");
 my %options;
 
 sub usage ($r) {
-    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
-    die "cannot display help, install perl(Pod::Usage)\n" if $@;    # uncoverable statement
+    try { require Pod::Usage; Pod::Usage::pod2usage($r) }
+    catch ($e) { die "cannot display help, install perl(Pod::Usage)\n" }    # uncoverable statement
 }
 
 GetOptions(\%options, 'help|h|?') or usage(1);
