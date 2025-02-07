@@ -5,6 +5,7 @@
 package backend::qemu;
 use Mojo::Base 'backend::virt', -signatures;
 use autodie ':all';
+use Feature::Compat::Try;
 use File::Basename 'dirname';
 use File::Path 'mkpath';
 use File::Which;
@@ -118,19 +119,19 @@ sub _dbus_do_call ($self, $fn, @args) {
 }
 
 sub _dbus_call ($self, $fn, @args) {
-    my ($rt, $message);
-    eval {
+    my ($rt, $message, $error);
+    try {
         # do not die on unconfigured service
         local $SIG{__DIE__};
         ($rt, $message) = $self->_dbus_do_call($fn, @args);
         chomp $message;
         die $message unless $rt == 0;
-    };
-    my $error = $@;
-    if ($error) {
-        my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $error";
+    }
+    catch ($e) {
+        my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $e";
         die "$msg\n" unless $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL};
         bmwqemu::diag $msg;
+        $error = $e;
     }
     return ($rt, $message, ($error) x !!($error));
 }
@@ -1083,11 +1084,11 @@ sub start_qemu ($self) {
         });
 
         $self->{proc}->_process->on(cleanup => sub {
-                eval {
+                try {
                     for (my $i = 0; $i < $self->{allocated_networks}; $i++) {
                         $self->_dbus_call('unset_vlan', (@{$self->{allocated_tap_devices}})[$i], (@{$self->{allocated_vlan_tags}})[$i]);
                     }
-                }
+                } catch ($e) { }
         });
 
         if (exists $vars->{OVS_DEBUG} && $vars->{OVS_DEBUG} == 1) {
