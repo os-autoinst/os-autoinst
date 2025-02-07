@@ -2,6 +2,7 @@ package consoles::VNC;
 
 use Mojo::Base -base, -signatures;
 use bytes;
+use Feature::Compat::Try;
 use IO::Socket::INET;
 use bmwqemu qw(diag fctwarn);
 use Time::HiRes qw( sleep gettimeofday time );
@@ -180,17 +181,18 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
     }
     $self->socket($socket);
 
-    eval {
+    try {
         $self->_handshake_protocol_version();
         $self->_handshake_security();
         $self->_client_initialization();
         $self->_server_initialization();
-    };
-    my $error = $@;    # store so it doesn't get overwritten
-    return unless $error;
-    # clean up so socket can be garbage collected
-    $self->socket(undef);
-    die $error;
+    }
+    catch ($e) {
+        # clean up so socket can be garbage collected
+        $self->socket(undef);
+        die $e;
+    }
+    return undef;
 }
 
 sub _handshake_protocol_version ($self) {
@@ -717,13 +719,13 @@ sub send_pointer_event ($self, $button_mask, $x, $y) {
 # return truthy value if there was a screen update
 sub update_framebuffer ($self) {
     my $have_recieved_update = 0;
-    eval {
+    try {
         local $SIG{__DIE__} = undef;
         while (defined(my $message_type = $self->_receive_message())) {
             $have_recieved_update = 1 if $message_type == 0;
         }
-    };
-    if (my $e = $@) {
+    }
+    catch ($e) {
         die $e unless blessed $e && $e->isa('OpenQA::Exception::VNCProtocolError');
         bmwqemu::fctwarn "Error in VNC protocol - relogin: " . $e->error;
         $self->login;
