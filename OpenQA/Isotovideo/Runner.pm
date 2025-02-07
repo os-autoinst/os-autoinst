@@ -6,6 +6,7 @@ use Mojo::Base -base, -signatures;
 
 use autodie ':all';
 no autodie 'kill';
+use Feature::Compat::Try;
 use POSIX qw(:sys_wait_h _exit);
 use Mojo::File qw(path);
 use Mojo::UserAgent;
@@ -271,15 +272,16 @@ sub exit_code_from_test_results ($self) {
 sub handle_shutdown ($self, $return_code) {
     return undef if $$return_code;
     my $clean_shutdown;
-    eval {
+    try {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
         diag('backend shutdown state: ' . ($clean_shutdown // '?'));
-    };
+    }
+    catch ($e) { }
 
     # don't rely on the backend to be in a sane state if we failed - just stop it later
-    eval { bmwqemu::stop_vm() };
-    if ($@) {
-        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
+    try { bmwqemu::stop_vm() }
+    catch ($e) {
+        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $e", error => 1);
         $$return_code = 1;
     }
     return $clean_shutdown;
