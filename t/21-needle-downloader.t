@@ -178,7 +178,9 @@ subtest 'sync assets hook used at the right time' => sub {
     # define expected downloads: nothing as download is skipped
     my @expected_downloads = ();
 
-    $downloader->download_missing_needles(\@new_needles);
+    stderr_like {
+        $downloader->download_missing_needles(\@new_needles)
+    } qr /Running SYNC_ASSETS_HOOK/, 'sync asset hook executed';
     is_deeply($downloader->files_to_download, \@expected_downloads, 'download skipped')
       or always_explain $downloader->files_to_download;
 };
