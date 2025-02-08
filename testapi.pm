@@ -179,11 +179,11 @@ sub save_screenshot () { $autotest::current_test->take_screenshot unless is_seri
 
 =for stopwords softfail
 
-  record_soft_failure([$reason]);
+  record_soft_failure($reason);
 
 Record a soft failure on the current test modules result. The result will
 still be counted as a success. Use this to mark where workarounds are applied.
-Takes an optional C<$reason> string which is recorded in the log file. See
+Takes a C<$reason> string which is recorded in the log file. See
 C<force_soft_failure> to forcefully override a failed test module status from
 a C<post_fail_hook> or C<record_info> when the status should not be
 influenced.
@@ -230,7 +230,7 @@ sub record_info ($title, $output = undef, %nargs) {
 
 =for stopwords softfail
 
-  force_soft_failure([$reason]);
+  force_soft_failure($reason);
 
 Similar to C<record_soft_failure> but can be used to override the test module
 status to softfail from a C<post_fail_hook> if the module would be set to fail
