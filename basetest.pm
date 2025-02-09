@@ -339,12 +339,7 @@ sub runtest ($self) {
     $self->{flags} = $self->test_flags();
     try {
         $self->pre_run_hook();
-        if (defined $self->{run_args}) {
-            $self->run($self->{run_args});
-        }
-        else {
-            $self->run();
-        }
+        $self->run($self->{run_args});
         $self->post_run_hook();
     }
     catch ($e) {
