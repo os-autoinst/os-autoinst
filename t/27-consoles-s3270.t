@@ -111,4 +111,34 @@ subtest 'expect_3270 tests' => sub {
     is $ret->[0], 'OutputArea', 'output matches';
 };
 
+subtest 'sequence_3270 test' => sub {
+    $s3270_console->{out} = "success\nconnet($bmwqemu::vars{ZVM_HOST})\nstart to execute process\nok";
+    $s3270_console->sequence_3270(qw(String("root")));
+    is $s3270_console->{out}, "", 'stdout empty';
+};
+
+subtest 'cp_disconnect test' => sub {
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
+            return {'command_output' => ['success'], 'command_status' => 'ok'};
+    });
+    isa_ok $s3270_console->cp_disconnect(), 'HASH';
+};
+
+subtest 's3270 disable test' => sub {
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
+            return {'command_output' => ['success'], 'command_status' => 'ok'};
+    });
+    isa_ok $s3270_console->disable(), 'HASH', 'disable can be called';
+};
+
+subtest 's3270 finish test' => sub {
+    is $s3270_console->finish(), '', 'finish can be called';
+};
+
+subtest 's3270 destroy test' => sub {
+    is $s3270_console->DESTROY(), '', 'destroy can be called';
+};
+
 done_testing();

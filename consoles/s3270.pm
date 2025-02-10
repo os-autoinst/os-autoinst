@@ -423,12 +423,11 @@ sub activate ($self) {
     $self->guest_login($bmwqemu::vars{ZVM_PASSWORD} or die 'Need variable ZVM_PASSWORD');
     $self->new_3270_console;
     $self->connect_and_login;
-    return;
+    return;    # uncoverable statement
 }
 
 sub disable ($self) {
     $self->cp_logoff_disconnect();
-    $self->_kill_window();
 }
 
 1;
