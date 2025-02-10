@@ -69,7 +69,7 @@ sub send_3270 ($self, $command = '', %arg) {
 
     $_ =~ s/^data: // for @{$out->{command_output}};
     confess "expected command exit status $arg{command_status}, got $out->{command_status}"
-        if $arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status};
+      if $arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status};
     return $out;
 }
 
@@ -82,6 +82,99 @@ sub ensure_screen_update ($self) {
     usleep(5_000);
     $self->{backend}->capture_screenshot();
     $self->send_3270("Clear");
+}
+
+sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
+    my $r;
+
+    my $we_had_new_output = 0;
+
+    # grab any pending output
+    if ($self->wait_output()) {
+        $self->send_3270("Snap");
+        $r = $self->send_3270("Snap(Ascii)");
+
+        # split it according to the screen sections
+        my $co = $r->{command_output};
+
+        my $status_line = pop @$co;
+        my $input_line = pop @$co;
+        my @output_area = @$co;
+
+        @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
+
+        if (@output_area > 0) {
+            $self->{raw_expect_queue}->enqueue(@output_area);
+            $we_had_new_output = 1;
+        }
+
+        say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
+
+        # if there is MORE..., go and grab it.
+        if ($status_line =~ /$arg{buffer_full}/) {
+            $self->ensure_screen_update();
+            return 1;
+        }
+
+        if ($status_line !~ /$arg{expected_status}/) {
+            # if the timeout is not over, wait for more output
+            my $elapsed_time = time() - $start_time;
+            return 1 if $elapsed_time < $arg{timeout} && $self->wait_output($arg{timeout} - $elapsed_time);
+
+            # flush the buffer for debugging:
+            while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+                push @$result, $line;
+            }
+            confess "expect_3270: timed out waiting for 'expected_status'.\n"
+              . "  waiting for ${\Dumper \%arg}\n"
+              . "  last output:\n"
+              . Dumper($result)
+              . $status_line;
+        }
+
+        die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
+    }
+
+    # No more host output is pending. We have some output in the raw_expect_queue,
+    # possibly from a previous run
+
+    # If *not* looking for output_delim, we reached 'buffer_ready' and just return the output buffer
+    if (!defined $arg{output_delim}) {
+        # no need to wait for something special. We just return what we have...
+        while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+            push @$result, $line;
+        }
+        return 0;
+    }
+
+    my $line;
+    while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
+        push @$result, $line;
+        return 0 if !defined $line || $line =~ /$arg{output_delim}/;
+    }
+
+    # If we matched the 'output_delim', we are done.
+    return 0 if defined $line;
+
+    # The queue is empty. If we got so far and we had some output on the
+    # screen the last time, clear the screen so we don't grab the same
+    # stuff again.
+
+    # TODO The better alternative solution to the same problem
+    # would be to remember lines that were not updated since the
+    # last Snap(Ascii) and to thus avoid duplicate lines.
+
+    # For now we have to live with having a clear screen.
+    $self->ensure_screen_update() if $we_had_new_output;
+
+    # wait for new output from the host.
+    my $elapsed_time = time() - $start_time;
+    if ($elapsed_time > $arg{timeout}
+        || !$self->wait_output($arg{timeout} - $elapsed_time))
+    {
+        confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
+    }
+    return 1;    # uncoverable statement
 }
 
 ###################################################################
@@ -137,100 +230,7 @@ sub expect_3270 ($self, %arg) {
         $self->{raw_expect_queue}->dequeue_nb($n) if $n;
     }
     my $result = [];
-    my $start_time = time();
-    while (1) {
-        my $r;
-
-        my $we_had_new_output = 0;
-
-        # grab any pending output
-        if ($self->wait_output()) {
-            $self->send_3270("Snap");
-            $r = $self->send_3270("Snap(Ascii)");
-
-            # split it according to the screen sections
-            my $co = $r->{command_output};
-
-            my $status_line = pop @$co;
-            my $input_line = pop @$co;
-            my @output_area = @$co;
-
-            @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
-
-            if (@output_area > 0) {
-                $self->{raw_expect_queue}->enqueue(@output_area);
-                $we_had_new_output = 1;
-            }
-
-            say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
-
-            # if there is MORE..., go and grab it.
-            if ($status_line =~ /$arg{buffer_full}/) {
-                $self->ensure_screen_update();
-                next;
-            }
-
-            if ($status_line !~ /$arg{expected_status}/) {
-                # if the timeout is not over, wait for more output
-                my $elapsed_time = time() - $start_time;
-                next if $elapsed_time < $arg{timeout} && $self->wait_output($arg{timeout} - $elapsed_time);
-
-                # flush the buffer for debugging:
-                while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-                    push @$result, $line;
-                }
-                confess "expect_3270: timed out waiting for 'expected_status'.\n"
-                  . "  waiting for ${\Dumper \%arg}\n"
-                  . "  last output:\n"
-                  . Dumper($result)
-                  . $status_line;
-            }
-
-            die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
-        }
-
-        # No more host output is pending. We have some output in the raw_expect_queue,
-        # possibly from a previous run
-
-        # If *not* looking for output_delim, we reached 'buffer_ready' and just return the output buffer
-        if (!defined $arg{output_delim}) {
-            # no need to wait for something special. We just return what we have...
-            while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-                push @$result, $line;
-            }
-            last;
-        }
-
-        my $line;
-        while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
-            push @$result, $line;
-            last if !defined $line || $line =~ /$arg{output_delim}/;
-        }
-
-        # If we matched the 'output_delim', we are done.
-        last if defined $line;
-
-        # The queue is empty. If we got so far and we had some output on the
-        # screen the last time, clear the screen so we don't grab the same
-        # stuff again.
-
-        # TODO The better alternative solution to the same problem
-        # would be to remember lines that were not updated since the
-        # last Snap(Ascii) and to thus avoid duplicate lines.
-
-        # For now we have to live with having a clear screen.
-        $self->ensure_screen_update() if $we_had_new_output;
-
-        # wait for new output from the host.
-        my $elapsed_time = time() - $start_time;
-        if ($elapsed_time > $arg{timeout}
-            || !$self->wait_output($arg{timeout} - $elapsed_time))
-        {
-            confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
-        }
-    }
-
-    # tracing output
+    1 while ($self->_handle_expect_3270_cycle($result, time(), %arg));
     say 'expect_3270 result: ' . Dumper(\$result);
     return $result;
 }
