@@ -149,6 +149,7 @@ main_requires:
   perl(Exporter):
   perl(ExtUtils::testlib):
   perl(Fcntl):
+  perl(Feature::Compat::Try):
   perl(File::Basename):
   perl(File::chdir):
   perl(File::Find):
