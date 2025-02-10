@@ -15,6 +15,7 @@ use Mojo::DOM;
 use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util;
+use Time::Seconds;
 use Carp 'croak';
 use backend::svirt;
 
@@ -380,15 +381,17 @@ sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_pat
 sub _system (@cmd) { system @cmd }    # uncoverable statement
 
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
+    my $timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_TIMEOUT_M} // 15);
+
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 0) && -e $file_basename && defined which 'rsync') {
         my %c = $self->get_ssh_credentials;
         my $abs = path($file_basename)->to_abs;    # pass abs path so it can contain a colon
         bmwqemu::diag "Syncing '$file_basename' directly from worker host to $c{hostname}";
-        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
+        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='$timeout_s' -av '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
-        $self->run_cmd("rsync -av '$file' '$basedir/$file_basename'") && die 'rsync failed';
+        $self->run_cmd("rsync --timeout='$timeout_s' -av '$file' '$basedir/$file_basename'", timeout => $timeout_s + ONE_MINUTE) && die 'rsync failed';
     }
     if ($file_basename =~ /(.*)\.xz$/) {
         $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");

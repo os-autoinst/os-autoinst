@@ -912,13 +912,16 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_017';
             my $file = "my_cdrom_$dev_id.iso";
             @last_ssh_commands = ();
+            @last_ssh_args = ();
             @ssh_cmd_return = (0, 0);
             $svirt->add_disk({
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            like($last_ssh_commands[0], qr%^rsync.*--timeout='900'.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            my %ssh_args = @{$last_ssh_args[0]};
+            is $ssh_args{timeout}, 960, 'timeout for ssh command specified';
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -938,7 +941,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $file_path});
-            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
+            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='900' -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
             like $last_ssh_commands[0], qr%unxz%, 'file uncompressed with unxz';
 
             svirt_xml_validate($svirt,
