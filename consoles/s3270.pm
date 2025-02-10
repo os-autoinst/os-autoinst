@@ -29,9 +29,7 @@ sub start ($self) {
 
 }
 
-sub finish ($self) {
-    IPC::Run::finish($self->{connection});
-}
+sub finish ($self) { IPC::Run::finish($self->{connection}) }
 
 ###################################################################
 # send_3270 "COMMAND" [,  command_status => 'ok' (default) or 'error' or 'any' ]
@@ -69,14 +67,9 @@ sub send_3270 ($self, $command = '', %arg) {
         command_output => \@out_array,
     };
 
-    foreach my $line (@{$out->{command_output}}) {
-        $line =~ s/^data: //;
-    }
-
-    if ($arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status}) {
-        confess "expected command exit status $arg{command_status}, got $out->{command_status}";
-    }
-
+    $_ =~ s/^data: // for @{$out->{command_output}};
+    confess "expected command exit status $arg{command_status}, got $out->{command_status}"
+        if $arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status};
     return $out;
 }
 
@@ -252,9 +245,7 @@ sub wait_output ($self, $timeout = 0) {
 
 ###################################################################
 
-sub sequence_3270 ($self, @commands) {
-    $self->send_3270($_) for (@commands);
-}
+sub sequence_3270 ($self, @commands) { $self->send_3270($_) for @commands }
 
 # map the terminal status of x3270 to a hash
 sub nice_3270_status ($self, $status_string) {
@@ -349,9 +340,7 @@ sub cp_disconnect ($self) {
     $self->send_3270('Wait(Disconnect)');
 }
 
-sub DESTROY ($self) {
-    IPC::Run::finish($self->{connection}) if $self->{connection};
-}
+sub DESTROY ($self) { IPC::Run::finish($self->{connection}) if $self->{connection} }
 
 sub connect_and_login ($self, $reconnect_ok = 0) {
     my $r;
