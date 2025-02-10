@@ -389,10 +389,10 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
         my %c = $self->get_ssh_credentials;
         my $abs = path($file_basename)->to_abs;    # pass abs path so it can contain a colon
         bmwqemu::diag "Syncing '$file_basename' directly from worker host to $c{hostname}";
-        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='$inactivity_timeout_s' -av '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
+        _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='$inactivity_timeout_s' --stats -av '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
-        $self->run_cmd("rsync --timeout='$inactivity_timeout_s' -av '$file' '$basedir/$file_basename'", timeout => $download_timeout_s) && die 'rsync failed';
+        $self->run_cmd("rsync --timeout='$inactivity_timeout_s' --stats -av '$file' '$basedir/$file_basename'", timeout => $download_timeout_s) && die 'rsync failed';
     }
     if ($file_basename =~ /(.*)\.xz$/) {
         $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
