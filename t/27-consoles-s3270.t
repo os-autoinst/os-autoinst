@@ -119,6 +119,12 @@ subtest 'sequence_3270 test' => sub {
     is $s3270_console->{out}, "", 'stdout empty';
 };
 
+subtest 'ensure_screen_update' => sub {
+    $s3270_console->{backend} = Test::MockObject->new()->set_true('request_screen_update', 'capture_screenshot');
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270')->redefine(send_3270 => ());
+    is $s3270_console->ensure_screen_update(), (), 'ensure_screen_update can run';
+};
+
 subtest 'cp_disconnect test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
     $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
