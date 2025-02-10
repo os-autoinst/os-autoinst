@@ -1,25 +1,27 @@
 #!/usr/bin/perl
 
 use Test::Most;
-
-BEGIN {
-    push @INC, '.';
-}
+use FindBin '$Bin';
 
 use Test::Warnings ':report_warnings';
 use Pod::Coverage;
 use File::Basename;
+use lib "$Bin/..";
 
 # an alternative to checking Pod::Coverage might be Test::Pod::Coverage but as
 # os-autoinst does not really feature full perl modules better just check
 # explicitly what we care about right now.
 
-my $dirname = dirname(__FILE__);
-chdir($dirname . '/..');
+chdir $Bin . '/..';
+
+# Pod::Coverage does not reveal the actual error message
+eval { require testapi };
+diag "Error requiring testapi: $@" if $@;
 
 my $pc = Pod::Coverage->new(
     package => 'testapi',
     pod_from => 'testapi.pm',
 );
-is($pc->coverage, 1, 'Everything in testapi covered') || diag('Uncovered: ', join(', ', $pc->uncovered), "\n");
+is($pc->coverage, 1, 'Everything in testapi covered') or diag('Uncovered: ', join(', ', $pc->uncovered), "\n");
+diag $pc->why_unrated unless defined $pc->coverage;
 done_testing();
