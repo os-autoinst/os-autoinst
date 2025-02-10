@@ -52,12 +52,9 @@ subtest 'failure to clone results in repeated attempts' => sub {
             bmwqemu::diag "Connection reset by peer";
             die "Unable to clone Git repository";
     });
-    my $out = combined_from {
-        eval { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') };
-    };
-    my $error = $@;
-    like $error, qr@Unable to clone Git repository@;
-    like $out, qr@Clone failed, retries left: 0 of 2@, 'all retry attempts used';
+    combined_like {
+        throws_ok { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Unable to clone Git repository@;
+    } qr@Clone failed, retries left: 0 of 2@, 'all retry attempts used';
 };
 
 my $head = initialize_git_repo();
@@ -66,12 +63,9 @@ my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
     %bmwqemu::vars = (CASEDIR => $case_dir);
-    my $path;
     my $out = combined_from {
-        eval { $path = checkout_git_repo_and_branch('CASEDIR', retry_count => 0) };
+        throws_ok { checkout_git_repo_and_branch('CASEDIR', retry_count => 0) } qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, "Error message when trying to clone wrong git hash"
     };
-    my $error = $@;
-    like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, "Error message when trying to clone wrong git hash";
     like $out, qr{Fetching 'abcdef' from origin manually}s, 'manual git fetch for revspec was attempted';
     like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch with --depth option was attempted';
 };
@@ -89,20 +83,17 @@ subtest 'successful clone' => sub {
     };
     subtest 'skip cloning when repo already exists (not even switching to the correct branch)' => sub {
         %bmwqemu::vars = (CASEDIR => $case_dir_ok);
-        my $out = combined_from { $path = checkout_git_repo_and_branch('CASEDIR') };
+        combined_like { $path = checkout_git_repo_and_branch('CASEDIR') } qr{Skipping to clone.*tmpgitrepo already exists}, 'Log says that local directory already exists';
         is $path, $clone_dir, 'checkout_git_repo_and_branch with existing local directory returned correct path';
-        like $out, qr{Skipping to clone.*tmpgitrepo already exists}, 'Log says that local directory already exists';
     };
     subtest 'fetch commit manually by fetching repeatedly with increasing depth' => sub {
         cleanup();
         %bmwqemu::vars = (CASEDIR => $case_dir_ok);
-        my $out = combined_from { $path = checkout_git_repo_and_branch('CASEDIR', direct_fetch => 0) };
+        combined_like { $path = checkout_git_repo_and_branch('CASEDIR', direct_fetch => 0) } qr{Cloning git URL.*Fetching more remote objects}s, 'git clone and fetch were called again to fetch rev manually';
         is $path, $clone_dir, 'checkout_git_repo_and_branch returned correct path';
-        like $out, qr{Cloning git URL.*Fetching more remote objects}s, 'git clone and fetch were called again to fetch rev manually';
     };
 
-    eval { bmwqemu::save_vars(no_secret => 1) };
-    is($@, '', 'serialization successful');
+    lives_ok { bmwqemu::save_vars(no_secret => 1) } 'serialization successful';
 };
 
 subtest 'cloning with caching' => sub {

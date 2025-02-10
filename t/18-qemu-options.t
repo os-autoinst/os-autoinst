@@ -8,7 +8,6 @@ use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
-use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::File qw(path tempdir);

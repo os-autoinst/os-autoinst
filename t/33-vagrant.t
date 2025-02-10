@@ -190,8 +190,7 @@ subtest 'backend creation dies when VAGRANT_ASSETDIR cannot be opened' => sub {
     $backend_vars->{VAGRANT_ASSETDIR} = $fakedir;
     $backend_vars->{VAGRANT_BOX} = "/foobar";
 
-    eval { backend::vagrant->new(); };
-    like($@, qr/Could not opendir $fakedir/, 'opendir error message is present in the output');
+    throws_ok { backend::vagrant->new() } qr/Could not opendir $fakedir/, 'opendir error message is present in the output';
 
     $backend_vars->{VAGRANT_BOX} = "foobar";
     $backend_vars->{ASSETDIR} = undef;
@@ -200,13 +199,8 @@ subtest 'backend creation dies when VAGRANT_ASSETDIR cannot be opened' => sub {
 subtest 'backend creation dies when the vagrant box is not in VAGRANT_ASSETDIR' => sub {
     $backend_vars->{VAGRANT_ASSETDIR} = $tmpdir;
     $backend_vars->{VAGRANT_BOX} = "/foobar";
-
-    eval { backend::vagrant->new(); };
-    like(
-        $@, qr/File $tmpdir\/foobar does not exist/,
-        'error message that the box was not found is in the output'
-    );
-
+    throws_ok { backend::vagrant->new() } qr/File $tmpdir\/foobar does not exist/,
+      'error message that the box was not found is in the output';
     $backend_vars->{VAGRANT_BOX} = "foobar";
     $backend_vars->{ASSETDIR} = undef;
 };
@@ -247,8 +241,7 @@ END
 subtest 'dies on invalid providers' => sub {
     $backend_vars->{VAGRANT_PROVIDER} = 'superVirt';
 
-    eval { backend::vagrant->new(); };
-    like($@, qr/unknown vagrant provider superVirt/, 'backend creation dies on invalid providers');
+    throws_ok { backend::vagrant->new() } qr/unknown vagrant provider superVirt/, 'backend creation dies on invalid providers';
 };
 
 subtest 'get_ssh_credentials returns default values' => sub {
@@ -396,10 +389,10 @@ subtest 'do_start_vm dies when the libvirt pool cannot be created' => sub {
     $run_stdout_to_write = ['fooStdout'];
     $run_stderr_to_write = ['barStderr'];
 
-    eval { $vagrant->do_start_vm(); };
-    like($@, qr/Create libvirt storage pool failed with exit code: 1/, 'Check the error message reported by do_start_vm');
-    like($@, qr/fooStdout/, 'Check that the error message contains stdout');
-    like($@, qr/barStderr/, 'Check that the error message contains stderr');
+    throws_ok { $vagrant->do_start_vm() } qr/Create libvirt storage pool failed with exit code: 1/, 'Check the error message reported by do_start_vm';
+    my $err = $@;
+    like $err, qr/fooStdout/, 'Check that the error message contains stdout';
+    like $err, qr/barStderr/, 'Check that the error message contains stderr';
 };
 
 subtest 'do_start_vm does not die when the libvirt pool already exists' => sub {
@@ -427,10 +420,10 @@ subtest 'do_start_vm dies when vagrant up returns an error' => sub {
     $run_stdout_to_write = ['fooStdout', ''];
     $run_stderr_to_write = ['barStderr', ''];
 
-    eval { $vagrant->do_start_vm(); };
-    like($@, qr/Failed to execute vagrant up/, 'Check the error message reported by do_start_vm');
-    like($@, qr/fooStdout/, 'Check that the error message contains stdout');
-    like($@, qr/barStderr/, 'Check that the error message contains stderr');
+    throws_ok { $vagrant->do_start_vm(); } qr/Failed to execute vagrant up/, 'Check the error message reported by do_start_vm';
+    my $err = $@;
+    like $err, qr/fooStdout/, 'Check that the error message contains stdout';
+    like $err, qr/barStderr/, 'Check that the error message contains stderr';
 };
 
 subtest 'do_start_vm does not call to virsh when using virtualbox' => sub {

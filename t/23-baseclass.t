@@ -86,9 +86,7 @@ subtest 'not implemented' => sub {
     );
     for my $test (@tests) {
         my ($m, @args) = @$test;
-        eval { $dummy->$m(@args) };
-        my $err = $@;
-        like $err, qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
+        throws_ok { $dummy->$m(@args) } qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
     }
 };
 
