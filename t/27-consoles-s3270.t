@@ -107,7 +107,9 @@ subtest 'expect_3270 tests' => sub {
     });
 
     my $ret = 0;
-    stdout_like { $ret = $s3270_console->expect_3270() } qr/expect_3270 queue.*\n.*/, 'result matches';
+    # "clear_buffer" will not change expected output, merely added to cover
+    # this code
+    stdout_like { $ret = $s3270_console->expect_3270(clear_buffer => 1) } qr/expect_3270 queue.*\n.*/, 'result matches';
     is $ret->[0], 'OutputArea', 'output matches';
 };
 
