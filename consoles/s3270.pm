@@ -428,7 +428,6 @@ sub activate ($self) {
 
 sub disable ($self) {
     $self->cp_logoff_disconnect();
-    $self->_kill_window();
 }
 
 1;
