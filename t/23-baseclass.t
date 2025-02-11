@@ -265,7 +265,7 @@ subtest 'SSH utilities' => sub {
     # test handling read errors and timeout parameter of run_ssh_cmd()
     ($fail_on_read2, @net_ssh2_error) = (1, -9, 'LIBSSH2_ERROR_TIMEOUT', 'Time out waiting for data');
     throws_ok { $baseclass->run_ssh_cmd('sleep infinity', %ssh_creds, timeout => 100) } qr/waiting for data.*timeout/i, 'read timeout is fatal error';
-    is_deeply \@timeouts, [100, 42], 'timeout increased to specified value, then set back to mocked default again';
+    is_deeply \@timeouts, [100000, 42], 'timeout increased to specified value, then set back to mocked default again';
     ($fail_on_read2, @net_ssh2_error) = ();
     @output = $baseclass->run_ssh_cmd('test foo', %ssh_creds, timeout => 100, wantarray => 1);
     is_deeply \@output, [0, '', ''], 'command successful exit without output';
