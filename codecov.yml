@@ -32,6 +32,7 @@ coverage:
           - consoles/sshXtermIPMI.pm
           - consoles/sshXtermVt.pm
           - consoles/ssh_screen.pm
+          - consoles/s3270.pm
           - consoles/video_stream.pm
           - consoles/virtio_terminal.pm
           - consoles/vnc_base.pm
