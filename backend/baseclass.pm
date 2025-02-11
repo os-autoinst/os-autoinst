@@ -1314,7 +1314,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     if (defined(my $new_timeout = $args{timeout})) {
         my $initial_timeout = $ssh->timeout;
         $timeout_guard = scope_guard sub { $ssh->timeout($initial_timeout) };
-        $ssh->timeout($new_timeout);
+        $ssh->timeout($new_timeout * 1000);
     }
     until ($chan->eof) {
         if (my ($o, $e) = $chan->read2) {
