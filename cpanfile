@@ -61,7 +61,6 @@ requires 'Thread::Queue';
 requires 'Time::HiRes';
 requires 'Time::Moment';
 requires 'Time::Seconds';
-requires 'Try::Tiny';
 requires 'XML::LibXML';
 requires 'XML::SemanticDiff';
 requires 'YAML::PP';

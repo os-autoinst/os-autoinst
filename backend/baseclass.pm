@@ -15,7 +15,7 @@ use Cpanel::JSON::XS ();
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
-use Try::Tiny;
+use Feature::Compat::Try;
 use POSIX qw(_exit waitpid WNOHANG);
 use IO::Select;
 require IPC::System::Simple;
@@ -412,9 +412,7 @@ sub _stop_video_encoder ($self) {
             }
         }
     }
-    catch {
-        bmwqemu::diag "Unable to pass remaining frames to video encoder: $_";
-    };
+    catch ($e) { bmwqemu::diag "Unable to pass remaining frames to video encoder: $e" }
 
     # give the video encoder processes time to finalize the video
     # note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
@@ -657,14 +655,12 @@ sub select_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
-    my $activated = try {
+    my $activated;
+    try {
         local $SIG{__DIE__} = 'DEFAULT';
-        $selected_console->select;
+        $activated = $selected_console->select;
     }
-    catch {
-        {error => $_};
-    };
-
+    catch ($e) { return {error => $e} }
     return $activated if ref($activated);
     $self->{current_console} = $selected_console;
     $self->{current_screen} = $selected_console->screen;

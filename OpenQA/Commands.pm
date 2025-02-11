@@ -5,7 +5,7 @@ package OpenQA::Commands;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
 
 use commands;
-use Try::Tiny;
+use Feature::Compat::Try;
 use Mojo::JSON qw(decode_json to_json);
 
 sub pass_message_from_ws_client_to_isotovideo ($self, $id, $msg) {
@@ -17,13 +17,11 @@ sub pass_message_from_ws_client_to_isotovideo ($self, $id, $msg) {
     $app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: $msg");
 
     my $decoded_message;
-    try {
-        $decoded_message = decode_json($msg);
-    }
-    catch {
-        $app->log->warn('cmdsrv: failed to decode message');
+    try { $decoded_message = decode_json($msg) }
+    catch ($e) {
+        $app->log->warn("cmdsrv: failed to decode message: $e");
         return undef;
-    };
+    }
     return undef unless defined $decoded_message;
 
     myjsonrpc::send_json($isotovideo, $decoded_message);

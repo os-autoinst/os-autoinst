@@ -252,7 +252,7 @@ subtest 'decode failure' => sub {
     my $ret = OpenQA::Commands::pass_message_from_ws_client_to_isotovideo($mock, 23, $json);
     is $debug[0], "cmdsrv: passing command from client to isotovideo 1: $json",
       'debug output like expected';
-    is $warn[0], 'cmdsrv: failed to decode message', 'warn output like expected';
+    like $warn[0], qr/cmdsrv: failed to decode message/, 'warn output like expected';
     is $ret, undef, 'pass_message_from_ws_client_to_isotovideo returns undef';
 };
 

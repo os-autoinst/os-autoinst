@@ -5,7 +5,7 @@
 package consoles::network_console;
 
 use Mojo::Base 'consoles::console', -signatures;
-use Try::Tiny;
+use Feature::Compat::Try;
 use Scalar::Util 'blessed';
 
 sub activate ($self) {
@@ -14,10 +14,10 @@ sub activate ($self) {
         $self->connect_remote($self->{args});
         return $self->SUPER::activate;
     }
-    catch {
-        die $_ unless blessed $_ && $_->can('rethrow');
-        return {error => $_->error};
-    };
+    catch ($e) {
+        die $e unless blessed $e && $e->can('rethrow');
+        return {error => $e->error};
+    }
 }
 
 # to be overwritten

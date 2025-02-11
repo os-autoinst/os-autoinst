@@ -13,7 +13,7 @@ use Mojo::File qw(path);
 use Mojo::JSON 'decode_json';
 use Cpanel::JSON::XS ();
 use File::Basename;
-use Try::Tiny;
+use Feature::Compat::Try;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
 use OpenQA::Isotovideo::Utils 'checkout_git_refspec';
@@ -59,12 +59,8 @@ sub new ($classname, $jsonfile) {
     }
 
     if (!$json) {
-        try {
-            $json = decode_json(path($jsonfile)->slurp);
-        }
-        catch {
-            warn "broken json $jsonfile: $_";
-        };
+        try { $json = decode_json(path($jsonfile)->slurp) }
+        catch ($e) { warn "broken json $jsonfile: $e" }
         return undef unless $json;
     }
 

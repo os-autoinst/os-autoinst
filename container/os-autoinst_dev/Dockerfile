@@ -142,7 +142,6 @@ RUN zypper in -y -C \
        'perl(Time::HiRes)' \
        'perl(Time::Moment)' \
        'perl(Time::Seconds)' \
-       'perl(Try::Tiny)' \
        'perl(XML::LibXML)' \
        'perl(XML::SemanticDiff)' \
        'perl(YAML::PP)' \
