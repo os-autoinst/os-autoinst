@@ -52,7 +52,7 @@ subtest 'error handling when loading test schedule' => sub {
     subtest 'unable to load test module' => sub {
         $base_state->remove;
         my $module = 'foo/bar';
-        $bmwqemu::vars{SCHEDULE} = $module;
+        $bmwqemu::vars{SCHEDULE} = $module . "\n";
         combined_like {
             warning { throws_ok { load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' }
         } qr/Can't locate $module\.pm/, 'debug message logged';
