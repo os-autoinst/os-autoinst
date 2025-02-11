@@ -109,8 +109,9 @@ sub limit_git_cache_dir ($root_cache_dir, $current_cache_dir, $current_relative_
     my $cache_dir_size = _determine_size($current_cache_dir, $handle_output);
     my $index_file = path($root_cache_dir, 'index.json');
     my $index_lock = _lock_cache_directory($index_file);
-    my $index = eval { _open_cache_index($root_cache_dir, $index_file) };
-    die "Unable to open index for Git caching under '$index_file': $@" if $@;
+    my $index;
+    try { $index = _open_cache_index($root_cache_dir, $index_file) }
+    catch ($e) { die "Unable to open index for Git caching under '$index_file': $e" }    # uncoverable statement
     $index->{$current_relative_cache_dir} = {size => $cache_dir_size, last_use => time};
     my $index_guard = scope_guard sub { $index_file->spew(encode_json($index)) };
     return undef unless looks_like_number(my $limit = $bmwqemu::vars{GIT_CACHE_DIR_LIMIT});
@@ -238,8 +239,8 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $error;
     do {
         my $status;
-        eval { $status = clone_git($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) };
-        $error = $@;
+        try { $status = clone_git($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) }
+        catch ($e) { $error = $e }
         return $local_abs if $status;
         bmwqemu::diag "Clone failed, retries left: $tries of $retry_count";
         path($local_path)->remove_tree;
@@ -356,10 +357,9 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
         push @toextract, _store_asset($i, $name, 'assets_public');
     }
     for my $asset (@toextract) {
-        local $@;
-        eval { $bmwqemu::backend->extract_assets($asset); };
-        if ($@) {
-            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $@", error => 1);
+        try { $bmwqemu::backend->extract_assets($asset) }
+        catch ($e) {
+            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $e", error => 1);
             $return_code = 1;
         }
     }

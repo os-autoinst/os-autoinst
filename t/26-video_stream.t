@@ -6,6 +6,7 @@
 use Config;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Feature::Compat::Try;
 use Mojo::UserAgent;
 use Mojo::Transaction::HTTP;
 use Test::Warnings qw(:all :report_warnings);
@@ -183,12 +184,12 @@ subtest 'frames parsing' => sub {
 
 subtest 'frame parsing - ustreamer' => sub {
     # ustreamer requires pack("D") support, not availabe in openSUSE Leap 15.5's Perl
-    eval { $_ = pack("D", 1.0); };
-    plan skip_all => 'packing long double is not supported' if $@;
     # frame unpacking is only correct on little-endian 64-bit arches, in
     # practice ustreamer is only used on aarch64, restrict tests to
     # aarch64 and x86_64 (x86_64 for CI convenience)
     # see https://progress.opensuse.org/issues/161969
+    try { pack("D", 1.0) }
+    catch ($e) { plan skip_all => 'packing long double is not supported' }    # uncoverable statement
     plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
 
     my ($img, $received_img);

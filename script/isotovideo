@@ -105,6 +105,7 @@ BEGIN {
 }
 
 use log qw(diag);
+use Feature::Compat::Try;
 use Getopt::Long;
 use Mojo::File qw(curfile);
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -123,8 +124,8 @@ my $runner;
 
 sub usage ($r) {
     $RETURN_CODE = $r;
-    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
-    die "cannot display help, install perl(Pod::Usage)\n" if $@;
+    try { require Pod::Usage; Pod::Usage::pod2usage($r) }
+    catch ($e) { die "cannot display help, install perl(Pod::Usage)\n" }
 }
 
 sub _get_version_string () {
@@ -175,7 +176,7 @@ chdir $options{workdir} if $options{workdir};
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-eval {
+try {
     diag(_get_version_string());
     $log::direct_output = $options{debug};    # enable debug default when started from a tty
     $bmwqemu::topdir = $installprefix;
@@ -187,10 +188,10 @@ eval {
     $runner->run;    # enter the main loop: process messages from autotest, command server and backend
     $RETURN_CODE = $runner->exit_code_from_test_results if $options{'exit-status-from-test-results'};
     handle_shutdown;
-};
-if (my $error = $@) {
-    log::fctwarn $error, 'main';
-    bmwqemu::serialize_state(component => 'isotovideo', msg => $error);
+}
+catch ($e) {
+    log::fctwarn $e, 'main';
+    bmwqemu::serialize_state(component => 'isotovideo', msg => $e);
 }
 
 END {

@@ -8,6 +8,7 @@ use Mojo::Base -strict, -signatures;
 
 use bmwqemu;
 use Exporter 'import';
+use Feature::Compat::Try;
 use File::Basename;
 use Socket;
 use IO::Handle;
@@ -266,20 +267,20 @@ sub _terminate () {    # uncoverable statement
 
 sub run_all () {
     my $died = 0;
-    my $completed = 0;
     $tests_running = 1;
-    eval { $completed = autotest::runalltests(); };
-    if ($@) {
-        warn $@;
+    my $completed = 0;
+    try { $completed = autotest::runalltests() }
+    catch ($e) {
+        warn $e;
         $died = 1;    # test execution died
     }
-    eval {
+    try {
         bmwqemu::save_vars(no_secret => 1);
         bmwqemu::diag("Sending tests_done");
         my $token = myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
         myjsonrpc::read_json($isotovideo, $token);    # wait for response from isotovideo before exiting
-    };
-    warn "Error at the end of run_all: $@" if $@;
+    }
+    catch ($e) { warn "Error at the end of run_all: $e" }    # uncoverable statement
     _terminate;
 }
 
@@ -411,8 +412,9 @@ sub runalltests () {
             make_snapshot($t->{fullname});
         }
 
-        eval { $t->runtest; };
-        my $error = $@;    # save $@, it might be overwritten
+        my $error;
+        try { $t->runtest }
+        catch ($e) { $error = $e }
         $t->save_test_result();
         my $next_test = $testorder[$testindex + 1];
 

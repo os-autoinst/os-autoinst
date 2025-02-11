@@ -20,6 +20,7 @@ package OVS;
 
 use Mojo::Base 'Net::DBus::Object', -signatures;
 use autodie ':all';
+use Feature::Compat::Try;
 use Getopt::Long;
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
@@ -28,8 +29,8 @@ use Symbol 'gensym';
 use Time::Seconds;
 
 sub usage ($r) {
-    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
-    die "cannot display help, install perl(Pod::Usage)\n" if $@;
+    try { require Pod::Usage; Pod::Usage::pod2usage($r) }
+    catch ($e) { die "cannot display help, install perl(Pod::Usage)\n" }    # uncoverable statement
 }
 
 my %options;

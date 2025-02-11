@@ -7,6 +7,7 @@ package testapi;
 use Carp;
 use Exporter;
 use Mojo::Base 'Exporter', -signatures;
+use Feature::Compat::Try;
 use File::Basename qw(basename dirname);
 use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
@@ -2005,27 +2006,22 @@ file is then parsed as the format supplied, that can be understood by OpenQA::Pa
 sub parse_extra_log ($format, $file) {
     $file = upload_logs($file);
     my @tests;
+    # We need to touch @INC as specific supported format are split
+    # in different classes and dynamically loaded by OpenQA::Parser
+    local @INC = ($ENV{OPENQA_LIBPATH} // OPENQA_LIBPATH, @INC);
+    try {
+        require OpenQA::Parser;
+        OpenQA::Parser->import('parser');
+        my $parser = parser($format => "ulogs/$file");
+        $parser->write_output(bmwqemu::result_dir());
+        $parser->write_test_result(bmwqemu::result_dir());
 
-    {
-        local $@;
-        # We need to touch @INC as specific supported format are split
-        # in different classes and dynamically loaded by OpenQA::Parser
-        local @INC = ($ENV{OPENQA_LIBPATH} // OPENQA_LIBPATH, @INC);
-        eval {
-            require OpenQA::Parser;
-            OpenQA::Parser->import('parser');
-            my $parser = parser($format => "ulogs/$file");
-            $parser->write_output(bmwqemu::result_dir());
-            $parser->write_test_result(bmwqemu::result_dir());
-
-            $parser->tests->each(
-                sub {
-                    push(@tests, $_->to_openqa);
-                });
-        };
-        croak $@ if $@;
+        $parser->tests->each(
+            sub {
+                push(@tests, $_->to_openqa);
+            });
     }
-
+    catch ($e) { croak $e }    # uncoverable statement
     return $autotest::current_test->register_extra_test_results(\@tests);
 }
 

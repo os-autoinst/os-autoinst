@@ -4,7 +4,7 @@
 package consoles::VMWare;
 
 use Mojo::Base -base, -signatures;
-
+use Feature::Compat::Try;
 use Mojo::JSON qw(encode_json);
 use Mojo::UserAgent;
 use Mojo::URL;
@@ -105,12 +105,17 @@ sub launch_vnc_server ($self, $listen_port) {
     my $delay = $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_DELAY} // 5;
     my $error;
     for (; $attempts >= 0; --$attempts) {
-        my ($websockets_url, $session) = eval { $self->get_vmware_wss_url };
-        return $self->_start_dewebsockify_process($listen_port, $websockets_url, $session) unless $error = $@;
-        die $error if $error =~ qr/incorrect user name or password/;    # no use to attempt further
-        chomp $error;
-        log::diag "$error, trying $attempts more times";
-        sleep $delay;
+        my ($websockets_url, $session);
+        try { ($websockets_url, $session) = $self->get_vmware_wss_url }
+        catch ($e) {
+            die $e if $e =~ qr/incorrect user name or password/;    # no use to attempt further
+            chomp $e;
+            log::diag "$e, trying $attempts more times";
+            $error = $e;
+            sleep $delay;
+            next;
+        }
+        return $self->_start_dewebsockify_process($listen_port, $websockets_url, $session);
     }
     die $error;
 }

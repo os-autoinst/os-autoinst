@@ -8,6 +8,7 @@ package backend::generalhw;
 
 use Mojo::Base 'backend::baseclass', -signatures;
 use autodie ':all';
+use Feature::Compat::Try;
 use bmwqemu;
 use IPC::Run ();
 require IPC::System::Simple;
@@ -187,10 +188,12 @@ sub start_serial_grab ($self) {
 
 sub stop_serial_grab ($self, @) {
     return 0 unless $self->{serialpid};
-    eval { kill -TERM => $self->{serialpid} };
-    return waitpid($self->{serialpid}, 0) unless my $error = $@;
-    return -1 if $error =~ qr/No such process/i;
-    die "$error\n" if $error;    # uncoverable statement
+    try { kill -TERM => $self->{serialpid} }
+    catch ($e) {
+        return -1 if $e =~ qr/No such process/i;
+        die "$e\n";    # uncoverable statement
+    }
+    return waitpid($self->{serialpid}, 0);
 }
 
 # serial grab end

@@ -6,6 +6,7 @@ package basetest;
 
 use Mojo::Base -strict, -signatures;
 use autodie ':all';
+use Feature::Compat::Try;
 
 use bmwqemu ();
 use ocr;
@@ -305,8 +306,8 @@ sub run_post_fail ($self, $msg) {
     my $post_fail_hook_start_time = time;
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
-        eval { $self->post_fail_hook; };
-        bmwqemu::diag("post_fail_hook failed: $@") if $@;
+        try { $self->post_fail_hook }
+        catch ($e) { bmwqemu::diag("post_fail_hook failed: $e") }    # uncoverable statement
         $self->{post_fail_hook_running} = 0;
 
         # There might be more messages on serial now.
@@ -336,7 +337,7 @@ sub runtest ($self) {
     my $name = $self->{name};
     # Set flags to the field value
     $self->{flags} = $self->test_flags();
-    eval {
+    try {
         $self->pre_run_hook();
         if (defined $self->{run_args}) {
             $self->run($self->{run_args});
@@ -345,11 +346,11 @@ sub runtest ($self) {
             $self->run();
         }
         $self->post_run_hook();
-    };
-    if ($error_message = $@) {
+    }
+    catch ($e) {
         # copy the exception early
         my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
-
+        $error_message = $e;
         $self->{result} = 'fail';
         # add a fail screenshot in case there is none
         if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
@@ -357,19 +358,19 @@ sub runtest ($self) {
         }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
-            my $msg = "# Test died: $@";
+            my $msg = "# Test died: $e";
             bmwqemu::fctinfo($msg);
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $died = 1;
         }
     }
 
-    eval { $self->search_for_expected_serial_failures(); };
-    # Process serial detection failure
-    if ($@) {
-        bmwqemu::diag($error_message = $@);
-        $self->record_resultfile('Failed', $@, result => 'fail');
+    try { $self->search_for_expected_serial_failures() }
+    catch ($e) {
+        bmwqemu::diag($e);
+        $self->record_resultfile('Failed', $e, result => 'fail');
         $died = 1;
+        $error_message = $e;
     }
 
     # pause the test execution if tests are supposed to pause on failures via developer mode, possibly ignore error

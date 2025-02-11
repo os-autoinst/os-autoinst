@@ -5,6 +5,7 @@ package osutils;
 
 use Mojo::Base 'Exporter', -signatures;
 use Carp;
+use Feature::Compat::Try;
 use List::Util 'first';
 use Mojo::File 'path';
 use bmwqemu;
@@ -73,12 +74,12 @@ sub run (@args) {
 # Do not check for anything - just execute and print
 sub run_diag (@args) {
     my ($exit_status, $output);
-    eval {
+    try {
         local $SIG{__DIE__} = undef;
         ($exit_status, $output) = run(@args);
         bmwqemu::diag("Command `@args` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
-    };
-    bmwqemu::diag("Fatal error in command `@args`: $@") if ($@);
+    }
+    catch ($e) { bmwqemu::diag("Fatal error in command `@args`: $e") }
     return $output;
 }
 
