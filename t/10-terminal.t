@@ -5,6 +5,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Feature::Compat::Try;
+use Mojo::File qw(path);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -148,12 +149,8 @@ sub fake_terminal ($pipe_in, $pipe_out) {
     };
 
     alarm $timeout;
-
-    open(my $fd_r, "<", $pipe_in)
-      or die "Can't open in pipe for writing $!";
-    open(my $fd_w, ">", $pipe_out)
-      or die "Can't open out pipe for reading $!";
-
+    my $fd_r = path($pipe_in)->open;
+    my $fd_w = path($pipe_out)->open;
     $SIG{ALRM} = sub {
         report_child_test(fail => 'fake_terminal timed out while performing IO');    # uncoverable statement
         exit(1);    # uncoverable statement
@@ -360,9 +357,7 @@ for my $pid (sort keys %$child_tests) {
     for my $test (@$tests) {
         my ($method, @args) = @$test;
         if (my $sub = Test::Most->can($method)) {
-            if ($method eq 'like') {
-                $args[1] = qr{$args[1]};
-            }
+            $args[1] = qr{$args[1]} if $method eq 'like';
             $args[-1] = "[Child $pid] " . $args[-1];
             $sub->(@args);
         }
@@ -383,30 +378,25 @@ say "The IO log file is at $log_path and the error log is $err_path.";
 # but it doesn't work with this test
 sub report_child_test ($method, @args) {
     my $json = encode_json([$$, [$method => @args]]);
-    open my $fh, '>>', $sharefile or die $!;
-    flock $fh, LOCK_EX;
-    seek $fh, 0, SEEK_END;
-    print $fh "$json\n";
-    close $fh;
+    my $fd = path($sharefile)->open('>>');
+    print $fd $json;
 }
 
 sub retrieve_child_tests () {
     return unless -e $sharefile;
-    open my $fh, '<', $sharefile or die $!;
-    flock $fh, LOCK_SH;
+    my $raw = path($sharefile)->slurp;
     my %tests;
-    while (my $json = <$fh>) {
+    for my $line (split(/\n/, $raw)) {
         my $data;
-        try { $data = decode_json($json) }
+        try { $data = decode_json($line) }
         catch ($e) {
-            diag("Error decoding '$json': $e");    # uncoverable statement
+            diag("Error decoding '$line': $e");    # uncoverable statement
             ok(0, "Valid JSON");    # uncoverable statement
             next;    # uncoverable statement
         }
         my ($pid, $test) = @$data;
         push @{$tests{$pid}}, $test;
     }
-    close $fh;
     return \%tests;
 }
 
