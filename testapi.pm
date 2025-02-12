@@ -13,6 +13,7 @@ use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
 use autotest 'query_isotovideo';
 use Mojo::DOM;
+use Mojo::File 'path';
 use Net::Domain qw(hostfqdn);
 require IPC::System::Simple;
 use autodie ':all';
@@ -1112,10 +1113,7 @@ sub save_tmp_file ($relpath, $content) {
     my $path = hashed_string($relpath);
 
     bmwqemu::log_call(path => $relpath);
-    open my $fh, ">", $path;
-    print $fh $content;
-    close $fh;
-
+    path($path)->spew($content);
     return $path;
 }
 
@@ -1140,10 +1138,7 @@ sub get_test_data ($path) {
         bmwqemu::diag("File doesn't exist: $path");
         return;
     }
-    open my $fh, "<", $path;
-    my $content = do { local $/; <$fh> };
-    close $fh;
-    return $content;
+    return path($path)->slurp;
 }
 
 =head2 validate_script_output

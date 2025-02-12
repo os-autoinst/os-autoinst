@@ -11,6 +11,7 @@ use Test::Warnings ':report_warnings';
 use Feature::Compat::Try;
 use FindBin;
 use File::Find;
+use Mojo::File 'path';
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -42,11 +43,10 @@ my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
 sub read_doc () {
     # read and parse old vars doc
-    my $docfh;
-    open($docfh, '<', VARS_DOC);
+    my @lines = split /\n/, path(VARS_DOC)->slurp;
     my $backend;
     my $reading;
-    for my $line (<$docfh>) {
+    for my $line (@lines) {
         if (!$backend && $line =~ /^\.([^ ]+) backend$/) {
             $backend = $1;
         }
@@ -66,20 +66,17 @@ sub read_doc () {
             }
         }
     }
-    close($docfh);
 }
 
 sub write_doc () {
-    my $docfh;
-    open($docfh, '>', VARS_DOC . '.newvars');
-    print $docfh <<EO_HEADER;
+    my $data = <<EO_HEADER;
 Supported variables per backend
 -------------------------------
 
 EO_HEADER
     for my $backend (sort keys %found_vars) {
         my $backend = uc $backend;
-        print $docfh <<EO_BACKEND_HEADER;
+        $data .= <<EO_BACKEND_HEADER;
 .$backend backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
@@ -96,13 +93,14 @@ EO_BACKEND_HEADER
                 fail "missing documentation for backend $backend variable $var, please update backend_vars";    # uncoverable statement
             }
             my @var_docu = @{$documented_vars{$backend}{$var}};
-            printf $docfh "%s;%s;%s;%s\n", $var, @var_docu;
+            $data .= sprintf "%s;%s;%s;%s\n", $var, @var_docu;
         }
-        print $docfh <<EO_BACKEND_FOOTER;
+        $data .= <<EO_BACKEND_FOOTER;
 |====================
 
 EO_BACKEND_FOOTER
     }
+    path(VARS_DOC . '.newvars')->spew($data);
 }
 
 sub read_backend_pm {    # no:style:signatures
@@ -112,10 +110,8 @@ sub read_backend_pm {    # no:style:signatures
     return if (grep { /$backend/i } @backend_blocklist);
     $backend = uc $backend;
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
-    my $fh;
-    try { open($fh, '<', $File::Find::name) }
-    catch ($e) { return fail 'Unable to open ' . $File::Find::name }    # uncoverable statement
-    for my $line (<$fh>) {
+    my @lines = split /\n/, path($File::Find::name)->slurp;
+    for my $line (@lines) {
         my @vars = $line =~ /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {
             # initially I used array and kept greping through to maintain uniqueness, but I had problem greping ISO_$i
@@ -123,7 +119,6 @@ sub read_backend_pm {    # no:style:signatures
             $found_vars{$backend}{$var} = 1;
         }
     }
-    close($fh);
 }
 
 read_doc;

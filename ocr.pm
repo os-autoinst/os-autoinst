@@ -4,25 +4,19 @@
 
 package ocr;
 use Mojo::Base -strict, -signatures;
+use Mojo::File 'path';
 require IPC::System::Simple;
 
 sub tesseract ($img, $area) {
     my $imgfn = 'ocr.png';
     my $txtfn = 'ocr';    # tesseract appends .txt automatically o_O
     my $txt;
-
-    if ($area) {
-        $img = $img->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
-    }
-
+    $img = $img->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}) if $area;
     $img->write($imgfn);
     # disable debug output, because new versions by default only reports errors and warnings
     system("tesseract $imgfn $txtfn quiet");
     $txtfn .= '.txt';
-    open(my $fh, '<:encoding(UTF-8)', $txtfn);
-    local $/;
-    $txt = <$fh>;
-    close $fh;
+    $txt = path($txtfn)->slurp('UTF-8');
     unlink $imgfn;
     unlink $txtfn;
     return $txt;

@@ -2,15 +2,13 @@
 
 use Mojo::Base -strict, -signatures;
 use autodie;
+use Mojo::File 'path';
 
 
 die "Need threshold as argument" unless @ARGV;
 
 my $filename = 'cover_db/coverage.html';
-
-open(my $fh, '<', $filename);
-my @log = <$fh>;
-close($fh);
+my @log = split /\n/, path($filename)->slurp;
 my @summary = grep { /Total/ } @log;
 chomp @summary;
 my $summary_line = $summary[0];
