@@ -591,19 +591,12 @@ sub setup_tpm ($self) {
     return unless ($vars->{QEMUTPM});
     my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
     my $vmpath = ($vars->{QEMUTPM_PATH_PREFIX} // '/tmp/mytpm') . $tpmn;
-    mkdir $vmpath unless -d $vmpath;
+    path($vmpath)->remove_tree->make_path;
     my $vmsock = "$vmpath/swtpm-sock";
-    unless (-e $vmsock) {
-        # Before create swtpm-sock, we should make sure there is no tpm*.permall file
-        # When tpm version is 2.0, the file is tpm2-00.permall.
-        # When tpm version is 1.x, the file is tpm-00.permall.
-        # See: https://progress.opensuse.org/issues/107155
-        unlink glob "$vmpath/tpm*.permall";
+    my @args = ('swtpm', 'socket', '--tpmstate', "dir=$vmpath", '--ctrl', "type=unixio,path=$vmsock", '--log', 'level=20', '-d');
+    push @args, '--tpm2' if (($vars->{QEMUTPM_VER} // '2.0') == '2.0');
+    runcmd(@args);
 
-        my @args = ('swtpm', 'socket', '--tpmstate', "dir=$vmpath", '--ctrl', "type=unixio,path=$vmsock", '--log', 'level=20', '-d');
-        push @args, '--tpm2' if (($vars->{QEMUTPM_VER} // '2.0') == '2.0');
-        runcmd(@args);
-    }
     sp('chardev', "socket,id=chrtpm,path=$vmsock");
     sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
     my $arch = $vars->{ARCH} // '';
