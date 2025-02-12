@@ -23,21 +23,11 @@ use Test::Warnings qw(warning :report_warnings);
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir = "$toplevel_dir/t/data";
 
-sub create_vars ($data) {
-    open(my $varsfh, '>', 'vars.json') || BAIL_OUT('can not create vars.json');
-    my $json = Cpanel::JSON::XS->new->pretty->canonical;
-    print $varsfh $json->encode($data);
-    close($varsfh);
-}
+sub create_vars ($data) { path('vars.json')->spew(Cpanel::JSON::XS->new->pretty->canonical->encode($data)) }
 
 sub read_vars () {
-    local $/;
-    open(my $varsfh, '<', 'vars.json') || BAIL_OUT('can not open vars.json for reading');
-    my $ret;
-    try { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$varsfh>) }
+    try { return Cpanel::JSON::XS->new->relaxed->decode(path('vars.json')->slurp) }
     catch ($e) { die "parse error in vars.json:\n$e" }    # uncoverable statement
-    close($varsfh);
-    return $ret;
 }
 
 subtest 'log_call' => sub {
