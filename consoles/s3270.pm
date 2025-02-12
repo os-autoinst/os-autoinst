@@ -85,15 +85,12 @@ sub ensure_screen_update ($self) {
 }
 
 sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
-    my $r;
-
     my $we_had_new_output = 0;
 
     # grab any pending output
     if ($self->wait_output()) {
         $self->send_3270("Snap");
-        $r = $self->send_3270("Snap(Ascii)");
-
+        my $r = $self->send_3270("Snap(Ascii)");
         # split it according to the screen sections
         my $co = $r->{command_output};
 
@@ -107,7 +104,6 @@ sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
             $self->{raw_expect_queue}->enqueue(@output_area);
             $we_had_new_output = 1;
         }
-
         say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
 
         # if there is MORE..., go and grab it.
@@ -343,11 +339,10 @@ sub cp_disconnect ($self) {
 sub DESTROY ($self) { IPC::Run::finish($self->{connection}) if $self->{connection} }
 
 sub connect_and_login ($self, $reconnect_ok = 0) {
-    my $r;
     ###################################################################
     # try to connect exactly trice
     for (my $count = 0; $count += 1;) {
-        $r = $self->_connect_3270($self->{zVM_host});
+        my $r = $self->_connect_3270($self->{zVM_host});
         $r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
 
         # bail out if the host is in use
@@ -355,28 +350,23 @@ sub connect_and_login ($self, $reconnect_ok = 0) {
         # this should be fine as s390x guests should be reserved for
         # os-autoinst use
 
-        if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
-            carp    #
-              "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
-              join("\n", @$r) . "\n";
+        last unless grep { /(?:RECONNECT|HCPLGA).*/ } @$r;
+        carp    #
+          "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
+          join("\n", @$r) . "\n";
 
-            if ($count == 2) {
-                carp "Still connected, it's s390, so ... let's wait a bit\n";
-                # arbitrary
-                sleep 7;
-            }
-            elsif ($count == 3) {
-                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
-                  . "Is this machine possibly connected on another terminal?\n";
-            }
-
-            last if $reconnect_ok;
-
-            carp "trying hard shutdown and reconnect...\n";
-            $self->cp_logoff_disconnect();
-            next;
+        if ($count == 2) {
+            carp "Still connected, it's s390, so ... let's wait a bit\n";
+            # arbitrary
+            sleep 7;
         }
-        last;
+        elsif ($count == 3) {
+            die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
+              . "Is this machine possibly connected on another terminal?\n";
+        }
+        last if $reconnect_ok;
+        carp "trying hard shutdown and reconnect...\n";
+        $self->cp_logoff_disconnect();
     }
 }
 
@@ -415,8 +405,6 @@ sub activate ($self) {
     return;
 }
 
-sub disable ($self) {
-    $self->cp_logoff_disconnect();
-}
+sub disable ($self) { $self->cp_logoff_disconnect() }
 
 1;
