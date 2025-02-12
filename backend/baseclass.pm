@@ -1273,9 +1273,7 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
     while (defined(my $bytes_read = $chan->read($buffer, SSH_SERIAL_READ_BUFFER_SIZE))) {
         return 1 unless $bytes_read > 0;
         print $buffer;
-        open(my $serial, '>>', $self->{serialfile});
-        print $serial $buffer;
-        close($serial);
+        my $serial = path($self->{serialfile})->open('>>')->print($buffer);
     }
 
     my ($error_code, $error_name, $error_string) = $ssh->error;
