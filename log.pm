@@ -32,36 +32,31 @@ sub log_format_callback ($time, $level, @items) {
 
 sub diag (@args) {
     confess "missing input" unless @args;
-    logger->append(color('white'));
-    $args[-1] .= color('reset');
+    $args[-1] = color('white') . ($args[-1] // '') . color('reset');
     logger->debug(@args);
     return;
 }
 
 sub fctres ($text, $fname = undef) {
     $fname //= (caller(1))[3];
-    logger->append(color('green'));
-    logger->debug(">>> $fname: $text" . color('reset'));
+    logger->debug(color('green') . ">>> $fname: $text" . color('reset'));
     return;
 }
 
 sub fctinfo ($text, $fname = undef) {
     $fname //= (caller(1))[3];
-    logger->append(color('yellow'));
-    logger->info("::: $fname: $text" . color('reset'));
+    logger->info(color('yellow') . "::: $fname: $text" . color('reset'));
     return;
 }
 
 sub fctwarn ($text, $fname = undef) {
     $fname //= (caller(1))[3];
-    logger->append(color('red'));
-    logger->warn("!!! $fname: $text" . color('reset'));
+    logger->warn(color('red') . "!!! $fname: $text" . color('reset'));
     return;
 }
 
 sub modstate (@text) {
-    logger->append(color('bold blue'));
-    logger->debug("||| @{[join(' ', @text)]}" . color('reset'));
+    logger->debug(color('bold blue') . "||| @{[join(' ', @text)]}" . color('reset'));
     return;
 }
 

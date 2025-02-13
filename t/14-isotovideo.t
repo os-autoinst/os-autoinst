@@ -226,17 +226,17 @@ subtest 'productdir variable relative/absolute' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
-            opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/\d* scheduling.*shutdown/, 'schedule has been evaluated';
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/scheduling.*shutdown/, 'schedule has been evaluated';
     mkdir('product') unless -e 'product';
     mkdir('product/foo') unless -e 'product/foo';
     symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
-    combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo") } qr/\d* scheduling.*shutdown/, 'schedule can still be found';
+    combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo") } qr/scheduling.*shutdown/, 'schedule can still be found';
     unlink("$pool_dir/product/foo/main.pm");
     mkdir("$data_dir/tests/product") unless -e "$data_dir/tests/product";
     symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
     # additionally testing correct schedule for our "integration tests" mode
     my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
-    like $log, qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
+    like $log, qr/scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
     unlike $log, qr/assert_screen_fail_test/, 'assert screen test not scheduled';
 };
 
@@ -289,7 +289,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
     unlike $log, qr/\[warn\]/, 'no warnings';
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
-    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
+    like $log, qr/loaded 4 needles/, 'loaded needles successfully';
 };
 
 

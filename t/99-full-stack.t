@@ -53,7 +53,7 @@ my $log = path('autoinst-log.txt')->slurp;
 my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';
 like $log, qr/\d*: EXIT 0/, 'test executed fine';
-like $log, qr/\d* Snapshots are supported/, 'Snapshots are enabled';
+like $log, qr/Snapshots are supported/, 'Snapshots are enabled';
 unlike $log, qr/Tests died:/, 'Tests did not fail within modules' or diag "autoinst-log.txt: $log";
 unlike $log, qr/script_run: DEPRECATED call of script_run.+die_on_timeout/, 'no deprecation warning for script_run';
 like $log, qr/do not wait_still_screen/, 'test type string and do not wait';
