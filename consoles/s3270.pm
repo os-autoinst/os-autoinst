@@ -29,9 +29,7 @@ sub start ($self) {
 
 }
 
-sub finish ($self) {
-    IPC::Run::finish($self->{connection});
-}
+sub finish ($self) { IPC::Run::finish($self->{connection}) }
 
 ###################################################################
 # send_3270 "COMMAND" [,  command_status => 'ok' (default) or 'error' or 'any' ]
@@ -69,14 +67,9 @@ sub send_3270 ($self, $command = '', %arg) {
         command_output => \@out_array,
     };
 
-    foreach my $line (@{$out->{command_output}}) {
-        $line =~ s/^data: //;
-    }
-
-    if ($arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status}) {
-        confess "expected command exit status $arg{command_status}, got $out->{command_status}";
-    }
-
+    $_ =~ s/^data: // for @{$out->{command_output}};
+    confess "expected command exit status $arg{command_status}, got $out->{command_status}"
+      if $arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status};
     return $out;
 }
 
@@ -89,6 +82,95 @@ sub ensure_screen_update ($self) {
     usleep(5_000);
     $self->{backend}->capture_screenshot();
     $self->send_3270("Clear");
+}
+
+sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
+    my $we_had_new_output = 0;
+
+    # grab any pending output
+    if ($self->wait_output()) {
+        $self->send_3270("Snap");
+        my $r = $self->send_3270("Snap(Ascii)");
+        # split it according to the screen sections
+        my $co = $r->{command_output};
+
+        my $status_line = pop @$co;
+        my $input_line = pop @$co;
+        my @output_area = @$co;
+
+        @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
+
+        if (@output_area > 0) {
+            $self->{raw_expect_queue}->enqueue(@output_area);
+            $we_had_new_output = 1;
+        }
+        say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
+
+        # if there is MORE..., go and grab it.
+        if ($status_line =~ /$arg{buffer_full}/) {
+            $self->ensure_screen_update();
+            return 1;
+        }
+
+        if ($status_line !~ /$arg{expected_status}/) {
+            # if the timeout is not over, wait for more output
+            my $elapsed_time = time() - $start_time;
+            return 1 if $elapsed_time < $arg{timeout} && $self->wait_output($arg{timeout} - $elapsed_time);
+
+            # flush the buffer for debugging:
+            while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+                push @$result, $line;
+            }
+            confess "expect_3270: timed out waiting for 'expected_status'.\n"
+              . "  waiting for ${\Dumper \%arg}\n"
+              . "  last output:\n"
+              . Dumper($result)
+              . $status_line;
+        }
+
+        die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
+    }
+
+    # No more host output is pending. We have some output in the raw_expect_queue,
+    # possibly from a previous run
+
+    # If *not* looking for output_delim, we reached 'buffer_ready' and just return the output buffer
+    if (!defined $arg{output_delim}) {
+        # no need to wait for something special. We just return what we have...
+        while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+            push @$result, $line;
+        }
+        return 0;
+    }
+
+    my $line;
+    while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
+        push @$result, $line;
+        return 0 if !defined $line || $line =~ /$arg{output_delim}/;
+    }
+
+    # If we matched the 'output_delim', we are done.
+    return 0 if defined $line;
+
+    # The queue is empty. If we got so far and we had some output on the
+    # screen the last time, clear the screen so we don't grab the same
+    # stuff again.
+
+    # TODO The better alternative solution to the same problem
+    # would be to remember lines that were not updated since the
+    # last Snap(Ascii) and to thus avoid duplicate lines.
+
+    # For now we have to live with having a clear screen.
+    $self->ensure_screen_update() if $we_had_new_output;
+
+    # wait for new output from the host.
+    my $elapsed_time = time() - $start_time;
+    if ($elapsed_time > $arg{timeout}
+        || !$self->wait_output($arg{timeout} - $elapsed_time))
+    {
+        confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
+    }
+    return 1;    # uncoverable statement
 }
 
 ###################################################################
@@ -144,100 +226,7 @@ sub expect_3270 ($self, %arg) {
         $self->{raw_expect_queue}->dequeue_nb($n) if $n;
     }
     my $result = [];
-    my $start_time = time();
-    while (1) {
-        my $r;
-
-        my $we_had_new_output = 0;
-
-        # grab any pending output
-        if ($self->wait_output()) {
-            $self->send_3270("Snap");
-            $r = $self->send_3270("Snap(Ascii)");
-
-            # split it according to the screen sections
-            my $co = $r->{command_output};
-
-            my $status_line = pop @$co;
-            my $input_line = pop @$co;
-            my @output_area = @$co;
-
-            @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
-
-            if (@output_area > 0) {
-                $self->{raw_expect_queue}->enqueue(@output_area);
-                $we_had_new_output = 1;
-            }
-
-            say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
-
-            # if there is MORE..., go and grab it.
-            if ($status_line =~ /$arg{buffer_full}/) {
-                $self->ensure_screen_update();
-                next;
-            }
-
-            if ($status_line !~ /$arg{expected_status}/) {
-                # if the timeout is not over, wait for more output
-                my $elapsed_time = time() - $start_time;
-                next if $elapsed_time < $arg{timeout} && $self->wait_output($arg{timeout} - $elapsed_time);
-
-                # flush the buffer for debugging:
-                while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-                    push @$result, $line;
-                }
-                confess "expect_3270: timed out waiting for 'expected_status'.\n"
-                  . "  waiting for ${\Dumper \%arg}\n"
-                  . "  last output:\n"
-                  . Dumper($result)
-                  . $status_line;
-            }
-
-            die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
-        }
-
-        # No more host output is pending. We have some output in the raw_expect_queue,
-        # possibly from a previous run
-
-        # If *not* looking for output_delim, we reached 'buffer_ready' and just return the output buffer
-        if (!defined $arg{output_delim}) {
-            # no need to wait for something special. We just return what we have...
-            while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-                push @$result, $line;
-            }
-            last;
-        }
-
-        my $line;
-        while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
-            push @$result, $line;
-            last if !defined $line || $line =~ /$arg{output_delim}/;
-        }
-
-        # If we matched the 'output_delim', we are done.
-        last if defined $line;
-
-        # The queue is empty. If we got so far and we had some output on the
-        # screen the last time, clear the screen so we don't grab the same
-        # stuff again.
-
-        # TODO The better alternative solution to the same problem
-        # would be to remember lines that were not updated since the
-        # last Snap(Ascii) and to thus avoid duplicate lines.
-
-        # For now we have to live with having a clear screen.
-        $self->ensure_screen_update() if $we_had_new_output;
-
-        # wait for new output from the host.
-        my $elapsed_time = time() - $start_time;
-        if ($elapsed_time > $arg{timeout}
-            || !$self->wait_output($arg{timeout} - $elapsed_time))
-        {
-            confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
-        }
-    }
-
-    # tracing output
+    1 while ($self->_handle_expect_3270_cycle($result, time(), %arg));
     say 'expect_3270 result: ' . Dumper(\$result);
     return $result;
 }
@@ -252,9 +241,7 @@ sub wait_output ($self, $timeout = 0) {
 
 ###################################################################
 
-sub sequence_3270 ($self, @commands) {
-    $self->send_3270($_) for (@commands);
-}
+sub sequence_3270 ($self, @commands) { $self->send_3270($_) for @commands }
 
 # map the terminal status of x3270 to a hash
 sub nice_3270_status ($self, $status_string) {
@@ -349,16 +336,13 @@ sub cp_disconnect ($self) {
     $self->send_3270('Wait(Disconnect)');
 }
 
-sub DESTROY ($self) {
-    IPC::Run::finish($self->{connection}) if $self->{connection};
-}
+sub DESTROY ($self) { IPC::Run::finish($self->{connection}) if $self->{connection} }
 
 sub connect_and_login ($self, $reconnect_ok = 0) {
-    my $r;
     ###################################################################
     # try to connect exactly trice
     for (my $count = 0; $count += 1;) {
-        $r = $self->_connect_3270($self->{zVM_host});
+        my $r = $self->_connect_3270($self->{zVM_host});
         $r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
 
         # bail out if the host is in use
@@ -366,28 +350,23 @@ sub connect_and_login ($self, $reconnect_ok = 0) {
         # this should be fine as s390x guests should be reserved for
         # os-autoinst use
 
-        if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
-            carp    #
-              "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
-              join("\n", @$r) . "\n";
+        last unless grep { /(?:RECONNECT|HCPLGA).*/ } @$r;
+        carp    #
+          "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
+          join("\n", @$r) . "\n";
 
-            if ($count == 2) {
-                carp "Still connected, it's s390, so ... let's wait a bit\n";
-                # arbitrary
-                sleep 7;
-            }
-            elsif ($count == 3) {
-                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
-                  . "Is this machine possibly connected on another terminal?\n";
-            }
-
-            last if $reconnect_ok;
-
-            carp "trying hard shutdown and reconnect...\n";
-            $self->cp_logoff_disconnect();
-            next;
+        if ($count == 2) {
+            carp "Still connected, it's s390, so ... let's wait a bit\n";
+            # arbitrary
+            sleep 7;
         }
-        last;
+        elsif ($count == 3) {
+            die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
+              . "Is this machine possibly connected on another terminal?\n";
+        }
+        last if $reconnect_ok;
+        carp "trying hard shutdown and reconnect...\n";
+        $self->cp_logoff_disconnect();
     }
 }
 
@@ -426,8 +405,6 @@ sub activate ($self) {
     return;
 }
 
-sub disable ($self) {
-    $self->cp_logoff_disconnect();
-}
+sub disable ($self) { $self->cp_logoff_disconnect() }
 
 1;
