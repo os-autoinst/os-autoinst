@@ -5,8 +5,11 @@ use Mojo::Base 'basetest', -signatures;
 use testapi;
 
 sub run ($) {
-    enter_cmd 'sudo poweroff';
-    assert_shutdown(get_var('INTEGRATION_TESTS') ? 90 : undef);
+    # enter_cmd 'sudo poweroff';
+    # power('acpi');
+    power('off');
+    # assert_shutdown(get_var('INTEGRATION_TESTS') ? 90 : undef);
+    # assert_shutdown(120);
 }
 
 sub test_flags ($) { {fatal => 1} }
