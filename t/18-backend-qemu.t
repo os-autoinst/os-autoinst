@@ -66,7 +66,7 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     my $msg = 'error about missing service';
     throws_ok { $backend->_dbus_call('show', 'foo', 'bar') } $expected, $msg . ' in exception';
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
-    combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
+    combined_like { is_deeply([$backend->_dbus_call('show', 'foo', 'bar')], [undef, undef], 'failed dbus call ignored gracefully') } $expected, $msg;
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
     throws_ok { $backend->_dbus_call('show') } qr/failed/, 'failed dbus call throws exception';
