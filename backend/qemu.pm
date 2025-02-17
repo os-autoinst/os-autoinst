@@ -119,7 +119,7 @@ sub _dbus_do_call ($self, $fn, @args) {
 }
 
 sub _dbus_call ($self, $fn, @args) {
-    my ($rt, $message, $error);
+    my ($rt, $message);
     try {
         # do not die on unconfigured service
         local $SIG{__DIE__};
@@ -131,9 +131,8 @@ sub _dbus_call ($self, $fn, @args) {
         my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $e";
         die "$msg\n" unless $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL};
         bmwqemu::diag $msg;
-        $error = $e;
     }
-    return ($rt, $message, ($error) x !!($error));
+    return ($rt, $message);
 }
 
 sub do_stop_vm ($self, @) {
