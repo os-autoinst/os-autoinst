@@ -78,15 +78,11 @@ subtest run_post_fail_test => sub {
     my $mock_basetest = Test::MockModule->new($basetest_class);
     $mock_basetest->noop('take_screenshot');
     $mock_basetest->mock(run => sub { die(); });
-    my $basetest = bless({
-            details => [],
-            name => 'foo',
-            category => 'category1',
-            execute_time => 42,
-    }, $basetest_class);
-    my $logs = combined_from { dies_ok { $basetest->runtest } 'run_post_fail end up with die' };
+    my $basetest = bless({details => [], name => 'foo', category => 'category1', execute_time => 42}, $basetest_class);
+    my $logs = combined_from { dies_ok { $basetest->runtest } 'run_post_fail ends up with die (1)' };
     like $logs, qr/Test died/, 'test died';
     like $logs, qr/post fail hooks runtime:/, 'post fail hook ran and its runtime is logged';
+    is $basetest->{result}, 'fail', 'test considered failed after post fail hook ran';
     subtest 'expected commands sent' => sub {
         my %pause_on_failure = (cmd => 'pause_test_execution', due_to_failure => 1);
         like delete $cmds->[0]->{reason}, qr/test died: Died at .*17-basetest\.t/, 'reason for pause passed';
@@ -105,6 +101,12 @@ subtest run_post_fail_test => sub {
     $logs = combined_from { $basetest->runtest };
     like $logs, qr/Test died.*ignoring.*failure via developer mode/s, 'test died but failure ignored';
     unlike $logs, qr/post fail hook/, 'post fail hook not invoked when ignoring failure';
+
+    $fake_ignore_failure = 0;
+    $mock_basetest->mock(post_fail_hook => sub ($self) { $self->record_soft_failure_result('some reason', force_status => 1) });
+    combined_like { dies_ok { $basetest->runtest } 'run_post_fail ends up with die (2)' } qr/finished foo.*post fail hook/s,
+      'finished module and ran post fail hook';
+    is $basetest->{result}, 'softfail', 'test considered softfailed after forcing softfailure in post fail hook';
 };
 
 subtest modules_test => sub {
@@ -516,6 +518,7 @@ subtest search_for_expected_serial_failures => sub {
     $bmwqemu::vars{BACKEND} = 'qemu';
     my $basetest = basetest->new();
     my $mock_basetest = Test::MockModule->new('basetest');
+    $fake_ignore_failure = 1;
     $mock_basetest->mock(run => sub { die 'test failure' });
     $mock_basetest->mock(parse_serial_output_qemu => sub { $basetest->{result} = 'successfully called function' });
     $basetest->runtest();

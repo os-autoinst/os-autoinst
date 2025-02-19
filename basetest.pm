@@ -275,7 +275,7 @@ sub done ($self) {
 }
 
 sub fail_if_running ($self) {
-    $self->{result} = 'fail' if $self->{result};
+    $self->{result} = 'fail' if $self->{result} && !$self->{_result_forced};
     autotest::set_current_test(undef);
 }
 
@@ -494,6 +494,7 @@ sub record_testresult ($self, $result = undef, %args) {
     elsif ($result eq 'softfail') {
         if (!$$current_result || $$current_result ne 'fail' || $args{force_status}) {
             $$current_result = 'softfail';
+            $self->{_result_forced} = 1 if $args{force_status};
         }
     }
     elsif ($result && $result eq 'ok') {
