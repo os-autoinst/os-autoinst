@@ -89,7 +89,7 @@ sub load_vars () {
     try { open($fh, '<', $fn) }
     catch ($e) { return 0 }
     try { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>) }
-    catch ($e) { die "parse error in vars.json:\n$@" }    # uncoverable statement
+    catch ($e) { die "parse error in vars.json:\n$e" }
     close($fh);
     %vars = %{$ret};
     return;
