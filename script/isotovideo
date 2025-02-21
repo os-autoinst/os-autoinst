@@ -124,8 +124,8 @@ my $runner;
 
 sub usage ($r) {
     $RETURN_CODE = $r;
-    try { require Pod::Usage; Pod::Usage::pod2usage($r) }
-    catch ($e) { die "cannot display help, install perl(Pod::Usage)\n" }
+    require Pod::Usage;
+    Pod::Usage::pod2usage($r);
 }
 
 sub _get_version_string () {
