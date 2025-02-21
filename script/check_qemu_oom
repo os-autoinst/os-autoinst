@@ -21,10 +21,7 @@ Getopt::Long::Configure("no_ignore_case");
 
 my %options;
 
-sub usage ($r) {
-    try { require Pod::Usage; Pod::Usage::pod2usage($r) }
-    catch ($e) { die "cannot display help, install perl(Pod::Usage)\n" }    # uncoverable statement
-}
+sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 
 GetOptions(\%options, 'help|h|?') or usage(1);
 usage(0) if $options{help};
