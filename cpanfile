@@ -101,7 +101,7 @@ on 'develop' => sub {
     requires 'Code::TidyAll';
     requires 'Devel::Cover';
     requires 'Module::CPANfile';
-    requires 'Perl::Tidy', '== 20250105.0.0';
+    requires 'Perl::Tidy', '== 20250214.0.0';
     requires 'Template::Toolkit';
 
 };
