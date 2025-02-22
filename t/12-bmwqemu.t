@@ -127,6 +127,11 @@ subtest 'save_vars' => sub {
     is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
 };
 
+subtest load_vars => sub {
+    path('vars.json')->spew(']]]');
+    throws_ok { bmwqemu::load_vars() } qr/parse error in vars.json.*malformed/s, "load_vars dies on invalid vars.json";
+};
+
 subtest 'save_vars no_secret' => sub {
     my $dir = "$data_dir/tests";
     create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials', MY_PASSWORD => 'secret'});
