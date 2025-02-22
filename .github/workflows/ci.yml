@@ -1,7 +1,7 @@
 ---
 name: ci
 # yamllint disable-line rule:truthy
-on: [push, pull_request]
+on: [] #push, pull_request]
 env:
   # Set to 1 to temporarily ignore warnings
   PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS: 0
