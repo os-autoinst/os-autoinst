@@ -41,6 +41,7 @@ sub new ($class) {
     $self->{pidfilename} = 'qemu.pid';
     $self->{proc} = OpenQA::Qemu::Proc->new();
     $self->{proc}->_process->pidfile($self->{pidfilename});
+    $self->{expected_shutdown} = 0;
     return $self;
 }
 
@@ -74,6 +75,8 @@ sub power ($self, $args) {
         reset => 'system_reset',
         off => 'quit',
     );
+    $self->{expected_shutdown} = 1 if $args->{action} eq 'off';
+    warn "POWER: action: " . $args->{action} . ", expected_shutdown: " . $self->{expected_shutdown};
     $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
 
@@ -1120,8 +1123,14 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
         bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }
-    my $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
-    die "handle_qmp_command: syswrite failed $!" unless ($wb == length($line));
+    local $SIG{__DIE__} = undef;    # prevent custom die handler so that a broken pipe can be handled
+    my $wb;
+    try { $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line) }
+    catch ($e) {
+        return {return => {status => 'shutdown'}} if $self->{expected_shutdown} && $e =~ qr/Broken pipe/;
+        die "handle_qmp_command: Unexpected error: $e";
+    }
+    die "handle_qmp_command: syswrite failed $!" unless $wb && $wb == length($line);
 
     my $hash;
     do {
