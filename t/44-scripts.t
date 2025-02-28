@@ -33,4 +33,9 @@ for my $script (sort keys %types) {
       or diag "Output: $out";
 }
 
+subtest 'ovs' => sub {
+    # TODO: add ovs package tests
+    is undef, undef, 'WIP';
+}
+
 done_testing;
