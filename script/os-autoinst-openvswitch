@@ -21,18 +21,11 @@ package OVS;
 use Mojo::Base 'Net::DBus::Object', -signatures;
 use autodie ':all';
 use Feature::Compat::Try;
-use Getopt::Long;
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
 use IPC::Open3;
 use Symbol 'gensym';
 use Time::Seconds;
-
-sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
-
-my %options;
-GetOptions(\%options, 'help|h|?') or usage(1);
-usage(0) if $options{help};
 
 use constant INIT_TIMEOUT => $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // (5 * ONE_MINUTE);
 
@@ -233,12 +226,22 @@ use Mojo::Base -strict, -signatures;
 
 use Net::DBus;
 use Net::DBus::Reactor;
+use Getopt::Long;
 
-my $bus = Net::DBus->system;
+sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 
-my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
-my $object = OVS->new($service);
+sub main () {
+    my %options;
+    GetOptions(\%options, 'help|h|?') or usage(1);
+    usage(0) if $options{help};
+    my $bus = Net::DBus->system;
 
-Net::DBus::Reactor->main->run;
+    my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
+    my $object = OVS->new($service);
 
-exit 0;
+    Net::DBus::Reactor->main->run;
+    exit 0;
+}
+
+main() unless caller();
+
