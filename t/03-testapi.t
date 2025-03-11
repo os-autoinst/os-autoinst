@@ -723,6 +723,9 @@ subtest 'assert_and_click' => sub {
     ok(assert_and_click('foo', button => 'right'));
     is_deeply($cmds->[-2], {bstate => 0, button => 'right', cmd => 'backend_mouse_button'}, 'assert_and_click succeeds with right click');
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
+
+    ok(assert_and_click('foo', mousehide => -1));
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_button', button => 'left', bstate => 0}, 'assert_and_click succeeds and keep mouse with mousehide => -1');
 };
 
 subtest 'assert_and_dclick' => sub {

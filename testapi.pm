@@ -486,8 +486,9 @@ instead. Supported values for C<$button> are C<'left'> and C<'right'>, C<'left'>
 is the default. If C<$mousehide> is true then always move mouse to the 'hidden'
 position after clicking to prevent to disturb the area where the user wants to
 assert/click in the second step, otherwise move the mouse back to its previous
-position. If C<$point_id> is specified, the clickpoint used will be the one
-with a matching ID.
+position. If C<$mousehide> is -1 then keep mouse in the place where it clicked.
+If C<$point_id> is specified, the clickpoint used will be the one with a
+matching ID.
 
 =cut
 
@@ -529,8 +530,10 @@ sub click_lastmatch (%args) {
     if ($old_mouse_coords->{x} > -1 && $old_mouse_coords->{y} > -1 && !$args{mousehide}) {
         return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
     }
-    else {
+    elsif ($args{mousehide} != -1) {
         return mouse_hide();
+    } else {
+        return 1;
     }
 }
 
