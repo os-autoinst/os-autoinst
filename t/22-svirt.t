@@ -392,9 +392,10 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     my $ssh_creds_svirt = {hostname => 'hostname_svirt', password => 'password_svirt', username => 'root'};
     my %ssh_expect = (%$ssh_creds_svirt, wantarray => undef, keep_open => undef);
     my $run_ssh_cmd_return = undef;
+    my $fake_timeouts = 0;
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub {
-            my ($self, $cmd, %args) = @_;
+    $mock_baseclass->redefine('run_ssh_cmd' => sub ($self, $cmd, %args) {
+            die 'Time out waiting for data (-9 LIBSSH2_ERROR_TIMEOUT)' if $fake_timeouts-- > 0;
             for my $key (keys(%ssh_expect)) {
                 is($args{$key}, $ssh_expect{$key}, "Correct $key for ssh connection") if $ssh_expect{$key};
             }
@@ -447,7 +448,17 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
 
         $run_ssh_cmd_return = [undef, 'STDOUT', undef];
         is_deeply($svirt_vmware_console->get_cmd_output('echo -n "BLAFAFU"', {domain => 'sshVMwareServer'}), 'STDOUT', "sshVirtsh::get_cmd_output() Check use of VMWARE credentials");
-    }
+    };
+
+    subtest 'running command with retry on ssh timeout' => sub {
+        %ssh_expect = ();
+        $run_ssh_cmd_return = 42;
+        $fake_timeouts = 2;
+        is $svirt_console->run_cmd_retrying_on_timeouts('foo'), 42, 'got expected return value after retries';
+        is $fake_timeouts, -1, 'invoked run_ssh_cmd the expected number of times';
+        $fake_timeouts = 3;
+        throws_ok { $svirt_console->run_cmd_retrying_on_timeouts('foo') } qr/timeout/i, 'dies after too many timeouts';
+    };
 };
 
 subtest 'Methods backend::svirt::attach_to_running, start_serial_grab and stop_serial_grab' => sub {
@@ -778,7 +789,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     file => '/my/path/to/this/file/' . $file,
                     size => 12
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
         };
 
@@ -793,7 +804,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     file => '/my/path/to/this/file/' . $file,
                     size => 5
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
 
             svirt_xml_validate($svirt,
@@ -816,7 +827,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -941,7 +952,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $file_path});
-            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='150' --stats -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
+            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='150' --stats --partial -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
             like $last_ssh_commands[0], qr%unxz%, 'file uncompressed with unxz';
 
             svirt_xml_validate($svirt,

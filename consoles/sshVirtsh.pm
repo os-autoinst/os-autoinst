@@ -8,6 +8,7 @@ use Mojo::Base 'consoles::sshXtermVt', -signatures;
 use autodie ':all';
 require IPC::System::Simple;
 use XML::LibXML;
+use Feature::Compat::Try;
 use File::Temp 'tempfile';
 use File::Basename;
 use File::Which;
@@ -383,7 +384,7 @@ sub _system (@cmd) { system @cmd }    # uncoverable statement
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     my $download_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_TIMEOUT_M} // 15);
     my $inactivity_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_INACTIVITY_TIMEOUT_M} // 2.5);
-    my $rsync_args = "--timeout='$inactivity_timeout_s' --stats -av";
+    my $rsync_args = "--timeout='$inactivity_timeout_s' --stats --partial -av";
 
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 0) && -e $file_basename && defined which 'rsync') {
@@ -393,7 +394,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
         _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' $rsync_args '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
-        $self->run_cmd("rsync $rsync_args '$file' '$basedir/$file_basename'", timeout => $download_timeout_s) && die 'rsync failed';
+        $self->run_cmd_retrying_on_timeouts("rsync $rsync_args '$file' '$basedir/$file_basename'", timeout => $download_timeout_s) && die 'rsync failed';
     }
     if ($file_basename =~ /(.*)\.xz$/) {
         $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
@@ -672,6 +673,21 @@ sub run_cmd ($self, $cmd, %args) {
     my %credentials = $self->get_ssh_credentials($args{domain});
     delete $args{domain};
     return $self->backend->run_ssh_cmd($cmd, %credentials, %args);
+}
+
+sub run_cmd_retrying_on_timeouts ($self, $command, @args) {
+    my $attempts = $bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_ATTEMPTS} // 3;
+    for (my $attempt = 1;;) {
+        try {
+            return $self->run_cmd($command, @args);
+        }
+        catch ($e) {
+            # retry with a new ssh connection in case a timeout occurred
+            die $e if (++$attempt > $attempts) || ($e !~ qr/LIBSSH2_ERROR_TIMEOUT/);
+            bmwqemu::diag "Retrying '$command' after running into timeout (attempt $attempt of $attempts)";
+            $self->backend->close_ssh_connections;
+        }
+    }
 }
 
 =head2 get_cmd_output
