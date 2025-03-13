@@ -792,4 +792,13 @@ subtest 'special cases when handling QMP command' => sub {
     qr/Skipping.*because QEMU_ONLY_EXEC/, 'skipping logged';
 };
 
+subtest 'die with error on QMP command after power("off")' => sub {
+    $bmwqemu::vars{QEMU_ONLY_EXEC} = 0;
+    $backend->{expected_shutdown} = 0;
+    $backend_mock->redefine(handle_qmp_command => undef);
+    $backend->power({action => 'off'});
+    $backend_mock->unmock('handle_qmp_command');
+    combined_like { throws_ok { $backend->power({action => 'reset'}) } qr/Bad file descriptor/, 'die as expected' } qr/qemu was explicitly stopped from test code.*system_reset/s, 'warning as expected';
+};
+
 done_testing();
