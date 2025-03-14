@@ -11,31 +11,8 @@ coverage:
     changes: false
     project:
       default:
-        target: 94.0
-        threshold: 0.1
-      fully_covered:
         target: 100.0
-        paths:
-          - OpenQA/
-          - backend/
-          - consoles/
-          - commands.pm
-          - distribution.pm
-          - autotest.pm
-          - myjsonrpc.pm
-          - lockapi.pm
-          - basetest.pm
-          - bmwqemu.pm
-          - cv.pm
-          - log.pm
-          - mmapi.pm
-          - osutils.pm
-          - signalblocker.pm
-          - testapi.pm
-          - t/
-          - xt/
-          - script/check_qemu_oom
-          - script/vnctest
+        threshold: 0.1
     patch:
       default:
         branches: null
