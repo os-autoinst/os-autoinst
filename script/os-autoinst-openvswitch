@@ -180,7 +180,7 @@ sub check_min_ovs_version ($min_ver) {
 }
 
 # uncoverable statement count:1..5
-sub _set_ip ($self, $tap) { system('ip', 'link', 'set', $tap, 'up') }
+sub _set_ip ($tap) { system('ip', 'link', 'set', $tap, 'up') }
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 sub set_vlan ($self, $tap, $vlan) {
