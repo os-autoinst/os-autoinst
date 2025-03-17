@@ -173,7 +173,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
     my $depth_args = $cache_dir ? '' : "--depth='$clone_depth'";    # cannot use `--depth` with $cache_dir
     if (!$cache_dir) {    # cannot use `--branch` with $cache_dir so just move to fallback directly
         my @out = qx{$clone_cmd $depth_args $branch_args $source_url 2>&1};
-        return $handle_output->($?, @out) unless ($branch && grep /warning: Could not find remote branch/, @out);
+        return $handle_output->($?, @out) unless ($branch && grep /fatal: Remote branch .* not found in upstream origin/, @out);
     }
 
     # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and checkout the missing

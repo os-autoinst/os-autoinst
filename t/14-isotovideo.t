@@ -111,7 +111,7 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     like $log, qr/Cloning into 'repo'/, 'repo picked up';
     like $log, qr{git URL.*/repo}, 'git repository attempted to be cloned';
     like $log, qr/branch.*foo/, 'branch in git repository attempted to be checked out';
-    like $log, qr/fatal:.*/, 'fatal Git error logged';
+    like $log, qr/warning:.*empty repository/, 'Git warning logged';
     unlike $log, qr/No scripts/, 'execution of isotovideo aborted; no follow-up error about empty CASEDIR produced';
 
     subtest 'fatal error recorded for passing as reason' => sub {
