@@ -451,6 +451,7 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     };
 
     subtest 'running command with retry on ssh timeout' => sub {
+        local $bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_ATTEMPTS} = 3;
         %ssh_expect = ();
         $run_ssh_cmd_return = 42;
         $fake_timeouts = 2;

@@ -676,7 +676,7 @@ sub run_cmd ($self, $cmd, %args) {
 }
 
 sub run_cmd_retrying_on_timeouts ($self, $command, @args) {
-    my $attempts = $bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_ATTEMPTS} // 3;
+    my $attempts = $bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_ATTEMPTS} // 1;
     for (my $attempt = 1;;) {
         try {
             return $self->run_cmd($command, @args);
