@@ -151,8 +151,8 @@ sub loadtest ($script, %args) {
     eval $code;
     if (my $err = $@) {
         if ($is_python) {
-            eval "use Inline Python => 'sys.stderr.flush()';";
-            bmwqemu::fctwarn("Unable to flush Python's stderr, error message from Python might be missing: $@") if $@;    # uncoverable statement
+            try { require Inline; import Inline Python => 'sys.stderr.flush()'; }
+            catch ($e) { bmwqemu::fctwarn("Unable to flush Python's stderr, error message from Python might be missing: $e") }    # uncoverable statement
         }
         my $msg = "error on $script: $err";
         bmwqemu::fctwarn($msg);
