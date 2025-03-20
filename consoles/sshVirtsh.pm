@@ -384,7 +384,7 @@ sub _system (@cmd) { system @cmd }    # uncoverable statement
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     my $download_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_TIMEOUT_M} // 15);
     my $inactivity_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_INACTIVITY_TIMEOUT_M} // 2.5);
-    my $rsync_args = "--timeout='$inactivity_timeout_s' --stats --partial -av";
+    my $rsync_args = "--timeout='$inactivity_timeout_s' --stats --partial --append-verify -av";
 
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 0) && -e $file_basename && defined which 'rsync') {

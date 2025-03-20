@@ -952,7 +952,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $file_path});
-            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='150' --stats --partial -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
+            is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='150' --stats --partial --append-verify -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
             like $last_ssh_commands[0], qr%unxz%, 'file uncompressed with unxz';
 
             svirt_xml_validate($svirt,
