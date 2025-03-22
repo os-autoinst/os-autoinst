@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Feature::Compat::Try;
 use FindBin '$Bin';
 
 use Test::Warnings ':report_warnings';
@@ -15,8 +16,8 @@ use lib "$Bin/..";
 chdir $Bin . '/..';
 
 # Pod::Coverage does not reveal the actual error message
-eval { require testapi };
-diag "Error requiring testapi: $@" if $@;
+try { require testapi }
+catch ($e) { diag "Error requiring testapi: $e" }
 
 my $pc = Pod::Coverage->new(
     package => 'testapi',
