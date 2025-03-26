@@ -2058,9 +2058,9 @@ sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut}
 
   autoinst_url([$path, $query, $args]);
 
-returns the base URL to contact the local C<os-autoinst> service
+Returns the base URL to contact the local C<os-autoinst> service.
 
-Optional C<$path> argument is appended after base url.
+Optional C<$path> argument is appended after base URL.
 
 Optional HASHREF C<$query> is converted to URL query and appended
 after path.
@@ -2068,9 +2068,14 @@ after path.
 Optional named parameter C<inside_sut> in C<$args> will force using actual worker IP/hostname
 even on KVM guests if set to 0.
 
-Returns constructor URL. Can be used inline:
+Returns a URL that can be used like this:
 
   script_run("curl " . autoinst_url . "/data");
+
+This function can be used to download ISO, HDD and other assets from the
+isotovideo working directory into the SUT. Note that the openQA worker does *not*
+synchronize repository assets there so those assets cannot be downloaded via the
+autoinst URL when the openQA worker is used.
 
 =cut
 
