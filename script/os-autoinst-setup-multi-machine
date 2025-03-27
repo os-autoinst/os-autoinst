@@ -45,11 +45,15 @@ install_packages() {
 
 configure_firewall() {
     systemctl enable --now firewalld
+    default_zone=$(firewall-cmd --get-default-zone)
     firewall-cmd --permanent --get-services | grep -q isotovideo && firewall-cmd --permanent --delete-service=isotovideo
     firewall-cmd --permanent --new-service isotovideo
     for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp; done
     firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
-    firewall-cmd --get-default-zone | grep -q "$zone" || firewall-cmd --set-default-zone="$zone"
+    if [[ $default_zone != "$zone" ]]; then
+        firewall-cmd -q --permanent --remove-interface="$ethernet" --zone="$default_zone"
+        firewall-cmd --set-default-zone="$zone"
+    fi
     cat > /etc/firewalld/zones/"$zone".xml << EOF
 <?xml version="1.0" encoding="utf-8"?>
 <zone target="ACCEPT">
@@ -131,6 +135,7 @@ EOF
 
     # ensure the zone of the uplink/ethernet device is set in accordance as well
     sed -i -e "s/ZONE=.*/ZONE=$zone/g" "/etc/sysconfig/network/ifcfg-$ethernet"
+    wicked ifup "$ethernet" "$bridge"
 }
 
 configure_openvswitch() {
