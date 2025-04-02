@@ -17,7 +17,7 @@ use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 # hash for keeping state
 our $sockets;
 
-sub _syswrite($to_fd, $json) { syswrite($to_fd, $json) }
+sub _syswrite($to_fd, $json, $length = undef, $offset = undef) { syswrite($to_fd, $json, $length, $offset) }
 
 sub is_debug () { DEBUG_JSON || $bmwqemu::vars{DEBUG_JSON_RPC} }
 
@@ -47,10 +47,14 @@ sub send_json ($to_fd, $cmd) {
     $json .= "\n";
 
     confess 'myjsonrpc: called on undefined file descriptor' unless defined $to_fd;
-    my $written_bytes = _syswrite($to_fd, $json);
-    if (!$written_bytes || $written_bytes != length($json)) {
-        die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
-        confess sprintf "syswrite failed: err: '%s'; written_bytes: %d/%d; JSON: '%s'", $!, $written_bytes, length($json), $json;
+    my $written_bytes = 0;
+    my $bytes_to_write = length($json);
+    while ($written_bytes < $bytes_to_write) {
+        $written_bytes += _syswrite($to_fd, $json, $bytes_to_write - $written_bytes, $written_bytes);
+        if ($!) {
+            die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
+            confess sprintf "syswrite failed: err: '%s'; written_bytes: %d/%d; JSON: '%s'", $!, $written_bytes, $bytes_to_write, $json;
+        }
     }
     return $cmdcopy{json_cmd_token};
 }
