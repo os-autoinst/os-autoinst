@@ -65,6 +65,7 @@ sub new ($class) {
     $self->{ssh_connections} = {};
     $self->{xres} = $bmwqemu::vars{XRES} // 1024;
     $self->{yres} = $bmwqemu::vars{YRES} // 768;
+    $self->{stall_detect_factor} = $bmwqemu::vars{STALL_DETECT_FACTOR} // 20;
 
     return $self;
 }
@@ -217,7 +218,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         }
 
         # if we got stalled for a long time, we assume bad hardware and report it
-        if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
+        if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * $self->{stall_detect_factor}) {
             $self->stall_detected(1);
             my $diff = $now - $self->last_screenshot;
             bmwqemu::fctwarn "There is some problem with your environment, we detected a stall for $diff seconds";

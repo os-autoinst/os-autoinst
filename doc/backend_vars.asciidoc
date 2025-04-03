@@ -24,6 +24,7 @@ NOVIDEO;boolean;0;Whether the creation of the video should be disabled and also 
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
 OSUTILS_WAIT_ATTEMPT_INTERVAL;float;1;The interval in seconds between "attempts" in osutils, e.g. used for connections to qemu qmp backend
 SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
+STALL_DETECT_FACTOR;float;20;Report test execution as stalled if console screen check interval takes longer than SCREENSHOTINTERVAL multiplied with this factor
 SSH_COMMAND_TIMEOUT_S;integer;300;Timeout in seconds for any SSH based command in SSH based consoles, disabled for a value of 0. It can be overriden by particular run_ssh_cmd() calls. Checkout the documentation of this function for details.
 SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targets
 SSH_CONNECT_RETRY_INTERVAL;float;10;Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY
