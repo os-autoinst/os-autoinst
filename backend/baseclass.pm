@@ -66,6 +66,7 @@ sub new ($class) {
     $self->{xres} = $bmwqemu::vars{XRES} // 1024;
     $self->{yres} = $bmwqemu::vars{YRES} // 768;
     $self->{stall_detect_factor} = $bmwqemu::vars{STALL_DETECT_FACTOR} // 20;
+    $self->{needle_check_factor} = $bmwqemu::vars{NEEDLE_CHECK_FACTOR} // 1;
 
     return $self;
 }
@@ -1039,7 +1040,7 @@ sub check_asserted_screen ($self, $args) {
     }
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval * $self->{needle_check_factor}) {
         bmwqemu::fctwarn sprintf(
             "check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
             $watch->as_data()->{total_time},
