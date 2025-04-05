@@ -806,6 +806,12 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
     size_t offset = 0;
     int orig_w = w;
     int orig_x = x;
+    long max_x = max(x + w, image_xres(a));
+    long max_y = max(y + h, image_yres(a));
+    if ((image_xres(a) < max_x) || (image_yres(a) < max_y)) {
+        /* If the current image is too small, create a new, bigger one */
+        a->img = Mat::zeros(max_y, max_x, a->img.type());
+    }
     while (h > 0) {
         w = orig_w;
         x = orig_x;
