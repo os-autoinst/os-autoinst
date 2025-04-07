@@ -1,0 +1,133 @@
+#!/usr/bin/perl -w
+# Copyright Roland Clobus <rclobus@rclobus.nl>
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+
+=head1 os-autoinst-generate-needle-preview
+
+os-autoinst-generate-needle-preview - generate an .svg file with the needle information as an overlay
+
+=head1 SYNOPSIS
+
+Use a list of files (using stdin or arguments):
+
+  ls -1 *.json | os-autoinst-generate-needle-preview -
+  os-autoinst-generate-needle-preview *.json
+
+Look for a specific tag:
+
+  grep "DESKTOP-gnome" -l *.json | os-autoinst-generate-needle-preview -
+
+=cut
+
+use Mojo::Base -strict, -signatures;
+use Getopt::Long;
+use Mojo::JSON qw(decode_json);
+use Mojo::File qw(path);
+use Mojo::Util qw(url_escape);
+
+sub process_file ($filename) {
+    my $SVGFILE;
+
+    chomp $filename;
+    my $pp = Mojo::File->new($filename);
+    my $name = $pp->basename(".json");
+    printf "Working on %s\n", $name;
+    my $pngpath = path($pp->dirname, "${name}.png");
+    my $output = qx/file --brief "${pngpath}"/;
+    my ($width, $height) = $output =~ /^PNG image data, (\d+) x (\d+)/;
+    if (!$width or !$height) {
+        say 'E: Could not determine image size';
+        return 1;
+    }
+
+    my $data  = decode_json($pp->slurp);
+
+    open $SVGFILE, '>', path($pp->dirname, "${name}.svg");
+    select $SVGFILE;
+
+    my $URIname = url_escape(${name});
+    # The generated file should be identical to the svg file as saved with inkscape as 'Standard SVG'
+    printf <<~"EOM";
+       <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+       <!-- Created with os-autoinst-generate-needle-preview -->
+
+       <svg
+          version="1.1"
+          id="svg1"
+          width="${width}"
+          height="${height}"
+          viewBox="0 0 ${width} ${height}"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:svg="http://www.w3.org/2000/svg">
+         <defs
+            id="defs1" />
+         <image
+            width="${width}"
+            height="${height}"
+            preserveAspectRatio="none"
+            xlink:href="${URIname}.png"
+            id="needle_bitmap"
+            x="0"
+            y="0" />
+       EOM
+    my $area_counter = 1;
+    foreach my $area (@{$data->{area}}) {
+        say '  <rect';
+        if ($area->{type} eq 'match') {
+            say '     style="fill:#00ff00;fill-opacity:0.5;stroke:#008000;stroke-width:2;stroke-opacity:0.75"';
+        } elsif ($area->{type} eq 'exclude') {
+            say '     style="fill:#ff0000;fill-opacity:0.5;stroke:#800000;stroke-width:2;stroke-opacity:0.75"';
+        } else {
+            say '     style="fill:#000000;fill-opacity:0.5;stroke:#808080;stroke-width:2;stroke-opacity:0.75"';
+        }
+        printf "     id=\"rect%d\"\n", $area_counter;
+        printf "     width=\"%d\"\n",  $area->{width};
+        printf "     height=\"%d\"\n", $area->{height};
+        printf "     x=\"%d\"\n",      $area->{xpos};
+        printf "     y=\"%d\" />\n",   $area->{ypos};
+        if ($area->{click_point}) {
+            say '  <circle';
+            say '     style="fill:#ffffff;fill-opacity:0.5;stroke:#ffffff;stroke-width:2;stroke-opacity:0.75"';
+            printf "     id=\"path%d\"\n", $area_counter;
+            printf "     cx=\"%f\"\n", $area->{xpos} + $area->{click_point}->{xpos};
+            printf "     cy=\"%f\"\n", $area->{ypos} + $area->{click_point}->{ypos};
+            say '     r="10" />';
+        }
+        $area_counter++;
+    }
+    print <<~"EOM";
+       </svg>
+       EOM
+    select STDOUT;
+    close $SVGFILE;
+    return 0;
+}
+
+Getopt::Long::Configure("no_ignore_case");
+
+my %options;
+
+sub usage ($r)
+{
+    require Pod::Usage;
+    Pod::Usage::pod2usage($r)
+}
+
+GetOptions(\%options, 'help|h|?') or usage(1);
+usage(0) if $options{help};
+usage(1) unless @ARGV;
+
+my $has_error = 0;
+if ($ARGV[0] eq '-') {
+    # Read a list of files to process from stdin
+    while (<STDIN>) {
+        $has_error |= process_file $_;
+    }
+} else {
+    for (@ARGV) {
+        $has_error |= process_file $_;
+    }
+}
+exit $has_error;
