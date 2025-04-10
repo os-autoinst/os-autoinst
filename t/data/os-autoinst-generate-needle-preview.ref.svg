@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with os-autoinst-generate-needle-preview -->
+
+<svg
+   version="1.1"
+   id="svg1"
+   width="1024"
+   height="768"
+   viewBox="0 0 1024 768"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <image
+     width="1024"
+     height="768"
+     preserveAspectRatio="none"
+     xlink:href="os-autoinst-generate-needle-preview.png"
+     id="needle_bitmap"
+     x="0"
+     y="0" />
+  <rect
+     style="fill:#00ff00;fill-opacity:0.5;stroke:#008000;stroke-width:2;stroke-opacity:0.75"
+     id="rect1"
+     width="200"
+     height="100"
+     x="50"
+     y="150" />
+  <circle
+     style="fill:#ffffff;fill-opacity:0.5;stroke:#ffffff;stroke-width:2;stroke-opacity:0.75"
+     id="path1"
+     cx="175.000000"
+     cy="175.000000"
+     r="10" />
+  <rect
+     style="fill:#ff0000;fill-opacity:0.5;stroke:#800000;stroke-width:2;stroke-opacity:0.75"
+     id="rect2"
+     width="100"
+     height="50"
+     x="220"
+     y="170" />
+  <rect
+     style="fill:#000000;fill-opacity:0.5;stroke:#808080;stroke-width:2;stroke-opacity:0.75"
+     id="rect3"
+     width="200"
+     height="120"
+     x="50"
+     y="300" />
+</svg>

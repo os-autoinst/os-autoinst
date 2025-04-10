@@ -1,0 +1,32 @@
+{
+    "area": [
+        {
+            "click_point": {
+                "xpos": 125,
+                "ypos": 25
+            },
+            "height": 100,
+            "type": "match",
+            "width": 200,
+            "xpos": 50,
+            "ypos": 150
+        },
+        {
+            "height": 50,
+            "type": "exclude",
+            "width": 100,
+            "xpos": 220,
+            "ypos": 170
+        },
+        {
+            "height": 120,
+            "type": "ocr",
+            "width": 200,
+            "xpos": 50,
+            "ypos": 300
+        }
+    ],
+    "tags": [
+        "DESKTOP-gnome"
+    ]
+}
