@@ -29,7 +29,7 @@ use Time::Seconds;
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 
-our @EXPORT = qw($realname $username $password $serialdev
+our @EXPORT = qw($realname $username $password $serialdev %cmd
 
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
@@ -62,6 +62,8 @@ our @EXPORT = qw($realname $username $password $serialdev
   save_tmp_file get_test_data
 );
 our @EXPORT_OK = qw(is_serial_terminal);
+
+our %cmd;
 
 our $distri;
 
