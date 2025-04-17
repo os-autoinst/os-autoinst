@@ -29,6 +29,7 @@ our @testorder;    # for keeping them in order
 our $isotovideo;
 our $process;
 our $tests_running = 0;
+
 =head1 Introduction
 
 OS Autoinst decides which test modules to run based on a distribution specific
@@ -362,6 +363,7 @@ sub croak ($command, $error) {
 }
 
 my $failed_command;
+
 sub pause_on_failure ($reason, $command = undef) {
     # avoid handling a failing command again (via the die handler) after the test execution has been resumed
     if (!defined $command && $failed_command) {

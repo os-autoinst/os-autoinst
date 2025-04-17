@@ -291,6 +291,7 @@ sub scale_timeout ($timeout) {
 
 Just a random string useful for pseudo security or temporary files.
 =cut
+
 sub random_string ($count) {
     $count //= 4;
     my $string;

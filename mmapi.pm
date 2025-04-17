@@ -249,6 +249,7 @@ sub wait_for_children () {
 Wait while any scheduled children exist.
 
 =cut
+
 sub wait_for_children_to_start () {
     while (1) {
         my $children = get_children() // die 'Failed to wait for children to start';
@@ -270,6 +271,7 @@ sub wait_for_children_to_start () {
 
 Query openQA's API to retrieve the current job ID
 =cut
+
 sub get_current_job_id () {
     my $tx = api_call_2(get => 'whoami', undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'whoami', $CODES_EXPECTED_BY_MMAPI);

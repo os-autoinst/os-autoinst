@@ -712,6 +712,7 @@ unprocessed output from the SUT in their buffers which is needed by test
 module after the snapshot.
 
 =cut
+
 sub save_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
@@ -725,6 +726,7 @@ Should be called when a snapshot of the SUT is loaded to ensure consoles are
 in the same state as when the snapshot was taken.
 
 =cut
+
 sub load_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
@@ -1295,6 +1297,7 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
    frequently enough.
 
 =cut
+
 sub run_ssh_cmd ($self, $cmd, %args) {
     $args{wantarray} //= 0;
     $args{keep_open} //= 1;

@@ -43,6 +43,7 @@ my $fake_ignore_failure;
 my $suppress_match;
 my @selected_consoles;
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
+
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
     my $cmd = $lcmd->{cmd};

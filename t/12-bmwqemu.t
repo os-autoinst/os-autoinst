@@ -42,6 +42,7 @@ sub read_vars () {
 
 subtest 'log_call' => sub {
     require bmwqemu;
+
     sub log_call_test {
         bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
     }

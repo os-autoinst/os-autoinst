@@ -434,6 +434,7 @@ sub write_resultfile ($self, $filename, $output) {
 Record result file to be parsed when evaluating test results, for example
 within the openQA web interface.
 =cut
+
 sub record_resultfile ($self, $title, $output, %nargs) {
     my $filename = $self->next_resultname('txt', $nargs{resultname});
     my $detail = {

@@ -41,17 +41,17 @@ $rpc_mock->redefine(read_json => sub {
 });
 
 # mock bmwqemu/backend
-{
-    package FakeBackend;    # uncoverable statement
+package FakeBackend {    # uncoverable statement
     sub new ($class) { bless({messages => []}, $class) }
+
     sub _send_json ($self, $cmd) {
         push(@{$self->{messages}}, $cmd);
         return $cmd->{cmd} eq 'is_shutdown' ? 'down' : {tags => [qw(some fake tags)]};
     }
     sub stop { die "faking stop\n" }
 }
-{
-    package bmwqemu;
+
+package bmwqemu {
     our $backend = FakeBackend->new();
 }
 

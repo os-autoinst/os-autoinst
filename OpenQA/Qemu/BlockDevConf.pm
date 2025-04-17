@@ -26,6 +26,7 @@ has _drives => sub ($self) { [] };
 Add an existing image file at the bottom/start of a block device chain.
 
 =cut
+
 sub add_existing_base ($self, $id, $file_name, $size) {
     $file_name //= $id;
 
@@ -41,6 +42,7 @@ Add a new image file at the bottom of a block device chain. The file is not
 created by this function, this just updates the object model.
 
 =cut
+
 sub add_new_base ($self, $id, $file_name, $size) {
     $file_name //= $id;
 
@@ -53,6 +55,7 @@ sub add_new_base ($self, $id, $file_name, $size) {
 Add an existing image file as the overlay of $backing_file.
 
 =cut
+
 sub add_existing_overlay ($self, $id, $backing_file) {
     my $ol = OpenQA::Qemu::BlockDev->new()
       ->node_name($id)
@@ -93,6 +96,7 @@ sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef, $secto
 Create a new drive device and qcow2 image.
 
 =cut
+
 sub add_new_drive ($self, $id, $model, $size, $num_queues = undef, $sector_size = undef) {
     my $base_drive = $self->add_new_base($id, $id, $size);
     return $self->_push_new_drive_dev($id, $base_drive, $model, $num_queues, $sector_size);
@@ -104,6 +108,7 @@ Create a new drive device with an existing qcow2 image as the backing store. A
 new overlay is created so that the existing qcow2 image is not modified.
 
 =cut
+
 sub add_existing_drive ($self, $id, $file_name, $model, $size, $num_queues = undef, $sector_size = undef) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
     my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
@@ -119,6 +124,7 @@ is created, so the test can write to this drive and it won't modify the
 underlying image.
 
 =cut
+
 sub add_iso_drive ($self, $id, $file_name, $model, $size) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)
       ->implicit(1)
@@ -134,6 +140,7 @@ Add a pflash drive which is generally used for UEFI firmware code and
 variables. See the OpenQA::Qemu::PFlashDevice class.
 
 =cut
+
 sub add_pflash_drive ($self, $id, $file_name, $size) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
     my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
@@ -151,6 +158,7 @@ Add a connection between a drive device and a controller device. You can add
 multiple connections to simulate multipath.
 
 =cut
+
 sub add_path_to_drive ($self, $id, $drive, $controller) {
     my $dp = OpenQA::Qemu::DrivePath->new()
       ->controller($controller)
@@ -167,6 +175,7 @@ added at runtime by a QEMU QMP command which creates the overlay, so this
 function will not mark the overlay for creation by qemu-img.
 
 =cut
+
 sub add_snapshot_to_drive ($self, $drive, $snapshot) {
     my $id = $drive->id . OVERLAY_POSTFIX . $drive->new_overlay_id;
 
@@ -185,6 +194,7 @@ after the snapshot. These should be deleted to prevent QEMU from doing
 something unexpected. Also init_blockdev_images needs to be run after this.
 
 =cut
+
 sub revert_to_snapshot ($self, $drive, $snapshot) {
     my @del_files = ();
 

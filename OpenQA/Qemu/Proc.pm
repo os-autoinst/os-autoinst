@@ -70,6 +70,7 @@ Add a plain QEMU parameter, represented as an array of strings. The first item
 in the array will have '-' prepended to it.
 
 =cut
+
 sub static_param ($self, @args) {
     if (@args < 2) {
         push(@{$self->_static_params}, '-' . $args[0]);
@@ -85,6 +86,7 @@ Add SCSI, PCI and USB controllers if necessary. QEMU will automatically create
 controllers for simple configurations.
 
 =cut
+
 sub configure_controllers ($self, $vars) {
     # Setting the HD or CD model to a type of SCSI controller has been
     # deprecated for a long time.
@@ -146,6 +148,7 @@ sub get_img_format ($self, $path) { $self->get_img_json_field($path, 'format') }
 Configure disk drives and their block device backing chains. See BlockDevConf.pm.
 
 =cut
+
 sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
     my $bdc = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
@@ -238,6 +241,7 @@ variables. Unfortunately pflash drives are handled differently by QEMU than
 other block devices which slightly complicates things. See BlockDevConf.pm.
 
 =cut
+
 sub configure_pflash ($self, $vars) {
     my $bdc = $self->blockdev_conf;
 
@@ -275,6 +279,7 @@ sub configure_pflash ($self, $vars) {
 Generate the QEMU command line arguments from our object model.
 
 =cut
+
 sub gen_cmdline ($self) {
     return ($self->qemu_bin,
         @{$self->_static_params},
@@ -306,6 +311,7 @@ create them.
 This should only be called when QEMU is not running.
 
 =cut
+
 sub init_blockdev_images ($self) {
     for my $file ($self->blockdev_conf->gen_unlink_list()) {
         no autodie 'unlink';
@@ -329,6 +335,7 @@ need to export the VM state (migration) file, which is effectively the same
 thing as performing an offline migration.
 
 =cut
+
 sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow) {
     my $count = 0;
 
@@ -391,6 +398,7 @@ Connect to QEMU's QMP command socket so that we can control QEMU's execution
 using the JSON QAPI. QMP and QAPI are documented in the QEMU source tree.
 
 =cut
+
 sub connect_qmp ($self) {
     my $sk;
     osutils::attempt {
@@ -420,6 +428,7 @@ Roll back the SUT to a previous state, including its temporary and permanent
 storage as well as its CPU.
 
 =cut
+
 sub revert_to_snapshot ($self, $name) {
     my $bdc = $self->blockdev_conf;
 
@@ -445,6 +454,7 @@ sub revert_to_snapshot ($self, $name) {
 Serialise our object model of QEMU to JSON and return the JSON text.
 
 =cut
+
 sub serialise_state ($self) {
     return encode_json({
             blockdev_conf => $self->blockdev_conf->to_map(),
@@ -458,6 +468,7 @@ sub serialise_state ($self) {
 Save our object model of QEMU to a file.
 
 =cut
+
 sub save_state ($self) {
     if ($self->has_state) {
         bmwqemu::fctinfo('Saving QEMU state to ' . STATE_FILE);
@@ -474,6 +485,7 @@ sub save_state ($self) {
 Deserialise our object model from a string of JSON text.
 
 =cut
+
 sub deserialise_state ($self, $json) {
     my $state_map = decode_json($json);
 
@@ -491,6 +503,7 @@ sub deserialise_state ($self, $json) {
 Load our object model of QEMU from a file.
 
 =cut
+
 sub load_state ($self) {
     # In order to remove this, you need to merge the new state with the
     # existing state from disk without breaking existing snapshots (block

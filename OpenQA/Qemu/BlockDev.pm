@@ -74,6 +74,7 @@ still be taken from the backing files in the chain).
 To avoid memory leaks we weaken this reference.
 
 =cut
+
 sub overlay ($self, $ol) {
     return $self->{overlay} unless defined $ol;
     $self->{overlay} = $ol;
@@ -143,6 +144,7 @@ for the entire blockdevice chain or an empty array if it does not need
 creating.
 
 =cut
+
 sub gen_qemu_img_cmdlines ($self) {
     my $backing_file = $self->backing_file;
     my @cmdlns = defined $backing_file ? $backing_file->gen_qemu_img_cmdlines : ();
@@ -163,6 +165,7 @@ If any image file in the chain is marked as needs_creating, but already exists
 this will return it in an array so that the caller can unlink it.
 
 =cut
+
 sub gen_unlink_list ($self) {
     return () unless $self->needs_creating;
     return ($self->file, $self->backing_file->gen_unlink_list())
