@@ -294,7 +294,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 
 
 # mock backend/driver
-package FakeBackendDriver {    # uncoverable statement
+package FakeBackendDriver {
 
     sub new ($class, $name) {
         my $self = bless({class => $class}, $class);
@@ -303,7 +303,7 @@ package FakeBackendDriver {    # uncoverable statement
         return $self;
     }
     sub extract_assets ($self, @args) { $self->{backend}->do_extract_assets(@args) }
-}
+}    # uncoverable statement
 
 subtest 'publish assets' => sub {
     $bmwqemu::vars{BACKEND} = 'qemu';

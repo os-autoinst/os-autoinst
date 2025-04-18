@@ -129,7 +129,7 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
 
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     # define simple WebSocket server for testing
-    package TestWebSocketApp {    # uncoverable statement
+    package TestWebSocketApp {
         use Mojo::Base 'Mojolicious', -signatures;
         has received_data => '';
 
@@ -138,8 +138,8 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
             $self->routes->any('*')->to('test#fallback');
         }
         sub received_everything ($self) { length $self->received_data >= length 'message sent from raw socket' }
-    }
-    # uncoverable statement count:2
+    }    # uncoverable statement
+
     package TestWebSocketApp::Controller::Test {
         use Mojo::Base 'Mojolicious::Controller', -signatures;
 
@@ -167,7 +167,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                     $self->ua->ioloop->stop;
             });
         }
-    }
+    }    # uncoverable statement
 
     # start test WebSocket server
     my $log_level = $ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_VERBOSE} ? 'trace' : 'error';
