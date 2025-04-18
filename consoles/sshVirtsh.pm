@@ -669,6 +669,7 @@ B<vmware> and defined via C<VMWARE_HOST>, C<VMWARE_PASSWORD> and 'root' as
 username.
 For further arguments see C<baseclass:run_ssh_cmd()>.
 =cut
+
 sub run_cmd ($self, $cmd, %args) {
     my %credentials = $self->get_ssh_credentials($args{domain});
     delete $args{domain};
@@ -698,6 +699,7 @@ With C<<wantarray => 1>> the function returns an array reference containing I<st
 I<stderr>.
 This function is B<deprecated>, you should use C<<$svirt->run_cmd()>> instead.
 =cut
+
 sub get_cmd_output ($self, $cmd, $args = {}) {
     my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), timeout => $args->{timeout}, wantarray => 1);
     return $args->{wantarray} ? [$stdout, $stderr] : $stdout;

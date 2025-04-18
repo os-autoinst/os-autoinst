@@ -121,6 +121,7 @@ Returns the read and write file descriptors for the open sockets,
 otherwise it dies.
 
 =cut
+
 sub open_pipe ($self) {
     bmwqemu::log_call(pipe_prefix => $self->{pipe_prefix});
 

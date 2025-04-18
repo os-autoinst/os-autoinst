@@ -226,6 +226,7 @@ You may be able to avoid overriding this function by setting
 $serial_term_prompt.
 
 =cut
+
 sub script_output ($self, $script, @args) {
     my %args = testapi::compat_args(
         {
@@ -327,6 +328,7 @@ Example:
     );
 
 =cut
+
 sub set_expected_serial_failures ($self, $failures) {
     $self->{serial_failures} = $failures;
 }
@@ -347,6 +349,7 @@ Example:
     );
 
 =cut
+
 sub set_expected_autoinst_failures ($self, $failures) {
     $self->{autoinst_failures} = $failures;
 }

@@ -14,8 +14,8 @@ use cv;
 use needle;
 
 # define a basic needle package; normally `needle` should inherit from this package
-{
-    package basic_needle;    # uncoverable statement
+
+package basic_needle {    # uncoverable statement
     use base 'needle';
     use Mojo::File qw(path);
 

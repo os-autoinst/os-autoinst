@@ -217,6 +217,7 @@ If C<repo> is specified it is used as the actual URL of the repo.
 Cloning may fail up to C<retry_count> times with a delay of C<retry_interval> seconds.
 
 =cut
+
 sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $dir = $bmwqemu::vars{$dir_variable} // $args{repo};
     return undef unless defined $dir;
@@ -259,6 +260,7 @@ optional git refspec to checkout.
 If no wheels are configured the function returns early.
 
 =cut
+
 sub checkout_wheels ($case_dir, $wheels_dir = undef) {
     my $specfile = path($case_dir, 'wheels.yaml');
     return 1 unless -e $specfile;
@@ -299,6 +301,7 @@ Example:
     checkout_git_refspec('/path/to/casedir', 'TEST_GIT_REFSPEC');
 
 =cut
+
 sub checkout_git_refspec ($dir, $refspec_variable) {
     return undef unless defined $dir;
     if (my $refspec = $bmwqemu::vars{$refspec_variable}) {

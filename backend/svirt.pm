@@ -234,6 +234,7 @@ into file.
 C<$args{port}> used non-default port
 C<$args{devname}> used device name
 =cut
+
 sub open_serial_console_via_ssh ($self, $name, %args) {
     bmwqemu::log_call(name => $name, %args);
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);

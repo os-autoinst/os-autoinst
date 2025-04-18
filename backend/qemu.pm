@@ -1117,6 +1117,7 @@ Pass send_fd => $fd to send $fd to QEMU using SCM rights. Probably only useful
 with the getfd command.
 
 =cut
+
 sub handle_qmp_command ($self, $cmd, %optargs) {
     $optargs{fatal} ||= 0;
     my $sk = $self->{qmpsocket};

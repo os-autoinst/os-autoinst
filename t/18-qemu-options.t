@@ -41,6 +41,7 @@ my @common_options = (
 my $vars_json = path('vars.json');
 my $log_file = path('autoinst-log.txt');
 my $log = '';
+
 sub run_isotovideo (@args) {
     $vars_json->spew(encode_json({@common_options, @args}));
     ok system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d qemu_disable_snapshots=1 2>&1 | tee $pool_dir/autoinst-log.txt") == 0, 'zero exit status';

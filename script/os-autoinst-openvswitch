@@ -183,6 +183,7 @@ sub check_min_ovs_version ($min_ver) {
 sub _set_ip ($tap) { system('ip', 'link', 'set', $tap, 'up') }
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
+
 sub set_vlan ($self, $tap, $vlan) {
     my $return_output;
     my $return_code = 1;
@@ -214,6 +215,7 @@ sub set_vlan ($self, $tap, $vlan) {
 }
 
 dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
+
 sub unset_vlan ($self, $tap, $vlan) {
     my $return_output;
     my $return_code = 1;
@@ -239,6 +241,7 @@ sub unset_vlan ($self, $tap, $vlan) {
 sub _ovs_show () { _cmd('ovs-vsctl', 'show') }
 
 dbus_method("show", [], ["int32", "string"]);
+
 sub show ($self) {
     my ($return_code, undef, $ovs_vsctl_output) = _ovs_show;
     return $return_code, $ovs_vsctl_output;

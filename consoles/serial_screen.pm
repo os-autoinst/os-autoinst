@@ -47,6 +47,7 @@ been implemented. In the future this could be extended to provide more key
 name to terminal code mappings.
 
 =cut
+
 sub send_key ($self, $nargs) {
     croak $trying_to_use_keys unless $nargs->{key} eq 'ret';
     $nargs->{text} = "\n";
@@ -77,6 +78,7 @@ and ETX is the same as pressing Ctrl-C on a terminal.
 consoles.
 
 =cut
+
 sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
 
@@ -133,6 +135,7 @@ An undefined timeout will cause to wait indefinitely. A timeout of 0 means to
 just read once.
 
 =cut
+
 sub do_read {    # no:style:signatures
     my ($self, undef, %args) = @_;
     my $buffer = '';
@@ -192,6 +195,7 @@ C<{ matched => 0, string => 'text from the terminal' }>
 on failure.
 
 =cut
+
 sub read_until ($self, $pattern, $timeout, %nargs) {
     my $fd = $self->{fd_read};
     my $buflen = $nargs{buffer_size} || SOCKET_READ_BUFFER_SIZE;
@@ -267,6 +271,7 @@ the backend and data transport. Therefore it should only be used when there is
 no information available about what data is expected to be available.
 
 =cut
+
 sub peak ($self, %nargs) {
     my $buflen = $nargs{buffer_size} || SOCKET_READ_BUFFER_SIZE;
     my $total_read = 0;

@@ -54,6 +54,7 @@ $mock_ua->mock(start => sub ($ua, $tx, $cb) {
 });
 
 {
+
     package MockTxGeneric;    # uncoverable statement
     use Test::Most;
     use Mojo::Base -strict, -signatures;
@@ -62,6 +63,7 @@ $mock_ua->mock(start => sub ($ua, $tx, $cb) {
     sub max_websocket_size { }
     sub error { }
     sub req { bless {}, 'MockTxGenericReq' }
+
     sub on ($self, $event, $cb) {
         if ($event eq 'text') { $main::ws_on_text = $cb }
         elsif ($event eq 'binary') { $main::ws_on_binary = $cb }
@@ -95,6 +97,7 @@ $mock_ua->mock(start => sub ($ua, $tx, $cb) {
 
     package MockTxFailWithCode;
     sub is_websocket { 0 }
+
     sub error {
         return {code => 403, message => 'Forbidden'};
     }
