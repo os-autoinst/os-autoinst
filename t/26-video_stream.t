@@ -107,6 +107,9 @@ subtest 'connect stream' => sub {
         'ffmpeg', '-loglevel', 'fatal', '-i', '/dev/video0',
         '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
 
+    # unsupported format=
+    throws_ok { $mock_console->original('_get_ffmpeg_cmd')->($console, '/dev/video0?fps=3&format=BGR3') } qr/does not support format/, 'dies ok - ffmpeg cmdline with format=';
+
     $mock_console->redefine(update_framebuffer => sub ($self) { $self->{_last_update_received} = 200; return 0; });
     $console->request_screen_update();
     is $console->{dv_timings_supported}, 1, 'dv timings are supported';
@@ -130,13 +133,20 @@ subtest 'connect stream ustreamer' => sub {
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
         '--dv-timings'], "correct cmd built for ustreamer";
-    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2', 'raw-sink-dev-video0.raw');
+    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2&format=BGR3', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '2',
-        '-m', 'UYVY',
+        '-m', 'BGR3',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--dv-timings'], "correct cmd built for fps=2";
+        '--dv-timings'], "correct cmd built for fps=2 and format=BGR3";
+    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0&format=BGR3', 'raw-sink-dev-video0.raw');
+    is_deeply $cmd, [
+        'ustreamer', '--device', '/dev/video0', '-f', '5',
+        '-m', 'BGR3',
+        '-c', 'NOOP',
+        '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
+        '--dv-timings'], "correct cmd built for format=BGR3";
 };
 
 subtest 'frames parsing' => sub {
@@ -259,6 +269,16 @@ subtest 'frame parsing - ustreamer' => sub {
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for UYVY v7 frame' or return;
     is $received_img->similarity($img), 1_000_000, "received correct UYVY v7 frame";
+    $console->disable_video;
+
+    # ustreamer v7 frame, actual data, encoded as BGR3 aka BGR24
+    copy($data_dir . "ustreamer7-shared-full-frame-bgr3", '/dev/shm/raw-sink-dev-video0.raw');
+    $console->connect_remote({url => 'ustreamer:///dev/video0'});
+
+    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame-bgr3.png");
+    $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for BGR3 v7 frame' or return;
+    is $received_img->similarity($img), 1_000_000, "received correct BGR3 v7 frame";
     $console->disable_video;
 };
 

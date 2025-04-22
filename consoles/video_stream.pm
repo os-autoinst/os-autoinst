@@ -121,7 +121,8 @@ sub connect_remote ($self, $args) {
 }
 
 sub _get_ffmpeg_cmd ($self, $url) {
-    my $fps = $1 if ($url =~ s/\?fps=([0-9]+)//);
+    my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
+    die "ffmpeg url does not support format=" if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
     $fps //= 4;
     my @cmd;
     @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
@@ -131,11 +132,13 @@ sub _get_ffmpeg_cmd ($self, $url) {
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
-    my $fps = $1 if ($url =~ s/\?fps=([0-9]+)//);
+    my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
+    my $format = $1 if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
     $fps //= 5;
+    $format //= 'UYVY';
     return [
         'ustreamer', '--device', $url, '-f', $fps,
-        '-m', 'UYVY',    # specify preferred format
+        '-m', $format,    # specify preferred format
         '-c', 'NOOP',    # do not produce JPEG stream
         '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
         '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)
@@ -357,6 +360,20 @@ sub _receive_frame_ustreamer ($self) {
                 8,    # green_shift
                 0xff,    # blue_mask
                 16,    # blue_shift
+            );
+            $img->map_raw_data(substr($ustreamer_map, $data_offset, $used), 0, 0, $width, $height, $vncinfo);
+        } elsif ($format eq 'BGR3') {
+            $img = tinycv::new($width, $height);
+            my $vncinfo = tinycv::new_vncinfo(
+                0,    # do_endian_conversion
+                1,    # true_color
+                3,    # bytes_per_pixel
+                0xff,    # red_mask
+                16,    # red_shift
+                0xff,    # green_mask
+                8,    # green_shift
+                0xff,    # blue_mask
+                0,    # blue_shift
             );
             $img->map_raw_data(substr($ustreamer_map, $data_offset, $used), 0, 0, $width, $height, $vncinfo);
         } elsif ($format eq 'UYVY') {
