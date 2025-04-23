@@ -89,12 +89,14 @@ sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
 sub connect_remote ($self, $args) {
     $self->{_last_update_received} = 0;
 
-    if ($args->{url} =~ m/^\/dev\/video/) {
+    if ($args->{url} =~ m/^(ustreamer:\/\/)?(\/dev\/video\d+)/) {
         if ($args->{edid}) {
-            my $ret = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, "--set-edid $args->{edid}");
+            my $ret = _v4l2_ctl($2, $args->{video_cmd_prefix}, "--set-edid $args->{edid}");
             die "Failed to set EDID" unless defined $ret;
         }
+    }
 
+    if ($args->{url} =~ m/^\/dev\/video/) {
         my $timings = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, '--get-dv-timings');
         if ($timings) {
             if ($timings ne "0x0pnan") {

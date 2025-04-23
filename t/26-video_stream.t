@@ -126,6 +126,16 @@ subtest 'connect stream ustreamer' => sub {
     is $console->{dv_timings_supported}, 0, "correctly skipping DV timing";
     is_deeply \@v4l2_ctl_calls, [], "calls to v4l2-ctl";
 
+    @v4l2_ctl_calls = ();
+    %v4l2_ctl_results = (
+        '--set-edid type=hdmi' => "CTA-861 Header\n...\n\nHDMI Vendor-Specific Data Block\n...\n",
+    );
+    $console->connect_remote({url => 'ustreamer:///dev/video0', edid => 'type=hdmi'});
+    is $console->{dv_timings_supported}, 0, "use v4l2-ctl and set edid";
+    is_deeply \@v4l2_ctl_calls, [
+        [('/dev/video0', undef, '--set-edid type=hdmi')],
+    ], "calls to v4l2-ctl";
+
     my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
