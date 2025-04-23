@@ -90,10 +90,11 @@ else ()
 endif ()
 
 # add targets for invoking Perl test suite
-find_program(PROVE_PATH prove)
+set(PROVE_PATH "prove")
+find_program(PROVE_PATH_FOUND NAMES ${PROVE_PATH})
 find_program(UNBUFFER_PATH unbuffer)
-if (PROVE_PATH)
-    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
+if (PROVE_PATH_FOUND)
+    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH_FOUND}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
     add_test(
         NAME test-perl-testsuite
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
@@ -103,7 +104,7 @@ if (PROVE_PATH)
         PROPERTIES ENVIRONMENT "TESTS=t")
     add_test(
         NAME test-local-author-perl
-        COMMAND "${PROVE_PATH}" xt
+        COMMAND "${PROVE_PATH_FOUND}" xt
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
@@ -115,7 +116,7 @@ add_custom_target(test-local-author-perl COMMAND ${CMAKE_CTEST_COMMAND} -R "test
 add_custom_target(test-local COMMAND ${CMAKE_CTEST_COMMAND} -R "test-local-.*" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-doc COMMAND ${CMAKE_CTEST_COMMAND} -R "test-doc-.*" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-installed-files COMMAND ${CMAKE_CTEST_COMMAND} -R "test-installed-files" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-if (PROVE_PATH)
+if (PROVE_PATH_FOUND)
     add_custom_target(test-perl-testsuite
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -130,7 +131,7 @@ endforeach ()
 
 # add target for computing test coverage of Perl test suite
 find_program(COVER_PATH cover)
-if (COVER_PATH AND PROVE_PATH)
+if (COVER_PATH AND PROVE_PATH_FOUND)
     add_custom_command(
         COMMENT "Run Perl testsuite with coverage instrumentation if no coverage data has been collected so far"
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage --skip-if-cover-db-exists ${INVOKE_TEST_ARGS}
