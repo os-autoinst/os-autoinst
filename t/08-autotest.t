@@ -17,6 +17,8 @@ use autotest;
 use bmwqemu;
 use OpenQA::Test::RunArgs;
 
+my $has_lua = eval { require Inline::Lua };
+
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
@@ -28,8 +30,8 @@ like warning {
   'loadtest outputs on stderr';
 
 sub loadtest ($test, $msg = "loadtest($test)") {
-    my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
-    $test =~ s/\.p[my]//;
+    my $filename = $test =~ /\.(p[my]|lua)$/ ? $test : $test . '.pm';
+    $test =~ s/\.(p[my]|lua)//;
     stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
@@ -448,9 +450,10 @@ subtest make_snapshot => sub {
 
 subtest loadtestdir => sub {
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
-    stderr_like {
-        autotest::loadtestdir('tests');
-    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully';
+    my $w = warning { stderr_like {
+            autotest::loadtestdir('tests');
+    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully'; };
+    like $w, qr{'testfunc37' is not exported by 'testlib'}, 'Warn about requesting not-exported method' if $has_lua;
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
 };
 
@@ -485,6 +488,33 @@ subtest 'start_process' => sub {
     $autotest::isotovideo = $fh;
     stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 };
+
+subtest 'lua_use' => sub {
+    my $lua_vars = {};
+    $mock_autotest->redefine('lua_set' => sub ($k, $v) { $lua_vars->{$k} = $v; });
+    autotest::_lua_use('testapi');
+    is $lua_vars->{realname}, 'Bernhard M. Wiedemann', 'Check importing strings';
+    is ref($lua_vars->{assert_script_run}), 'CODE', 'Check importing functions';
+
+    autotest::_lua_use('testlib');
+    is $lua_vars->{testfunc1}(), 42, 'Exported function is imported';
+    is $lua_vars->{testfunc2}, undef;
+    autotest::_lua_use('testlib', ['testfunc2']);
+    is $lua_vars->{testfunc2}(), 43, 'Explicit imports of non-exported functions';
+    is_deeply $lua_vars->{testarray}, [1, 2, 3], 'Import Array';
+    is_deeply $lua_vars->{testhash}, {foo => 'bar'}, 'Import Hash';
+};
+
+subtest 'lua_runtest' => sub {
+    plan skip_all => 'Inline::Lua is not available' unless $has_lua;
+
+    my $luatest = $autotest::tests{'tests-unittest_lua'};
+    my $out = combined_from { $luatest->runtest() };
+    like $out, qr{testfunc1\ntestfunc2\ntestfunc3}, 'function calls work';
+    like $out, qr{testarray:\t1,2,3}, 'arrays work';
+    like $out, qr{foo = bar}, 'hashes work';
+};
+
 
 done_testing();
 

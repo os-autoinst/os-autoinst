@@ -34,6 +34,10 @@ if (!$integration_tests && eval { require Inline::Python }) {
     autotest::loadtest "tests/pre_boot.py";
 }
 
+if (!$integration_tests && eval { require Inline::Lua }) {
+    autotest::loadtest "tests/pre_boot_lua.lua";
+}
+
 autotest::loadtest "tests/boot.pm";
 autotest::loadtest "tests/assert_screen.pm";
 unless ($integration_tests) {

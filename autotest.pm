@@ -109,6 +109,75 @@ sub _debug_python_version () {
     bmwqemu::diag "Using python version " . $debug;
 }
 
+
+=head2 _lua_use
+
+    use("testapi")
+    use("some::perl::module", {"some_function", "another_function"})
+
+This function is the importer for loading Perl modules from Lua test modules.
+It imports everything that a Perl module exports into the global Lua scope.
+Optionally a table listing the desired functions can be passed.
+
+Imported hashes, scalars and arrays are copied as Inline:Lua doesn't support
+references for them.
+
+=cut
+
+sub _lua_use ($perlmod, $import = undef) {
+    eval "use $perlmod ()";
+    if ($@) { die "Could not load '$perlmod': $@" }
+    my %exports;
+    no strict 'refs';
+    my @export = @{"${perlmod}::EXPORT"};
+    my @export_ok = @{"${perlmod}::EXPORT_OK"};
+    @exports{@export, @export_ok} = ();
+    my @to_import;
+    if ($import) {
+        for my $symbol (@$import) {
+            if (exists $exports{$symbol}) {
+                push @to_import, $symbol;
+            }
+            else {
+                warn "'$symbol' is not exported by '$perlmod'";
+            }
+        }
+    }
+    else {
+        @to_import = @export;
+    }
+    foreach my $symbol (@to_import) {
+        if ($symbol =~ s/^\$//) { lua_set($symbol, ${"${perlmod}::${symbol}"}) }
+        elsif ($symbol =~ s/^\%//) { lua_set($symbol, \%{"${perlmod}::${symbol}"}) }
+        elsif ($symbol =~ s/^\@//) { lua_set($symbol, \@{"${perlmod}::${symbol}"}) }
+        else { lua_set($symbol, \&{"${perlmod}::${symbol}"}) }
+    }
+}
+
+sub _load_lua () {
+    state $lua_loaded = 0;
+    return if $lua_loaded++;
+    my $code = <<~'EOM';
+    use Inline Lua => <<EOLUA;
+    function lua_eval(s)
+        return load("return " .. s)()
+    end
+    function lua_set(var, value)
+        _G[var] = value
+        --print("lua_set", var, value)
+    end
+    function lua_append_path(path)
+        package.path = path .. ";" .. package.path
+        --print(package.path)
+    end
+    EOLUA
+    return lua_eval('_VERSION', 0);
+    EOM
+    my $debug = eval $code;
+    bmwqemu::diag "Using Lua version $debug";
+    lua_set("use", \&_lua_use);
+}
+
 sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $casedir = $bmwqemu::vars{CASEDIR};
@@ -122,8 +191,9 @@ sub loadtest ($script, %args) {
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
-    die "Unsupported file extension for '$script'" unless $script =~ /\.p[my]/;
+    die "Unsupported file extension for '$script'" unless $script =~ /\.(p[my]|lua)/;
     my $is_python = 0;
+    my $is_lua = 0;
     if ($script =~ m/\.pm$/) {
         $code .= "require '$script_path';";
     }
@@ -148,6 +218,33 @@ sub loadtest ($script, %args) {
             }
             EOM
         $is_python = 1;
+    }
+    elsif ($script =~ m/\.lua$/) {
+        _load_lua();    # this loads (actually defines) lua_eval()
+        my $script_dir = path($script_path)->dirname->to_abs;
+        $code .= sprintf <<~'EOM', $script_dir, $script_path;
+            use base 'basetest';
+
+            use autotest;
+            autotest::_load_lua();
+            autotest::lua_append_path("%s/../lib/?.lua");
+            autotest::lua_eval('dofile("%s")');
+
+            sub run($self) {
+                # not passing $self as blessed objects generate a warning
+                #autotest::lua_set("p1", $self);
+                return autotest::lua_eval('run()')
+            }
+
+            sub test_flags($self) {
+                return autotest::lua_eval('_G["test_flags"] and test_flags() or {dummy = 1}')
+            }
+
+            sub post_fail_hook($self) {
+                return autotest::lua_eval('_G["post_fail_hook"] and post_fail_hook() or 1')
+            }
+            EOM
+        $is_lua = 1;
     }
     eval $code;
     if (my $err = $@) {
@@ -204,8 +301,8 @@ our $activated_consoles = [];
 our $last_milestone_console;
 
 sub parse_test_path ($script_path) {
-    unless ($script_path =~ m,(\w+)/([^/]+)\.p[my]$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
+    unless ($script_path =~ m,(\w+)/([^/]+)\.(p[my]|lua)$,) {
+        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.(p[my]|lua)\n";
     }
     my $category = $1;
     my $name = $2;
@@ -469,7 +566,7 @@ sub loadtestdir ($dir) {
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
-    loadtest($_) for map { s{^\Q$bmwqemu::vars{CASEDIR}/}{}r } (glob "$dir/*.pm");
+    loadtest($_) for map { s{^\Q$bmwqemu::vars{CASEDIR}/}{}r } (glob "$dir/*.{pm,py,lua}");
 }
 
 # This is called if the framework loaded a VM snapshot. All consoles
