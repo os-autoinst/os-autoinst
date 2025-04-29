@@ -97,6 +97,7 @@ RUN zypper in -y -C \
        'perl(IPC::Open3)' \
        'perl(IPC::Run::Debug)' \
        'perl(IPC::System::Simple)' \
+       'perl(Inline::Lua)' \
        'perl(Inline::Python)' \
        'perl(JSON::Validator)' \
        'perl(List::MoreUtils)' \
