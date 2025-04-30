@@ -187,10 +187,13 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     }
 
     // Optimization -- Search close to the original area working with ROI
-    int scene_x = std::max(0, int(x - margin));
-    int scene_y = std::max(0, int(y - margin));
-    int scene_bottom_x = std::min(scene->img.cols, int(x + width + margin));
-    int scene_bottom_y = std::min(scene->img.rows, int(y + height + margin));
+    // Scale the possition if object and scene have different sizes
+    int scaled_x = x * scene->img.cols / object->img.cols;
+    int scaled_y = y * scene->img.rows / object->img.rows;
+    int scene_x = std::max(0, int(scaled_x - margin));
+    int scene_y = std::max(0, int(scaled_y - margin));
+    int scene_bottom_x = std::min(scene->img.cols, int(scaled_x + width + margin));
+    int scene_bottom_y = std::min(scene->img.rows, int(scaled_y + height + margin));
     int scene_width = scene_bottom_x - scene_x;
     int scene_height = scene_bottom_y - scene_y;
 
@@ -219,11 +222,11 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     matchTemplate(scene_roi, object_roi, result, cv::TM_SQDIFF);
 
     // Use error at original location as upper bound
-    Point center = Point(x - scene_x, y - scene_y);
+    Point center = Point(scaled_x - scene_x, scaled_y - scene_y);
     double sse = result.at<float>(center);
     if (sse == 0) {
         similarity = 1;
-        return { (int)(x), (int)(y) };
+        return { (int)(scaled_x), (int)(scaled_y) };
     }
 
     // Localizing the points that are "good" - not necessarly the absolute min
@@ -232,7 +235,7 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     if (mins.empty())
         return outvec;
     // sort it by distance to the original - and take the closest
-    SortByClose s(x, y);
+    SortByClose s(scaled_x, scaled_y);
     sort(mins.begin(), mins.end(), s);
     Point minloc = mins[0];
     outvec[0] = int(minloc.x + scene_x);
