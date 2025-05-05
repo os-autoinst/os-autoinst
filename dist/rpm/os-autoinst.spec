@@ -75,17 +75,25 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %bcond_with black
 %endif
-# SLE is missing Python support requirements
+# SLE is missing Python and Lua support requirements
 %if 0%{?is_opensuse}
 %bcond_without python_support
+%bcond_without lua_support
 %else
 %bcond_with python_support
+%bcond_with lua_support
 %endif
 %if %{with python_support}
 # The following line is generated from dependencies.yaml
 %define python_support_requires perl(Inline::Python)
 %else
 %define python_support_requires %{nil}
+%endif
+%if %{with lua_support}
+# The following line is generated from dependencies.yaml
+%define lua_support_requires perl(Inline::Lua)
+%else
+%define lua_support_requires %{nil}
 %endif
 %if %{with black}
 # The following line is generated from dependencies.yaml
@@ -118,7 +126,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk
+%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck file perl(Code::TidyAll) perl(Devel::Cover) perl(Module::CPANfile) perl(Perl::Tidy) perl(Template::Toolkit) sed shfmt
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale openssh-clients
