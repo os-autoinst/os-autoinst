@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Static checks, unit- and integration tests
+      - name: Static checks, unit tests and integration tests
         run: tools/container_run_ci
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
