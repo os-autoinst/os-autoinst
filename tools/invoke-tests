@@ -2,6 +2,11 @@
 
 PROVE_ARGS="${PROVE_ARGS:-"--timer"}"
 
+echo "-----------------------"
+echo "PWD: $(pwd)"
+echo "ARGS[1]: $1, ARGS[2]:$2"
+echo "-----------------------"
+
 source_directory=$(dirname "$0")/..
 source_directory=$(realpath "$source_directory")
 
@@ -36,6 +41,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         --prove-tool)
             prove_path=$2
+            echo "-----------------------------"
+            echo "Using prove tool: $prove_path"
+            echo "-----------------------------"
             shift 2
             ;;
         --make-tool)

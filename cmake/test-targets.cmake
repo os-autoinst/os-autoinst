@@ -93,6 +93,7 @@ endif ()
 find_program(PROVE_PATH prove)
 find_program(UNBUFFER_PATH unbuffer)
 if (PROVE_PATH)
+    message(STATUS "Using ${PROVE_PATH} to run the Perl testsuite")
     set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
     add_test(
         NAME test-perl-testsuite
