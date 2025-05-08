@@ -3,6 +3,23 @@
 default_target="${TRAVIS+"coverage-codecov"}"
 target="${default_target:-"coverage-codecovbash"}"
 
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "PWD: ${PWD}"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+echo "-----------------------------"
+
 usage() {
     cat << EOF
 Usage: container_run_ci [<options...>] ...
@@ -73,5 +90,5 @@ cd /opt
 export CI=1 WITH_COVER_OPTIONS=1 CHECK_GIT_STATUS=1 PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS=$PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B \"$build_dir\"
 cmake --build \"$build_dir\" --verbose --target check-pkg-build
-cmake --build \"$build_dir\" --verbose --target $target
+cmake -DPROVE_PATH_WRAPPER=\"${PWD}/tools/prove_wrapper\" --build \"$build_dir\" --verbose --target $target
 cover -report html_minimal \"$build_dir\"/cover_db"
