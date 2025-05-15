@@ -142,21 +142,21 @@ subtest 'connect stream ustreamer' => sub {
         '-m', 'UYVY',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--dv-timings'], "correct cmd built for ustreamer";
+        '--persistent', '--dv-timings'], "correct cmd built for ustreamer";
     $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2&format=BGR3', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '2',
         '-m', 'BGR3',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--dv-timings'], "correct cmd built for fps=2 and format=BGR3";
+        '--persistent', '--dv-timings'], "correct cmd built for fps=2 and format=BGR3";
     $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0&format=BGR3', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
         '-m', 'BGR3',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--dv-timings'], "correct cmd built for format=BGR3";
+        '--persistent', '--dv-timings'], "correct cmd built for format=BGR3";
 };
 
 subtest 'frames parsing' => sub {
