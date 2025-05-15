@@ -306,9 +306,11 @@ sub run_post_fail ($self, $msg) {
     my $post_fail_hook_start_time = time;
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
+        testapi::set_var('_IN_POST_FAIL_HOOK', 1);
         try { $self->post_fail_hook }
         catch ($e) { bmwqemu::diag("post_fail_hook failed: $e") }    # uncoverable statement
         $self->{post_fail_hook_running} = 0;
+        testapi::set_var('_IN_POST_FAIL_HOOK', 0);
 
         # There might be more messages on serial now.
         # Read them now to not stumble upon them in the next module.
