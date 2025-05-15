@@ -743,9 +743,9 @@ Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t& offset)
         if (!true_colour)
             return colourMap[pixel];
     } else if (bytes_per_pixel == 3) {
-        pixel = *(data + offset++) << 16 |
+        pixel = *(data + offset++) |
                 *(data + offset++) << 8 |
-                *(data + offset++);
+                *(data + offset++) << 16;
     } else {
         // just fail miserably for unsupported bytes per pixel
         abort();
