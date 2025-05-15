@@ -157,6 +157,13 @@ subtest 'connect stream ustreamer' => sub {
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
         '--persistent', '--dv-timings'], "correct cmd built for format=BGR24";
+    $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0&format=RGB24swap', 'raw-sink-dev-video0.raw');
+    is_deeply $cmd, [
+        'ustreamer', '--device', '/dev/video0', '-f', '5',
+        '-m', 'RGB24',
+        '-c', 'NOOP',
+        '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
+        '--persistent', '--dv-timings', '--format-swap-rgb', '1'], "correct cmd built for format=RGB24swap";
 };
 
 subtest 'frames parsing' => sub {
