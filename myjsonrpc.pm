@@ -50,7 +50,7 @@ sub send_json ($to_fd, $cmd) {
     my $written_bytes = 0;
     my $bytes_to_write = length($json);
     while ($written_bytes < $bytes_to_write) {
-        $written_bytes += _syswrite($to_fd, $json, $bytes_to_write - $written_bytes, $written_bytes);
+        $written_bytes += _syswrite($to_fd, $json, $bytes_to_write - $written_bytes, $written_bytes) // 0;
         if ($!) {
             die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
             confess sprintf "syswrite failed: err: '%s'; written_bytes: %d/%d; JSON: '%s'", $!, $written_bytes, $bytes_to_write, $json;
