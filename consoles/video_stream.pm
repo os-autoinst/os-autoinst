@@ -135,16 +135,22 @@ sub _get_ffmpeg_cmd ($self, $url) {
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
     my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
-    my $format = $1 if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
+    my $format = $1 if ($url =~ s/[\?&]format=([A-Z0-9]+(swap)?)//);
     $fps //= 5;
     $format //= 'UYVY';
-    return [
+    my $swap = ($format =~ /swap$/);
+    $format =~ s/swap$//;
+    my $cmd = [
         'ustreamer', '--device', $url, '-f', $fps,
         '-m', $format,    # specify preferred format
         '-c', 'NOOP',    # do not produce JPEG stream
         '--raw-sink', $sink_name, '--raw-sink-rm',    # raw memsink
+        '--persistent',    # smarter watching for reconnecting HDMI, and since ustreamer 6.0 - necessary for --dv-timings to work
         '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)
     ];
+    # workaround for https://github.com/raspberrypi/linux/issues/6068
+    push(@$cmd, ('--format-swap-rgb', '1')) if ($swap);
+    return $cmd;
 }
 
 sub connect_remote_video ($self, $url) {
