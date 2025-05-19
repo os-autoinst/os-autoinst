@@ -343,6 +343,16 @@ sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id, $time) {
 sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
+    # Try to make pipe big enough to fit full frame at once, instead of sending
+    # it in several chunks. Limit it to custom resolutions, as with the default
+    # the impact of sending it in several chunks is not too bad, and default
+    # Linux's pipe-max-size is too small for 2.3MB size (so it wouldn't work
+    # without raising the limit anyway).
+    if ($bmwqemu::vars{XRES} && $bmwqemu::vars{YRES}) {
+        my $pipe_size = $bmwqemu::vars{XRES} * $bmwqemu::vars{YRES} * 3;
+        no autodie;
+        fcntl($pipe, Fcntl::F_SETPIPE_SZ, $pipe_size) or bmwqemu::fctwarn("Can't increase video encoder pipe size to $pipe_size: $!. Consider increasing /proc/sys/fs/pipe-max-size and/or /proc/sys/fs/pipe-user-pages-soft");
+    }
     $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe, cmd => join ' ', @cmd};
     $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
 }

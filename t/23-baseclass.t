@@ -729,6 +729,40 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     is scalar @$image_data, 2, 'further image data enqueued for external encoder';
 };
 
+subtest 'adjusting pipe size for external video encoder ' => sub {
+    my $cleanup_res = scope_guard sub {
+        $bmwqemu::vars{XRES} = undef;
+        $bmwqemu::vars{YRES} = undef;
+    };
+    my $video_encoders = $baseclass->{video_encoders} = {};
+    $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
+    $bmwqemu::vars{XRES} = '640';
+    $bmwqemu::vars{YRES} = '480';
+    ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    my @video_encoder_pids = keys %$video_encoders;
+    is scalar @video_encoder_pids, 1, 'one video encoder started';
+    my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
+    my $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
+    subtest 'pipe size set' => sub {
+        ok $pipe_sz >= 640 * 480 * 3, 'pipe size set';
+    } or always_explain $pipe_sz;
+
+    # now a bigger size to trigger a warning
+    $video_encoders = $baseclass->{video_encoders} = {};
+    $bmwqemu::vars{XRES} = '3840';
+    $bmwqemu::vars{YRES} = '2160';
+    combined_like {
+        ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    } qr/Operation not permitted. Consider increasing/, 'warning about failed pipe size set';
+    @video_encoder_pids = keys %$video_encoders;
+    is scalar @video_encoder_pids, 1, 'one video encoder started';
+    $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
+    $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
+    subtest 'pipe size not set' => sub {
+        ok $pipe_sz < 3840 * 2160 * 3, 'pipe size not set';
+    } or always_explain $pipe_sz;
+};
+
 subtest 'console functions' => sub {
     my $consoles = $testapi::distri->{consoles} = {};
     my @console_func = qw(reset disable activate);
