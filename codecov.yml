@@ -12,7 +12,7 @@ coverage:
     project:
       default:
         target: 100.0
-        threshold: 0.1
+        threshold: 0
     patch:
       default:
         branches: null
