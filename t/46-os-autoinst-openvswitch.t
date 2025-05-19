@@ -7,7 +7,7 @@ use Test::Warnings ':report_warnings';
 use Test::MockObject;
 use Test::MockModule qw(strict);
 use Test::Mock::Time;
-use Test::Output qw(stderr_like);
+use Test::Output qw(combined_like stderr_like);
 use FindBin '$Bin';
 
 use lib "$FindBin::Bin/lib", "$Bin/../external/os-autoinst-common/lib";
@@ -76,7 +76,7 @@ subtest 'OVS package' => sub {
     };
 
     $mock_main->redefine(_ovs_check => sub { return (1, 'error') });
-    is(($ovs->unset_vlan('tap0', 1))[0], 1, 'unset_vlan handles error');
+    combined_like { is(($ovs->unset_vlan('tap0', 1))[0], 1, 'unset_vlan handles error'); } qr/error/, 'no unexpected log output from resultset';
     $mock_main->redefine(_ovs_check => sub { return (0, 'error') });
     $mock_main->redefine(_cmd => sub { return (0, '', '') });
     is(($ovs->unset_vlan('tap0', 1))[0], 0, 'can call unset_vlan');

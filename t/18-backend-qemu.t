@@ -89,11 +89,11 @@ subtest 'using Open vSwitch D-Bus service' => sub {
 
 my $fake_qmp_answer;
 $backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1]; $fake_qmp_answer });
-$backend->power({action => 'off'});
+combined_like { $backend->power({action => 'off'}); } qr/[debug]*POWER: action: off/s, 'Debug message logged for power off';
 ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
 is_deeply($called{handle_qmp_command}, [{execute => 'quit'}], 'quit has been called for off');
 $called{handle_qmp_command} = undef;
-$backend->power({action => 'acpi'});
+combined_like { $backend->power({action => 'acpi'}); } qr/[debug]*POWER: action: acpi/s, 'Debug message logged for power acpi';
 is_deeply($called{handle_qmp_command}, [{execute => 'system_powerdown'}], 'powerdown has been called for acpi');
 $called{handle_qmp_command} = undef;
 
@@ -796,7 +796,7 @@ subtest 'die with error on QMP command after power("off")' => sub {
     $bmwqemu::vars{QEMU_ONLY_EXEC} = 0;
     $backend->{expected_shutdown} = 0;
     $backend_mock->redefine(handle_qmp_command => undef);
-    $backend->power({action => 'off'});
+    combined_like { $backend->power({action => 'off'}); } qr/[debug]*POWER: action: off/s, 'Debug message logged for power off';
     $backend_mock->unmock('handle_qmp_command');
     combined_like { throws_ok { $backend->power({action => 'reset'}) } qr/Bad file descriptor/, 'die as expected' } qr/qemu was explicitly stopped from test code.*system_reset/s, 'warning as expected';
 };

@@ -64,6 +64,10 @@ db="$build_directory/cover_db"
 
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
+if [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+    # https://progress.opensuse.org/issues/182402
+    cpanm Devel::Cover
+fi
 if [[ $WITH_COVER_OPTIONS ]]; then
     ignore="external/|tools/|t/data/tests/tests/|t/data/wheels_dir|/tmp|/CheckGitStatus.pm|$prove_path"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
