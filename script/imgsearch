@@ -15,7 +15,7 @@ use needle;
 
 # define a basic needle package; normally `needle` should inherit from this package
 
-package basic_needle {    # uncoverable statement
+package basic_needle {
     use base 'needle';
     use Mojo::File qw(path);
 
@@ -34,7 +34,7 @@ package basic_needle {    # uncoverable statement
     sub get_image ($self, $area = undef) { ($area // $self->{area}->[0])->{img} }
 
     sub from_paths ($needle_paths, @args) { [map { basic_needle->new($_, @args) } @$needle_paths] }
-}
+}    # uncoverable statement
 
 sub usage ($r) {
     print "imgsearch [options]
