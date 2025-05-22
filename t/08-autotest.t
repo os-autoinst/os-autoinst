@@ -28,8 +28,8 @@ like warning {
   'loadtest outputs on stderr';
 
 sub loadtest ($test, $msg = "loadtest($test)") {
-    my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
-    $test =~ s/\.p[my]//;
+    my $filename = $test =~ /\.(p[my]|lua)$/ ? $test : $test . '.pm';
+    $test =~ s/\.(p[my]|lua)//;
     stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
@@ -451,7 +451,7 @@ subtest loadtestdir => sub {
     stderr_like {
         autotest::loadtestdir('tests');
     } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully';
-    ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
+    ok exists $autotest::tests{'tests-boot'}, 'boot.lua loaded';
 };
 
 subtest croak => sub {
@@ -485,6 +485,31 @@ subtest 'start_process' => sub {
     $autotest::isotovideo = $fh;
     stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 };
+
+subtest 'lua_use' => sub {
+    my $lua_vars = {};
+    $mock_autotest->redefine('lua_set' => sub ($k, $v) { $lua_vars->{$k} = $v; });
+    autotest::_lua_use('testapi');
+    is $lua_vars->{realname}, 'Bernhard M. Wiedemann', 'Check importing strings';
+    is ref($lua_vars->{assert_script_run}), 'CODE', 'Check importing functions';
+
+    autotest::_lua_use('testlib');
+    is $lua_vars->{testfunc1}(), 42, 'Exported function is imported';
+    is $lua_vars->{testfunc2}, undef;
+    autotest::_lua_use('testlib', ['testfunc2']);
+    is $lua_vars->{testfunc2}(), 43, 'Explicit imports of non-exported functions';
+    is_deeply $lua_vars->{testarray}, [1, 2, 3], 'Import Array';
+    is_deeply $lua_vars->{testhash}, {foo => 'bar'}, 'Import Hash';
+};
+
+my $has_lua = eval { require Inline::Lua };
+subtest 'lua_runtest' => sub {
+    plan skip_all => 'Inline::Lua is not available' unless $has_lua;
+
+    my $luatest = $autotest::tests{'tests-unittest_lua'};
+    combined_like { $luatest->runtest() } qr{testfunc1\ntestfunc2\ntestfunc3}, 'output from lua as expected';
+};
+
 
 done_testing();
 
