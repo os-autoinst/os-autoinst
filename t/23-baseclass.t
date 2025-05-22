@@ -738,7 +738,7 @@ subtest 'adjusting pipe size for external video encoder ' => sub {
     $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
     $bmwqemu::vars{XRES} = '640';
     $bmwqemu::vars{YRES} = '480';
-    ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    stderr_like { ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started' } qr{Launching external video encoder}, 'message logged';
     my @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started';
     my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
