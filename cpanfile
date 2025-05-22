@@ -103,6 +103,7 @@ on 'develop' => sub {
     requires 'Module::CPANfile';
     requires 'Perl::Tidy', '== 20250311.0.0';
     requires 'Template::Toolkit';
+    requires 'Test::CheckGitStatus';
 
 };
 
