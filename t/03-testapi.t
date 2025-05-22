@@ -1286,6 +1286,28 @@ subtest 'ensure_installed test' => sub {
     ensure_installed(['openQA', 'os-autoinst-devel']);
 };
 
+subtest stash => sub {
+    my @diag;
+    $mock_bmwqemu->redefine(diag => sub ($msg) { push @diag, $msg });
+    my $hash = bless {key => 23}, 'Some::Class';
+    stash somename => $hash;
+    my $stored = stash 'somename';
+    is $stored->{key}, 23, 'retrieving values via stash() works';
+
+    @diag = ();
+    debug_stash;
+    is $diag[0], <<~'EOM', 'debug_stash() works';
+    testapi stash:
+    ---
+    somename: !perl/hash:Some::Class
+      key: 23
+    EOM
+
+    delete_stash 'somename';
+    $stored = stash 'somename';
+    is $stored, undef, 'delete_stash() values works';
+};
+
 done_testing;
 
 END {
