@@ -53,6 +53,7 @@ devel_requires:
   perl(Module::CPANfile):
   perl(Template::Toolkit):
   perl(Perl::Tidy): == 20250311.0.0
+  perl(Test::CheckGitStatus):
   ShellCheck:
   shfmt:
 

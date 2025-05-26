@@ -128,6 +128,7 @@ RUN zypper in -y -C \
        'perl(Socket::MsgHdr)' \
        'perl(Template::Toolkit)' \
        'perl(Term::ANSIColor)' \
+       'perl(Test::CheckGitStatus)' \
        'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \
        'perl(Test::MockObject)' \
