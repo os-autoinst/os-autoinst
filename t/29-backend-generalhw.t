@@ -111,6 +111,21 @@ subtest 'stop VM' => sub {
     is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or always_explain \@invoked_cmds;
 };
 
+subtest 'is_shutdown' => sub {
+    @invoked_cmds = ();
+    is_deeply($backend->is_shutdown, -1, 'return value');
+    is_deeply(\@invoked_cmds, [], 'nothing invoked') or always_explain \@invoked_cmds;
+    $bmwqemu::vars{GENERAL_HW_IS_SHUTDOWN_CMD} = 'ctl is_shutdown';
+    $fake_system_return = 1;
+    is_deeply($backend->is_shutdown, '', 'return value');
+    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'is_shutdown']], 'is_shutdown invoked') or always_explain \@invoked_cmds;
+
+    $fake_system_return = 0;
+    @invoked_cmds = ();
+    is_deeply($backend->is_shutdown, 1, 'return value');
+    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'is_shutdown']], 'is_shutdown invoked') or always_explain \@invoked_cmds;
+};
+
 subtest 'eject_cd' => sub {
     @invoked_cmds = ();
     $backend->eject_cd;
