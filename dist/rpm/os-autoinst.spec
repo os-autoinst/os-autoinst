@@ -25,14 +25,9 @@ Group:          Development/Tools/Other
 Url:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
 %{perl_requires}
-%if 0%{?suse_version} > 1500 || 0%{?sle_version} >= 150400
-# openSUSE Tumbleweed and Leap 15.4
 %define opencv_require pkgconfig(opencv4)
-%else
-%define opencv_require pkgconfig(opencv)
-%endif
 # exclude additional sub packages that would pull in a lot of extra dependencies on SLE
-%if 0%{?sle_version} && !0%{?is_opensuse}
+%if 0%{?suse_version} && !0%{?is_opensuse}
 %bcond_with devel_package
 %bcond_with deps_package
 %else
@@ -59,11 +54,7 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define spellcheck_requires %{nil}
 %endif
-%if 0%{?sle_version} < 150200 && !0%{?is_opensuse}
-%bcond_without yamllint
-%else
 %bcond_with yamllint
-%endif
 %if %{with yamllint}
 # The following line is generated from dependencies.yaml
 %define yamllint_requires python3-yamllint
