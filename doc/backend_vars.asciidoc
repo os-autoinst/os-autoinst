@@ -331,19 +331,21 @@ VIDEO_STREAM_PIPE_BUFFER_SIZE;integer;1680*1050*3+20;Buffer containing at least 
 GENERAL_HW_KEYBOARD_URL;string;;URL to keyboard emulation device. eg. 'http://1.2.3.4/cmd' - see https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard[rpi_pico_w_keyboard]
 GENERAL_HW_CMD_DIR;string;;Directory with allowed CMD scripts. Note: This variable should be set in the workers.ini file, otherwise it will be ignored by openQA.
 GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
-GENERAL_HW_SOL_ARGS;string;;Arguments to pass GENERAL_HW_SOL_CMD Shell script
-GENERAL_HW_POWERON_CMD;string;;Shell Command to power on the SUT (in CMD_DIR)
-GENERAL_HW_POWERON_ARGS;string;;Arguments to pass GENERAL_HW_POWERON_CMD Shell script
-GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
-GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
-GENERAL_HW_EJECT_CMD;string;;Shell Command to eject CD from SUT (in CMD_DIR). If 'id' is passed to eject_cd, it's converted to '--id=...' argument. If 'force' is passed to eject_cd, it's converted to '--force' argument.
-GENERAL_HW_EJECT_ARGS;string;;Arguments to pass GENERAL_HW_EJECT_CMD Shell script
-GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
-GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
-GENERAL_HW_IMAGE_CMD;string;;Shell Command to extract disk image from SUT (in CMD_DIR), optional
-GENERAL_HW_IMAGE_ARGS;string;;Arguments to pass GENERAL_HW_IMAGE_CMD Shell script. The script will get also extra arguments: disk number and file path to save it into.
-GENERAL_HW_INPUT_CMD;string;;Shell Command to control keyboard/mouse of the SUT, should wait for keyboard events on its stdin (in syntax used in 'send_key'), or mouse events as 'mouse_move <x> <y>' or 'mouse_button <buttons-pressed-mask>'. The command should print an "ok" line for each input (or an error message in case of an error). This is used only if GENERAL_HW_VIDEO_STREAM_URL is set.
-GENERAL_HW_INPUT_ARGS;string;;Arguments to pass GENERAL_HW_INPUT_CMD Shell script
+GENERAL_HW_SOL_ARGS;string;;Arguments to pass GENERAL_HW_SOL_CMD shell script
+GENERAL_HW_POWERON_CMD;string;;Shell command to power on the SUT (in CMD_DIR)
+GENERAL_HW_POWERON_ARGS;string;;Arguments to pass GENERAL_HW_POWERON_CMD shell script
+GENERAL_HW_POWEROFF_CMD;string;;Shell command to power off the SUT (in CMD_DIR)
+GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD shell script
+GENERAL_HW_IS_SHUTDOWN_CMD;string;;Shell command to check if SUT is powered down (in CMD_DIR). Should return exit code 0 if it is, or 1 otherwise.
+GENERAL_HW_IS_SHUTDOWN_ARGS;string;;Arguments to pass GENERAL_HW_IS_SHUTDOWN_CMD shell script
+GENERAL_HW_EJECT_CMD;string;;Shell command to eject CD from SUT (in CMD_DIR). If 'id' is passed to eject_cd, it's converted to '--id=...' argument. If 'force' is passed to eject_cd, it's converted to '--force' argument.
+GENERAL_HW_EJECT_ARGS;string;;Arguments to pass GENERAL_HW_EJECT_CMD shell script
+GENERAL_HW_FLASH_CMD;string;;Shell command to flash a disk image on SUT (in CMD_DIR), optional
+GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD shell script
+GENERAL_HW_IMAGE_CMD;string;;Shell command to extract disk image from SUT (in CMD_DIR), optional
+GENERAL_HW_IMAGE_ARGS;string;;Arguments to pass GENERAL_HW_IMAGE_CMD shell script. The script will get also extra arguments: disk number and file path to save it into.
+GENERAL_HW_INPUT_CMD;string;;Shell command to control keyboard/mouse of the SUT, should wait for keyboard events on its stdin (in syntax used in 'send_key'), or mouse events as 'mouse_move <x> <y>' or 'mouse_button <buttons-pressed-mask>'. The command should print an "ok" line for each input (or an error message in case of an error). This is used only if GENERAL_HW_VIDEO_STREAM_URL is set.
+GENERAL_HW_INPUT_ARGS;string;;Arguments to pass GENERAL_HW_INPUT_CMD shell script
 GENERAL_HW_EDID;string;;EDID to be set on relevant /dev/video device (see 'GENERAL_HW_VIDEO_STREAM_URL'), used directly as an argument for 'v4l2-ctl --set-edit'. Example values: 'type=hdmi', 'file=/some/path'.
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for machine.

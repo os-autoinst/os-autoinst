@@ -33,6 +33,7 @@ sub get_cmd ($self, $cmd) {
         'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
         'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
         'GENERAL_HW_EJECT_CMD' => 'GENERAL_HW_EJECT_ARGS',
+        'GENERAL_HW_IS_SHUTDOWN_CMD' => 'GENERAL_HW_IS_SHUTDOWN_ARGS',
     );
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
@@ -42,18 +43,28 @@ sub get_cmd ($self, $cmd) {
     return $cmd;
 }
 
-sub run_cmd ($self, $cmd, @extra_args) {
+sub run_cmd_retcode ($self, $cmd, @extra_args) {
     my @full_cmd = split / /, $self->get_cmd($cmd);
 
     push @full_cmd, @extra_args;
 
     bmwqemu::diag("Calling $cmd");
     my $ret = _system(@full_cmd);
-    die "Failed to run command '@full_cmd' (deduced from test variable $cmd): $ret\n" if ($ret != 0);
+    return $ret;
+}
+
+sub run_cmd ($self, $cmd, @extra_args) {
+    my $ret = $self->run_cmd_retcode($cmd, @extra_args);
+    die "Failed to run command '" . $self->get_cmd($cmd) . join(" ", @extra_args) . "' (deduced from test variable $cmd): $ret\n" if ($ret != 0);
 }
 
 # wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
 sub _system (@cmd) { system(@cmd) }    # uncoverable statement
+
+sub is_shutdown ($self) {
+    return -1 unless defined $bmwqemu::vars{GENERAL_HW_IS_SHUTDOWN_CMD};
+    return !$self->run_cmd_retcode('GENERAL_HW_IS_SHUTDOWN_CMD');
+}
 
 sub poweroff_host ($self) {
     $self->run_cmd('GENERAL_HW_POWEROFF_CMD');
