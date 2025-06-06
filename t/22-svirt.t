@@ -1034,4 +1034,108 @@ subtest 'get_wait_still_screen_on_here_doc_input' => sub {
     is($svirt->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is not set for kvm');
 };
 
+subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
+    # Temporary base subdir of this test; real default is /vmfs/volumes.
+    # All contents will be deleted after the test completed
+    my $my_test_basedir = tempdir($dir . '/tb_XXXX');
+    my $nfs_ds = 'openqa_test';
+    my $ds = 'datastore_test';
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
+    $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} = $my_test_basedir;
+    $bmwqemu::vars{VMWARE_DATASTORE} = $ds;
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE} = $nfs_ds;
+    # VMware image files path on test host:
+    # origin path definition, like: /vmfs/volumes/openqa/hdd/img.vmdk.xz
+    my $my_test_dir = path($my_test_basedir, $nfs_ds);
+    my $my_test_dir_hdd = path($my_test_dir, 'hdd');
+    my $my_test_dir_iso = path($my_test_dir, 'iso');
+    # destination path definition, like: /vmfs/volumes/Datastore1/openQA/img.vmdk.xz
+    my $vmware_openqa_datastore = path($my_test_basedir, $ds, 'openQA');
+    my $svirt = consoles::sshVirtsh->new('svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+
+    subtest 'vmw-test-1: static check script preparation before execution' => sub {
+        my @last_run_commands = ();
+        # image definition, object only, no file creation
+        my $input_file = path('vmware-mock-1-image.vmdk');
+        my $input_file_xz = path($input_file . '.xz');
+        my $input_file2 = path('vmware-mock-1-image.iso');
+        my $input_file2_xz = path($input_file2 . '.xz');
+        $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) {
+                push @last_run_commands, $cmd;
+                0;
+        });
+        my $n = 0;
+        # check script body resulting from parameters:
+        foreach my $tuple (
+            [$input_file_xz, "/hdd/$input_file_xz", "$input_file_xz", 1],
+            [path($my_test_dir_hdd, $input_file), "/hdd/$input_file", "$input_file_xz", 1],
+            [path($my_test_dir_iso, $input_file2_xz), "/iso/$input_file2_xz", "$input_file2_xz", 0],
+            [path($my_test_dir_iso, $input_file2), "/iso/$input_file2", "$input_file2_xz", '']
+        ) {
+            my ($inp, $qry, $qry_xz, $backf_trig) = @$tuple;
+            $svirt->provide_image_vmware_in_ds($inp, $vmware_openqa_datastore, backingfile => $backf_trig);
+            like $last_run_commands[$n], qr{cp\s.*$qry\"\s\"$vmware_openqa_datastore}, 'vmw-test-1: checking image management script, file origin:' . $n . 'a';
+            like $last_run_commands[$n], qr{xz\s.*$vmware_openqa_datastore/$qry_xz}, 'vmw-test-1: checking image management script, file destination: ' . $n . 'b';
+            $n += 1;
+        }
+    };
+
+    subtest 'wmv-test-2: check shell script execution' => sub {
+        my @last_run_commands = ();
+        my @output = ();
+        my $input_file = path('vmware-mock-2-image.vmdk');
+        my $input_file_xz = path($input_file . '.xz');
+        my $input_file2 = path('vmware-mock-2-image.iso');
+        my $input_file2_xz = path($input_file2 . '.xz');
+        # create path on FS
+        $my_test_dir->make_path;
+        $my_test_dir_hdd->make_path;
+        $my_test_dir_iso->make_path;
+        $vmware_openqa_datastore->make_path;
+        # origin full path file, define, create, compress, check
+        my $file = path($my_test_dir, $input_file);
+        my $file2 = path($my_test_dir, $input_file2);
+        $file->spew('VMmware image vmdk');
+        $file2->spew('VMmware image iso');
+        qx(xz -f --compress --keep $file);
+        qx(xz -f --compress --keep $file2);
+        my $file_xz = path($my_test_dir, $input_file_xz);
+        my $file2_xz = path($my_test_dir, $input_file2_xz);
+        ok -e $file_xz, "mock image $file_xz created.";
+        ok -e $file2_xz, "mock image iso $file2_xz created.";
+        ok -e $file, "mock image $file exists.";
+        ok -e $file2, "mock image iso $file2 exists.";
+        # populate hdd, iso with vaild files.
+        my $file_i = path($file2)->copy_to($my_test_dir_iso);
+        my $file_h = path($file)->copy_to($my_test_dir_hdd);
+        my $file_xz_i = path($file2_xz)->copy_to($my_test_dir_iso);
+        my $file_xz_h = path($file_xz)->copy_to($my_test_dir_hdd);
+        $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) {
+                push @last_run_commands, $cmd;
+                # run shell script in local host.
+                my $out = qx($cmd);
+                ($? >> 8);
+        });
+        # pre-cleanup dest. file xz
+        path($vmware_openqa_datastore, $input_file_xz)->remove;
+        path($vmware_openqa_datastore, $input_file2_xz)->remove;
+        my $i = 0;
+        foreach my $tuple (
+            [path($my_test_dir_hdd, $input_file_xz), "/hdd/$input_file_xz", "$input_file", 1, 1],
+            [$input_file, "/hdd/$input_file", "$input_file", 1, 1],
+            [$input_file2, "/iso/$input_file2", "$input_file2", '', 1],
+            [$input_file2_xz, "/iso/$input_file2_xz", "$input_file2", 0, 0]
+        ) {
+            my ($input, $qry, $file_out, $backf_trig, $preclean) = @$tuple;
+            # pre-cleanup file in destination dir. to trigger reload
+            path($vmware_openqa_datastore, $file_out)->remove if $preclean;
+            $output[$i] = $svirt->provide_image_vmware_in_ds($input, $vmware_openqa_datastore, backingfile => $backf_trig);
+            like $last_run_commands[$i], qr{$qry}, 'wmv-test-2: checking image management ' . $input . ': ' . $i . 'a';
+            like $output[$i], qr{$vmware_openqa_datastore/$file_out}, 'wmv-test-2: checking image management output: ' . $input . ': ' . $i . 'b';
+            $i += 1;
+        }
+    };
+};
+
 done_testing;

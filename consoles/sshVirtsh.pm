@@ -337,6 +337,40 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
+# Verifies that vmware image is present in the host datastore, otherwhise copies from input
+sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %args) {
+    my $nfs_dir = ($args{backingfile}) ? 'hdd' : 'iso';
+    my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
+    my $debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
+    my $base_dir = $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} // '/vmfs/volumes';
+    my $basefile = basename($input_file);
+    # expected name of uncompressed image
+    my $baseimage = basename($input_file) =~ s/\.xz$//r;
+    my $dest_image = "$vmware_openqa_datastore/${baseimage}";
+    # Use the standard folder for an input file without full path
+    my $file_origin = ($input_file eq $basefile) ? "$base_dir/$vmware_nfs_datastore/$nfs_dir/$basefile" : $input_file;
+    # check image is present
+    my $cmd = <<~"EOF";
+    $debug
+    if test -e "$dest_image"; then
+        echo "Waiting while $input_file is loading:"
+        while ps -x | grep -E "cp .*$baseimage|xz .*$basefile"|grep -v grep
+            do sleep 5; done
+        echo "VMware image $dest_image ready"
+    elif [[ "$input_file" == *.xz ]]; then 
+        if [ -e "$dest_image.xz" ] || cp "$file_origin" "$vmware_openqa_datastore"; then
+            xz --decompress --keep "$dest_image.xz"
+        fi
+    else
+        cp "$file_origin" "$vmware_openqa_datastore"
+    fi
+    EOF
+
+    my $ret = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+    croak "Error on VMware image $input_file preparation." if $ret;
+    return $dest_image;
+}
+
 sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile) {
     # If the file exists, make sure someone else is not copying it there right now,
     # otherwise copy image from NFS datastore.
