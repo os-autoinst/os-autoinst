@@ -384,11 +384,18 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     my $cmd =
       "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
       "while lsof | grep 'cp.*$file_basename'; do " .
-      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-      'done;' .
-      'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-      'fi;';
+      "echo 'File $file_basename is being copied by other process, sleeping for 60 seconds'; sleep 60; " .
+      "done; " .
+      "else " .
+      qq{available_space=\$(df -B1 "$vmware_openqa_datastore" | awk 'NR==2 {print \$4}'); } .
+      qq{size=\$(stat --printf="%s" "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename"); } .
+      q{if [ "$size" -ge "$available_space" ]; then } .
+      "echo 'Error: Not enough space on target datastore $vmware_openqa_datastore to copy $file_basename.'; " .
+      "exit 1; " .
+      "else " .
+      qq{cp "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename" "$vmware_openqa_datastore"; } .
+      "fi; " .
+      "fi;";
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't copy VMware image $file_basename" if $retval;
     return unless $backingfile;
