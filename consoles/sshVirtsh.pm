@@ -384,7 +384,14 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
       "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
       'done;' .
       'else ' .
+      "REQUIRED_SPACE=\$(du -b /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename | awk '{print \$1}'); " .
+      "AVAILABLE_SPACE=\$(df -B1 $vmware_openqa_datastore | awk 'NR==2 {print \$4}'); " .
+      "if [ \"\$REQUIRED_SPACE\" -gt \"\$AVAILABLE_SPACE\" ]; then " .
+      "echo 'Error: Not enough space on target datastore $vmware_openqa_datastore to copy $file_basename.'; " .
+      "exit 1; " .
+      "else " .
       "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+      "fi; " .
       'fi;';
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't copy VMware image $file_basename" if $retval;
