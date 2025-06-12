@@ -46,7 +46,8 @@ subtest 'OVS package' => sub {
     $mock_main->redefine(_wait_for_bridge => sub { $wait_for_bridge_called++ });
     $mock_main->redefine(_bridge_conf => "\tlink/ether 01:23:45:67:89:ab brd ff:ff:ff:ff:ff:ff\n\tinet 10.0.2.2/15 brd 10.1.255.255 scope global br0");
     $mock_main->redefine(_add_flow => undef);
-    my $result = main::run_dbus($mock_dbus);
+    my $result;
+    combined_like { $result = main::run_dbus($mock_dbus) } qr/initializing.*running d-bus/is, 'init sequence logged';
     is $result, undef, 'run_dbus() should return 1';
     is $wait_for_bridge_called, 1, 'wait_for_bridge was called';
 
@@ -58,7 +59,8 @@ subtest 'OVS package' => sub {
         ok OVS::_ovs_check('tap0', 'something', 'br0'), 'invalid vlan format';
     };
 
-    is((OVS::_cmd('true'))[0], 0, 'can call _cmd');
+    combined_like { $result = (OVS::_cmd('true'))[0] } qr/running command: true/i, 'running cmd logged';
+    is $result, 0, 'can call _cmd';
 
     $mock_main->redefine(_ovs_version => '(Open vSwitch) 1.1.1');
     is OVS::check_min_ovs_version('1.1.1'), 1, 'can call check_min_ovs_version';
@@ -71,7 +73,7 @@ subtest 'OVS package' => sub {
         } qr/'tap0'/, 'log output for missing tap';
         $mock_main->redefine(_ovs_check => sub { return (0, 1) });
         $mock_main->redefine(_cmd => sub { return (0, '', '') });
-        $mock_main->redefine(_set_ip => 0);
+        $mock_main->redefine(_set_ip => sub { return (0, '', '') });
         is(($ovs->set_vlan('tap0', 1))[0], 0, 'can call set_vlan');
     };
 
