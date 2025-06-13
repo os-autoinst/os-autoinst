@@ -155,6 +155,7 @@ sub _cmd (@args) {
 
     # We need open3 because otherwise STDERR is captured by systemd.
     # In such way we collect the error and send it back in the dbus call as well.
+    say "Running command: @args";
     my $ovs_vsctl_pid = open3($wtr, $rdr, $err, @args);
 
     my @ovs_vsctl_output = <$rdr>;
@@ -180,12 +181,13 @@ sub check_min_ovs_version ($min_ver) {
 }
 
 # uncoverable statement count:1..5
-sub _set_ip ($tap) { system('ip', 'link', 'set', $tap, 'up') }
+sub _set_ip ($tap) { _cmd('ip', 'link', 'set', $tap, 'up') }
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 
 sub set_vlan ($self, $tap, $vlan) {
     my $return_output;
+    my $return_error;
     my $return_code = 1;
     my $ovs_vsctl_error;
     my $ovs_vsctl_output;
@@ -210,8 +212,9 @@ sub set_vlan ($self, $tap, $vlan) {
     print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
     return $return_code, $ovs_vsctl_error unless $return_code == 0;
 
-    $return_code = _set_ip($tap);
-    return $return_code, $return_code != 0 ? "Failed to set $tap up " : '';
+    ($return_code, $return_error, $return_output) = _set_ip($tap);
+    print $return_output if length($return_output) > 0;
+    return $return_code, $return_code != 0 ? "Failed to set $tap up: $return_error" : '';
 }
 
 dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
@@ -258,8 +261,10 @@ use Getopt::Long;
 sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 
 sub run_dbus($bus = Net::DBus->system, $reactor_main = Net::DBus::Reactor->main) {
+    say 'Initializing D-Bus service and Open vSwitch';
     my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
     my $object = OVS->new($service);
+    say 'Running D-Bus service';
     $reactor_main->run;
 }
 
