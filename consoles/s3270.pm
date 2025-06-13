@@ -236,6 +236,7 @@ sub wait_output ($self, $timeout = 0) {
     my $r = $self->send_3270("Wait($timeout,Output)", command_status => 'any');
     return 1 if $r->{command_status} eq 'ok';
     return 0 if $r->{command_output}[0] eq 'Wait: Timed out';
+    return 0 if $r->{command_output}[0] eq 'Wait(): Timed out';
     confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
 }
 
