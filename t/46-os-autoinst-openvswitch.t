@@ -85,6 +85,8 @@ subtest 'OVS package' => sub {
 
     $mock_ovs->redefine(_ovs_show => 1);
     is(($ovs->show())[0], 1, 'can call show');
+
+    $mock_ovs->unmock($_) for qw(_cmd _ovs_check);
 };
 
 done_testing();
