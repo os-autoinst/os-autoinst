@@ -1286,6 +1286,16 @@ subtest 'ensure_installed test' => sub {
     ensure_installed(['openQA', 'os-autoinst-devel']);
 };
 
+subtest 'retrieve and change various global variables' => sub {
+    my $new = 'new value';
+    for my $func (qw(username realname password serialdev)) {
+        ok my $getter = testapi->can("get_$func"), "get_$func exists" or next;
+        ok my $setter = testapi->can("set_$func"), "set_$func exists" or next;
+        $setter->($new);
+        is $getter->(), $new, "get/set $func works";
+    }
+};
+
 done_testing;
 
 END {
