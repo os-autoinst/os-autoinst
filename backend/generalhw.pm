@@ -61,7 +61,7 @@ sub run_cmd ($self, $cmd, @extra_args) {
 # wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
 sub _system (@cmd) { system(@cmd) }    # uncoverable statement
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     return -1 unless defined $bmwqemu::vars{GENERAL_HW_IS_SHUTDOWN_CMD};
     return !$self->run_cmd_retcode('GENERAL_HW_IS_SHUTDOWN_CMD');
 }
