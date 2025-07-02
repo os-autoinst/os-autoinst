@@ -252,3 +252,5 @@ main_requires:
   perl-base:
   rsync:
   sshpass:
+  iproute2:
+  jq:
