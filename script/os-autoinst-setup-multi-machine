@@ -2,7 +2,8 @@
 set -euo pipefail
 instances="${instances:-20}"
 bridge="${bridge:-"br1"}"
-ethernet="${ethernet:-"br0"}"
+default_ethernet=$(ip -json route show default | jq -r '.[]|.dev')
+ethernet="${ethernet:-"$default_ethernet"}"
 zone="${zone:-"trusted"}"
 
 # Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues

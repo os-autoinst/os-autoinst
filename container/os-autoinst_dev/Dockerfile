@@ -34,7 +34,9 @@ RUN zypper in -y -C \
        gcc-c++ \
        git-core \
        icewm \
+       iproute2 \
        ipxe-bootimgs \
+       jq \
        ninja \
        perl-base \
        pkg-config \
