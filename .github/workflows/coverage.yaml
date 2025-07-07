@@ -1,0 +1,24 @@
+---
+name: cover-by-test
+# yamllint disable-line rule:truthy
+on: [push]
+env:
+  # Set to 1 to temporarily ignore warnings
+  PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS: 0
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks, unit- and integration tests
+        run: |
+          tools/container_run_ci
+          ls -lrt cover-by-test
+          find cover-by-test
+      - run: |
+          tar cvf cover-by-test.tar cover-by-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cover-by-test
+          path: cover-by-test.tar
+          retention-days: 15
