@@ -147,6 +147,10 @@ configure_openvswitch() {
 
 main() {
     network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
+    if [[ -z "${network}" ]]; then
+        systemctl is-enabled NetworkManager.service && network=NetworkManager
+        systemctl is-enabled wicked.service && network=wicked
+    fi
     test "$network" = wicked -o "$network" = NetworkManager || {
         echo "This script only works with wicked network daemon or NetworkManager"
         exit 1
