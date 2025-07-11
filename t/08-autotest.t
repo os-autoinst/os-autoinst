@@ -503,7 +503,7 @@ subtest 'start_process' => sub {
 
 subtest 'lua_use' => sub {
     my $lua_vars = {};
-    $mock_autotest->redefine('lua_set' => sub ($k, $v) { $lua_vars->{$k} = $v; });
+    $mock_autotest->mock('lua_set' => sub ($k, $v) { $lua_vars->{$k} = $v; });
     autotest::_lua_use('testapi');
     is $lua_vars->{realname}, 'Bernhard M. Wiedemann', 'Check importing strings';
     is ref($lua_vars->{assert_script_run}), 'CODE', 'Check importing functions';
