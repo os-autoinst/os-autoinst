@@ -450,11 +450,23 @@ subtest make_snapshot => sub {
 
 subtest loadtestdir => sub {
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
-    my $w = warning { stderr_like {
-            autotest::loadtestdir('tests');
-    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully'; };
-    like $w, qr{'testfunc37' is not exported by 'testlib'}, 'Warn about requesting not-exported method' if $has_lua;
+    stderr_like {
+        autotest::loadtestdir('tests');
+    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
+    if ($has_lua) {
+        my $w = warning { stderr_like {
+                autotest::loadtestdir('luatests');
+        } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (lua)'; };
+        like $w, qr{'testfunc37' is not exported by 'testlib'}, 'Warn about requesting not-exported method';
+        ok exists $autotest::tests{'luatests-unittest_lua'}, 'unittest_lua.lua loaded';
+    }
+    if ($has_python) {
+        stderr_like {
+            autotest::loadtestdir('pythontests');
+        } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (python)';
+        ok exists $autotest::tests{'pythontests-pre_boot'}, 'pre_boot.py loaded';
+    }
 };
 
 subtest croak => sub {
@@ -508,7 +520,7 @@ subtest 'lua_use' => sub {
 subtest 'lua_runtest' => sub {
     plan skip_all => 'Inline::Lua is not available' unless $has_lua;
 
-    my $luatest = $autotest::tests{'tests-unittest_lua'};
+    my $luatest = $autotest::tests{'luatests-unittest_lua'};
     my $out = combined_from { $luatest->runtest() };
     like $out, qr{testfunc1\ntestfunc2\ntestfunc3}, 'function calls work';
     like $out, qr{testarray:\t1,2,3}, 'arrays work';

@@ -31,11 +31,11 @@ autotest::loadtest "tests/freeze.pm" unless $integration_tests;
 # Add import path for local test python modules from pool directory
 if (!$integration_tests && eval { require Inline::Python }) {
     Inline::Python::py_eval("import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))");
-    autotest::loadtest "tests/pre_boot.py";
+    autotest::loadtest "pythontests/pre_boot.py";
 }
 
 if (!$integration_tests && eval { require Inline::Lua }) {
-    autotest::loadtest "tests/pre_boot_lua.lua";
+    autotest::loadtest "luatests/pre_boot_lua.lua";
 }
 
 autotest::loadtest "tests/boot.pm";
