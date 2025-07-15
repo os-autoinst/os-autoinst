@@ -141,7 +141,6 @@ subtest parse_serial_output => sub {
             $message = $output;
     });
 
-    $basetest->parse_serial_output_qemu();
     $basetest->{serial_failures} = [
         {type => 'soft', message => 'DoNotMatch', pattern => qr/DoNotMatch/},
     ];
