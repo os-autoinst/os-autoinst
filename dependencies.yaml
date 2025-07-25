@@ -179,6 +179,7 @@ test_requires:
 
 main_requires:
   git-core:
+  openssh-clients:
   perl(Cwd):
   perl(B::Deparse):
   perl(Carp):
