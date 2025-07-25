@@ -38,6 +38,7 @@ RUN zypper in -y -C \
        ipxe-bootimgs \
        jq \
        ninja \
+       openssh-clients \
        perl-base \
        pkg-config \
        procps \
