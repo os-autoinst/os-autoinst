@@ -32,6 +32,7 @@ use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 our @EXPORT = qw($realname $username $password $serialdev %cmd
 
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
+  stash delete_stash debug_stash
 
   send_key send_key_until_needlematch type_string type_password
   enter_cmd
@@ -2248,6 +2249,69 @@ sub backend_get_wait_still_screen_on_here_doc_input () {
     state $ret;
     $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
     return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);
+}
+
+=head2 stash
+
+    stash key_name => $data;
+    my $data = stash 'key_name';
+
+Provides access to a Key/Value storage. Can be used to share data between
+different test modules, that is not suitable to save via C<set_var>.
+Pick a unique name, since every test module can write to this stash.
+
+You can save any kind of data structure.
+Note that this is only stored in the process memory, so it is not
+visible from a different process.
+
+You can save things that cannot be encoded with JSON:
+
+    my $object = Some::Module->new(...);
+    stash my_object => $object;
+    # Other test module
+    my $object = stash 'my_object';
+    $object->some_method;
+    stash('my_object')->some_method;
+
+    my $regex = qr/foo|bar/;
+    stash match_something => $regex;
+    # Other test module
+    if ($string =~ stash('match_something')) { ... }
+
+=cut
+
+my %STASH;
+
+sub stash ($key, @value) {
+    return $STASH{$key} unless @value;
+    bmwqemu::diag("testapi::stash('$key' => ...)");
+    $STASH{$key} = $value[0];
+}
+
+=head2 delete_stash
+
+    delete_stash $key;
+
+Will delete the entry from the stash.
+
+=cut
+
+sub delete_stash ($key) {
+    bmwqemu::diag("testapi::delete_stash('$key')");
+    delete $STASH{$key};
+}
+
+=head2 debug_stash
+
+    debug_stash;
+
+Prints a YAML dump of the stash contents.
+
+=cut
+
+sub debug_stash () {
+    require YAML::PP::Perl;
+    bmwqemu::diag("testapi stash:\n" . YAML::PP::Perl::Dump(\%STASH));
 }
 
 1;
