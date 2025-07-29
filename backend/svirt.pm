@@ -126,20 +126,20 @@ sub is_shutdown ($self, @) {
     return $self->run_ssh_cmd(_is_hyperv ? is_shutdown_cmd_hyperv($vmname) : is_shutdown_cmd_svirt($vmname));
 }
 
+sub save_snapshot_cmd_hyperv ($vmname, $snapname) {
+    my $ps = 'powershell -Command';
+    return qq($ps Remove-VMSnapshot -VMName $vmname -Name $snapname; $ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
+}
+
+sub save_snapshot_cmd_svirt ($vmname, $snapname) {
+    my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
+    return "virsh $libvirt_connector snapshot-delete $vmname $snapname; virsh $libvirt_connector snapshot-create-as $vmname $snapname";
+}
+
 sub save_snapshot ($self, $args) {
     my $snapname = $args->{name};
     my $vmname = $self->vmname;
-    my $rsp;
-    if (_is_hyperv) {
-        my $ps = 'powershell -Command';
-        $self->run_ssh_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
-        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname"));
-    }
-    else {
-        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-        $self->run_ssh_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
-        $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
-    }
+    my $rsp = $self->run_ssh_cmd(_is_hyperv ? save_snapshot_cmd_hyperv($vmname, $snapname) : save_snapshot_cmd_svirt($vmname, $snapname));
     bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
     $self->die if $rsp;
     return;
