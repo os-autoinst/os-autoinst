@@ -197,28 +197,24 @@ sub get_ssh_credentials ($self, $domain = 'default') {
     return %$c;
 }
 
+# Hyper-V does not support serial console export via TCP, just
+# windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
+# has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
+sub serial_grab_cmd_hyperv ($) { 'socat - TCP4:' . $bmwqemu::vars{HYPERV_SERVER} . ':' . $bmwqemu::vars{HYPERV_SERIAL_PORT} . ',crnl' }
+
+# libvirt esx driver does not support `virsh console', so
+# we have to connect to VM's serial port via TCP which is
+# provided by ESXi server.
+sub serial_grab_cmd_vmware ($) { 'socat - TCP4:' . $bmwqemu::vars{VMWARE_HOST} . ':' . $bmwqemu::vars{VMWARE_SERIAL_PORT} . ',crnl' }
+
+sub serial_grab_cmd_svirt ($name) { 'virsh console ' . $name }
+
 sub start_serial_grab ($self, $name) {
     bmwqemu::log_call(name => $name);
 
     my %credentials = $self->get_ssh_credentials(_is_hyperv ? 'hyperv' : 'default');
     my ($ssh, $chan) = $self->start_ssh_serial(%credentials);
-    my $cmd;
-    if (_is_vmware) {
-        # libvirt esx driver does not support `virsh console', so
-        # we have to connect to VM's serial port via TCP which is
-        # provided by ESXi server.
-        $cmd = 'socat - TCP4:' . $bmwqemu::vars{VMWARE_HOST} . ':' . $bmwqemu::vars{VMWARE_SERIAL_PORT} . ',crnl';
-    }
-    elsif (_is_hyperv) {
-        # Hyper-V does not support serial console export via TCP, just
-        # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
-        # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $cmd = 'socat - TCP4:' . $bmwqemu::vars{HYPERV_SERVER} . ':' . $bmwqemu::vars{HYPERV_SERIAL_PORT} . ',crnl';
-    }
-    else {
-        $cmd = 'virsh console ' . $name;
-    }
-
+    my $cmd = _is_hyperv ? serial_grab_cmd_hyperv($name) : _is_vmware ? serial_grab_cmd_vmware($name) : serial_grab_cmd_svirt($name);
     bmwqemu::diag('svirt: grabbing serial console');
     $ssh->blocking(1);
     if (!$chan->exec($cmd)) {
