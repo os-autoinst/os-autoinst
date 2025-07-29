@@ -284,11 +284,9 @@ sub delete_log ($self) {
 
 # Intent to use CORE::GLOBAL::die, that does not have $self.
 sub die ($self, $err = '') {
-    if ($self->{need_delete_log}) {
-        bmwqemu::fctwarn("error, cleanup logs before die");
-        $self->delete_log();
-    }
-    die $err;
+    die $err unless $self->{need_delete_log};
+    bmwqemu::fctwarn("error, cleanup logs before die");
+    $self->delete_log();
 }
 
 sub serial_terminal_log_file ($self) {
