@@ -61,23 +61,26 @@ sub do_start_vm ($self, @) {
     return {};
 }
 
+sub do_stop_vm_hyperv ($self, $vmname) {
+    my $ps = 'powershell -Command';
+    $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
+    $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
+}
+
+sub do_stop_vm_svirt ($self, $vmname) {
+    my $virsh = 'virsh';
+    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
+    $self->run_ssh_cmd("$virsh destroy $vmname");
+    $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
+}
+
 sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
     unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
         my $vmname = $self->console('svirt')->name;
         bmwqemu::diag "Destroying $vmname virtual machine";
-        if (_is_hyperv) {
-            my $ps = 'powershell -Command';
-            $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
-            $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
-        }
-        else {
-            my $virsh = 'virsh';
-            $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
-            $self->run_ssh_cmd("$virsh destroy $vmname");
-            $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
-        }
+        _is_hyperv ? $self->do_stop_vm_hyperv($vmname) : $self->do_stop_vm_svirt($vmname);
     }
 
     # TODO: stream serial_terminal.txt with scp on the fly instead
