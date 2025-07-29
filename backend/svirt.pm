@@ -40,6 +40,8 @@ sub new ($class) {
     return $self;
 }
 
+sub vmname ($self) { $self->console('svirt')->name }
+
 # we don't do anything actually
 sub do_start_vm ($self, @) {
     my $vars = \%bmwqemu::vars;
@@ -61,13 +63,15 @@ sub do_start_vm ($self, @) {
     return {};
 }
 
-sub do_stop_vm_hyperv ($self, $vmname) {
+sub do_stop_vm_hyperv ($self) {
+    my $vmname = $self->vmname;
     my $ps = 'powershell -Command';
     $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
     $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
 }
 
-sub do_stop_vm_svirt ($self, $vmname) {
+sub do_stop_vm_svirt ($self) {
+    my $vmname = $self->vmname;
     my $virsh = 'virsh';
     $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
     $self->run_ssh_cmd("$virsh destroy $vmname");
@@ -78,9 +82,9 @@ sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
     unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
-        my $vmname = $self->console('svirt')->name;
+        my $vmname = $self->vmname;
         bmwqemu::diag "Destroying $vmname virtual machine";
-        _is_hyperv ? $self->do_stop_vm_hyperv($vmname) : $self->do_stop_vm_svirt($vmname);
+        _is_hyperv ? $self->do_stop_vm_hyperv : $self->do_stop_vm_svirt;
     }
 
     # TODO: stream serial_terminal.txt with scp on the fly instead
@@ -118,13 +122,13 @@ sub is_shutdown_cmd_svirt ($vmname) {
 }
 
 sub is_shutdown ($self, @) {
-    my $vmname = $self->console('svirt')->name;
+    my $vmname = $self->vmname;
     return $self->run_ssh_cmd(_is_hyperv ? is_shutdown_cmd_hyperv($vmname) : is_shutdown_cmd_svirt($vmname));
 }
 
 sub save_snapshot ($self, $args) {
     my $snapname = $args->{name};
-    my $vmname = $self->console('svirt')->name;
+    my $vmname = $self->vmname;
     my $rsp;
     if (_is_hyperv) {
         my $ps = 'powershell -Command';
@@ -143,7 +147,7 @@ sub save_snapshot ($self, $args) {
 
 sub load_snapshot ($self, $args) {
     my $snapname = $args->{name};
-    my $vmname = $self->console('svirt')->name;
+    my $vmname = $self->vmname;
     my $rsp;
     my $post_load_snapshot_command = '';
     if (_is_hyperv) {
