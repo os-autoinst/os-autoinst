@@ -110,17 +110,16 @@ sub can_handle ($self, $args) {
     $args->{function} eq 'snapshots' && _vmm_family =~ qr/kvm|hyperv|vmware/ ? {ret => 1} : undef;
 }
 
+sub is_shutdown_cmd_hyperv ($vmname) { "powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"" }
+
+sub is_shutdown_cmd_svirt ($vmname) {
+    my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
+    return "! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'";
+}
+
 sub is_shutdown ($self, @) {
     my $vmname = $self->console('svirt')->name;
-    my $rsp;
-    if (_is_hyperv) {
-        $rsp = $self->run_ssh_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
-    }
-    else {
-        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-        $rsp = $self->run_ssh_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
-    }
-    return $rsp;
+    return $self->run_ssh_cmd(_is_hyperv ? is_shutdown_cmd_hyperv($vmname) : is_shutdown_cmd_svirt($vmname));
 }
 
 sub save_snapshot ($self, $args) {
