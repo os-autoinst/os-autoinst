@@ -36,6 +36,12 @@ use constant LONG_MAX => (~0 >> 1);
 # in a separate dir.
 use constant VM_SNAPSHOTS_DIR => 'vm-snapshots';
 
+sub is_arm ($arch) { ($arch // '') =~ /armv6|armv7|arm|aarch64/ }
+sub is_ppc ($arch) { ($arch // '') =~ /ppc/ }
+sub is_riscv ($arch) { ($arch // '') eq 'riscv64' }
+sub is_s390x ($arch) { ($arch // '') eq 's390x' }
+sub is_x86 ($arch) { ($arch // '') eq 'i586' || ($arch // '') eq 'x86_64' }
+
 sub new ($class) {
     my $self = $class->SUPER::new;
     $self->{pidfilename} = 'qemu.pid';
@@ -605,24 +611,18 @@ sub setup_tpm ($self) {
     sp('chardev', "socket,id=chrtpm,path=$vmsock");
     sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
     my $arch = $vars->{ARCH} // '';
-    if ($arch eq 'aarch64') {
-        sp('device', 'tpm-tis-device,tpmdev=tpm0');
+    if (is_x86($arch)) {
+        sp('device', 'tpm-tis,tpmdev=tpm0');
     }
-    elsif ($arch eq 'ppc64le') {
+    elsif (is_ppc($arch)) {
         sp('device', 'tpm-spapr,tpmdev=tpm0');
         sp('device', 'spapr-vscsi,id=scsi9,reg=0x00002000');
     }
     else {
-        # x86_64
-        sp('device', 'tpm-tis,tpmdev=tpm0');
+        # aarch64, riscv64
+        sp('device', 'tpm-tis-device,tpmdev=tpm0');
     }
 }
-
-sub is_arm ($arch) { ($arch // '') =~ /armv6|armv7|arm|aarch64/ }
-sub is_ppc ($arch) { ($arch // '') =~ /ppc/ }
-sub is_riscv ($arch) { ($arch // '') eq 'riscv64' }
-sub is_s390x ($arch) { ($arch // '') eq 's390x' }
-sub is_x86 ($arch) { ($arch // '') eq 'i586' || ($arch // '') eq 'x86_64' }
 
 sub _set_graphics_backend ($self) {
     my $vars = \%bmwqemu::vars;
