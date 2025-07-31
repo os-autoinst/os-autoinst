@@ -259,7 +259,7 @@ $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
 
 subtest qemu_tpm_option => sub {
     $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
-    my $cmdline = qemu_cmdline(QEMUTPM => 'instance', WORKER_INSTANCE => 3);
+    my $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'x86_64', WORKER_INSTANCE => 3);
     like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
     like $cmdline, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added';
     like $cmdline, qr|-device tpm-tis,tpmdev=tpm0|, '-device tpm-tis option added';
@@ -278,6 +278,12 @@ subtest qemu_tpm_option => sub {
 
     # call qemu with QEMUTPM=instance, aarch64 arch
     $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'aarch64');
+    like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
+    like $cmdline, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added';
+    like $cmdline, qr/-device tpm-tis-device,tpmdev=tpm0/, '-device tpm-tis option added';
+
+    # call qemu with QEMUTPM=instance, riscv64 arch
+    $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'riscv64');
     like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
     like $cmdline, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added';
     like $cmdline, qr/-device tpm-tis-device,tpmdev=tpm0/, '-device tpm-tis option added';
