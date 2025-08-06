@@ -29,7 +29,14 @@ use Time::Seconds;
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 
-our @EXPORT = qw($realname $username $password $serialdev %cmd
+our @EXPORT = qw(
+
+  $realname get_realname set_realname
+  $username get_username set_username
+  $password get_password set_password
+
+  $serialdev get_serialdev set_serialdev
+  %cmd
 
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
@@ -2249,5 +2256,57 @@ sub backend_get_wait_still_screen_on_here_doc_input () {
     $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
     return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);
 }
+
+=head2 get_username, set_username
+
+    my $old = get_username;
+    set_username($new);
+
+Wrapper around the exported C<$username> variable.
+
+=cut
+
+sub get_username () { $username }
+
+sub set_username ($new) { $username = $new }
+
+=head2 get_realname, set_realname
+
+    my $old = get_realname;
+    set_realname($new);
+
+Wrapper around the exported C<$realname> variable.
+
+=cut
+
+sub get_realname () { $realname }
+
+sub set_realname ($new) { $realname = $new }
+
+=head2 get_password, set_password
+
+    my $old = get_password;
+    set_password($new);
+
+Wrapper around the exported C<$password> variable.
+
+=cut
+
+sub get_password () { $password }
+
+sub set_password ($new) { $password = $new }
+
+=head2 get_serialdev, set_serialdev
+
+    my $old = get_serialdev;
+    set_serialdev($new);
+
+Wrapper around the exported C<$serialdev> variable.
+
+=cut
+
+sub get_serialdev () { $serialdev }
+
+sub set_serialdev ($new) { $serialdev = $new }
 
 1;
