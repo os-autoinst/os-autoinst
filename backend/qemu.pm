@@ -271,7 +271,10 @@ sub _migrate_to_file ($self, %args) {
                 execute => 'migrate-set-parameters',
                 arguments => {
                     'multifd-channels' => $multifd_channels + 0,
-                    'direct-io' => Mojo::JSON->true,
+                    # With direct-io, migration on qa-power8-3 achieves 3.6 MB/s
+                    # and runs into a timeout, but with it turned off it's 4GB/s
+                    # (not a typo, 1000x faster!)
+                    'direct-io' => Mojo::JSON->false,
                     # Ensure slow dump times are not due to a transfer rate cap
                     'max-bandwidth' => $max_bandwidth + 0,
                 }
