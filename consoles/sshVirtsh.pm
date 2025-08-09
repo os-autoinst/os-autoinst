@@ -350,20 +350,23 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     # Use the standard folder for an input file without full path
     my $file_origin = ($input_file eq $basefile) ? "$base_dir/$vmware_nfs_datastore/$nfs_dir/$basefile" : $input_file;
     # check image is present
+    # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
     my $cmd = <<~"EOF";
     $debug
-    if test -e "$dest_image"; then
+    input_file="$input_file"
+    if [ -e "$dest_image" ]; then
         echo "Waiting while $input_file is loading:"
-        while ps -v | grep -E "cp .*$baseimage|xz .*$basefile"|grep -v grep
+        while ps -v | grep -E "cp .*$baseimage|xz .*$basefile" | grep -v grep
             do sleep 5; done
         echo "VMware image $dest_image ready"
-    elif [[ "$input_file" == *.xz ]]; then 
+    elif [ "\${input_file##*.}" = "xz" ]; then
         if [ -e "$dest_image.xz" ] || cp "$file_origin" "$vmware_openqa_datastore"; then
             xz --decompress --keep "$dest_image.xz"
         fi
     else
         cp "$file_origin" "$vmware_openqa_datastore"
     fi
+    echo "Done: origin:" $file_origin* " ; dest.:" $dest_image*
     EOF
 
     my $ret = $self->run_cmd($cmd, domain => 'sshVMwareServer');
