@@ -356,7 +356,7 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     input_file="$input_file"
     if [ -e "$dest_image" ]; then
         echo "Waiting while $input_file is loading:"
-        while ps -v | grep -E "cp .*$baseimage|xz .*$basefile" | grep -v grep
+        while ps -v | grep -F -e "$baseimage" -e "$basefile" | grep -v grep
             do sleep 5; done
         echo "VMware image $dest_image ready"
     elif [ "\${input_file##*.}" = "xz" ]; then
