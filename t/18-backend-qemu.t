@@ -389,7 +389,7 @@ subtest 'migration to file_qemu9' => sub {
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'multifd', state => Mojo::JSON->true}]}},
         {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'mapped-ram', state => Mojo::JSON->true}]}},
-        {execute => 'migrate-set-parameters', arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'}},
+        {execute => 'migrate-set-parameters', arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->false, 'max-bandwidth' => '9223372036854775807'}},
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
         {execute => 'migrate', arguments => {uri => 'file:dumpfd'}}
@@ -486,7 +486,7 @@ subtest 'saving memory dump qemu9' => sub {
         },
         {
             execute => 'migrate-set-parameters',
-            arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->true, 'max-bandwidth' => '9223372036854775807'},
+            arguments => {'multifd-channels' => 2, 'direct-io' => Mojo::JSON->false, 'max-bandwidth' => '9223372036854775807'},
         },
         {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
         {execute => 'stop'},
