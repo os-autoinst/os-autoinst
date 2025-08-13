@@ -228,6 +228,7 @@ $serial_term_prompt.
 =cut
 
 sub script_output ($self, $script, @args) {
+    state $count = 0;
     my %args = testapi::compat_args(
         {
             timeout => undef,
@@ -238,8 +239,9 @@ sub script_output ($self, $script, @args) {
             type_command => length($script) < 80,
         }, ['timeout'], @args);
 
-    my $marker = testapi::hashed_string("SO$script");
+    my $marker = testapi::hashed_string("SO$script") . $count;
     my $script_path = "/tmp/script$marker.sh";
+    $count++;
 
     # prevent use of network for offline installations
     if (testapi::get_var('OFFLINE_SUT')) {
