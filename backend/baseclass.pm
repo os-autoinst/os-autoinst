@@ -1224,24 +1224,22 @@ sub new_ssh_connection ($self, %args) {
     my $con_pretty = "$args{username}\@$args{hostname}";
     $con_pretty .= ":$args{port}" unless $args{port} == 22;
     while ($counter > 0) {
-        if ($ssh->connect($args{hostname}, $args{port})) {
-
-            if (!$args{use_ssh_agent} && defined($args{password})) {
-                $ssh->auth(username => $args{username}, password => $args{password});
-            }
-            else {
-                # this relies on agent to be set up correctly
-                $ssh->auth_agent($args{username});
-            }
-            bmwqemu::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
-            last;
-        }
-        else {
-            bmwqemu::diag "Could not connect to $con_pretty. Retrying up to $counter more times after sleeping ${interval}s";
+        if (!$ssh->connect($args{hostname}, $args{port})) {
+            my @e = $ssh->error;
+            bmwqemu::diag "Could not connect to $con_pretty: $e[2]. Retrying up to $counter more times after sleeping ${interval}s";
             sleep($interval);
             $counter--;
             next;
         }
+        if (!$args{use_ssh_agent} && defined($args{password})) {
+            $ssh->auth(username => $args{username}, password => $args{password});
+        }
+        else {
+            # this relies on agent to be set up correctly
+            $ssh->auth_agent($args{username});
+        }
+        bmwqemu::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
+        last;
     }
     OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$con_pretty>: $@") unless $ssh->auth_ok;
 
