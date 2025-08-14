@@ -1241,8 +1241,7 @@ sub new_ssh_connection ($self, %args) {
         bmwqemu::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
         last;
     }
-    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$con_pretty>: $@") unless $ssh->auth_ok;
-
+    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$con_pretty>: " . ($ssh->error)[2]) unless $ssh->auth_ok;
     $self->{ssh_connections}->{$connection_key} = $ssh if ($args{keep_open});
     return $ssh;
 }

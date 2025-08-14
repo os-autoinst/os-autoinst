@@ -245,8 +245,10 @@ subtest 'SSH utilities' => sub {
     isnt(refaddr($ssh4), refaddr($ssh8), "Got same connection with different ports");
 
     $ssh_auth_ok = 0;
+    @net_ssh2_error = (-1, 'MY_ERROR', 'Error connecting to');
     throws_ok { $baseclass->new_ssh_connection(%ssh_creds) } qr/Error connecting to/, 'Got exception on connection error';
 
+    @net_ssh2_error = ();
     $ssh_auth_ok = 1;
     $ssh_expect->{password} = '';
     @agent = ();
