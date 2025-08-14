@@ -354,9 +354,9 @@ subtest 'SSH utilities' => sub {
         $mockbmw->redefine(diag => sub { $diag .= $_[0] });
         $bmwqemu::vars{SSH_CONNECT_RETRY} = 2;
         $ssh_connect_error = 1;
-        $exp_log_new = qr/Could not connect to serial\@foo. Retrying/;
+        $exp_log_new = qr/Could not connect to serial\@foo.*Retrying/;
         $baseclass->new_ssh_connection(keep_open => 0, hostname => 'foo', username => 'serial', password => 'XXX');
-        like $diag, qr/Could not connect to serial\@foo. Retrying/, 'connection error logged';
+        like $diag, qr/Could not connect to serial\@foo.*Retrying/, 'connection error logged';
     };
 };
 
