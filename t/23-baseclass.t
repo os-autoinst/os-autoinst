@@ -2,6 +2,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Object::Pad;
 use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -13,7 +14,6 @@ use Test::Warnings qw(:all :report_warnings);
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
-use backend::baseclass;
 use POSIX qw(tzset pause _exit);
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
@@ -47,53 +47,38 @@ $baseclass_mock->redefine(request_screen_update => sub ($self, $args) {
         push @requested_screen_updates, [$args];
 });
 
-my $baseclass = backend::baseclass->new();
+class baseclass_tester {
+    inherit backend::baseclass;
+    method power {}
+    method insert_cd {}
+    method eject_cd {}
+    method do_start_vm {}
+    method do_stop_vm {}
+    method stop {}
+    method cont {}
+}
+
+my $baseclass = baseclass_tester->new;
 
 subtest 'format_vtt_timestamp' => sub {
     my $timestamp = 1543917024.24791;
-    $baseclass->{video_frame_number} = 0;
+    $baseclass->video_frame_number(0);
     is($baseclass->format_vtt_timestamp($timestamp),
         "\n0\n00:00:00.000 --> 00:00:00.041\n[2018-12-04T09:50:24.247]\n",
         'frame number 0'
     );
 
     $timestamp += .1;
-    $baseclass->{video_frame_number} = 1;
+    $baseclass->video_frame_number(1);
     is($baseclass->format_vtt_timestamp($timestamp),
         "\n1\n00:00:00.041 --> 00:00:00.083\n[2018-12-04T09:50:24.347]\n",
         'frame number 1'
     );
 };
 
-subtest 'not implemented' => sub {
-    local @dummy::ISA = ('backend::baseclass');
-    my $dummy = bless {}, 'dummy';
-    my @tests = (
-        [power => 23],
-        [insert_cd =>],
-        [eject_cd =>],
-        [eject_cd => 23],
-        [do_start_vm => 23,],
-        [do_start_vm => 23, 42],
-        [do_stop_vm => 23,],
-        [do_stop_vm => 23, 42],
-        [stop =>],
-        [cont =>],
-        [do_extract_assets => 23],
-        [switch_network => 23],
-        [save_memory_dump => 23],
-        [save_storage => 23]
-    );
-    for my $test (@tests) {
-        my ($m, @args) = @$test;
-        throws_ok { $dummy->$m(@args) } qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
-    }
-};
-
 is $baseclass->can_handle, undef, 'can_handle returns false by default';
 is $baseclass->is_shutdown, -1, 'can call is_shutdown default implementation';
 is_deeply $baseclass->cpu_stat, [], 'can call cpu_stat empty default implementation';
-throws_ok { $baseclass->handle_command({cmd => 'power'}) } qr/not implemented/, 'handle_command executes specified command';
 
 subtest 'SSH utilities' => sub {
     my $ssh_expect = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
@@ -305,7 +290,7 @@ subtest 'SSH utilities' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
         $io_select_mock->redefine('add');
         $io_select_mock->redefine('remove');
-        $baseclass->{select_read} = IO::Select->new;
+        $baseclass->select_read = IO::Select->new;
 
         $ssh_expect = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
         $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
@@ -328,14 +313,14 @@ subtest 'SSH utilities' => sub {
         });
         my $exit_value;
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output, 'Serial output is printed to STDOUT';
-        is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is written to serial file');
+        is(path($baseclass->serialfile)->slurp(), $expect_output, 'Serial output is written to serial file');
         is($exit_value, 1, 'Check return value on success');
 
         $channel_read_string = undef;
         @net_ssh2_error = (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', 'Try later');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on EAGAIN only';
         is($exit_value, 1, 'Check return value on EAGAIN');
-        is($baseclass->{serial}, $ssh, 'Serial SSH exists after EGAIN');
+        is($baseclass->serial, $ssh, 'Serial SSH exists after EGAIN');
 
         is($baseclass->check_ssh_serial(42), 0, 'Return 0 when called with wrong socket');
         is $baseclass->check_ssh_serial($ssh->sock, 1), 1, 'early return if $write is set';
@@ -343,7 +328,7 @@ subtest 'SSH utilities' => sub {
         @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on ERROR only';
         is($exit_value, 1, 'Check return value on EAGAIN');
-        is($baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR');
+        is($baseclass->serial, undef, 'SSH serial get disconnected on unknown read ERROR');
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
     };
@@ -377,7 +362,7 @@ sub _prepare_video_encoder ($baseclass) {
     my $pipe = $pipes[2]->[1];
     my $pid = $pipes[2]->[0];
     my $encoder = {name => 'foo', pipe => $pipe};
-    $baseclass->{video_encoders} = {$pid => $encoder};
+    $baseclass->video_encoders = {$pid => $encoder};
 
     my $encoder_pipe = $pipes[0]->[1];
     $baseclass->{encoder_pipe} = $encoder_pipe;
@@ -394,7 +379,7 @@ sub _prepare_video_encoder ($baseclass) {
 }
 
 subtest 'video-encoder' => sub {
-    my $baseclass = backend::baseclass->new();
+    my $baseclass = baseclass_tester->new;
     _prepare_video_encoder($baseclass);
     $baseclass->stop_vm;
     is scalar @{$baseclass->{video_frame_data}}, 0, 'video_frame_data array is empty';
