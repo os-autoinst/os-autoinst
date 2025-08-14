@@ -1243,7 +1243,7 @@ sub new_ssh_connection ($self, %args) {
             next;
         }
     }
-    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$con_pretty>: $@") unless $ssh->auth_ok;
+    $ssh->die_with_error("Error connecting to <$con_pretty>") unless $ssh->auth_ok;
 
     $self->{ssh_connections}->{$connection_key} = $ssh if ($args{keep_open});
     return $ssh;
