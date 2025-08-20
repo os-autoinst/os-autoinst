@@ -515,6 +515,11 @@ sub add_disk ($self, $args) {
         $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
     }
     else {
+        # When the s390-kvm boots copies HDD_. cleanup old qcow image before proceed
+        if ($args->{domain} && $args->{file}) {
+            $self->run_cmd(qq#rm ${basedir}/$args->{file}#) if $self->run_cmd(qq#test -e "${basedir}/$args->{file}"#);
+            bmwqemu::diag qq/$args->{file} deleted from ${basedir}/ unless $@;
+        }
         $file = $self->_copy_image_to_vm_host($args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom);
     }
 
