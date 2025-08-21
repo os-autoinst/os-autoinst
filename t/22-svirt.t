@@ -683,7 +683,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like($last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
+            like($last_ssh_commands[0], qr/[ "\$size" -gt "\$available_space" ]/, 'should check for available space');
+            like($last_ssh_commands[0], qr%cp\s+"/vmfs/volumes/nfs_data_store/iso/$filename"\s+"$vmware_openqa_datastore";%, "Copy iso to the correct datastore $vmware_openqa_datastore");
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',

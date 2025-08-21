@@ -387,9 +387,9 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
       "echo 'File $file_basename is being copied by other process, sleeping for 60 seconds'; sleep 60; " .
       "done; " .
       "else " .
-      qq{available_space=\$(df -B1 "$vmware_openqa_datastore" | awk 'NR==2 {print \$4}'); } .
+      qq{available_space=\$(df -B1 --output=avail "$vmware_openqa_datastore" | tail -n 1); } .
       qq{size=\$(stat --printf="%s" "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename"); } .
-      q{if [ "$size" -ge "$available_space" ]; then } .
+      q{if [ "$size" -gt "$available_space" ]; then } .
       "echo 'Error: Not enough space on target datastore $vmware_openqa_datastore to copy $file_basename.'; " .
       "exit 1; " .
       "else " .
