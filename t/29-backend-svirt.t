@@ -92,7 +92,7 @@ subtest 'VMWARE backend' => sub {
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 
-subtest 'HyperV backend' => sub {
+subtest 'HyperV backend using svirt class directly (deprecated, see backend/hyperv)' => sub {
     my @warn_log;
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'hyperv';
     $bmwqemu::vars{VIRSH_GUEST} = 'barfoo';
