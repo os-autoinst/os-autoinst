@@ -141,7 +141,7 @@ sub save_snapshot ($self, $args) {
     my $vmname = $self->vmname;
     my $rsp = $self->run_ssh_cmd(_is_hyperv ? save_snapshot_cmd_hyperv($vmname, $snapname) : save_snapshot_cmd_svirt($vmname, $snapname));
     bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
-    $self->die if $rsp;
+    $self->die('svirt: save_snapshot failed') if $rsp;
     return;
 }
 
@@ -172,7 +172,7 @@ sub load_snapshot ($self, $args) {
         $post_load_snapshot_command = 'vmware_fixup' if _is_vmware;
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
-    $self->die if $rsp;
+    $self->die('svirt: load_snapshot failed') if $rsp;
     return $post_load_snapshot_command;
 }
 
