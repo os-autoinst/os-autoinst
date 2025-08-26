@@ -36,7 +36,18 @@ sub _is_vmware () { _vmm_family() eq 'vmware' }
 sub new ($class) {
     my $self = $class->SUPER::new;
     defined $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
-
+    # TODO the below deprecation messages are also shown when loading
+    # backend::hyperv as that inherits from here. I did not intend for the
+    # deprecation message to show up. We could change this code to detect if
+    # backend::svirt is instanciated directly and only then show the
+    # deprecation message. An alternative would be to turn around the
+    # inheritance, move all hyperv functionality to backend::hyperv and make
+    # backend::svirt inherit or "mixin" backend::hyperv along with
+    # backend::vmware
+    # Using Object::Pad we can change backend::svirt to
+    # class backend::svirt :isa(backend::virt) :does(backend::hyperv) :does(backend::vmware)
+    backend::baseclass::handle_deprecate_backend('SVIRT', condition => 'HYPERV') if _is_hyperv;
+    backend::baseclass::handle_deprecate_backend('SVIRT', condition => 'VMWARE') if _is_vmware;
     return $self;
 }
 
