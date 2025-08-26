@@ -676,7 +676,7 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     @io_select_res = ([], []);
     $baseclass->{cmdpipe} = $fake_pipe;
     $baseclass->{_wait_screen_change} = {no_wait => 1, starttime => 0, elapsed => 0, timeout => 10, similarity_level => 50};
-    $baseclass->do_capture;
+    $baseclass->do_capture(undef);
     is $io_select_timeout, 0.1, 'very low timeout used as select timeout for wait_screen_change with no_wait parameter';
 };
 
