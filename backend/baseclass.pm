@@ -620,27 +620,24 @@ sub close_pipes ($self, $closeall = 0) {
 
 # this is called for all sockets ready to read from
 sub check_socket ($self, $fh, $write = undef) {
-    if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
-        return 1 if $write;
-        my $cmd = myjsonrpc::read_json($self->{cmdpipe});
-
-        if ($cmd->{cmd}) {
-            my $rsp = ($self->handle_command($cmd) // 0);
-            my $response = {rsp => $rsp};
-            if (ref $rsp eq 'HASH' && $rsp->{postponed}) {
-                $self->{_postponed_cmd_token} = $cmd->{json_cmd_token};
-            } elsif ($self->{rsppipe}) {    # the command might have closed it
-                $response->{json_cmd_token} = $cmd->{json_cmd_token};
-                myjsonrpc::send_json($self->{rsppipe}, $response);
-            }
+    return 0 unless $self->{cmdpipe} && $fh == $self->{cmdpipe};
+    return 1 if $write;
+    my $cmd = myjsonrpc::read_json($self->{cmdpipe});
+    if ($cmd->{cmd}) {
+        my $rsp = ($self->handle_command($cmd) // 0);
+        my $response = {rsp => $rsp};
+        if (ref $rsp eq 'HASH' && $rsp->{postponed}) {
+            $self->{_postponed_cmd_token} = $cmd->{json_cmd_token};
+        } elsif ($self->{rsppipe}) {    # the command might have closed it
+            $response->{json_cmd_token} = $cmd->{json_cmd_token};
+            myjsonrpc::send_json($self->{rsppipe}, $response);
         }
-        else {
-            use Data::Dumper;
-            die "no command in " . Dumper($cmd);
-        }
-        return 1;
     }
-    return 0;
+    else {
+        use Data::Dumper;
+        die "no command in " . Dumper($cmd);
+    }
+    return 1;
 }
 
 ###################################################################
