@@ -994,17 +994,10 @@ sub _failed_screens_to_json ($self) {
             push(@$failed_screens, $final_mismatch) if ($sim < 50);
         }
     }
-
-    my @json_fails;
-    for my $l (@$failed_screens) {
-        my ($img, $failed_candidates, $testtime, $similarity, $frame) = @$l;
-        my $h = {
-            candidates => $failed_candidates,
-            image => encode_base64($img->ppm_data),
-            frame => $frame,
-        };
-        push(@json_fails, $h);
-    }
+    my @json_fails = map {
+        my ($img, $failed_candidates, $testtime, $similarity, $frame) = @$_;
+        {candidates => $failed_candidates, image => encode_base64($img->ppm_data), frame => $frame}
+    } @$failed_screens;
 
     # free memory
     $self->assert_screen_fails([]);
