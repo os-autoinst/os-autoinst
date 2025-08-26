@@ -191,10 +191,9 @@ sub _check_for_still_screen ($self, $now) {
     return 1;
 }
 
-sub do_capture_tick ($self, $buckets, $timeout = undef, $starttime = undef) {
+sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
     my $wait_time_limit = $self->{wait_time_limit};
     my $hits_limit = $self->{hits_limit};
-
     return 0 unless $self->{cmdpipe};
     my $now = gettimeofday;
     my $time_to_timeout = "Inf" + 0;
@@ -282,8 +281,6 @@ sub do_capture_tick ($self, $buckets, $timeout = undef, $starttime = undef) {
                 OpenQA::Exception::ConsoleReadError->throw(error => $msg);
             }
         }
-
-
         die "error checking socket for read: $fh\n" unless $self->check_socket($fh, 0);
         # don't check for further sockets after this one as
         # check_socket can have side effects on the sockets
@@ -292,13 +289,6 @@ sub do_capture_tick ($self, $buckets, $timeout = undef, $starttime = undef) {
         last;
     }
     return 1;
-}
-
-sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
-    my $loop = 1;
-    while ($loop) {
-        $loop = $self->do_capture_tick($buckets, $timeout, $starttime);
-    }
 }
 
 =head2 run_capture_loop($timeout)
@@ -320,7 +310,7 @@ sub run_capture_loop ($self, $timeout = undef) {
     try {
         # Time slot buckets
         my $buckets = {};
-        $self->do_capture($buckets, $timeout, $starttime);
+        1 while $self->do_capture($buckets, $timeout, $starttime);
     }
     catch ($e) {
         bmwqemu::fctwarn "capture loop failed $e";
