@@ -923,14 +923,7 @@ sub similiarity_to_reference ($self, $args) {
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 
-sub set_tags_to_assert ($self, $args) {
-    my $mustmatch = $args->{mustmatch};
-    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
-
-    # keep only the most recently used images (https://progress.opensuse.org/issues/15438)
-    needle::clean_image_cache();
-
-    # get the array reference to all matching needles
+sub find_needles_with_tags ($mustmatch) {
     my $needles = [];
     my @tags;
     if (ref($mustmatch) eq "ARRAY") {
@@ -954,12 +947,21 @@ sub set_tags_to_assert ($self, $args) {
         $needles = needle::tags($mustmatch) || [];
         @tags = ($mustmatch);
     }
+    return ($needles, \@tags);
+}
 
+sub set_tags_to_assert ($self, $args) {
+    my $mustmatch = $args->{mustmatch};
+    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
+
+    # keep only the most recently used images (https://progress.opensuse.org/issues/15438)
+    needle::clean_image_cache();
+    my ($needles, $tags) = find_needles_with_tags($mustmatch);
     {    # remove duplicates
-        my %h = map { $_ => 1 } @tags;
-        @tags = sort keys %h;
+        my %h = map { $_ => 1 } @$tags;
+        @$tags = sort keys %h;
     }
-    $mustmatch = join(',', @tags);
+    $mustmatch = join(',', @$tags);
     bmwqemu::fctinfo "NO matching needles for $mustmatch" unless @$needles;
 
     $self->set_assert_screen_timeout($timeout);
@@ -968,9 +970,9 @@ sub set_tags_to_assert ($self, $args) {
     $self->assert_screen_last_check(undef);
     $self->stall_detected(0);
     # store them for needle reload event
-    $self->assert_screen_tags(\@tags);
+    $self->assert_screen_tags($tags);
     $self->assert_screen_check($args->{check});
-    return {tags => \@tags};
+    return {tags => $tags};
 }
 
 sub set_assert_screen_timeout ($self, $timeout) {
