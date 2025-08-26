@@ -67,6 +67,8 @@ sub new ($class) {
     $self->{yres} = $bmwqemu::vars{YRES} // 768;
     $self->{stall_detect_factor} = $bmwqemu::vars{STALL_DETECT_FACTOR} // 20;
     $self->{needle_check_factor} = $bmwqemu::vars{NEEDLE_CHECK_FACTOR} // 1;
+    $self->{wait_time_limit} = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
+    $self->{hits_limit} = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 30_000;
 
     return $self;
 }
@@ -189,11 +191,9 @@ sub _check_for_still_screen ($self, $now) {
     return 1;
 }
 
-sub do_capture ($self, $timeout = undef, $starttime = undef) {
-    # Time slot buckets
-    my $buckets = {};
-    my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
-    my $hits_limit = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 30_000;
+sub do_capture ($self, $buckets = undef, $timeout = undef, $starttime = undef) {
+    my $wait_time_limit = $self->{wait_time_limit};
+    my $hits_limit = $self->{hits_limit};
 
     while (1) {
         last unless $self->{cmdpipe};
@@ -311,7 +311,11 @@ $self->{cmdpipe} is closed, whichever occurs first.
 sub run_capture_loop ($self, $timeout = undef) {
     my $starttime = gettimeofday;
     $self->last_screenshot($starttime) unless $self->last_screenshot;
-    try { $self->do_capture($timeout, $starttime) }
+    try {
+        # Time slot buckets
+        my $buckets = {};
+        $self->do_capture($buckets, $timeout, $starttime);
+    }
     catch ($e) {
         bmwqemu::fctwarn "capture loop failed $e";
         $self->close_pipes();
