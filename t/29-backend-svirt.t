@@ -70,12 +70,14 @@ subtest 'Generic svirt backend' => sub {
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 
-subtest 'VMWARE backend' => sub {
+subtest 'VMWARE backend using svirt class directly (deprecated, see backend/vmware TODO)' => sub {
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
     $bmwqemu::vars{VMWARE_HOST} = "foobar";
     $bmwqemu::vars{VMWARE_SERIAL_PORT} = "222";
 
-    my $backend = backend::svirt->new;
+    $bmwqemu::vars{NO_DEPRECATE_BACKEND_SVIRT_VMWARE} = 1;
+    my $backend;
+    stderr_like { $backend = backend::svirt->new } qr/DEPRECATED/, 'vmware (temporarily) marked deprecated until it is stand-alone from svirt';
     my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
     # silence some log output for cleaner tests
     $bmwqemu_mock->noop('diag');
@@ -99,7 +101,9 @@ subtest 'HyperV backend using svirt class directly (deprecated, see backend/hype
     $bmwqemu::vars{VIRSH_GUEST_PASSWORD} = 'password';
     $bmwqemu::vars{HYPERV_SERVER} = 'foobar';
     $bmwqemu::vars{HYPERV_SERIAL_PORT} = '223';
-    my $backend = backend::svirt->new;
+    $bmwqemu::vars{NO_DEPRECATE_BACKEND_SVIRT_HYPERV} = 1;
+    my $backend;
+    stderr_like { $backend = backend::svirt->new } qr/DEPRECATED/, 'hyperv (temporarily) marked deprecated until it is stand-alone from svirt';
     my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
     # silence some log output for cleaner tests
     $bmwqemu_mock->noop('diag');

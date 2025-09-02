@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::svirt;
-use Mojo::Base 'backend::virt', -signatures;
+use Mojo::Base 'backend::virt_ssh', -signatures;
 use Mojo::File qw(path);
 use File::Basename;
 use IO::Scalar;
