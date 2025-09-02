@@ -4,6 +4,6 @@
 use Mojo::Base -strict, -signatures;
 use Object::Pad;
 
-class backend::hyperv : isa(backend::svirt);
+class backend::hyperv : isa(backend::virt_ssh);
 
 1;

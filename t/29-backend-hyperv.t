@@ -38,9 +38,7 @@ $run_ssh_cmd_mock->redefine(new_ssh_connection => sub ($self, %args) { return $s
 $run_ssh_cmd_mock->redefine(start_ssh_serial => sub { return ($ssh_object, $chan_object) });
 $run_ssh_cmd_mock->redefine(run_ssh_cmd => 0);
 
-$bmwqemu::vars{NO_DEPRECATE_BACKEND_SVIRT_HYPERV} = 1;
-my $backend;
-stderr_like { $backend = backend::hyperv->new } qr/DEPRECATED/, 'hyperv (temporarily) marked deprecated until it is stand-alone from svirt';
+my $backend = backend::hyperv->new;
 my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
 # silence some log output for cleaner tests
 $bmwqemu_mock->noop('diag');

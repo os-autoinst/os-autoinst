@@ -53,27 +53,6 @@ sub new ($class) {
 
 sub vmname ($self) { $self->console('svirt')->name }
 
-# we don't do anything actually
-sub do_start_vm ($self, @) {
-    my $vars = \%bmwqemu::vars;
-    my $n = $vars->{NUMDISKS} // 1;
-    $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : $n;
-    $self->truncate_serial_file;
-    my $ssh = $testapi::distri->add_console(
-        'svirt',
-        'ssh-virtsh',
-        {
-            hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variables VIRSH_HOSTNAME'),
-            username => $bmwqemu::vars{VIRSH_USERNAME},
-            password => $bmwqemu::vars{VIRSH_PASSWORD},
-        });
-
-    $ssh->backend($self);
-
-    bmwqemu::save_vars();    # update variables
-    return {};
-}
-
 sub do_stop_vm_hyperv ($self) {
     my $vmname = $self->vmname;
     my $ps = 'powershell -Command';
@@ -121,10 +100,6 @@ sub scp_get ($self, $src, $dest) {
     $ssh->disconnect();
 }
 
-sub can_handle ($self, $args) {
-    $args->{function} eq 'snapshots' && _vmm_family =~ qr/kvm|hyperv|vmware/ ? {ret => 1} : undef;
-}
-
 sub is_shutdown_cmd_hyperv ($vmname) { "powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"" }
 
 sub is_shutdown_cmd_svirt ($vmname) {
@@ -135,77 +110,6 @@ sub is_shutdown_cmd_svirt ($vmname) {
 sub is_shutdown ($self, @) {
     my $vmname = $self->vmname;
     return $self->run_ssh_cmd(_is_hyperv ? is_shutdown_cmd_hyperv($vmname) : is_shutdown_cmd_svirt($vmname));
-}
-
-sub save_snapshot_cmd_hyperv ($vmname, $snapname) {
-    my $ps = 'powershell -Command';
-    return qq($ps Remove-VMSnapshot -VMName $vmname -Name $snapname; $ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
-}
-
-sub save_snapshot_cmd_svirt ($vmname, $snapname) {
-    my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-    return "virsh $libvirt_connector snapshot-delete $vmname $snapname; virsh $libvirt_connector snapshot-create-as $vmname $snapname";
-}
-
-sub save_snapshot ($self, $args) {
-    my $snapname = $args->{name};
-    my $vmname = $self->vmname;
-    my $rsp = $self->run_ssh_cmd(_is_hyperv ? save_snapshot_cmd_hyperv($vmname, $snapname) : save_snapshot_cmd_svirt($vmname, $snapname));
-    bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
-    $self->die('svirt: save_snapshot failed') if $rsp;
-    return;
-}
-
-sub load_snapshot ($self, $args) {
-    my $snapname = $args->{name};
-    my $vmname = $self->vmname;
-    my $rsp;
-    my $post_load_snapshot_command = '';
-    if (_is_hyperv) {
-        my $ps = 'powershell -Command';
-        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false"));
-        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", $self->get_ssh_credentials('hyperv'));
-
-        for my $i (1 .. 5) {
-            # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
-            # we can't connect too "early". Let's have a nap for a while.
-            sleep 10;
-            last
-              unless $self->run_ssh_cmd(
-                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
-                $self->get_ssh_credentials('hyperv'));
-            $self->die("xfreerdp did not start") if ($i eq 5);
-        }
-    }
-    else {
-        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-        $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
-        $post_load_snapshot_command = 'vmware_fixup' if _is_vmware;
-    }
-    bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
-    $self->die('svirt: load_snapshot failed') if $rsp;
-    return $post_load_snapshot_command;
-}
-
-sub get_ssh_credentials ($self, $domain = 'default') {
-    my $ssh_credentials = $self->{ssh_credentials};
-    unless ($ssh_credentials) {
-        $ssh_credentials = $self->{ssh_credentials} = {
-            default => {
-                hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variable VIRSH_HOSTNAME'),
-                username => $bmwqemu::vars{VIRSH_USERNAME} // 'root',
-                password => $bmwqemu::vars{VIRSH_PASSWORD} || die('Need variable VIRSH_PASSWORD'),
-            }
-        };
-        # read/require credentials for Hyper-V intermediary host
-        $ssh_credentials->{hyperv} = {
-            hostname => $bmwqemu::vars{VIRSH_GUEST} || die('Need variable VIRSH_GUEST'),
-            password => $bmwqemu::vars{VIRSH_GUEST_PASSWORD} || die('Need variable VIRSH_GUEST_PASSWORD'),
-            username => 'root',
-        } if _is_hyperv;
-    }
-    die "Missing ssh credentials domain '$domain'" unless my $c = $ssh_credentials->{$domain};
-    return %$c;
 }
 
 # Hyper-V does not support serial console export via TCP, just
