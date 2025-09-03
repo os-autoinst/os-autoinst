@@ -84,6 +84,11 @@ sub become_root ($self) {
     testapi::enter_cmd('cd /tmp');
 }
 
+sub hashed_string_counter ($text) {
+    state $count = 0;
+    return $text . "." . $count++;
+}
+
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet])
@@ -123,7 +128,7 @@ sub script_run ($self, $cmd, @args) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
-        my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+        my $marker = "; echo " . hashed_string_counter($str) . "-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
@@ -165,7 +170,7 @@ sub background_script_run ($self, $cmd, %args) {
     $cmd = "( $cmd )";
     testapi::type_string $cmd;
     my $str = testapi::hashed_string("SR" . $cmd);
-    my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
+    my $marker = "& echo " . hashed_string_counter($str) . "-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string($marker);
         testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
@@ -193,7 +198,7 @@ sub script_sudo ($self, $prog, $wait = 10) {
     my $str;
     if ($wait > 0) {
         $str = testapi::hashed_string("SS$prog$wait");
-        $prog = "$prog; echo $str > /dev/$testapi::serialdev";
+        $prog = "$prog; echo " . hashed_string_counter($str) . " > /dev/$testapi::serialdev";
     }
     testapi::type_string "sudo $prog\n";
     if (testapi::check_screen "sudo-passwordprompt", 3) {
@@ -238,7 +243,8 @@ sub script_output ($self, $script, @args) {
             type_command => length($script) < 80,
         }, ['timeout'], @args);
 
-    my $marker = testapi::hashed_string("SO$script");
+    my $str = testapi::hashed_string("SO$script");
+    my $marker = hashed_string_counter($str);
     my $script_path = "/tmp/script$marker.sh";
 
     # prevent use of network for offline installations

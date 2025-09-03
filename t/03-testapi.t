@@ -571,7 +571,7 @@ subtest 'upload_logs' => sub {
                 cmd => 'backend_type_string'
             },
             {
-                text => '; echo XXX-$?-',
+                text => '; echo XXX.15-$?-',
                 cmd => 'backend_type_string'
             },
             {
@@ -587,7 +587,7 @@ subtest 'upload_logs' => sub {
                 cmd => 'backend_type_string'
             },
             {
-                text => '; echo XXX-$?-',
+                text => '; echo XXX.16-$?-',
                 cmd => 'backend_type_string'
             },
             {
@@ -603,7 +603,7 @@ subtest 'script_sudo' => sub {
     script_sudo "rm /boot/grub/menu.lst";
     is_deeply($cmds, [
             {
-                text => "sudo rm /boot/grub/menu.lst; echo XXX > /dev/null\n",
+                text => "sudo rm /boot/grub/menu.lst; echo XXX.17 > /dev/null\n",
                 cmd => 'backend_type_string'
             },
             {
@@ -1294,6 +1294,22 @@ subtest 'retrieve and change various global variables' => sub {
         $setter->($new);
         is $getter->(), $new, "get/set $func works";
     }
+};
+
+subtest 'hashed_string_counter increments correctly' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(hashed_string => sub ($text) { "XXX$text" });
+
+    my ($h0, $n0) = split /\./, distribution::hashed_string_counter("foo");
+    my ($h1, $n1) = split /\./, distribution::hashed_string_counter("foo");
+    my ($h2, $n2) = split /\./, distribution::hashed_string_counter("bar");
+
+    is $h0, 'foo', 'first call hash correct';
+    is $h1, 'foo', 'second call hash correct';
+    is $h2, 'bar', 'third call hash correct';
+
+    is $n1, $n0 + 1, 'counter incremented for second call';
+    is $n2, $n1 + 1, 'counter incremented for third call';
 };
 
 done_testing;
