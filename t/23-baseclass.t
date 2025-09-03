@@ -245,8 +245,10 @@ subtest 'SSH utilities' => sub {
     isnt(refaddr($ssh4), refaddr($ssh8), "Got same connection with different ports");
 
     $ssh_auth_ok = 0;
+    @net_ssh2_error = (-1, 'MY_ERROR', 'Error connecting to');
     throws_ok { $baseclass->new_ssh_connection(%ssh_creds) } qr/Error connecting to/, 'Got exception on connection error';
 
+    @net_ssh2_error = ();
     $ssh_auth_ok = 1;
     $ssh_expect->{password} = '';
     @agent = ();
@@ -354,9 +356,9 @@ subtest 'SSH utilities' => sub {
         $mockbmw->redefine(diag => sub { $diag .= $_[0] });
         $bmwqemu::vars{SSH_CONNECT_RETRY} = 2;
         $ssh_connect_error = 1;
-        $exp_log_new = qr/Could not connect to serial\@foo. Retrying/;
+        $exp_log_new = qr/Could not connect to serial\@foo.*Retrying/;
         $baseclass->new_ssh_connection(keep_open => 0, hostname => 'foo', username => 'serial', password => 'XXX');
-        like $diag, qr/Could not connect to serial\@foo. Retrying/, 'connection error logged';
+        like $diag, qr/Could not connect to serial\@foo.*Retrying/, 'connection error logged';
     };
 };
 
