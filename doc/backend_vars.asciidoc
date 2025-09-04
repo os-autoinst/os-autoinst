@@ -211,6 +211,8 @@ WORKER_HOSTNAME;string;undef;Worker hostname
 QEMU_VIDEO_DEVICE;string;virtio-gpu-pci on ARM, VGA otherwise;Video device to use with VM (using -device, not -vga). Can have options appended e.g. "virtio-gpu-gl,edid=on", but it is better to set QEMU_VIDEO_DEVICE_OPTIONS. See qemu docs and https://www.kraxel.org/blog/2019/09/display-devices-in-qemu/ for valid choices
 QEMU_VIDEO_DEVICE_OPTIONS;string;none;Additional options for QEMU_VIDEO_DEVICE (comma-separated). Will be appended after automatically-generated resolution setting options on devices that support EDID
 SAVE_STORAGE_TIMEOUT;integer;900;Timeout for saving one storage volume in `save_storage` test API function.
+IPV6_CHECKHOST;string;opensuse.org;Host to ping (ICMP) to determine if IPv6 is working on that worker
+IPV6_AVAILABLE;integer;;Read-only variable which indicates if a ping via IPv6 to `IPV6_CHECKHOST` ran successfuly shortly before the test started running
 |====================
 
 .SVIRT backend
