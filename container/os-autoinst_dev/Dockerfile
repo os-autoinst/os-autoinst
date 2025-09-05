@@ -35,6 +35,7 @@ RUN zypper in -y -C \
        git-core \
        icewm \
        iproute2 \
+       iputils \
        ipxe-bootimgs \
        jq \
        ninja \

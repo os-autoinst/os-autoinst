@@ -255,3 +255,4 @@ main_requires:
   sshpass:
   iproute2:
   jq:
+  iputils:
