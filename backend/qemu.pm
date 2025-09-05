@@ -868,6 +868,9 @@ sub start_qemu ($self) {
         }
     }
 
+    my $v6checkhost = $vars->{IPV6_CHECKHOST} // 'opensuse.org';
+    $vars->{IPV6_AVAILABLE} = runcmd('ping', '-6', '-c', 1, '-w', 1, '-W', 1, $v6checkhost) ? 0 : 1;
+
     bmwqemu::save_vars();    # update variables
 
     mkpath($basedir);
