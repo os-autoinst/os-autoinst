@@ -107,9 +107,9 @@ subtest 'HyperV backend' => sub {
     redefine_ssh;
     ok $backend->do_start_vm, 'can start vm';
     is $backend->can_handle({function => 'snapshots'})->{ret}, 1, 'can handle snapshots';
-    is $backend->save_snapshot({name => "Snap1"}), undef, 'can save snapshot - alswais return undef';
+    is $backend->save_snapshot({name => "Snap1"}), undef, 'can save snapshot - always return undef';
     redefine_ssh(1);
-    throws_ok { $backend->load_snapshot({name => "Snap1"}) } qr/freerdp/, 'theows exception during load_snapshot - freerdp';
+    throws_ok { $backend->load_snapshot({name => "Snap1"}) } qr/freerdp/, 'throws exception during load_snapshot - freerdp';
     redefine_ssh;
     $chan_object->set_false('exec');
     $bmwqemu_mock->mock(fctwarn => sub { push @warn_log, @_ });
