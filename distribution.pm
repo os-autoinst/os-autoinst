@@ -112,25 +112,26 @@ sub script_run ($self, $cmd, @args) {
         {
             timeout => $bmwqemu::default_timeout,
             output => '',
-            quiet => undef
+            quiet => undef,
+            max_interval => testapi::DEFAULT_MAX_INTERVAL
         }, ['timeout'], @args);
 
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
-    testapi::type_string "$cmd";
+    testapi::type_string "$cmd", max_interval => $args{max_interval};
     if ($args{timeout} > 0) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
-            testapi::type_string($marker);
+            testapi::type_string($marker, max_interval => $args{max_interval});
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
-            testapi::type_string("\n");
+            testapi::type_string("\n", max_interval => $args{max_interval});
         }
         else {
-            testapi::type_string "$marker > /dev/$testapi::serialdev\n";
+            testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
         }
         my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
