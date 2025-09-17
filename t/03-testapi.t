@@ -365,6 +365,26 @@ subtest 'script_run' => sub {
     $mock_testapi->redefine(wait_serial => 'XXXfoo-SCRIPT_FINISHEDXXX');
 
     throws_ok { background_script_run('foo') } qr/PID marker not found/, 'dies without PID marker';
+    $cmds = [];
+    $mock_testapi->redefine(hashed_string => 'XXX');
+    is(assert_script_run('true', max_interval => 1), undef, 'nothing happens on success (slow typing)');
+    is_deeply($cmds, [
+            {
+                text => 'true',
+                cmd => 'backend_type_string',
+                max_interval => 1
+            },
+            {
+                text => '; echo XXX-$?-',
+                cmd => 'backend_type_string',
+                max_interval => 1
+            },
+            {
+                text => "\n",
+                cmd => 'backend_type_string',
+                max_interval => 1
+            }
+    ]);
     $mock_testapi->unmock('wait_serial');
 };
 
@@ -568,15 +588,18 @@ subtest 'upload_logs' => sub {
     is_deeply($cmds, [
             {
                 text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             },
             {
                 text => '; echo XXX-$?-',
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             },
             {
                 text => "\n",
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             }
     ]);
     $cmds = [];
@@ -584,15 +607,18 @@ subtest 'upload_logs' => sub {
     is_deeply($cmds, [
             {
                 text => 'curl --form upload=@/var/log/messages --form upname=basetest-messages http://localhost:4243/LookAtMeImAToken/uploadlog/messages',
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             },
             {
                 text => '; echo XXX-$?-',
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             },
             {
                 text => "\n",
-                cmd => 'backend_type_string'
+                cmd => 'backend_type_string',
+                max_interval => 250
             }
     ]);
     delete $bmwqemu::vars{AUTOINST_URL_HOSTNAME};

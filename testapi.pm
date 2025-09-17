@@ -28,6 +28,7 @@ use Time::Seconds;
 
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
+use constant DEFAULT_MAX_INTERVAL => 250;
 
 our @EXPORT = qw(
 
@@ -936,11 +937,12 @@ sub assert_script_run {    # no:style:signatures
             # not change default timeout.
             timeout => 90,
             fail_message => '',
-            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS')
+            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
+            max_interval => DEFAULT_MAX_INTERVAL
         }, ['timeout', 'fail_message'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
-    my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet});
+    my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet}, max_interval => $args{max_interval});
     _handle_script_run_ret($ret, $cmd, %args);
     return;
 }
@@ -978,7 +980,8 @@ sub script_run {    # no:style:signatures
         {
             timeout => $bmwqemu::default_timeout,
             output => '',
-            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS')
+            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
+            max_interval => DEFAULT_MAX_INTERVAL
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
@@ -1390,7 +1393,7 @@ sub type_string {    # no:style:signatures
         return;
     }
 
-    my $max_interval = $args{max_interval} // 250;
+    my $max_interval = $args{max_interval} // DEFAULT_MAX_INTERVAL;
     my $wait = $args{wait_screen_change} // 0;
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
