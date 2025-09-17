@@ -33,7 +33,7 @@ ok my $s3270_console = consoles::s3270->new('consoles::s3270', undef), 's3270_co
 $s3270_console->{backend} = backend::baseclass->new();
 
 subtest 's3270_console start' => sub {
-    my $bless_obj = bless({KIDS => [{VAL => '', PID => '0', NUM => 1, TYPE => 'cmd', RESULT => 1, OPS => []}]}, 'IPC::Run');
+    my $bless_obj = bless({KIDS => [{VAL => '', PID => '0', NUM => 1, TYPE => 'cmd', RESULT => 1, OPS => []}], PTYS => {}, PIPES => [], TIMERS => []}, 'IPC::Run');
     $ipc_run_mock->redefine(start => sub ($self, $in, $out, $err) {
             $$out = "success\nconnet($bmwqemu::vars{ZVM_HOST})\nstart to execute process\nok";
             return $bless_obj;
