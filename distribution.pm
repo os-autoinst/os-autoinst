@@ -86,7 +86,7 @@ sub become_root ($self) {
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet])
+  script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
 
 Deprecated mode
 
@@ -101,6 +101,9 @@ thrown.
 Use C<output> to add a description or a comment of the $cmd.
 
 Use C<quiet> to avoid recording serial_results.
+
+Use C<max_interval> (1-250) to control the typing speed. Lower values mean slower
+typing.
 
 <Returns> exit code received from I<$cmd>, or C<undef> in case of C<not> waiting for I<$cmd>
 to return.

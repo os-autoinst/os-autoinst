@@ -909,7 +909,7 @@ sub _handle_script_run_ret {    # no:style:signatures
 
 =head2 assert_script_run
 
-  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet]);
+  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet] [,max_interval => $max_interval]);
 
 Positional mode (not suggested)
 
@@ -920,6 +920,10 @@ Run C<$cmd> via C<< $distri->script_run >> and C<die> unless it returns zero
 Use C<script_run> instead if C<$cmd> may fail.
 
 C<$fail_message> is returned in the die message if specified.
+
+C<$quiet> and C<$max_interval> are passed through to C<< $distri->script_run >>. In
+the default implementation, C<$quiet> is used to avoid recording serial_results.
+C<$max_interval> (1-250) controls typing speed (lower values mean slower typing).
 
 I<The C<script_run> implementation is distribution specific and not always available.
 For this to work correctly, it must return 0 if and only if C<$command> completes
@@ -949,7 +953,7 @@ sub assert_script_run {    # no:style:signatures
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet]);
+  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet] [,max_interval => $max_interval]);
 
 Positional mode (not suggested)
 
@@ -961,6 +965,10 @@ execution to complete.
 
 C<$output> can be used as an explanatory text that will be displayed with the execution of
 the command.
+
+C<$quiet> and C<$max_interval> are passed through to C<< $distri->script_run >>. In
+the default implementation, C<$quiet> is used to avoid recording serial_results.
+C<$max_interval> (1-250) controls typing speed (lower values mean slower typing).
 
 C<script_run> will throw an exception if the timeout has expired.
 
