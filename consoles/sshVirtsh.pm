@@ -504,6 +504,14 @@ sub _bootorder_elem ($doc, $bootorder) {
     return $elem;
 }
 
+sub _clean_storage($self, $basedir, $args) {
+    if ($args->{file} && ($args->{cdrom} || $args->{backingfile})) {
+        my $existing_img = path . join($basedir, basename($args->{file}));
+        $self->run_cmd(qq#rm $existing_img#) if $self->run_cmd(qq#test -e "$existing_img"#);
+        bmwqemu::diag qq/$existing_img deleted./ unless $@;
+    }
+}
+
 sub add_disk ($self, $args) {
     my $cdrom = $args->{cdrom};
     my $name = $self->name;
@@ -511,6 +519,7 @@ sub add_disk ($self, $args) {
     my $basedir = '/var/lib/libvirt/images/';
     my $vmware_datastore = $bmwqemu::vars{VMWARE_DATASTORE} // '';
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
+    _clean_storage($self, $basedir, $args);
     if ($args->{create}) {
         $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
     }
