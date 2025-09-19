@@ -52,6 +52,7 @@ requires 'Net::Domain';
 requires 'Net::IP';
 requires 'Net::SNMP';
 requires 'Net::SSH2';
+requires 'Object::Pad';
 requires 'POSIX';
 requires 'Scalar::Util';
 requires 'Socket';
