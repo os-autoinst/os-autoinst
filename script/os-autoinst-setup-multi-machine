@@ -70,6 +70,45 @@ EOF
     systemctl restart firewalld
 }
 
+configure_nftables() {
+    rpm -q firewalld && systemctl disable --now firewalld
+    cat > /etc/systemd/system/nftables.service << EOF
+[Unit]
+Description=Apply firewall rules from /etc/firewall.nft
+After=network-online.target
+Wants=network-online.target
+Conflicts=firewalld.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/sbin/nft -f /etc/firewall.nft
+ExecStop=/usr/sbin/nft flush ruleset
+EOF
+    cat > /etc/firewall.nft << EOF
+#!/usr/sbin/nft -f
+
+# dump with "nft --stateless list ruleset"
+
+flush ruleset
+
+
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        oifname "$ethernet" masquerade
+        oifname "$bridge" masquerade
+        oifname "ovs-system" masquerade
+    }
+}
+EOF
+    systemctl daemon-reload
+    systemctl enable --now nftables
+}
+
 create_gre_preup_script() {
     local location=$1
     cat > "$location" << EOF
@@ -157,7 +196,7 @@ main() {
     }
     ensure_ip_forwarding
     install_packages
-    configure_firewall
+    configure_nftables
     systemctl enable --now openvswitch
     case "$network" in
         wicked)
