@@ -2,8 +2,7 @@
 set -euo pipefail
 instances="${instances:-20}"
 bridge="${bridge:-"br1"}"
-default_ethernet=$(ip -json route show default | jq -r '.[]|.dev')
-ethernet="${ethernet:-"$default_ethernet"}"
+ethernet="${ethernet:-""}"
 zone="${zone:-"trusted"}"
 
 # Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
@@ -145,6 +144,13 @@ configure_openvswitch() {
     systemctl restart openvswitch os-autoinst-openvswitch
 }
 
+determine_ethernet_interface() {
+    if [[ -n "$ethernet" ]]; then
+        return
+    fi
+    ethernet=$(ip -json route show default | jq -r '.[]|.dev')
+}
+
 main() {
     network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
     if [[ -z "${network}" ]]; then
@@ -157,6 +163,7 @@ main() {
     }
     ensure_ip_forwarding
     install_packages
+    determine_ethernet_interface
     configure_firewall
     systemctl enable --now openvswitch
     case "$network" in
