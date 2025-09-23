@@ -3,6 +3,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
+use Mojo::File 'path';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -484,8 +485,7 @@ subtest 'test skipping tests' => sub {
 };
 
 subtest 'start_process' => sub {
-    my $fh;
-    open $fh, '<', \"fake-file";
+    my $fh = path(\"fake-file")->open('<');
     $autotest::isotovideo = $fh;
     # Test the start_process subroutine
     my ($process, $child) = autotest::start_process();
@@ -495,8 +495,7 @@ subtest 'start_process' => sub {
 
     ok $child->autoflush, 'autoflush was called on child handle';
     ok $fh->autoflush, 'autoflush was called on isotovideo handle';
-
-    open $fh, '<', \"fake-file";
+    $fh = path(\"fake-file")->open('<');
     $autotest::isotovideo = $fh;
     stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 };
