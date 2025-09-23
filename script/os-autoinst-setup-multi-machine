@@ -146,10 +146,7 @@ configure_openvswitch() {
 }
 
 determine_ethernet_interface() {
-    if [[ -n "$ethernet" ]]; then
-        return
-    fi
-    ethernet=$(ip -json route show default | jq -r '.[]|.dev')
+    ethernet=${ethernet:-$(ip -json route show default | jq -r '.[]|.dev')}
 }
 
 main() {
