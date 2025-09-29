@@ -700,7 +700,7 @@ subtest 'special cases when starting QEMU' => sub {
     is $load_state, 1, 'load_state called once due to KEEPHDDS=1';
     my $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
     like $qemu_params, qr{smbios file=.*dmidata/hp_elitebook_820g1/smbios_type_1.bin}, 'smbios params present';
-    like $qemu_params, qr{kernel /usr/share/.*/ipxe.lkrn}, 'ipxe kernel param for NBF=1 present';
+    like $qemu_params, qr{kernel /usr/share/.*/ipxe.*}, 'ipxe kernel param for NBF=1 present';
     like $qemu_params, qr{menu=on,splash-time=\d+}, 'menu parameter present for BOOT_MENU=1';
     unlike $qemu_params, qr{order=}, 'order parameter not present despite BOOT_HDD_IMAGE=1 because UEFI=1';
     unlike $qemu_params, qr{\sbios}, 'bios parameter not present despite BIOS=1 because UEFI=1';
