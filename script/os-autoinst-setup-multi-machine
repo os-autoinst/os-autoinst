@@ -45,29 +45,31 @@ install_packages() {
 }
 
 configure_firewall() {
+    echo "Now configuring firewalld..."
     systemctl enable --now firewalld
     default_zone=$(firewall-cmd --get-default-zone)
+    echo "- default_zone=$default_zone"
+    echo "- Creating isotovideo firewall service"
     firewall-cmd --permanent --get-services | grep -q isotovideo && firewall-cmd --permanent --delete-service=isotovideo
     firewall-cmd --permanent --new-service isotovideo
     for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp; done
     firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
     if [[ $default_zone != "$zone" ]]; then
+        echo "- Setting new default_zone=$zone"
         firewall-cmd -q --permanent --remove-interface="$ethernet" --zone="$default_zone"
         firewall-cmd --set-default-zone="$zone"
     fi
-    cat > /etc/firewalld/zones/"$zone".xml << EOF
-<?xml version="1.0" encoding="utf-8"?>
-<zone target="ACCEPT">
-  <short>"${zone^}"</short>
-  <description>All network connections are accepted.</description>
-  <service name="isotovideo"/>
-  <interface name="$bridge"/>
-  <interface name="ovs-system"/>
-  <interface name="$ethernet"/>
-  <masquerade/>
-</zone>
-EOF
+    for itf in "$bridge" "ovs-system" "$ethernet"; do
+        echo "- Adding network interface $itf to zone $zone"
+        firewall-cmd -q --permanent --remove-interface="$itf" || :
+        firewall-cmd --permanent --zone="$zone" --add-interface="$itf"
+    done
+    if ! firewall-cmd -q --permanent --query-masquerade --zone="$zone"; then
+        echo "- Enabling masquerading for zone $zone"
+        firewall-cmd --permanent --add-masquerade --zone="$zone"
+    fi
     systemctl restart firewalld
+    echo "DONE configuring firewalld!"
 }
 
 create_gre_preup_script() {
