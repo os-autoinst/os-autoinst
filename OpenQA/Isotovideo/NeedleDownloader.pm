@@ -52,7 +52,7 @@ has openqa_url => sub {
 
     return $url;
 };
-has ua => sub { Mojo::UserAgent->new };
+has ua => sub { Mojo::UserAgent->new->max_redirects(5) };
 has download_limit => 150;
 
 sub _add_download ($self, $needle, $extension, $path_param) {
