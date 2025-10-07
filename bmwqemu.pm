@@ -315,7 +315,7 @@ sub TIEHASH ($class, %args) {
 }
 
 sub STORE ($self, $key, $val) {
-    croak("Settings key '$key' is invalid (check your test settings)") unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
+    croak("Settings key '$key' is invalid (check your test settings)") unless $key =~ m/^(?:[A-Z0-9_]+(\[\])?)\z/;
     $self->{data}->{$key} = $val;
 }
 
