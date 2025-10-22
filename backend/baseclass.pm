@@ -1375,16 +1375,19 @@ sub hide_password ($self, %args) {
     return \%args;
 }
 
-sub handle_deprecate_backend ($backend) {
+sub handle_deprecate_backend ($backend, %args) {
+    my $condition = $args{condition};
+    my $combination_text = $condition ? " in combination with '$condition'" : '';
+    my $variable = $condition ? "${backend}_${condition}" : $backend;
     my $deprecation_message = <<"EOF";
-DEPRECATED: 'backend::$backend' is unsupported and planned to be
+DEPRECATED: 'backend::$backend'$combination_text is unsupported and planned to be
 removed from os-autoinst eventually. If the backend is still needed please
 report an issue on https://github.com/os-autoinst/os-autoinst . This message
 can be temporarily turned into a warning by setting the environment variable
-'OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend' or the os-autoinst variable
-'NO_DEPRECATE_BACKEND_$backend'
+'OS_AUTOINST_NO_DEPRECATE_BACKEND_$variable' or the os-autoinst variable
+'NO_DEPRECATE_BACKEND_$variable'
 EOF
-    die $deprecation_message unless $bmwqemu::vars{"NO_DEPRECATE_BACKEND_$backend"} || $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend"};
+    die $deprecation_message unless $bmwqemu::vars{"NO_DEPRECATE_BACKEND_$variable"} || $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$variable"};
     log::fctwarn $deprecation_message;
 }
 
