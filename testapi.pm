@@ -700,7 +700,8 @@ sub assert_still_screen (@args) {
 
   get_var($variable [, $default ])
 
-Returns content of test variable C<$variable> or the C<$default> given as second argument or C<undef>
+Returns the contents of the test variable C<$variable> if defined, otherwise
+the C<$default> if specified, otherwise C<undef>.
 
 =cut
 
@@ -750,7 +751,7 @@ sub set_var ($var, $val, %args) {
 
   check_var($variable, $value);
 
-Returns true if test variable C<$variable> is equal to C<$value> or returns C<undef>.
+Returns whether the test variable C<$variable> is equal to C<$value>.
 
 =cut
 
