@@ -1,7 +1,6 @@
 // Copyright 2012-2020 SUSE LLC
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include <cerrno>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -16,9 +15,9 @@
 #include <vector>
 #include <cmath> // std::isnan
 
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "tinycv.h"
