@@ -27,4 +27,6 @@ my $img2 = tinycv::from_ppm($ppm);
 
 is(1_000_000, $img1->similarity($img2));
 
+throws_ok { $img1->write_with_thumbnail('/tmp/does-not-exist/test.png') } qr/Unable to write.*test\.png/, 'dies when image cannot be written';
+
 done_testing();
