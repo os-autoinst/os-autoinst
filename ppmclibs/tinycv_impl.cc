@@ -405,16 +405,10 @@ Image* image_from_ppm(const unsigned char* data, size_t len)
 
 bool image_write(const Image* const s, const char* filename)
 {
-    try {
-        if (s->img.empty()) {
-            CV_Error(0, "image is empty");
-        }
-        return imwrite(filename, s->img);
+    if (s->img.empty()) {
+        CV_Error(0, "image is empty");
     }
-    catch (const cv::Exception& ex) {
-        std::cerr << "Could not write image " << filename << ": " << ex.err << '\n';
-        return false;
-    }
+    return imwrite(filename, s->img);
 }
 
 std::vector<uchar>* image_ppm(Image* s)
