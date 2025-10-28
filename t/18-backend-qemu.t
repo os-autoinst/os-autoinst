@@ -749,6 +749,12 @@ subtest 'special cases when starting QEMU' => sub {
         $process_mock->called_args_pos_is(3, 2, 'cleanup', 'cleanup event emitted');
     }
 
+    $bmwqemu::vars{NICPCIADDR} = 19;
+    $bmwqemu::vars{NICTYPE} = 'user';
+    combined_like { $backend->start_qemu } qr{.*}s, 'invoked with NICPCIADDR';
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr/bus=pci\.0 addr=0x13/, 'parameters for NICPCIADDR present';
+
     # set different parameters to test remaining cases
     @qemu_params = ();
     $bmwqemu::vars{PXEBOOT} = 'once';
