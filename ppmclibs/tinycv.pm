@@ -182,14 +182,14 @@ sub search ($self, $needle, $threshold = undef, $search_ratio = undef, $stopwatc
 }
 
 sub write_with_thumbnail ($self, $filename) {
-    $self->write($filename);
+    $self->write($filename) or die "Unable to write '$filename'\n";
 
     my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
     my $dir = File::Basename::dirname($filename) . "/.thumbs";
     my $base = File::Basename::basename($filename);
 
     mkdir($dir);
-    $thumb->write("$dir/$base");
+    $thumb->write("$dir/$base") or die "Unable to write '$dir/$base'\n";
 }
 
 1;

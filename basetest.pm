@@ -527,12 +527,11 @@ sub _result_add_screenshot ($self, $result) {
     $img = tinycv::from_ppm(decode_base64($img));
     return $result unless $img;
 
-    $result->{screenshot} = $self->next_resultname('png');
+    my $file_name = $self->next_resultname('png');
+    $img->write_with_thumbnail(join('/', bmwqemu::result_dir(), $file_name));
+
+    $result->{screenshot} = $file_name;
     $result->{frametime} = _framenumber_to_timerange($rsp->{frame});
-
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
-    $img->write_with_thumbnail($fn);
-
     return $result;
 }
 

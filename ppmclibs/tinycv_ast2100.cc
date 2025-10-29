@@ -1,7 +1,7 @@
 // Copyright 2012-2016 SUSE LLC
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include "opencv2/core/core.hpp"
+#include <opencv2/core/core.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

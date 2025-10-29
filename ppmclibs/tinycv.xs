@@ -144,7 +144,12 @@ MODULE = tinycv     PACKAGE = tinycv::Image  PREFIX = Image
 
 bool write(tinycv::Image self, const char *file)
   CODE:
-    RETVAL = image_write(self, file);
+    try {
+        RETVAL = image_write(self, file);
+    }
+    catch (const std::exception &e) {
+        croak("Could not write image '%s': %s", file, e.what());
+    }
 
   OUTPUT:
     RETVAL
