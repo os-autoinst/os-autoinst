@@ -3,14 +3,14 @@
 
 build := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))build
 .PHONY: all
-all: build/CMakeCache.txt
+all: build/build.ninja
 	ninja -C ${build} symlinks
 
 # empty default to ensure build dir is created when make called with arguments
 Makefile: ;
-%: build/CMakeCache.txt
+%: build/build.ninja
 	ninja -C ${build} $@
 
-build/CMakeCache.txt:
+build/build.ninja:
 	@mkdir -p ${build}
 	@cmake -B ${build} -S . -G Ninja
