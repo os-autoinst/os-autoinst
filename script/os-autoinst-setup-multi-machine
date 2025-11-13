@@ -4,6 +4,7 @@ instances="${instances:-20}"
 bridge="${bridge:-"br1"}"
 ethernet="${ethernet:-""}"
 zone="${zone:-"trusted"}"
+firewall="${firewall:-"nftables"}"
 
 # Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
 # * See https://progress.opensuse.org/issues/151310
@@ -44,7 +45,7 @@ install_packages() {
     rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
 }
 
-configure_firewall() {
+configure_firewalld() {
     echo "Now configuring firewalld..."
     systemctl enable --now firewalld
     default_zone=$(firewall-cmd --get-default-zone)
@@ -70,6 +71,45 @@ configure_firewall() {
     fi
     systemctl restart firewalld
     echo "DONE configuring firewalld!"
+}
+
+configure_nftables() {
+    rpm -q firewalld && systemctl disable --now firewalld
+    cat > /etc/systemd/system/nftables.service << EOF
+[Unit]
+Description=Apply firewall rules from /etc/firewall.nft
+After=network-online.target
+Wants=network-online.target
+Conflicts=firewalld.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/sbin/nft -f /etc/firewall.nft
+ExecStop=/usr/sbin/nft flush ruleset
+EOF
+    cat > /etc/firewall.nft << EOF
+#!/usr/sbin/nft -f
+
+# dump with "nft --stateless list ruleset"
+
+flush ruleset
+
+
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        oifname "$ethernet" masquerade
+        oifname "$bridge" masquerade
+        oifname "ovs-system" masquerade
+    }
+}
+EOF
+    systemctl daemon-reload
+    systemctl enable --now nftables
 }
 
 create_gre_preup_script() {
@@ -164,7 +204,11 @@ main() {
     ensure_ip_forwarding
     install_packages
     determine_ethernet_interface
-    configure_firewall
+    if [[ "${firewall}" == "firewalld" ]]; then
+        configure_firewalld
+    else
+        configure_nftables
+    fi
     systemctl enable --now openvswitch
     case "$network" in
         wicked)
