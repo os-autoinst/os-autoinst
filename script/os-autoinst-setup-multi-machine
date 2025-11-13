@@ -41,6 +41,7 @@ ensure_ip_forwarding() {
 install_packages() {
     command -v retry > /dev/null || zypper -n in retry
     pkgs=(openvswitch os-autoinst-openvswitch firewalld libcap-progs)
+    [[ $network == NetworkManager ]] && pkgs+=(NetworkManager-ovs)
     rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
 }
 
