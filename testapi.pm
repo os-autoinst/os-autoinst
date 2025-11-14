@@ -948,7 +948,7 @@ sub assert_script_run {    # no:style:signatures
     bmwqemu::log_call(cmd => $cmd, %args);
     my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet}, max_interval => $args{max_interval});
     _handle_script_run_ret($ret, $cmd, %args);
-    return;
+    return $ret;
 }
 
 =head2 script_run
