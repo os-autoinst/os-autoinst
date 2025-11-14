@@ -234,6 +234,13 @@ subtest 'eject_cd' => sub {
     $cmds = [];
 };
 
+subtest 'disconnect_usb' => sub {
+    disconnect_usb;
+    disconnect_usb device => 'foo';
+    is_deeply $cmds, [{cmd => 'backend_disconnect_usb'}, {cmd => 'backend_disconnect_usb', device => 'foo'}];
+    $cmds = [];
+};
+
 subtest 'switch_network' => sub {
     switch_network network_enabled => 0;
     is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 0}] or always_explain $cmds;
