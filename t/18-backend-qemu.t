@@ -113,6 +113,20 @@ subtest 'eject cd' => sub {
     is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
 };
 
+subtest 'disconnect_usb' => sub {
+    my %default_delete_params = (execute => 'device_del', arguments => {id => 'usbstick-device'});
+    my %custom_delete_params = (execute => 'device_del', arguments => {id => 'usb1'});
+
+    $called{handle_qmp_command} = undef;
+    $backend->disconnect_usb;
+    is_deeply $called{handle_qmp_command}[0], \%default_delete_params, 'device_del called with correct defaults';
+    $called{handle_qmp_command} = undef;
+    $backend->disconnect_usb({id => 'usb1'});
+    is_deeply $called{handle_qmp_command}[0], \%custom_delete_params, 'device_del called with custom parameters';
+};
+
+
+
 subtest 'switch_network' => sub {
     my %switch_network_params = (arguments => {name => 'qanet0', up => Mojo::JSON->false}, execute => 'set_link');
     $called{handle_qmp_command} = undef;

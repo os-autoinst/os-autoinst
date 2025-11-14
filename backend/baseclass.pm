@@ -483,6 +483,7 @@ sub notimplemented ($self) {
 sub power ($self, $args) { $self->notimplemented }
 sub insert_cd ($self) { $self->notimplemented }
 sub eject_cd ($self, $args = {}) { $self->notimplemented }
+sub disconnect_usb ($self, $args = {}) { $self->notimplemented }
 sub do_start_vm ($self, @) { $self->notimplemented }
 sub do_stop_vm ($self, @) { $self->notimplemented }
 sub stop ($self) { $self->notimplemented }
