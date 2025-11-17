@@ -189,7 +189,7 @@ configure_openvswitch() {
 }
 
 determine_ethernet_interface() {
-    ethernet=${ethernet:-$(ip -json route show default | jq -r '.[]|.dev')}
+    ethernet=${ethernet:-$(ip -json route show default | jq -r 'sort_by(.metric)|.[0].dev')}
 }
 
 main() {
