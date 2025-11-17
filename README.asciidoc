@@ -1,4 +1,4 @@
-= os-autoinst image:https://github.com/os-autoinst/os-autoinst/actions/workflows/ci.yml/badge.svg?branch=master[link=https://github.com/os-autoinst/os-autoinst/actions] image:https://codecov.io/gh/os-autoinst/os-autoinst/branch/master/graph/badge.svg[link=https://codecov.io/gh/os-autoinst/os-autoinst] image:https://deepwiki.com/badge.svg[link=https://deepwiki.com/os-autoinst/os-autoinst]
+= os-autoinst image:https://github.com/os-autoinst/os-autoinst/actions/workflows/ci.yml/badge.svg?branch=master[link=https://github.com/os-autoinst/os-autoinst/actions] image:https://codecov.io/gh/os-autoinst/os-autoinst/branch/master/graph/badge.svg[link=https://codecov.io/gh/os-autoinst/os-autoinst]
 :author: openSUSE Team at SUSE
 :toc:
 
@@ -191,6 +191,10 @@ Issues are tracked on https://progress.opensuse.org/projects/openqav3/.
 
 For an overview of the architecture, see
 link:doc/architecture.md[doc/architecture.md].
+
+Additionally the AI generated os-autoinst deepwiki can provide a good overview
+about the complete project but without a guarantee for correctness:
+https://deepwiki.com/os-autoinst/os-autoinst
 
 === Rules for commits
 
