@@ -60,7 +60,7 @@ our @EXPORT = qw(
 
   wait_screen_change assert_screen_change wait_still_screen assert_still_screen wait_serial
   record_soft_failure record_info force_soft_failure
-  become_root x11_start_program ensure_installed eject_cd power
+  become_root x11_start_program ensure_installed eject_cd disconnect_usb power
 
   switch_network
   save_memory_dump freeze_vm resume_vm save_storage
@@ -1894,6 +1894,19 @@ if backend supports it, eject the CD
 sub eject_cd (%nargs) {
     bmwqemu::log_call(%nargs);
     query_isotovideo(backend_eject_cd => \%nargs);
+}
+
+=head2 disconnect_usb
+
+  disconnect_usb;
+
+if backend supports it, disconnect the USB stick (or other device specified by id)
+
+=cut
+
+sub disconnect_usb (%nargs) {
+    bmwqemu::log_call(%nargs);
+    query_isotovideo(backend_disconnect_usb => \%nargs);
 }
 
 =head2 switch_network

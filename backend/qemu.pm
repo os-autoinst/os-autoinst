@@ -99,6 +99,11 @@ sub eject_cd ($self, $args = {}) {
     $self->handle_qmp_command({execute => 'blockdev-remove-medium', arguments => {id => $id}});
 }
 
+sub disconnect_usb ($self, $args = {}) {
+    my $id = $args->{id} // 'usbstick-device';
+    $self->handle_qmp_command({execute => 'device_del', arguments => {id => $id}});
+}
+
 sub execute_qmp_command ($self, $args) { $self->handle_qmp_command($args->{query}) }
 
 sub cpu_stat ($self) {
