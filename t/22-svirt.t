@@ -668,7 +668,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $exp_filename = 'foo_file_' . $svirt->name . '_thinfile.vmdk';
             set_var(VMWARE_NFS_DATASTORE => 'nfs');
             $svirt->add_disk({backingfile => 1, size => '77G', dev_id => $dev_id, file => $filename});
-            like($last_ssh_commands[1], qr/vmkfstools -v1 -i $vmware_openqa_datastore$filename --diskformat thin $vmware_openqa_datastore$exp_filename;/, "Check size");
+            like($last_ssh_commands[2], qr/vmkfstools -v1 -i $vmware_openqa_datastore$filename --diskformat thin $vmware_openqa_datastore$exp_filename;/, "Check size");
 
             svirt_xml_validate($svirt,
                 dev => 'hd' . $dev_id,
@@ -683,7 +683,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like($last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
+            like($last_ssh_commands[1], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -782,7 +782,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_009';
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            @ssh_cmd_return = (0, 0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
 
             $svirt->add_disk({
                     backingfile => 1,
@@ -790,7 +790,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     file => '/my/path/to/this/file/' . $file,
                     size => 12
             });
-            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[1], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
         };
 
@@ -798,14 +798,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_010';
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            @ssh_cmd_return = (0, 0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
             $svirt->add_disk({
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 5
             });
-            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[1], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
 
             svirt_xml_validate($svirt,
@@ -822,13 +822,13 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_011';
             my $file = "my_cdrom_$dev_id.iso";
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, 0);
+            @ssh_cmd_return = (0, 0, 0);
             $svirt->add_disk({
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
             });
-            like($last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            like($last_ssh_commands[1], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -886,7 +886,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_015';
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            @ssh_cmd_return = (0, 0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
 
             $svirt->add_disk({
                     backingfile => 1,
@@ -894,7 +894,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     file => '/my/path/to/this/file/' . $file,
                     size => 12
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[1], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
         };
 
@@ -902,14 +902,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $dev_id = 'dev_id_016';
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            @ssh_cmd_return = (0, 0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
             $svirt->add_disk({
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 5
             });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
+            like($last_ssh_commands[1], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
             is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
 
             svirt_xml_validate($svirt,
@@ -925,14 +925,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = "my_cdrom_$dev_id.iso";
             @last_ssh_commands = ();
             @last_ssh_args = ();
-            @ssh_cmd_return = (0, 0);
+            @ssh_cmd_return = (0, 0, 0);
             $svirt->add_disk({
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
             });
-            like($last_ssh_commands[0], qr%^rsync.*--timeout='150' --stats .*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
-            my %ssh_args = @{$last_ssh_args[0]};
+            like($last_ssh_commands[1], qr%^rsync.*--timeout='150' --stats .*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+            my %ssh_args = @{$last_ssh_args[1]};
             is $ssh_args{timeout}, 900, 'timeout for ssh command specified';
 
             svirt_xml_validate($svirt,
@@ -951,10 +951,12 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file_path = '/my/path/to/this/file/' . $file;
             @last_system_calls = ();
             @last_ssh_commands = ();
-            @ssh_cmd_return = (0, 0);
+            @ssh_cmd_return = (0, 0, 0);
+
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => $file_path});
+            use Data::Dumper;
             is $last_system_calls[0], "sshpass -p 'password_svirt' rsync -e 'ssh -o StrictHostKeyChecking=no' --timeout='150' --stats --partial --append-verify -av '$dir/$file' 'root\@hostname_svirt:$basedir/$file'", 'file copied with rsync';
-            like $last_ssh_commands[0], qr%unxz%, 'file uncompressed with unxz';
+            like $last_ssh_commands[1], qr%unxz%, 'file uncompressed with unxz';
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
