@@ -24,6 +24,7 @@ use needle;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
+use File::Which 'which';
 use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
@@ -36,7 +37,8 @@ use OpenQA::NamedIOSelect;
 
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
 use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
-use constant DEFAULT_FFMPEG_CMD => 'ffmpeg -y -hide_banner -nostats -r 24 -f image2pipe -vcodec ppm -i - -pix_fmt yuv420p';
+use constant FFMPEG_BIN => $ENV{OS_AUTOINST_FFMPEG_BIN} // 'ffmpeg';
+use constant DEFAULT_FFMPEG_CMD => FFMPEG_BIN . ' -y -hide_banner -nostats -r 24 -f image2pipe -vcodec ppm -i - -pix_fmt yuv420p';
 use constant SSH_SERIAL_READ_BUFFER_SIZE => 4096;
 
 # should be a singleton - and only useful in backend process
@@ -357,7 +359,7 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
 }
 
-sub _ffmpeg_banner () { qx{ffmpeg -version} // '' }
+sub _ffmpeg_banner ($cmd = FFMPEG_BIN . ' -version') { qx{$cmd} // '' if defined which FFMPEG_BIN }
 
 sub _auto_detect_external_video_encoder ($self) {
     my $ffmpeg_banner = _ffmpeg_banner;
