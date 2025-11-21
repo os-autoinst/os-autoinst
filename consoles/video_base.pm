@@ -27,7 +27,7 @@ sub get_last_mouse_set ($self, $args) { $self->{mouse} }
 
 sub _typing_limit () { $bmwqemu::vars{TYPING_LIMIT} // TYPING_LIMIT_DEFAULT || 1 }
 
-sub send_key_event ($key, $press_release_delay) { }
+sub send_key_event ($key, $delay) { }
 
 sub type_string ($self, $args) {
     my $seconds_per_keypress = 1 / _typing_limit;
@@ -53,8 +53,8 @@ sub type_string ($self, $args) {
     for my $letter (split("", $args->{text})) {
         next if ($letter eq "\r");
         $letter = $CHARMAP->{$letter} || $letter;
-        # 25% is spent hitting the key, 25% releasing it, 50% searching the next key
-        $self->send_key_event($letter, $seconds_per_keypress * 0.25);
+        # 50% of the delay used on key press, 50% searching the next key
+        $self->send_key_event($letter, $seconds_per_keypress * 0.5);
         $self->{backend}->run_capture_loop($seconds_per_keypress * 0.5);
     }
     return {};
@@ -63,9 +63,9 @@ sub type_string ($self, $args) {
 sub send_key ($self, $args) {
     # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
     # map_and_send_key: do not be faster than default
-    my $press_release_delay = 1 / _typing_limit;
+    my $delay = 1 / _typing_limit;
 
-    $self->send_key_event($args->{key}, $press_release_delay);
+    $self->send_key_event($args->{key}, $delay);
     $self->backend->run_capture_loop(.2);
     return {};
 }
