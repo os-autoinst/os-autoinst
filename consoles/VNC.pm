@@ -653,8 +653,13 @@ sub init_ikvm_keymap ($self) {
 }
 
 
-sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
-    die "need delay" unless $press_release_delay;
+sub map_and_send_key ($self, $keys, $down_flag, $delay) {
+    die "need delay" unless $delay;
+    my $down_delay = $delay * 0.5;
+    # the key down delay is capped because if it's too long, we risk
+    # unintended repeat inputs
+    $down_delay = 0.008 if ($down_delay > 0.008);
+    my $up_delay = $delay - $down_delay;
 
     if ($self->ikvm) {
         $self->init_ikvm_keymap;
@@ -688,13 +693,13 @@ sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
     if (!defined $down_flag || $down_flag == 1) {
         for my $key (@events) {
             $self->send_key_event_down($key);
-            sleep($press_release_delay);
+            sleep($down_delay);
         }
     }
     if (!defined $down_flag || $down_flag == 0) {
         for my $key (reverse @events) {
             $self->send_key_event_up($key);
-            sleep($press_release_delay);
+            sleep($up_delay);
         }
     }
 }
