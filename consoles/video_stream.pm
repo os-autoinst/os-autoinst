@@ -454,7 +454,7 @@ sub request_screen_update ($self, @) {
     }
 }
 
-sub send_key_event ($self, $key, $press_release_delay) {
+sub send_key_event ($self, $key, $delay) {
     return unless $self->{input_pipe};
     $self->{input_pipe}->write($key . "\n")
       or die "failed to send '$key' input event";

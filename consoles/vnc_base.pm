@@ -62,9 +62,9 @@ sub current_screen ($self) {
     return $self->{vnc}->_framebuffer;
 }
 
-sub send_key_event ($self, $key, $press_release_delay) {
+sub send_key_event ($self, $key, $delay) {
     die "No VNC console connection available" unless $self->{vnc};
-    $self->{vnc}->map_and_send_key($key, undef, $press_release_delay);
+    $self->{vnc}->map_and_send_key($key, undef, $delay);
 }
 
 sub hold_key ($self, $args) {
