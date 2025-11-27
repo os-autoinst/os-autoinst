@@ -99,6 +99,15 @@ subtest 'set expected serial and autoinst failures' => sub {
     is_deeply($d->{autoinst_failures}, _generate_failures('Hard', %hard_failure), 'Expected Hard autoinst_failures matched');
 };
 
+subtest 'disable_key_repeat' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my @called;
+    $mock_testapi->redefine(enter_cmd => sub { push @called, @_ });
+    $mock_testapi->noop('type_string');
+    distribution->new->disable_key_repeat;
+    like "@called", qr/kbdrate/, 'disable_key_repeat calls kbdrate';
+};
+
 done_testing;
 
 1;

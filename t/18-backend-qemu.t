@@ -214,6 +214,7 @@ sub qemu_cmdline (%args) {
 }
 
 like qemu_cmdline(OFW => 1, XRES => 640, YRES => 480), qr/-g 640x480/, 'res is set for ppc/sparc';
+like qemu_cmdline(), qr/-device virtio-keyboard/, '-device virtio-keyboard option added by default';
 
 sub test_boot_options ($boot, $arch, $pxe, $expected) {
     my $cmdline;
@@ -319,7 +320,6 @@ subtest s390x_options => sub {
     my $cmdline = qemu_cmdline(ARCH => 's390x', QEMU_VIDEO_DEVICE => 'virtio-gpu', OFW => 0);
     like $cmdline, qr/-device virtio-gpu,edid=on/, '-device virtio-gpu,edid=on option added';
     unlike $cmdline, qr/-boot.*/, '-boot options not added';
-    like $cmdline, qr/-device virtio-keyboard/, '-device virtio-keyboard option added';
     unlike $cmdline, qr/(audiodev|soundhw)/, 'audio options not added';
     unlike $cmdline, qr/isa-fdc.fdtypeA=none/, 'isa-fdc.fdtypeA=none option is not added';
     like $cmdline, qr/-device virtio-rng/, '-device virtio-rng option added';

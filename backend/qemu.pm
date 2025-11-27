@@ -797,7 +797,6 @@ sub start_qemu ($self) {
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
-    my $use_virtio_kbd;
 
     if (is_arm($arch) || is_riscv($arch)) {
         $arch_supports_boot_order = 0;
@@ -805,7 +804,6 @@ sub start_qemu ($self) {
     }
     elsif (is_s390x($arch)) {
         $arch_supports_boot_order = 0;
-        $use_virtio_kbd = 1;
     }
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
@@ -1005,7 +1003,7 @@ sub start_qemu ($self) {
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
-        sp('device', 'virtio-keyboard') if $use_virtio_kbd;
+        sp('device', 'virtio-keyboard') if $vars->{QEMU_VIRTIO_KEYBOARD} // 1;
 
         sp("device", "canokey,file=canokey") if $vars->{FIDO2};
 
