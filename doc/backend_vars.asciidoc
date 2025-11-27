@@ -170,6 +170,7 @@ QEMU_NO_FDC_SET;boolean;0;Don't disable the floppy drive.
 QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;1;Enable virtio random number generator
+QEMU_VIRTIO_KEYBOARD;boolean;1;Enable virtio-keyboard. The virtio-keyboard is a paravirtualized device with no emulation, higher performance and for example allows the use of `kbdrate` in SUTs to disable (or tweak) key repetition to prevent mistyping errors.
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
 QEMU_SOUNDHW;see qemu -soundhw ?;had;pass this value to qemu -soundhw (for qemu < 4.2)
