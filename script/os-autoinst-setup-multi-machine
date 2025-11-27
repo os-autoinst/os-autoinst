@@ -99,8 +99,10 @@ EOF
 
 flush ruleset
 
-
-table ip nat {
+EOF
+    for proto in ip ip6; do
+        cat >> /etc/firewall.nft << EOF
+table $proto nat {
     chain postrouting {
         type nat hook postrouting priority 100; policy accept;
         oifname "$ethernet" masquerade
@@ -108,7 +110,9 @@ table ip nat {
         oifname "ovs-system" masquerade
     }
 }
+
 EOF
+    done
     systemctl daemon-reload
     systemctl enable --now nftables
 }
@@ -134,7 +138,7 @@ setup_multi_machine_with_networkmanager() {
     # Create bridge, port and interface connection
     nmcli con add type ovs-bridge con.int "$bridge"
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ethernet.mtu "$mtu" con.zone "$zone"
+    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
     for i in 0 $(
         seq 1 "$instances"
@@ -154,6 +158,7 @@ setup_multi_machine_with_wicked() {
     cat > "/etc/sysconfig/network/ifcfg-$bridge" << EOF
 BOOTPROTO='static'
 IPADDR='10.0.2.2/15'
+IPADDR_1='fec0::2/63'
 STARTMODE='auto'
 ZONE="$zone"
 OVS_BRIDGE='yes'
