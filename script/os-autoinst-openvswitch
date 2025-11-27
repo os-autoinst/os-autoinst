@@ -72,9 +72,13 @@ sub init_switch ($self) {
     my $local_ip = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IP} // '10.0.2.2';
     my $netmask = $ENV{OS_AUTOINST_BRIDGE_NETMASK} // 15;
     my $rewrite_target = $ENV{OS_AUTOINST_BRIDGE_REWRITE_TARGET} // '10.1.0.0';
+    my $local_ipv6 = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IPV6} // 'fec0::2';
+    my $netmask_ipv6 = $ENV{OS_AUTOINST_BRIDGE_NETMASK_IPV6} // 63;
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
     my $rewrite_target_hex = unpack('H*', pack('C*', split('\.', $rewrite_target)));
+    my $rewrite_target_hex_ipv6 = "fec0:0000:0000:0001:0000:0000:0000:0000";
+    $rewrite_target_hex_ipv6 =~ s/://g;
 
     # the VM have unique MAC that differs in the last 16 bits (see /usr/lib/os-autoinst/backend/qemu.pm)
     # the IP can conflict across vlans
@@ -91,6 +95,8 @@ sub init_switch ($self) {
         # openflow ports:
         #  LOCAL = br0
         #  1,2,3 ... tap devices
+
+        # for what is going on here, refer to the man pages ovs-fields and ovs-actions
 
         # default: normal action
         'table=0,priority=0,action=normal',
@@ -116,6 +122,23 @@ sub init_switch ($self) {
         # tcp to $self->{MAC} other - rewrite source IP to e.g. 10.1.x.x range and send to local
         "table=0,priority=99,dl_type=0x0800,dl_dst=$self->{MAC},actions=" .
         "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask],local",
+
+        # IPv6 translate from fec0::x to fec0:0:0:1::aabb:ccdd:eeff where aa:bb:cc:dd:ee:ff is the VM's MAC address
+        # IPv6 ND Solicit (ARP)     v IPv6     v ICMP6    v Neigh Sol
+        "table=0,priority=100,eth_type=0x86dd,ip_proto=58,icmpv6_type=135,icmpv6_code=0,nd_target=$local_ipv6,actions=" .
+'learn(table=1,priority=100,in_port=LOCAL,eth_type=0x86dd,ip_proto=58,icmpv6_type=136,icmpv6_code=0,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_NX_IPV6_SRC[]->NXM_NX_IPV6_DST[],output:NXM_OF_IN_PORT[]),' .
+        "load:0x$rewrite_target_hex_ipv6->NXM_NX_IPV6_SRC[],move:NXM_OF_ETH_SRC[0..47]->NXM_NX_IPV6_SRC[0..47]," .
+        'local',
+
+        # IPv6 TCP syn to $self->{MAC}
+        "table=0,priority=100,dl_type=0x86dd,tcp_flags=+syn-ack,dl_dst=$self->{MAC},actions=" .
+'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x86dd,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_NX_IPV6_SRC[]->NXM_NX_IPV6_DST[],output:NXM_OF_IN_PORT[]),' .
+        "load:0x$rewrite_target_hex_ipv6->NXM_NX_IPV6_SRC[],move:NXM_OF_ETH_SRC[0..47]->NXM_NX_IPV6_SRC[0..47]," .
+        'local',
+
+        # IPv6 to $self->{MAC} other
+        "table=0,priority=99,dl_type=0x86dd,dl_dst=$self->{MAC},actions=" .
+        "load:0x$rewrite_target_hex_ipv6->NXM_NX_IPV6_SRC[],move:NXM_OF_ETH_SRC[0..47]->NXM_NX_IPV6_SRC[0..47],local",
       )
     {
         $self->_add_flow($rule);
