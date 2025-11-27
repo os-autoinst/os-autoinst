@@ -84,6 +84,24 @@ sub become_root ($self) {
     testapi::enter_cmd('cd /tmp');
 }
 
+=head 2 disable_key_repeat
+
+  disable_key_repeat()
+
+Disable the key repetition in a Linux tty. Needs to be called in each newly
+activated tty, e.g. in C<activate_console> in the distribution implementation.
+
+kbdrate can control the key repeat rate and delay but only if Linux controls
+the input stream. For this suggested way is to use "virtio-keyboard" which is
+enabled in os-autoinst by default. Alternatively set the Linux kernel parameter
+"atkbd.softrepeat=1".
+
+=cut
+
+sub disable_key_repeat ($self) {
+    testapi::enter_cmd('kbdrate -s -d99999');
+}
+
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
