@@ -132,7 +132,7 @@ NBF;boolean;0;open source network boot firmware e.g. to attach iscsi target on b
 NICMAC;any MAC address;52:54:00:12:34:56;MAC address to be assigned to virtual network card
 NICMODEL;see qemu -device ?;virtio-net;Network device virtual NIC.
 NICTYPE;user|tap|vde;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
-NICTYPE_USER_OPTIONS;string;undef;Arbitrary options for NICTYPE
+NICTYPE_USER_OPTIONS;string;undef;Arbitrary options for NICTYPE, e.g when set to `hostfwd=tcp::2223-:22` would enable port forwarding.
 NICVLAN;integer;undef;Comma-separated list of network (vlan) numbers to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
 NICPCIADDR;integer;undef;Assign NIC device a specific address on the PCI bus
 NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4
