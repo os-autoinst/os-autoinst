@@ -9,7 +9,7 @@ use Mojo::Base -strict, -signatures;
 # -> increment on every change of such APIs
 # -> never move that variable to another place (when refactoring)
 #    because it may be accessed by the tests itself
-our $version = 47;
+our $version = 48;
 
 # major version of the (web socket) API relevant to the developer mode
 # -> increment when making non-backward compatible changes to that API
