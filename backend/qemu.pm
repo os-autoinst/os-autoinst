@@ -1003,7 +1003,9 @@ sub start_qemu ($self) {
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
-        sp('device', 'virtio-keyboard') if $vars->{QEMU_VIRTIO_KEYBOARD} // 1;
+        # Enable virtio-keyboard by default on s390x qemu but not on others
+        # See https://progress.opensuse.org/issues/193258
+        sp('device', 'virtio-keyboard') if $vars->{QEMU_VIRTIO_KEYBOARD} // is_s390x($arch);
 
         sp("device", "canokey,file=canokey") if $vars->{FIDO2};
 
