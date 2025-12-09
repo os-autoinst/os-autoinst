@@ -47,6 +47,7 @@ sub new ($class, $category = undef) {
     $self->{test_count} = 0;
     $self->{screen_count} = 0;
     $self->{wav_fn} = undef;
+    $self->{recording_number} = 0;
     $self->{dents} = 0;
     $self->{post_fail_hook_running} = 0;
     $self->{timeoutcounter} = 0;
@@ -553,8 +554,8 @@ sub take_screenshot ($self, $res = undef) {
 }
 
 sub capture_filename ($self) {
-    my $fn = $self->{name} . "-captured.wav";
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
+    my $fn = sprintf('%s-%03d-captured.wav', $self->{name}, ++$self->{recording_number});
     $self->{wav_fn} = $fn;
     return $fn;
 }
@@ -569,6 +570,7 @@ sub stop_audiocapture ($self) {
     };
 
     push @{$self->{details}}, $result;
+    $self->{wav_fn} = undef;
 
     return $result;
 }
