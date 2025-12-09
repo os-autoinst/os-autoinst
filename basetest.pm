@@ -555,8 +555,7 @@ sub take_screenshot ($self, $res = undef) {
 
 sub capture_filename ($self) {
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
-    $self->{recording_number} += 1;
-    my $fn = sprintf("%s-%03d-captured.wav", $self->{name}, $self->{recording_number});
+    my $fn = sprintf('%s-%03d-captured.wav', $self->{name}, ++$self->{recording_number});
     $self->{wav_fn} = $fn;
     return $fn;
 }
