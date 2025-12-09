@@ -1287,6 +1287,8 @@ subtest 'assert/check recorded sound' => sub {
     $mock_testapi->noop('_snd2png');
     $mock_basetest->noop('verify_sound_image');
     ok assert_recorded_sound('foo'), 'assert_recorded_sound can be called';
+    dies_ok { check_record_sound('foo') } 'second evaluation of the same recording is rejected';
+    lives_ok { start_audiocapture } 'start_audiocapture can be called for a second recording';
     ok check_recorded_sound('foo'), 'check_recorded_sound can be called';
 };
 

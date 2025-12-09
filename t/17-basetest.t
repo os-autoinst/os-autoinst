@@ -481,7 +481,11 @@ subtest skip_if_not_running => sub {
 subtest capture_filename => sub {
     my $test = basetest->new();
     $test->capture_filename;
-    is($test->{wav_fn}, 'basetest-captured.wav', 'capture_filename works as expected');
+    is($test->{wav_fn}, 'basetest-001-captured.wav', 'capture_filename works as expected');
+    dies_ok { $test->capture_filename } 'nested recordings are prevented';
+    $test->{wav_fn} = undef;
+    $test->capture_filename;
+    is($test->{wav_fn}, 'basetest-002-captured.wav', 'capture_filename works as expected');
 };
 
 subtest stop_audiocapture => sub {
