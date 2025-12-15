@@ -23,6 +23,7 @@ targets:
     - build_base
     - build
     - devel
+    - devel_non_s390
     - main
     - spellcheck
     - yamllint
@@ -49,6 +50,7 @@ targets:
     - python_style
     - ocr
     - test_non_s390
+    - devel_non_s390
     - python_support
     - lua_support
   cpanfile-targets:
@@ -84,9 +86,13 @@ cover_requires:
 ci_requires:
   perl(Devel::Cover::Report::Codecov):
 
+devel_non_s390_requires:
+  ShellCheck:
+
 devel_requires:
   '%test_requires':
   '%python_style_requires':
+  '%devel_non_s390_requires':
   file:
   sed:
   perl(Code::TidyAll):
@@ -95,7 +101,6 @@ devel_requires:
   perl(Template::Toolkit):
   perl(Perl::Tidy): == 20250912.0.0
   perl(Test::CheckGitStatus):
-  ShellCheck:
   shfmt:
 
 docker_requires:
