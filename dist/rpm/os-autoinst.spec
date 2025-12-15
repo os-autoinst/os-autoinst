@@ -67,11 +67,15 @@ Source0:        %{name}-%{version}.tar.xz
 %bcond_with black
 %endif
 # SLE is missing Python and Lua support requirements
+# older openSUSE versions are missing requirements for Lua support
 %if 0%{?is_opensuse}
 %bcond_without python_support
-%bcond_without lua_support
 %else
 %bcond_with python_support
+%endif
+%if 0%{?is_opensuse} && (0%{?suse_version} >= 1600 || 0%{?sle_version} >= 150600)
+%bcond_without lua_support
+%else
 %bcond_with lua_support
 %endif
 %if %{with python_support}
