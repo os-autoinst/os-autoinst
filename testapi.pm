@@ -29,6 +29,8 @@ use Time::Seconds;
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 use constant DEFAULT_MAX_INTERVAL => 250;
+use constant DEFAULT_TIMEOUT => 90;
+use constant TIMEOUT_INCREASE => 10;
 
 our @EXPORT = qw(
 
@@ -2159,7 +2161,7 @@ timeout is 90s. C<log_name> parameter allow to control resulted job's attachment
 
 sub upload_logs ($file, %args) {
     my $failok = $args{failok} || 0;
-    my $timeout = $args{timeout} || 90;
+    my $timeout = $args{timeout} || DEFAULT_TIMEOUT;
 
     if (get_var('OFFLINE_SUT')) {
         record_info('upload skipped', "Skipped uploading log file '$file' as we are offline");
@@ -2169,6 +2171,11 @@ sub upload_logs ($file, %args) {
     my $basename = basename($file);
     my $upname = $args{log_name} || ($autotest::current_test->{name} . '-' . $basename);
     my $cmd = "curl --form upload=\@$file --form upname=$upname ";
+    if ($failok) {
+        # this would make sure that curl call will not die on timeout when caller explicitly asked that
+        $cmd .= "--max-time $timeout ";
+        $timeout += TIMEOUT_INCREASE;
+    }
     $cmd .= show_curl_progress_meter();
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
