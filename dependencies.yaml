@@ -104,7 +104,7 @@ devel_requires:
   shfmt:
 
 docker_requires:
-  pkgconfig(opencv):
+  pkgconfig(opencv4):
   shadow:
   sudo:
   which:
