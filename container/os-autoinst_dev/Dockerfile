@@ -21,7 +21,7 @@ ENV LANG en_US.UTF-8
 RUN zypper in -y -C \
        'pkgconfig(fftw3)' \
        'pkgconfig(libpng)' \
-       'pkgconfig(opencv)' \
+       'pkgconfig(opencv4)' \
        'pkgconfig(sndfile)' \
        'pkgconfig(theoraenc)' \
        ShellCheck \
