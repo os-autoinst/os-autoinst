@@ -24,7 +24,7 @@ use Mojo::Base -strict, -signatures;
 use Getopt::Long;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path);
-use Mojo::Util qw(url_escape);
+use Mojo::Util qw(b64_encode);
 
 sub process_file ($filename) {
     my $SVGFILE;
@@ -41,12 +41,12 @@ sub process_file ($filename) {
         return 1;
     }
 
-    my $data  = decode_json($pp->slurp);
+    my $data = decode_json($pp->slurp);
+    my $image_data = b64_encode($pngpath->slurp, '&#10;');
 
     open $SVGFILE, '>', path($pp->dirname, "${name}.svg");
     select $SVGFILE;
 
-    my $URIname = url_escape(${name});
     # The generated file should be identical to the svg file as saved with inkscape as 'Standard SVG'
     printf <<~"EOM";
        <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -67,7 +67,7 @@ sub process_file ($filename) {
             width="${width}"
             height="${height}"
             preserveAspectRatio="none"
-            xlink:href="${URIname}.png"
+            xlink:href="data:image/png;base64,${image_data}"
             id="needle_bitmap"
             x="0"
             y="0" />
