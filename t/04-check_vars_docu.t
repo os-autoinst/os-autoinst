@@ -118,6 +118,13 @@ sub read_backend_pm {    # no:style:signatures
             # and HDD_$i variables. And hash is faster anyway, memory consumption is no issue here.
             $found_vars{$backend}{$var} = 1;
         }
+        # Also capture variables from foreach loops
+        if ($line =~ /for\S*\s+my\s+\$\w+\s+\(qw\((.*?)\)\)/) {
+            my @loop_vars = split /\s+/, $1;
+            for my $var (@loop_vars) {
+                $found_vars{$backend}{$var} = 1;
+            }
+        }
     }
 }
 
