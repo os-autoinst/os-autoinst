@@ -19,8 +19,8 @@ has [qw(zVM_host guest_user guest_login)];
 sub start ($self) {
     # prepare the communication queue
     $self->{raw_expect_queue} = Thread::Queue->new;
-    # Keep track up to which line the screen was already read
-    $self->{new_content_start_line} = 0;
+    # Keep track which content on the screen was already read
+    $self->{previous_content} = "";
 
     # start the local terminal emulator
     $self->{in} = "";
@@ -84,7 +84,7 @@ sub ensure_screen_update ($self) {
     usleep(5_000);
     $self->{backend}->capture_screenshot();
     $self->send_3270("Clear");
-    $self->{new_content_start_line} = 0;
+    $self->{previous_content} = "";
 }
 
 sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
@@ -99,20 +99,15 @@ sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
         my $input_line = pop @$co;
         my @output_area = @$co;
 
+        @output_area = grep !/$arg{delete_lines}/, @output_area;
+
         # Discard already seen lines
-        # (TODO: What about new content on seen lines? Hard to implement as long as
-        # raw_expect_queue is line based.)
-        @output_area = @output_area[$self->{new_content_start_line} .. $#output_area];
+        my $output_string = join("\n", @output_area);
+        my $new_output = $output_string =~ s/^\Q$self->{previous_content}\E\n?//r;
+        $self->{previous_content} = $output_string;
 
-        # Find the last nonempty line
-        my $last_nonempty_line;
-        for ($last_nonempty_line = $#output_area; $last_nonempty_line >= 0; $last_nonempty_line--) {
-            last if $output_area[$last_nonempty_line] !~ /$arg{delete_lines}/;
-        }
-
-        if ($last_nonempty_line >= 0) {
-            $self->{raw_expect_queue}->enqueue(@output_area[0 .. $last_nonempty_line]);
-            $self->{new_content_start_line} += $last_nonempty_line + 1;
+        if (length($new_output)) {
+            $self->{raw_expect_queue}->enqueue(split("\n", $new_output));
         }
 
         say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
