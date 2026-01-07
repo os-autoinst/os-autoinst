@@ -107,6 +107,7 @@ WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
+APPEND;string;;Kernel options to pass when using the KERNEL variable, see https://qemu-project.gitlab.io/qemu/system/linuxboot.html
 ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
 BIOS;;;Set the filename for the BIOS
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
