@@ -108,7 +108,6 @@ WORKER_HOSTNAME;string;undef;Worker hostname
 Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
-BIOS;;;Set the filename for the BIOS
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOT_MENU;boolean;undef;enables boot menu for selection of boot device
 BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
@@ -198,7 +197,6 @@ UEFI;boolean;0;Enable UEFI
 UEFI_PFLASH_CODE;string;;Specify the file name of the UEFI firmware code which will be loaded onto a read-only PFLASH drive
 UEFI_PFLASH_VARS;string;;Specify the file name which contains the UEFI firmware variables which will be loaded onto a mutable PFLASH drive
 PUBLISH_PFLASH_VARS;string;;Specify the file name to publish the UEFI vars file as
-UEFI_PFLASH;boolean;0;(Deprecated, use UEFI_PFLASH_VARS) Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 UEFI_BIOS;;;Deprecated, use UEFI_PFLASH_CODE
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
 USBSIZEGB;integer;size of ISO;Size of USB disk for USBBOOT

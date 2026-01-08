@@ -673,7 +673,6 @@ subtest 'save storage' => sub {
 subtest 'special cases when starting QEMU' => sub {
     # set certain variables to test special handling for them that is not otherwise tested
     $bmwqemu::topdir = "$Bin/..";    # for dmi data
-    $bmwqemu::vars{UEFI_PFLASH} = 1;
     $bmwqemu::vars{ARCH} = 'x86_64';
     $bmwqemu::vars{KERNEL} = 'linuxboot.bin';
     $bmwqemu::vars{LAPTOP} = '1';
@@ -692,6 +691,7 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{QEMUCPUS} = 1;
     $bmwqemu::vars{DELAYED_START} = 1;
     $bmwqemu::vars{WORKER_CLASS} = 'qemu_aarch64';
+    $bmwqemu::vars{UEFI} = 1;
 
     my ($pid, $load_state, @qemu_params);
     $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
@@ -701,9 +701,7 @@ subtest 'special cases when starting QEMU' => sub {
 
     my @invoked_cmds;
     $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join(' ', @cmd) });
-    combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s,
-      'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started, DELAYED_START logged';
-    is $bmwqemu::vars{BIOS}, "$Bin/$Script", 'BIOS set to @bmwqemu::ovmf_locations for UEFI_PFLASH=1 and ARCH=x86_64';
+    combined_like { $backend->start_qemu } qr{.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s, 'slirpvde started, DELAYED_START logged';
     like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot\.bin}, 'KERNEL set to absolute location';
     is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
     is $bmwqemu::vars{BOOTFROM}, 'c', 'BOOTFROM defaults to "c" for BOOT_HDD_IMAGE=1';
@@ -717,7 +715,6 @@ subtest 'special cases when starting QEMU' => sub {
     like $qemu_params, qr{kernel /usr/share/.*/ipxe.*}, 'ipxe kernel param for NBF=1 present';
     like $qemu_params, qr{menu=on,splash-time=\d+}, 'menu parameter present for BOOT_MENU=1';
     unlike $qemu_params, qr{order=}, 'order parameter not present despite BOOT_HDD_IMAGE=1 because UEFI=1';
-    unlike $qemu_params, qr{\sbios}, 'bios parameter not present despite BIOS=1 because UEFI=1';
     like $qemu_params, qr{object memory-backend-ram,size=1024m,id=m0 numa node nodeid=0,memdev=m0,cpus=0}, 'numa parameters present for QEMU_NUMA=1/QEMUCPUS=1';
     is_deeply \@invoked_cmds, [
         'vdecmd -s ./vde.mgmt port/remove 86', 'vdecmd -s ./vde.mgmt port/create 86', 'vdecmd -s ./vde.mgmt vlan/create foovlan',
@@ -726,7 +723,7 @@ subtest 'special cases when starting QEMU' => sub {
     ], 'vde and swtpm commands invoked' or always_explain \@invoked_cmds;
 
     # set different parameters to test more cases
-    $bmwqemu::vars{UEFI} = $bmwqemu::vars{UEFI_PFLASH} = 0;
+    $bmwqemu::vars{UEFI} = 0;
     $bmwqemu::vars{NICTYPE} = 'tap';
     $bmwqemu::vars{DELAYED_START} = 0;
     $bmwqemu::vars{OVS_DEBUG} = 1;
@@ -747,7 +744,6 @@ subtest 'special cases when starting QEMU' => sub {
     $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
     like $qemu_params, qr{tap id=qanet0 ifname=tap2 script=no downscript=no}, 'parameters for NICTYPE=tap present';
     like $qemu_params, qr{order=}, 'order parameter present due to BOOT_HDD_IMAGE=1 and UEFI=0';
-    like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
     is $bmwqemu::vars{BOOTFROM}, 'd', 'BOOTFROM set to "d" for "cdrom"';
     like $qemu_params, qr{canokey,file=canokey}, 'canokey parameter present due to FIDO2=1';
     is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
@@ -794,12 +790,13 @@ subtest 'special cases when starting QEMU' => sub {
         $bmwqemu::vars{KERNEL} = 'does-not-exist';
         combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
           qr/qemu version/si, 'expected logs until exception thrown (5)';
-        $bmwqemu::vars{UEFI_PFLASH} = 0;
         $bmwqemu::vars{UEFI} = 1;
         $bmwqemu::vars{UEFI_PFLASH_CODE} = 0;
         combined_like { throws_ok { $backend->start_qemu } qr{No UEFI firmware can be found}, 'dies if UEFI firmware not found' }
           qr/qemu version/si, 'expected logs until exception thrown (6)';
         %bmwqemu::vars = %initial_vars;
+        delete $bmwqemu::vars{UEFI_PFLASH_CODE};
+        delete $bmwqemu::vars{UEFI_PFLASH_VARS};
         combined_like { qemu_cmdline(UEFI => 1, UEFI_PFLASH_CODE => '/OVMF_CODE.fd') }
         qr/qemu version/si, 'expected logs until exception thrown (7)';
         is $bmwqemu::vars{UEFI_PFLASH_VARS}, '/OVMF_VARS.fd', 'default UEFI_PFLASH_VARS was guessed correctly';

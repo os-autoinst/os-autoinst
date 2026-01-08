@@ -246,16 +246,6 @@ sub configure_pflash ($self, $vars) {
     my $bdc = $self->blockdev_conf;
 
     return $self unless $vars->{UEFI};
-
-    if ($vars->{UEFI_PFLASH}) {
-        die 'Mixing old and new PFLASH variables'
-          if ($vars->{UEFI_PFLASH_CODE} || $vars->{UEFI_PFLASH_VARS});
-
-        my $file = $vars->{BIOS};
-        $bdc->add_pflash_drive('pflash', $file, $self->get_img_size($file));
-        return;
-    }
-
     my $fw = $vars->{UEFI_PFLASH_CODE};
     if ($fw) {
         $bdc->add_pflash_drive('pflash-code', $fw, $self->get_img_size($fw))
