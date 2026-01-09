@@ -265,6 +265,10 @@ rm t/02-test_ocr.t
 # qemu emulation always starts a separate thread
 rm t/28-signalblocker.t
 %endif
+%ifarch aarch64
+# https://progress.opensuse.org/issues/194359
+rm -f t/28-signalblocker.t
+%endif
 
 %build
 %define __builder ninja
