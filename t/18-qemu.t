@@ -13,6 +13,7 @@ use Carp 'cluck';
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON 'decode_json';
 use Test::MockModule;
+use Test::MockObject;
 use File::Copy qw(move);
 use bmwqemu;
 
@@ -521,23 +522,26 @@ subtest configure_pflash => sub {
     local $SIG{__DIE__} = undef;
     my $proc = OpenQA::Qemu::Proc->new;
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
-    my %vars = (UEFI => 1, UEFI_PFLASH => 1, UEFI_PFLASH_CODE => 'x');
-    throws_ok { $proc->configure_pflash(\%vars) } qr{Mixing old and new PFLASH variables}, 'Fatal mixing of old and new PFLASH';
-
+    my %vars = (UEFI => 1, UEFI_PFLASH_CODE => 'x');
     my $bdc = Test::MockModule->new('OpenQA::Qemu::BlockDevConf');
     my @flash;
+    my $mock_pflash = Test::MockObject->new;
+    $mock_pflash->set_always('unit', $mock_pflash)->set_always('readonly', $mock_pflash);
     $bdc->redefine(add_pflash_drive => sub ($self, $id, $file_name, $size) {
             push @flash, [$id, $file_name, $size];
+            return $mock_pflash;
     });
     my @size;
     $mock_proc->redefine(get_img_size => sub ($self, $file) {
             push @size, [$file, -s $file];
             return -s $file;
     });
-    %vars = (UEFI => 1, UEFI_PFLASH => 1, BIOS => 'foo');
+    my $code_file = tempfile->spew('foo');
+    my $vars_file = tempfile->spew('fo1');
+    %vars = (UEFI => 1, UEFI_PFLASH_CODE => $code_file->to_string, UEFI_PFLASH_VARS => $vars_file->to_string);
     my $res = $proc->configure_pflash(\%vars);
-    is_deeply \@flash, [[qw(pflash foo 3)]], 'add_pflash_drive correctly called';
-
+    my $expected_vars_path = path($vars_file)->to_abs->to_string;
+    is_deeply \@flash, [['pflash-code', $code_file->to_string, 3], ['pflash-vars', $expected_vars_path, 3]], 'add_pflash_drive correctly called';
     %vars = (UEFI => 1, UEFI_PFLASH_VARS => 'vars');
     throws_ok { $proc->configure_pflash(\%vars) } qr{Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS}, 'Fatal UEFI_PFLASH_VARS without UEFI_PFLASH_CODE';
 };

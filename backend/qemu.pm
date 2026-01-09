@@ -715,22 +715,14 @@ sub start_qemu ($self) {
 
     $self->determine_qemu_version($qemubin);
 
-    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
-    $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
     my $arch = $vars->{ARCH} // '';
-    if ($vars->{UEFI_PFLASH} && ($arch eq 'x86_64')) {
-        $vars->{BIOS} //= find_ovmf =~ s/-code//r;
-    }
-    elsif ($vars->{UEFI} && ($arch eq 'x86_64')) {
+    if ($vars->{UEFI} && ($arch eq 'x86_64')) {
         $vars->{UEFI_PFLASH_CODE} //= find_ovmf;
         $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/$&=~tr,CcOoDdEe,VvAaRrSs,r/eir;
-        die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
-    }
-    if ($vars->{UEFI_PFLASH} || $vars->{BIOS}) {
-        bmwqemu::fctinfo('UEFI_PFLASH and BIOS are deprecated. It is recommended to use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS instead. These variables can be auto-discovered, try to just remove UEFI_PFLASH.');
+        die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
     }
 
-    foreach my $attribute (qw(BIOS KERNEL INITRD)) {
+    foreach my $attribute (qw(KERNEL INITRD)) {
         if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
             # Non-absolute paths are assumed relative to /usr/share/qemu
             $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
@@ -988,10 +980,6 @@ sub start_qemu ($self) {
             }
         }
         sp('boot', join(',', @boot_args)) if @boot_args;
-
-        if (!$vars->{UEFI} && $vars->{BIOS}) {
-            sp("bios", $vars->{BIOS});
-        }
 
         foreach my $attribute (qw(KERNEL INITRD APPEND)) {
             sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
