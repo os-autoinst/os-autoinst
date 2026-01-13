@@ -18,9 +18,12 @@ use Mojo::JSON qw(decode_json);
 use Mojo::Util;
 use Time::Seconds;
 use Carp 'croak';
+use POSIX 'lround';
 use backend::svirt;
 
 has [qw(instance name vmm_family vmm_type vmm_firmware)];
+
+use constant RSYNC_EXIT_TIMEOUT => 30;    # e.g. after `--stop-after=` takes effect
 
 sub new ($class, $testapi_console = undef, $args = {}) {
     my $self = $class->SUPER::new($testapi_console, $args);
@@ -418,9 +421,10 @@ sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_pat
 sub _system (@cmd) { system @cmd }    # uncoverable statement
 
 sub _copy_image_else ($self, $file, $file_basename, $basedir) {
-    my $download_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_TIMEOUT_M} // 15);
+    my $download_timeout_m = lround($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_TIMEOUT_M} // 15);
+    my $ssh_timeout_s = ONE_MINUTE * ($download_timeout_m + 1);
     my $inactivity_timeout_s = ONE_MINUTE * ($bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_INACTIVITY_TIMEOUT_M} // 2.5);
-    my $rsync_args = "--timeout='$inactivity_timeout_s' --stats --partial --append-verify -av";
+    my $rsync_args = "--timeout='$inactivity_timeout_s' --stop-after='$download_timeout_m' --stats --partial --append-verify -av";
 
     # utilize asset possibly cached by openQA worker, otherwise sync locally on svirt host (usually relying on NFS mount)
     if (($bmwqemu::vars{SVIRT_WORKER_CACHE} // 0) && -e $file_basename && defined which 'rsync') {
@@ -430,7 +434,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
         _system("sshpass -p '$c{password}' rsync -e 'ssh -o StrictHostKeyChecking=no' $rsync_args '$abs' '$c{username}\@$c{hostname}:$basedir/$file_basename'");
     }
     else {
-        $self->run_cmd_retrying_on_timeouts("rsync $rsync_args '$file' '$basedir/$file_basename'", timeout => $download_timeout_s) && die 'rsync failed';
+        $self->run_cmd_retrying_on_timeouts("rsync $rsync_args '$file' '$basedir/$file_basename'", timeout => $ssh_timeout_s) && die 'rsync failed';
     }
     if ($file_basename =~ /(.*)\.xz$/) {
         $self->run_cmd("nice ionice unxz -f -k '$basedir/$file_basename'");
@@ -716,11 +720,13 @@ sub run_cmd_retrying_on_timeouts ($self, $command, @args) {
     my $attempts = $bmwqemu::vars{SVIRT_ASSET_DOWNLOAD_ATTEMPTS} // 1;
     for (my $attempt = 1;;) {
         try {
-            return $self->run_cmd($command, @args);
+            my ($exit_status, $stdout, $stderr) = $self->run_cmd($command, @args, wantarray => 1);
+            die "rsync timed out: $stderr" if $exit_status == RSYNC_EXIT_TIMEOUT;
+            return $exit_status;
         }
         catch ($e) {
             # retry with a new ssh connection in case a timeout occurred
-            die $e if (++$attempt > $attempts) || ($e !~ qr/LIBSSH2_ERROR_TIMEOUT/);
+            die $e if (++$attempt > $attempts) || ($e !~ qr/LIBSSH2_ERROR_TIMEOUT|timed out/);
             bmwqemu::diag "Retrying '$command' after running into timeout (attempt $attempt of $attempts)";
             $self->backend->close_ssh_connections;
         }
