@@ -134,20 +134,19 @@ sub _init_xml ($self, $args = {}) {
         $root->appendChild($elem);
     }
 
-    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv' and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'vmware') {
+    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv' and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'vmware') {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
-                $bmwqemu::vars{BIOS} = $firmware;
                 $elem = $doc->createElement('loader');
                 $elem->appendTextNode($firmware);
                 $os->appendChild($elem);
                 last;
             }
         }
-        if (!$bmwqemu::vars{BIOS}) {
+        if (!$bmwqemu::vars{UEFI}) {
             # We know this won't go well.
             my $virsh_hostname = $bmwqemu::vars{VIRSH_HOSTNAME} // '';    # uncoverable statement
-            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package."; # uncoverable statement
+            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify UEFI or install an appropriate package."; # uncoverable statement
         }
     }
 
