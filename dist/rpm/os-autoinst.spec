@@ -1,7 +1,7 @@
 #
 # spec file for package os-autoinst
 #
-# Copyright 2018 SUSE LLC
+# Copyright (c) 2026 SUSE LLC and contributors
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -12,7 +12,7 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
-# Please submit bugfixes or comments via http://bugs.opensuse.org/
+# Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
 
@@ -22,7 +22,7 @@ Release:        0
 Summary:        OS-level test automation
 License:        GPL-2.0-or-later
 Group:          Development/Tools/Other
-Url:            https://github.com/os-autoinst/os-autoinst
+URL:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
 %{perl_requires}
 %define opencv_require pkgconfig(opencv4)
@@ -140,9 +140,9 @@ Requires:       %main_requires
 %if %{with ocr}
 Recommends:     tesseract-ocr
 %endif
+Recommends:     %qemu_requires
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
-Recommends:     %qemu_requires
 %if %{with python_support}
 # Optional dependency for Python test API support
 Recommends:     %python_support_requires
@@ -192,18 +192,18 @@ This package contains openvswitch support for os-autoinst.
 %package qemu-kvm
 Summary:        Convenience package providing os-autoinst+qemu-kvm
 Group:          Development/Tools/Other
+Requires:       %qemu_requires
 Requires:       os-autoinst
 Requires:       qemu-kvm >= 4.0.0
-Requires:       %qemu_requires
 
 %description qemu-kvm
 
 %package qemu-x86
 Summary:        Convenience package providing os-autoinst+qemu-x86
 Group:          Development/Tools/Other
+Requires:       %qemu_requires
 Requires:       os-autoinst
 Requires:       qemu-x86 >= 4.0.0
-Requires:       %qemu_requires
 
 %description qemu-x86
 Convenience package providing os-autoinst and qemu-x86 dependencies.
@@ -222,8 +222,8 @@ Convenience package providing os-autoinst and swtpm dependencies.
 %package s390-deps
 Summary:        Convenience package providing os-autoinst + s390 worker jumphost deps
 Group:          Development/Tools/Other
-Requires:       os-autoinst
 Requires:       %s390_zvm_requires
+Requires:       os-autoinst
 
 %description s390-deps
 Convenience package providing os-autoinst + s390 worker jumphost dependencies.
@@ -231,13 +231,12 @@ Convenience package providing os-autoinst + s390 worker jumphost dependencies.
 %package ipmi-deps
 Summary:        Convenience package providing os-autoinst + ipmi worker jumphost deps
 Group:          Development/Tools/Other
-Requires:       os-autoinst
 Requires:       %ipmi_requires
+Requires:       os-autoinst
 
 %description ipmi-deps
 Convenience package providing os-autoinst + ipmi worker jumphost dependencies.
 %endif
-
 
 %prep
 %setup -q
@@ -372,11 +371,14 @@ fi
 %endif
 %ifarch x86_64
 %files qemu-kvm
+
 %files qemu-x86
 %endif
+
 %files swtpm
 %if %{with deps_package}
 %files s390-deps
+
 %files ipmi-deps
 %endif
 
