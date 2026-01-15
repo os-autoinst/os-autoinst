@@ -123,7 +123,7 @@ subtest 'expect_3270 tests' => sub {
             $return_lines = {'command_output' => ['Wait: Timed out'], 'command_status' => 'any'} if $command =~ /Wait\([1-9],Output\)/;
             if ($command eq 'Snap(Ascii)') {
                 ff(5);
-                $return_lines = {'command_output' => ["\n", 'InputLine', 'DONE']} if $count == 3;
+                $return_lines = {'command_output' => ["\n", "No Match", 'InputLine', 'DONE']} if $count == 3;
                 $return_lines = {'command_output' => ["OutputArea", 'InputLine', 'DONE']} if $count == 2;
                 $return_lines = {'command_output' => ["OutputArea", 'InputLine', 'RUNNING']} if $count == 1;
                 $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'MORE...']} if $count == 0;
@@ -144,6 +144,55 @@ subtest 'expect_3270 tests' => sub {
     warnings { throws_ok {
             $s3270_console->expect_3270(buffer_full => 'MORE...', buffer_ready => 'RUNNING', clear_buffer => 1, output_delim => "\n")
     } qr/expect_3270: timed out.*\n.*/, 'time out' };
+};
+
+subtest 'expect_3270 linediff tests' => sub {
+    my $count = 0;
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
+            my $return_lines;
+            $return_lines = {'command_output' => [], 'command_status' => 'ok'} if $command =~ /Wait\([0-9],Output\)/;
+            if ($command =~ /Clear/) {
+                die "Unexpected Clear" unless $count == 4;
+                $count += 1;
+            }
+            if ($command eq 'Snap(Ascii)') {
+                ff(5);
+                # First, nothing
+                $return_lines = {'command_output' => [' ', ' ', 'InputLine', 'RUNNING']} if $count == 0;
+                # A match appeared!
+                $return_lines = {'command_output' => ['First match', 'In Between', ' ', 'InputLine', 'RUNNING']} if $count == 1;
+                # The next match appears on the same page
+                $return_lines = {'command_output' => ['First match', 'In Between', 'Second match', 'InputLine', 'RUNNING']} if $count == 2;
+                # This page is full, needs clearing
+                $return_lines = {'command_output' => ['First match', 'In Between', 'Second match', 'InputLine', 'MORE...']} if $count == 3;
+                # After clear, the next page is shown
+                die "Missing Clear" if $count == 4;
+                $return_lines = {'command_output' => ['Third match', ' ', ' ', 'InputLine', 'RUNNING']} if $count == 5;
+                die "Unexpected read" if $count > 5;
+                $count += 1;
+            }
+            return $return_lines;
+    });
+
+    # Independent test console, reset state
+    $s3270_console->start();
+
+    my $ret = 0;
+    stdout_like {
+        $ret = $s3270_console->expect_3270(output_delim => "First match");
+    } qr/expect_3270.*\n.*/, 'result matches';
+    is join("\n", @$ret), "First match", 'first line matches';
+
+    stdout_like {
+        $ret = $s3270_console->expect_3270(output_delim => "Second match");
+    } qr/expect_3270.*\n.*/, 'result matches';
+    is join("\n", @$ret), "In Between\nSecond match", 'second match does not include first match';
+
+    stdout_like {
+        $ret = $s3270_console->expect_3270(output_delim => "Third match");
+    } qr/expect_3270.*\n.*/, 'result matches';
+    is join("\n", @$ret), "Third match", 'First line after clear matches';
 };
 
 subtest 'wait_output test' => sub {
