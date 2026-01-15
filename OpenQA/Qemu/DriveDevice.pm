@@ -151,7 +151,8 @@ sub _to_map ($self) {
         bootindex => $self->bootindex,
         serial => $self->serial,
         id => $self->id,
-        num_queues => $self->num_queues};
+        num_queues => $self->num_queues,
+        last_overlay_id => $self->last_overlay_id};
 }
 
 sub _from_map ($self, $map, $cont_conf, $snap_conf) {
@@ -160,13 +161,16 @@ sub _from_map ($self, $map, $cont_conf, $snap_conf) {
         OpenQA::Qemu::DrivePath->new()->_from_map($_, $cont_conf)
     } @{$map->{paths}};
 
+    my $restored_overlay_id = $map->{last_overlay_id} // 0;
+
     return $self->drive($drive)
       ->model($map->{model})
       ->paths(\@paths)
       ->bootindex($map->{bootindex})
       ->serial($map->{serial})
       ->id($map->{id})
-      ->num_queues($map->{num_queues});
+      ->num_queues($map->{num_queues})
+      ->last_overlay_id($restored_overlay_id);
 }
 
 sub CARP_TRACE ($self) { 'OpenQA::Qemu::DriveDevice(' . ($self->id || '') . ')' }

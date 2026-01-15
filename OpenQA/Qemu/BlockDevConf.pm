@@ -210,6 +210,8 @@ sub revert_to_snapshot ($self, $drive, $snapshot) {
     die 'The last block device in ' . $drive->id . "'s block device chain is a snapshot"
       unless defined $snap->backing_file;
 
+    # This prevents deleted overlays breaking the sequence
+    $snap->overlay(undef);
     # Will cause the snapshot overlay to be recreated when init_blockdev_images is run
     $snap->needs_creating(1);
 
