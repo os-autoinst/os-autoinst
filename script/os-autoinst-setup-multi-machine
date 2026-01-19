@@ -1,83 +1,150 @@
-#!/bin/bash -e
-set -euo pipefail
-instances="${instances:-20}"
-bridge="${bridge:-"br1"}"
-ethernet="${ethernet:-""}"
-zone="${zone:-"trusted"}"
-firewall="${firewall:-"nftables"}"
+#!/usr/bin/python3
+# Copyright SUSE LLC
+"""os-autoinst multi-machine setup script.
 
-# Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues
-# * See https://progress.opensuse.org/issues/151310
-# * Use default of 1460 (instead of 1450 as the FAQ suggests) because 1460 should be low enough but
-#   is still higher than 1458 which openSUSE MM tests configure within the SUT.
-mtu=${mtu:-1460}
+Configures networking for multi-machine testing with Open vSwitch.
+"""
 
-usage() {
-    cat << EOF
-Usage: os-autoinst-setup-multi-machine
+from __future__ import annotations
 
-Options:
- -h, --help         display this help
-EOF
-    exit "$1"
-}
+import os
+from pathlib import Path
+from typing import Final
 
-opts=$(getopt -o h -l help -n "$0" -- "$@") || usage 1
-eval set -- "$opts"
-while true; do
-    case "$1" in
-        -h | --help) usage 0 ;;
-        --)
-            shift
-            break
-            ;;
-        *) break ;;
-    esac
-done
+import sh
+import typer
+from sh import ErrorReturnCode
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-ensure_ip_forwarding() {
-    grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
-}
+app = typer.Typer()
 
-install_packages() {
-    command -v retry > /dev/null || zypper -n in retry
-    pkgs=(openvswitch os-autoinst-openvswitch firewalld libcap-progs)
-    [[ $network == NetworkManager ]] && pkgs+=(NetworkManager-ovs)
-    rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
-}
+# Default configuration values
+DEFAULT_INSTANCES: Final = 20
+DEFAULT_BRIDGE: Final = "br1"
+DEFAULT_ETHERNET: Final = "br0"
+DEFAULT_ZONE: Final = "trusted"
+DEFAULT_MTU: Final = 1460
 
-configure_firewalld() {
-    echo "Now configuring firewalld..."
-    systemctl enable --now firewalld
-    default_zone=$(firewall-cmd --get-default-zone)
-    echo "- default_zone=$default_zone"
-    echo "- Creating isotovideo firewall service"
-    firewall-cmd --permanent --get-services | grep -q isotovideo && firewall-cmd --permanent --delete-service=isotovideo
-    firewall-cmd --permanent --new-service isotovideo
-    for i in $(seq 1 "$instances"); do firewall-cmd --permanent --service=isotovideo --add-port=$((i * 10 + 20003))/tcp; done
-    firewall-cmd --permanent --zone="$zone" --add-service=isotovideo
-    if [[ $default_zone != "$zone" ]]; then
-        echo "- Setting new default_zone=$zone"
-        firewall-cmd -q --permanent --remove-interface="$ethernet" --zone="$default_zone"
-        firewall-cmd --set-default-zone="$zone"
-    fi
-    for itf in "$bridge" "ovs-system" "$ethernet"; do
-        echo "- Adding network interface $itf to zone $zone"
-        firewall-cmd -q --permanent --remove-interface="$itf" || :
-        firewall-cmd --permanent --zone="$zone" --add-interface="$itf"
-    done
-    if ! firewall-cmd -q --permanent --query-masquerade --zone="$zone"; then
-        echo "- Enabling masquerading for zone $zone"
-        firewall-cmd --permanent --add-masquerade --zone="$zone"
-    fi
-    systemctl restart firewalld
-    echo "DONE configuring firewalld!"
-}
 
-configure_nftables() {
-    rpm -q firewalld && systemctl disable --now firewalld
-    cat > /etc/systemd/system/nftables.service << EOF
-[Unit]
+class SetupError(Exception):
+    """Custom exception for setup errors."""
+
+
+@retry(
+    stop=stop_after_attempt(7),
+    wait=wait_fixed(30),
+    retry=retry_if_exception_type(SetupError),
+    reraise=True,
+)
+def run_command(cmd: str, **kwargs: dict) -> str:
+    """Execute a shell command with retries and error handling.
+
+    Args:
+        cmd: Command string to execute
+        **kwargs: Additional arguments for sh
+
+    Returns:
+        Command output as string
+
+    Raises:
+        SetupError: If command fails
+    """
+    try:
+        result = sh.bash("-c", cmd, **kwargs)
+    except ErrorReturnCode as e:
+        msg = f"Command failed: {cmd}\n{e.stderr.decode()}"
+        raise SetupError(msg) from e
+    else:
+        return str(result).strip()
+
+
+def ensure_ip_forwarding() -> None:
+    """Enable IP forwarding for IPv4 and IPv6."""
+    typer.echo("Ensuring IP forwarding is enabled...")
+
+    try:
+        with Path("/proc/sys/net/ipv4/ip_forward").open() as f:
+            if f.read().strip() != "1":
+                config_path = Path("/etc/sysctl.d/ip_forward.conf")
+                config_content = (
+                    "net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1\n"
+                )
+                config_path.write_text(config_content)
+                typer.echo("IP forwarding configuration created")
+    except OSError as e:
+        msg = f"Failed to configure IP forwarding: {e}"
+        raise SetupError(msg) from e
+
+
+def install_packages() -> None:
+    """Install required packages using zypper with retries."""
+    typer.echo("Installing required packages...")
+
+    packages = "openvswitch os-autoinst-openvswitch firewalld libcap-progs"
+    try:
+        run_command(f"zypper ref && zypper -n in {packages}")
+    except SetupError as e:
+        typer.echo(f"Error installing packages: {e}", err=True)
+        raise
+    else:
+        typer.echo("Packages installed successfully")
+
+
+def _remove_existing_isotovideo_service() -> None:
+    """Remove existing isotovideo firewall service if present."""
+    try:
+        services = sh.firewall_cmd("--permanent", "--get-services")
+        if "isotovideo" in services:
+            sh.firewall_cmd("--permanent", "--delete-service=isotovideo")
+    except (ErrorReturnCode, SetupError):
+        pass
+
+
+def _set_firewall_default_zone(zone: str) -> None:
+    """Set default firewall zone if needed."""
+    sh.firewall_cmd("--get-default-zone") or sh.firewall_cmd("--set-default-zone", zone)
+
+
+def configure_firewall(instances: int, zone: str) -> None:
+    """Configure firewall rules for isotovideo."""
+    typer.echo("Configuring firewall...")
+
+    try:
+        sh.systemctl("enable", "--now", "firewalld")
+        _remove_existing_isotovideo_service()
+
+        sh.firewall_cmd("--permanent", "--new-service", "isotovideo")
+
+        for i in range(1, instances + 1):
+            port = i * 10 + 20003
+            sh.firewall_cmd(
+                "--permanent",
+                "--service=isotovideo",
+                f"--add-port={port}/tcp",
+            )
+
+        sh.firewall_cmd("--permanent", f"--zone={zone}", "--add-service=isotovideo")
+        _set_firewall_default_zone(zone)
+        sh.firewall_cmd("--reload")
+
+        typer.echo("Firewall configured successfully")
+    except ErrorReturnCode as e:
+        msg = f"Failed to configure firewall: {e}"
+        raise SetupError(msg) from e
+
+
+def _disable_firewalld_if_installed() -> None:
+    """Disable firewalld if it's installed."""
+    try:
+        sh.rpm("-q", "firewalld")
+        sh.systemctl("disable", "--now", "firewalld")
+    except ErrorReturnCode:
+        pass
+
+
+def _create_nftables_service() -> None:
+    """Create nftables systemd service."""
+    service_content = """[Unit]
 Description=Apply firewall rules from /etc/firewall.nft
 After=network-online.target
 Wants=network-online.target
@@ -91,140 +158,423 @@ Type=oneshot
 RemainAfterExit=true
 ExecStart=/usr/sbin/nft -f /etc/firewall.nft
 ExecStop=/usr/sbin/nft flush ruleset
-EOF
-    cat > /etc/firewall.nft << EOF
-#!/usr/sbin/nft -f
+"""
+    Path("/etc/systemd/system/nftables.service").write_text(service_content)
+
+
+def _create_nftables_rules(ethernet: str, bridge: str) -> None:
+    """Create nftables rules file."""
+    rules_content = f"""#!/usr/sbin/nft -f
 
 # dump with "nft --stateless list ruleset"
 
 flush ruleset
 
-EOF
-    for proto in ip ip6; do
-        cat >> /etc/firewall.nft << EOF
-table $proto nat {
-    chain postrouting {
+table ip nat {{
+    chain postrouting {{
         type nat hook postrouting priority 100; policy accept;
-        oifname "$ethernet" masquerade
-        oifname "$bridge" masquerade
+        oifname "{ethernet}" masquerade
+        oifname "{bridge}" masquerade
         oifname "ovs-system" masquerade
-    }
-}
+    }}
+}}
+"""
+    Path("/etc/firewall.nft").write_text(rules_content)
 
-EOF
-    done
-    systemctl daemon-reload
-    systemctl enable --now nftables
-}
 
-create_gre_preup_script() {
-    local location=$1
-    cat > "$location" << EOF
-#!/bin/sh
-action="\$1"
-bridge="\$2"
-ovs-vsctl set bridge \$bridge rstp_enable=true
-# TODO add entries according to your network topology
-#ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
-EOF
-    chmod +x "$location"
-}
+def configure_nftables(ethernet: str, bridge: str) -> None:
+    """Configure nftables as alternative to firewalld."""
+    typer.echo("Configuring nftables...")
+    _disable_firewalld_if_installed()
+    _create_nftables_service()
+    _create_nftables_rules(ethernet, bridge)
+    sh.systemctl("daemon-reload")
+    sh.systemctl("enable", "--now", "nftables")
+    typer.echo("nftables configured successfully")
 
-setup_multi_machine_with_networkmanager() {
-    # Restart NM to load ovs plugin
-    systemctl restart NetworkManager
-    # Delete any previous connections
-    nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs -r nmcli con del || true
-    # Create bridge, port and interface connection
-    nmcli con add type ovs-bridge con.int "$bridge"
-    nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
-    # Create tap interfaces
-    for i in 0 $(
-        seq 1 "$instances"
-        seq 64 $((64 + instances))
-        seq 128 $((128 + instances))
-    ); do
-        nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
-        nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
-    done
-    create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
-}
 
-setup_multi_machine_with_wicked() {
-    ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
-    ovs-vsctl add-br "$bridge"
-    ovs-vsctl set int "$bridge" mtu_request="$mtu"
-    cat > "/etc/sysconfig/network/ifcfg-$bridge" << EOF
+def create_gre_preup_script(location: str, bridge: str) -> None:
+    """Create GRE tunnel pre-up script for wicked."""
+    script_content = f"""#!/bin/bash
+# This file can be used to automatically setup a GRE tunnel to another multi-machine test host
+# Further information available at https://github.com/os-autoinst/os-autoinst/blob/master/doc/networking.md
+
+# Uncomment to enable:
+#ovs-vsctl --may-exist add-port {bridge} gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+"""
+    script_path = Path(location)
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text(script_content)
+    script_path.chmod(0o755)
+
+
+def _parse_default_interface(output: str) -> str | None:
+    """Parse default interface from ip route output."""
+    parts = output.split()
+    if "dev" in parts:
+        idx = parts.index("dev")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    return None
+
+
+def _try_common_interfaces() -> str | None:
+    """Try to find a common interface that exists."""
+    common_interfaces = ["eth0", "enp0s3", "ens3", "br0"]
+    for iface in common_interfaces:
+        try:
+            sh.ip("link", "show", iface)
+        except ErrorReturnCode:
+            continue
+        else:
+            typer.echo(f"Using fallback interface: {iface}")
+            return iface
+    return None
+
+
+def determine_ethernet() -> str:
+    """Automatically determine default ethernet device or bridge."""
+    typer.echo("Determining default ethernet interface...")
+
+    try:
+        output = sh.ip("route", "show", "default")
+        if output:
+            interface = _parse_default_interface(output)
+            if interface:
+                typer.echo(f"Auto-detected ethernet interface: {interface}")
+                return interface
+    except SetupError:
+        pass
+
+    interface = _try_common_interfaces()
+    if interface:
+        return interface
+
+    typer.echo(
+        "Warning: Could not determine ethernet interface, using default 'br0'",
+        err=True,
+    )
+    return "br0"
+
+
+def _cleanup_ovs_connections() -> None:
+    """Clean up existing OVS connections."""
+    sh.nmcli("con | grep -oP 'ovs-(interface|port|bridge|slave)-[\\w-]+' | xargs -r nmcli con del")
+
+
+def _get_worker_uid() -> str:
+    """Get _openqa-worker user ID."""
+    return sh.id("-u", "_openqa-worker").strip()
+
+
+def _get_nogroup_gid() -> str:
+    """Get nogroup GID."""
+    return sh.getent("group", "nogroup").split(":")[2]
+
+
+def setup_multi_machine_with_networkmanager(
+    instances: int,
+    bridge: str,
+    zone: str,
+    mtu: int,
+) -> None:
+    """Setup multi-machine networking using NetworkManager."""
+    typer.echo("Setting up multi-machine with NetworkManager...")
+
+    try:
+        _cleanup_ovs_connections()
+
+        sh.nmcli("con", "add", "type", "ovs-bridge", "con.interface", bridge)
+        sh.nmcli("con", "add", "type", "ovs-port", "con.interface", bridge,
+                 "con.master", bridge)
+        sh.nmcli(
+            "con",
+            "add",
+            "type",
+            "ovs-interface",
+            "con.interface",
+            bridge,
+            "con.master",
+            bridge,
+            "ipv4.method",
+            "manual",
+            "ipv4.address",
+            "10.0.2.2/15",
+            "ethernet.mtu",
+            str(mtu),
+            "connection.zone",
+            zone,
+        )
+
+        worker_uid = _get_worker_uid()
+        nogroup_gid = _get_nogroup_gid()
+
+        for i in range(instances):
+            tap_name = f"tap{i}"
+            sh.nmcli(
+                "con",
+                "add",
+                "type",
+                "tun",
+                "mode",
+                "tap",
+                "owner",
+                worker_uid,
+                "group",
+                nogroup_gid,
+                "con.interface",
+                tap_name,
+                "master",
+                tap_name,
+                "connection.autoconnect",
+                "no",
+            )
+            sh.nmcli(
+                "con",
+                "add",
+                "type",
+                "ovs-port",
+                "con.interface",
+                tap_name,
+                "con.master",
+                bridge,
+            )
+
+        typer.echo("NetworkManager configuration completed")
+    except ErrorReturnCode as e:
+        msg = f"Failed to setup NetworkManager: {e}"
+        raise SetupError(msg) from e
+
+
+def _create_bridge_config(instances: int, bridge: str, mtu: int) -> str:
+    """Create bridge configuration content."""
+    config = f"""STARTMODE='auto'
 BOOTPROTO='static'
 IPADDR='10.0.2.2/15'
-IPADDR_1='fec0::2/63'
-STARTMODE='auto'
-ZONE="$zone"
 OVS_BRIDGE='yes'
-PRE_UP_SCRIPT="wicked:gre_tunnel_preup.sh"
-OVS_BRIDGE_PORT_DEVICE_0='tap0'
-EOF
-    cat > /etc/sysconfig/network/ifcfg-tap0 << EOF
+OVS_BRIDGE_PORT_DEVICE='tap0'
+MTU='{mtu}'
+"""
+    for i in range(1, instances):
+        config += f"OVS_BRIDGE_PORT_DEVICE_{i}='tap{i}'\n"
+    return config
+
+
+def _create_tap0_config() -> str:
+    """Create tap0 configuration content."""
+    config = """STARTMODE='auto'
 BOOTPROTO='none'
-IPADDR=''
-NETMASK=''
-PREFIXLEN=''
-STARTMODE='auto'
 TUNNEL='tap'
-TUNNEL_SET_GROUP='nogroup'
 TUNNEL_SET_OWNER='_openqa-worker'
-EOF
-    for i in $(
-        seq 1 "$instances"
-        seq 64 $((64 + instances))
-        seq 128 $((128 + instances))
-    ); do ln -sf ifcfg-tap0 "/etc/sysconfig/network/ifcfg-tap$i" && echo "OVS_BRIDGE_PORT_DEVICE_$i='tap$i'" >> "/etc/sysconfig/network/ifcfg-$bridge"; done
-    create_gre_preup_script /etc/wicked/scripts/gre_tunnel_preup.sh
+"""
+    nogroup_gid = _get_nogroup_gid()
+    config += f"TUNNEL_SET_GROUP='{nogroup_gid}'\n"
+    return config
 
-    # ensure the zone of the uplink/ethernet device is set in accordance as well
-    sed -i -e "s/ZONE=.*/ZONE=$zone/g" "/etc/sysconfig/network/ifcfg-$ethernet"
-    wicked ifup "$ethernet" "$bridge"
-}
 
-configure_openvswitch() {
-    echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
-    systemctl enable os-autoinst-openvswitch
-    systemctl restart openvswitch os-autoinst-openvswitch
-}
+def _create_tap_symlinks(network_dir: Path, instances: int) -> None:
+    """Create symlinks for tap devices."""
+    for i in range(1, instances):
+        tap_file = network_dir / f"ifcfg-tap{i}"
+        if tap_file.exists():
+            tap_file.unlink()
+        tap_file.symlink_to("ifcfg-tap0")
 
-determine_ethernet_interface() {
-    ethernet=${ethernet:-$(ip -json route show default | jq -r 'sort_by(.metric)|.[0].dev')}
-}
 
-main() {
-    network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
-    if [[ -z "${network}" ]]; then
-        systemctl is-enabled NetworkManager.service && network=NetworkManager
-        systemctl is-enabled wicked.service && network=wicked
-    fi
-    test "$network" = wicked -o "$network" = NetworkManager || {
-        echo "This script only works with wicked network daemon or NetworkManager"
-        exit 1
-    }
-    ensure_ip_forwarding
-    install_packages
-    determine_ethernet_interface
-    if [[ "${firewall}" == "firewalld" ]]; then
-        configure_firewalld
-    else
-        configure_nftables
-    fi
-    systemctl enable --now openvswitch
-    case "$network" in
-        wicked)
-            setup_multi_machine_with_wicked
-            ;;
-        NetworkManager)
-            setup_multi_machine_with_networkmanager
-            ;;
-    esac
-    configure_openvswitch
-}
+def setup_multi_machine_with_wicked(
+    instances: int,
+    bridge: str,
+    mtu: int,
+) -> None:
+    """Setup multi-machine networking using wicked."""
+    typer.echo("Setting up multi-machine with wicked...")
 
-caller 0 > /dev/null || main "$@"
+    network_dir = Path("/etc/sysconfig/network")
+
+    bridge_config = _create_bridge_config(instances, bridge, mtu)
+    bridge_file = network_dir / f"ifcfg-{bridge}"
+    bridge_file.write_text(bridge_config)
+
+    tap0_config = _create_tap0_config()
+    tap0_file = network_dir / "ifcfg-tap0"
+    tap0_file.write_text(tap0_config)
+
+    _create_tap_symlinks(network_dir, instances)
+    create_gre_preup_script("/etc/wicked/scripts/gre_tunnel_preup.sh", bridge)
+
+    typer.echo("Wicked configuration completed")
+
+
+def configure_openvswitch(bridge: str) -> None:
+    """Configure Open vSwitch and restart services."""
+    typer.echo("Configuring Open vSwitch...")
+
+    try:
+        sh.setcap("CAP_NET_ADMIN=ep", "/usr/lib/os-autoinst/os-autoinst-openvswitch")
+        sh.ovs_vsctl("--may-exist", "add-br", bridge)
+        sh.ovs_vsctl(
+            "set",
+            "bridge",
+            bridge,
+            "other-config:hwaddr=52:54:00:12:34:56",
+        )
+        sh.systemctl("restart", "openvswitch", "os-autoinst-openvswitch")
+        typer.echo("Open vSwitch configured successfully")
+    except ErrorReturnCode as e:
+        msg = f"Failed to configure Open vSwitch: {e}"
+        raise SetupError(msg) from e
+
+
+def _detect_from_systemd_link() -> str | None:
+    """Detect network manager from systemd service link."""
+    try:
+        service_link = Path("/etc/systemd/system/network.service").readlink()
+        service_name = service_link.name.replace(".service", "")
+        if service_name in {"wicked", "NetworkManager"}:
+            return service_name
+    except OSError:
+        pass
+    return None
+
+
+def _detect_from_running_services() -> str | None:
+    """Detect network manager from running services."""
+    return next((i for i in ("NetworkManager", "wicked") if sh.systemctl("is-active", i)), None)
+
+
+def detect_network_manager() -> str | None:
+    """Detect which network manager is in use."""
+    manager = _detect_from_systemd_link()
+    if manager:
+        return manager
+    return _detect_from_running_services()
+
+
+def _print_completion_summary(
+    bridge: str,
+    ethernet: str,
+    instances: int,
+    zone: str,
+    mtu: int,
+) -> None:
+    """Print setup completion summary."""
+    typer.echo("\n✓ Multi-machine setup completed successfully!")
+    typer.echo(f"  Bridge: {bridge}")
+    typer.echo(f"  Ethernet: {ethernet}")
+    typer.echo(f"  Instances: {instances}")
+    typer.echo(f"  Zone: {zone}")
+    typer.echo(f"  MTU: {mtu}")
+
+
+def _check_root() -> None:
+    """Check if running as root."""
+    if os.geteuid() != 0:
+        typer.echo("Error: This script must be run as root", err=True)
+        raise typer.Exit(1)
+
+
+def _validate_network_manager(network: str | None) -> str:
+    """Validate network manager is supported."""
+    if not network:
+        typer.echo(
+            "Error: This script only works with wicked or NetworkManager",
+            err=True,
+        )
+        raise typer.Exit(1)
+    typer.echo(f"Detected network manager: {network}")
+    return network
+
+
+def _setup_firewall(use_nftables: bool, ethernet: str, bridge: str, instances: int, zone: str) -> None:
+    """Setup firewall configuration."""
+    if use_nftables:
+        configure_nftables(ethernet, bridge)
+    else:
+        configure_firewall(instances, zone)
+
+
+def _setup_network_specific(network: str, instances: int, bridge: str, mtu: int, zone: str) -> None:
+    """Setup network-specific configuration."""
+    if network == "wicked":
+        setup_multi_machine_with_wicked(instances, bridge, mtu)
+    elif network == "NetworkManager":
+        setup_multi_machine_with_networkmanager(instances, bridge, zone, mtu)
+
+
+@app.command()
+def main(
+    instances: int = typer.Option(
+        DEFAULT_INSTANCES,
+        "--instances",
+        "-i",
+        help="Number of test instances to support",
+        envvar="instances",
+    ),
+    bridge: str = typer.Option(
+        DEFAULT_BRIDGE,
+        "--bridge",
+        "-b",
+        help="Bridge interface name",
+        envvar="bridge",
+    ),
+    ethernet: str | None = typer.Option(
+        None,
+        "--ethernet",
+        "-e",
+        help="Ethernet interface name (auto-detected if not specified)",
+        envvar="ethernet",
+    ),
+    zone: str = typer.Option(
+        DEFAULT_ZONE,
+        "--zone",
+        "-z",
+        help="Firewall zone",
+        envvar="zone",
+    ),
+    mtu: int = typer.Option(
+        DEFAULT_MTU,
+        "--mtu",
+        "-m",
+        help="MTU for bridge interface. Set the MTU of the bridge interface according to https://docs.openvswitch.org/en/latest/faq/issues. See https://progress.opensuse.org/issues/151310. Default is 1460 instead of 1450 as the FAQ suggests) because 1460 should be low enough but is still higher than 1458 which openSUSE MM tests configure within the SUT.",
+        envvar="mtu",
+    ),
+    use_nftables: bool = typer.Option(
+        False,
+        "--nftables",
+        help="Use nftables instead of firewalld",
+    ),
+) -> None:
+    """Setup multi-machine testing infrastructure for os-autoinst.
+
+    This script configures Open vSwitch networking, firewall rules,
+    and tap devices for multi-machine testing scenarios.
+    """
+    _check_root()
+
+    try:
+        network = detect_network_manager()
+        network = _validate_network_manager(network)
+
+        if ethernet is None:
+            ethernet = determine_ethernet()
+
+        ensure_ip_forwarding()
+        install_packages()
+        _setup_firewall(use_nftables, ethernet, bridge, instances, zone)
+
+        sh.systemctl("enable", "--now", "openvswitch")
+        _setup_network_specific(network, instances, bridge, mtu, zone)
+        configure_openvswitch(bridge)
+
+        _print_completion_summary(bridge, ethernet, instances, zone, mtu)
+
+    except SetupError as e:
+        typer.echo(f"Setup failed: {e}", err=True)
+        raise typer.Exit(1) from e
+    except KeyboardInterrupt:
+        typer.echo("\nSetup interrupted by user", err=True)
+        raise typer.Exit(130) from None
+
+
+if __name__ == "__main__":
+    app()
