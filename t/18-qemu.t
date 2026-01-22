@@ -303,8 +303,7 @@ $bdc = $proc->blockdev_conf;
 
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
-$bdc->for_each_drive(sub {
-        my $drive = shift;
+$bdc->for_each_drive(sub ($drive) {
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 9, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });
@@ -359,8 +358,7 @@ $bdc = $proc->blockdev_conf;
 
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
-$bdc->for_each_drive(sub {
-        my $drive = shift;
+$bdc->for_each_drive(sub ($drive) {
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 10, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });
@@ -435,8 +433,7 @@ subtest 'qemu was killed due to the system being out of memory' => sub {
 subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => sub {
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
     my $call_count = 0;
-    $mock_proc->redefine(get_img_size => sub {
-            my ($iso) = @_;    # uncoverable statement
+    $mock_proc->redefine(get_img_size => sub ($iso) {
             $call_count++;    # uncoverable statement
             die 'get_img_size called on an empty string' unless $iso;    # uncoverable statement
     });
