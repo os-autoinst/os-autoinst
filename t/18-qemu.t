@@ -236,9 +236,10 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after snapshot');
 
 $ss = $ssc->revert_to_snapshot('a snapshot');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
-$bdc->for_each_drive(sub {
-        my $drive = shift;
-        $bdc->revert_to_snapshot($drive, $ss);
+$bdc->for_each_drive(sub ($drive) {
+        my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
+        is(scalar(@$unlinks), 0, 'Correct number of overlay files need unlinking for ' . $drive->id);
+        is($drive->drive->{overlay}, undef, 'Reverted snapshot has no forward link');
         is($drive->drive->needs_creating, 1, 'Active layer set to be recreated for drive ' . $drive->id);
 });
 @gcmdl = $proc->gen_cmdline();
@@ -302,8 +303,7 @@ $bdc = $proc->blockdev_conf;
 
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
-$bdc->for_each_drive(sub {
-        my $drive = shift;
+$bdc->for_each_drive(sub ($drive) {
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 9, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });
@@ -358,8 +358,7 @@ $bdc = $proc->blockdev_conf;
 
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
-$bdc->for_each_drive(sub {
-        my $drive = shift;
+$bdc->for_each_drive(sub ($drive) {
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 10, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });
@@ -434,8 +433,7 @@ subtest 'qemu was killed due to the system being out of memory' => sub {
 subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => sub {
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
     my $call_count = 0;
-    $mock_proc->redefine(get_img_size => sub {
-            my ($iso) = @_;    # uncoverable statement
+    $mock_proc->redefine(get_img_size => sub ($iso) {
             $call_count++;    # uncoverable statement
             die 'get_img_size called on an empty string' unless $iso;    # uncoverable statement
     });
@@ -591,6 +589,60 @@ subtest revert_to_snapshot => sub {
     is $bdcname, 'foo', 'BlockDevConf->revert_to_snapshot called';
     is -e 'foo', undef, 'foo was removed';
     is $diag[0], 'Unlinking foo', 'Message about unlinking foo';
+};
+
+subtest 'verify incremental overlay mapping to snapshot' => sub {
+    %vars = (NUMDISKS => 1,
+        HDDMODEL => 'scsi-hd',
+        CDMODEL => 'scsi-cd',
+        ISO => "$Bin/data/Core-7.2.iso",
+        HDDSIZEGB => 10,
+        SCSICONTROLLER => 'virtio-scsi-device');
+
+    $proc = qemu_proc('-static-args', \%vars);
+    $ssc = $proc->snapshot_conf;
+    $bdc = $proc->blockdev_conf;
+
+    for my $i (1 .. 3) {
+        my $ss = $ssc->add_snapshot("snapshot$i");
+        $bdc->for_each_drive(sub ($drive) {
+                $bdc->add_snapshot_to_drive($drive, $ss);
+                is $drive->last_overlay_id, $i, 'Each snapshot is a chain with increased last_overlay_id';
+
+        });
+    }
+    $bdc->mark_all_created();
+
+    my %overlay_files;
+    subtest 'check overlay chain' => sub {
+        $bdc->for_each_drive(sub ($drive) {
+                $drive->for_each_overlay(sub ($overlay) {
+                        my $olfile = $overlay->file;
+                        $overlay_files{$olfile}++;
+                });
+        });
+        for my $olfile (keys %overlay_files) {
+            ok(exists $overlay_files{"$olfile"}, 'hd0-overlay1 exists for snapshot1');
+        }
+    };
+
+    subtest 'no duplicated overlays are being created' => sub {
+        my @duplicates = grep { $overlay_files{$_} > 1 } keys %overlay_files;
+        is(scalar(@duplicates), 0, 'No duplicate overlay filenames found')
+          or always_explain \@duplicates;
+    };
+
+    subtest 'revert_to_snapshot should recreate overlay1' => sub {
+        my $ss = $ssc->revert_to_snapshot('snapshot1');
+        $bdc->for_each_drive(sub ($drive) { $bdc->revert_to_snapshot($drive, $ss) });
+
+        my @unlink_list = $bdc->gen_unlink_list();
+        my @hd_overlays = grep { /hd0-overlay/ } @unlink_list;
+        is(scalar(@hd_overlays), 1, 'should only include the overlay marked for recreation');
+        like($hd_overlays[0], qr/hd0-overlay1$/, 'Correct overlay1 marked for unlinking');
+        my @base_files = grep { !/overlay/ } @unlink_list;
+        is(scalar(@base_files), 0, 'No base backing files in unlink list');
+    };
 };
 
 done_testing();

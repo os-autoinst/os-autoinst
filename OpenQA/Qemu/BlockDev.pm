@@ -168,8 +168,6 @@ this will return it in an array so that the caller can unlink it.
 
 sub gen_unlink_list ($self) {
     return () unless $self->needs_creating;
-    return ($self->file, $self->backing_file->gen_unlink_list())
-      if defined $self->backing_file;
     return ($self->file);
 }
 
