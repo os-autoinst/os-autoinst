@@ -24,6 +24,7 @@ $Test::Strict::TEST_WARNINGS = 1;
 chomp(my @external_files = qx{find external -type f});
 $Test::Strict::TEST_SKIP = [
     't/data/tests/main.pm',
+    't/data/tests/tests/non_strict_module.pm',
     't/data/tests/product/main.pm',
     't/pool/product/foo/main.pm',
     'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',

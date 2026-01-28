@@ -8,6 +8,15 @@ use Cwd 'abs_path';
 use testapi;
 use testdistribution;
 
+set_var(ENABLE_MODERN_PERL_FEATURES => 1);
+
+if (get_var('TEST_NON_STRICT_MODULE')) {
+    eval { autotest::loadtest "tests/non_strict_module.pm" };
+    die 'was able to load module violating strictness' unless my $error = $@;
+    die "error message did not refer to expected line of code: $error"
+      unless $error =~ m{Bareword.*"FOO".*at.*t/data/tests/tests/non_strict_module\.pm.*line 8}i;
+}
+
 my $distri = testdistribution->new();
 testapi::set_distribution($distri);
 
