@@ -29,7 +29,9 @@ my $fail_severity = {
     canceled => 800
 };
 
-# enable strictures and warnings in all tests globally but allow signatures
+# enable modern Perl features in code consuming this module via `use basetest;`
+# note: This does NOT cover `use base 'basetest';`, see https://perldoc.perl.org/base#DESCRIPTION. Hence the use
+#       of `use Mojo::Base 'basetest', -signatures;` is still recommended in the documentation.
 sub import ($self, @) {
     strict->import;
     warnings->import;
