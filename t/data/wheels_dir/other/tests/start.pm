@@ -1,4 +1,4 @@
-use Mojo::Base 'basetest', -signatures;
+use base 'basetest';
 
 sub run ($) { }
 1;

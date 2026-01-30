@@ -1,3 +1,3 @@
-use Mojo::Base 'basetest', -signatures;
+use base 'basetest';
 my $x = 'module1';
 1;
