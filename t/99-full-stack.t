@@ -44,6 +44,7 @@ path('vars.json')->spew(<<EOV);
    "SSH_CONNECT_RETRY"  : "2",
    "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
    "NAME" : "00001-1-i386@32bit",
+   "TEST_NON_STRICT_MODULE": "1",
 }
 EOV
 # create screenshots
@@ -54,6 +55,7 @@ my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';
 like $log, qr/\d*: EXIT 0/, 'test executed fine';
 like $log, qr/Snapshots are supported/, 'Snapshots are enabled';
+like $log, qr/Bareword "FOO" not allowed.*non_strict_module/, 'error about test module violating strictness';
 unlike $log, qr/Tests died:/, 'Tests did not fail within modules' or diag "autoinst-log.txt: $log";
 unlike $log, qr/script_run: DEPRECATED call of script_run.+die_on_timeout/, 'no deprecation warning for script_run';
 like $log, qr/do not wait_still_screen/, 'test type string and do not wait';

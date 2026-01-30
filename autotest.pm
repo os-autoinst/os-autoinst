@@ -187,15 +187,21 @@ sub loadtest ($script, %args) {
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
     my $code = "package $name;";
+    my $module_code;
+    if ($bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES}) {
+        $code .= 'use Mojo::Base -strict, -signatures;';
+        $module_code = "# line 1 $script_path\n";
+        $module_code .= path($script_path)->slurp;
+    }
     $code .= "use lib '.';" unless path($casedir)->is_abs;
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
-    $code .= "use lib '$basename';";
+    $code .= "use lib '$basename';\n";
     die "Unsupported file extension for '$script'" unless $script =~ /\.(p[my]|lua)/;
     my $is_python = 0;
     my $is_lua = 0;
     if ($script =~ m/\.pm$/) {
-        $code .= "require '$script_path';";
+        $code .= $module_code // "require '$script_path';";
     }
     elsif ($script =~ m/\.py$/) {
         _debug_python_version();

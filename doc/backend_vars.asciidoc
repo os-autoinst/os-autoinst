@@ -53,6 +53,7 @@ VIDEO_ENCODER_BLOCKING_PIPE;boolean;0;Whether the pipe for writing data to the v
 DEFAULT_CLICK_SLEEP;float;0.15;Default single click time in seconds
 DEFAULT_DCLICK_SLEEP;float;0.10;Default double/triple click time in seconds (both press time and interval between clicks)
 GIT_CACHE_DIR;string;;If set enables locally caching Git repositories in the specified directory when handling Git URLs in variables like `CASEDIR` and wheels
+ENABLE_MODERN_PERL_FEATURES;boolean;0;Enables use of modern Perl features in test modules avoiding the need to use e.g. `use Mojo::Base 'basetest', -signatures;` in all test modules. This variable must be set before invoking `autotest::loadtest`. It only applies to the test modules themselves. It does *not* apply to e.g. `main.pm` and other Perl modules used via e.g. `use some::module`.
 
 |====================
 
