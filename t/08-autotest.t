@@ -461,9 +461,7 @@ subtest loadtestdir => sub {
             return ($script =~ m/non_strict/) || $autotest_mock->original('loadtest')->($script, @args);
     });
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
-    stderr_like {
-        autotest::loadtestdir('tests');
-    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
+    stderr_like { autotest::loadtestdir('tests') } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
     if ($has_lua) {
         my $w = warning { stderr_like {
