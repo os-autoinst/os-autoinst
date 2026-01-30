@@ -8,7 +8,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
-use Test::Warnings qw(:report_warnings warning);
+use Test::Warnings qw(:report_warnings warning allow_patterns);
 use Test::MockModule;
 use Test::MockObject;
 use File::Basename ();
@@ -21,6 +21,11 @@ use OpenQA::Test::RunArgs;
 my $has_lua = eval { require Inline::Lua };
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES} = 1;
+
+# allow warnings about redefined subs that happen because we load the same test
+# module multiple times
+allow_patterns qr|sub.*redefined at t/fake/tests|i;
 
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
@@ -450,6 +455,11 @@ subtest make_snapshot => sub {
 };
 
 subtest loadtestdir => sub {
+    my $autotest_mock = Test::MockModule->new('autotest');
+    $autotest_mock->redefine(loadtest => sub ($script, @args) {
+            # skip module containing non-strict code as provoking this kind of error is not helpful in this subtest
+            return ($script =~ m/non_strict/) || $autotest_mock->original('loadtest')->($script, @args);
+    });
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
     stderr_like {
         autotest::loadtestdir('tests');
