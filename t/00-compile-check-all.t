@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright 2015-2020 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
@@ -22,13 +22,12 @@ $Test::Strict::TEST_WARNINGS = 1;
 # We don't want to check files under external, as there might be
 # missing dependencies like perltidy in OBS builds
 chomp(my @external_files = qx{find external -type f});
+# Skip test modules as they rely on ENABLE_MODERN_PERL_FEATURES
+chomp(my @test_modules = qx{find t/data/tests t/data/wheels_dir t/data/assets t/fake/tests -name '*.pm' -not -name 'main.pm' -type f,l});
 $Test::Strict::TEST_SKIP = [
-    't/data/tests/main.pm',
-    't/data/tests/tests/non_strict_module.pm',
-    't/data/tests/product/main.pm',
-    't/pool/product/foo/main.pm',
     'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
-    @external_files,
+    't/data/tests/main.pm',    # fails with "Can't locate testdistribution.pm" as this check does not automatically add the required lib dir
+    @test_modules, @external_files
 ];
 
 # Prevent any non-tracked files or files within .git (e.g. in.git/rr-cache) to

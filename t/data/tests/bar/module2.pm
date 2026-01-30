@@ -1,2 +1,2 @@
-use Mojo::Base 'basetest', -signatures;
+use base 'basetest';
 1;
