@@ -193,6 +193,7 @@ sub loadtest ($script, %args) {
         $module_code = "# line 1 $script_path\n";
         $module_code .= path($script_path)->slurp;
     }
+    $code .= "no warnings 'redefine';" if $bmwqemu::vars{ALLOW_LOADING_MODULE_TWICE_IN_UNIT_TEST};
     $code .= "use lib '.';" unless path($casedir)->is_abs;
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);

@@ -8,7 +8,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
-use Test::Warnings qw(:report_warnings warning allow_patterns);
+use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
 use Test::MockObject;
 use File::Basename ();
@@ -25,7 +25,7 @@ $bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES} = 1;
 
 # allow warnings about redefined subs that happen because we load the same test
 # module multiple times
-allow_patterns qr|sub.*redefined at t/fake/tests|i;
+$bmwqemu::vars{ALLOW_LOADING_MODULE_TWICE_IN_UNIT_TEST} = 1;
 
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
@@ -344,7 +344,7 @@ is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
     symlink($bmwqemu::vars{CASEDIR}, 'foo');
     $bmwqemu::vars{CASEDIR} = 'foo';
-    like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
+    loadtest 'start';
 };
 
 my $has_python = eval { require Inline::Python };
