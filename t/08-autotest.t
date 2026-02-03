@@ -338,9 +338,9 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"),
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
-    symlink($bmwqemu::vars{CASEDIR}, 'foo');
-    $bmwqemu::vars{CASEDIR} = 'foo';
-    loadtest 'start';
+    path($bmwqemu::vars{CASEDIR}, 'tests/start.pm')->copy_to(path('foo/tests')->make_path->child('start2.pm'));
+    local $bmwqemu::vars{CASEDIR} = 'foo';
+    loadtest 'start2';
 };
 
 my $has_python = eval { require Inline::Python };
@@ -534,6 +534,6 @@ subtest 'lua_runtest' => sub {
 done_testing();
 
 END {
-    unlink "vars.json", "base_state.json", "foo";
-    rmtree "testresults";
+    unlink qw(vars.json base_state.json);
+    rmtree $_ for qw(testresults foo);
 }
