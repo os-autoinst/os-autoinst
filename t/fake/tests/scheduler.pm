@@ -1,4 +1,4 @@
-use Mojo::Base 'basetest', -signatures;
+use base 'basetest';
 use autotest 'loadtest';
 
 sub run ($) {

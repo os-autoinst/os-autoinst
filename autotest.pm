@@ -178,14 +178,8 @@ sub _load_lua () {
     lua_set("use", \&_lua_use);
 }
 
-sub loadtest ($script, %args) {
-    no utf8;    # Inline Python fails on utf8, so let's exclude it here
+sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
     my $casedir = $bmwqemu::vars{CASEDIR};
-    my $script_path = find_script($script);
-    my ($name, $category) = parse_test_path($script_path);
-    my $test;
-    my $fullname = "$category-$name";
-    # perl code generating perl code is overcool
     my $code = "package $name;";
     my $module_code;
     if ($bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES}) {
@@ -198,8 +192,6 @@ sub loadtest ($script, %args) {
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';\n";
     die "Unsupported file extension for '$script'" unless $script =~ /\.(p[my]|lua)/;
-    my $is_python = 0;
-    my $is_lua = 0;
     if ($script =~ m/\.pm$/) {
         $code .= $module_code // "require '$script_path';";
     }
@@ -223,7 +215,7 @@ sub loadtest ($script, %args) {
                 py_bind_func("${name}::\$func", "$name", \$func);
             }
             EOM
-        $is_python = 1;
+        $$is_python = 1;
     }
     elsif ($script =~ m/\.lua$/) {
         _load_lua();    # this loads (actually defines) lua_eval()
@@ -250,9 +242,20 @@ sub loadtest ($script, %args) {
                 return autotest::lua_eval('_G["post_fail_hook"] and post_fail_hook() or 1')
             }
             EOM
-        $is_lua = 1;
     }
-    eval $code;
+    return $code;
+}
+
+sub loadtest ($script, %args) {
+    no utf8;    # Inline Python fails on utf8, so let's exclude it here
+    my $script_path = find_script($script);
+    my ($name, $category) = parse_test_path($script_path);
+    my ($test, $is_python);
+    my $fullname = "$category-$name";
+    state %loaded;    # keep track of loaded packages
+                      # note: Never load a test module that would result in the same package twice as this would only lead to warnings
+                      #       like "Subroutine run redefined at …".
+    eval _make_test_code_to_eval($script_path, $script, $name, \$is_python) unless $loaded{$script_path}++;
     if (my $err = $@) {
         if ($is_python) {
             try { require Inline; import Inline Python => 'sys.stderr.flush()'; }

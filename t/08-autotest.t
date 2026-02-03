@@ -21,6 +21,7 @@ use OpenQA::Test::RunArgs;
 my $has_lua = eval { require Inline::Lua };
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES} = 1;
 
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
@@ -337,9 +338,9 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"),
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
-    symlink($bmwqemu::vars{CASEDIR}, 'foo');
-    $bmwqemu::vars{CASEDIR} = 'foo';
-    like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
+    path($bmwqemu::vars{CASEDIR}, 'tests/start.pm')->copy_to(path('foo/tests')->make_path->child('start2.pm'));
+    local $bmwqemu::vars{CASEDIR} = 'foo';
+    loadtest 'start2';
 };
 
 my $has_python = eval { require Inline::Python };
@@ -450,10 +451,13 @@ subtest make_snapshot => sub {
 };
 
 subtest loadtestdir => sub {
+    my $autotest_mock = Test::MockModule->new('autotest');
+    $autotest_mock->redefine(loadtest => sub ($script, @args) {
+            # skip module containing non-strict code as provoking this kind of error is not helpful in this subtest
+            return ($script =~ m/non_strict/) || $autotest_mock->original('loadtest')->($script, @args);
+    });
     $bmwqemu::vars{CASEDIR} = 't/data/tests';
-    stderr_like {
-        autotest::loadtestdir('tests');
-    } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
+    stderr_like { autotest::loadtestdir('tests') } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
     if ($has_lua) {
         my $w = warning { stderr_like {
@@ -530,6 +534,6 @@ subtest 'lua_runtest' => sub {
 done_testing();
 
 END {
-    unlink "vars.json", "base_state.json", "foo";
-    rmtree "testresults";
+    unlink qw(vars.json base_state.json);
+    rmtree $_ for qw(testresults foo);
 }
