@@ -23,10 +23,6 @@ my $has_lua = eval { require Inline::Lua };
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 $bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES} = 1;
 
-# allow warnings about redefined subs that happen because we load the same test
-# module multiple times
-$bmwqemu::vars{ALLOW_LOADING_MODULE_TWICE_IN_UNIT_TEST} = 1;
-
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
 like warning {
     throws_ok { autotest::loadtest 'does/not/match' } qr/loadtest.*does not match required pattern/,
