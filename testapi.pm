@@ -2025,7 +2025,7 @@ sub parse_junit_log ($path) { return parse_extra_log('JUnit', $path) }
 
 =for stopwords extra_log
 
-  parse_extra_log( Format => "report.xml" );
+  parse_extra_log(Format => $file [, failok =>1] [, timeout => $timeout]);
 
 Upload log file from SUT (calls upload_logs internally). The uploaded
 file is then parsed as the format supplied, that can be understood by OpenQA::Parser
@@ -2035,8 +2035,8 @@ file is then parsed as the format supplied, that can be understood by OpenQA::Pa
 
 =cut
 
-sub parse_extra_log ($format, $file) {
-    $file = upload_logs($file);
+sub parse_extra_log ($format, $file, %args) {
+    $file = upload_logs($file, %args);
     my @tests;
     # We need to touch @INC as specific supported format are split
     # in different classes and dynamically loaded by OpenQA::Parser
