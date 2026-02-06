@@ -125,6 +125,11 @@ sub configure_controllers ($self, $vars) {
 
 sub get_img_json_field ($self, $path, $field) {
     my $json = run($self->qemu_img_bin, 'info', '--output=json', $path);
+    if ($json =~ s/^(get_mempolicy: Operation not permitted)//) {
+        # When running in a container with not enough permissions we see this
+        # warning and have to remove it because $json contains stdout and stderr
+        bmwqemu::diag("Got 'qemu-img info' warning: '$1'");    # uncoverable statement
+    }
     # We can't check the exit code of qemu-img, because it sometimes returns 1
     # even for a successful command on ppc. Instead we just hide and ignore
     # JSON decode failures and assume the previous command has printed the
