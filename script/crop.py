@@ -14,19 +14,17 @@ parser = optparse.OptionParser()
 parser.add_option("--new", metavar="NAME", help="create new")
 parser.add_option("--tag", metavar="NAME", action="append", help="add tag")
 
-(options, args) = parser.parse_args()
+options, args = parser.parse_args()
 
 filename = args[0]
 if filename.endswith(".png"):
     png = filename
     filename = filename[0 : len(filename) - len(".png")] + ".json"
-    needle = json.loads(
-        """{
+    needle = json.loads("""{
         "tags": [ "none" ],
         "area": [ { "height": 100, "width": 100,
         "xpos": 0, "ypos": 0, "type": "match" } ]
-    }"""
-    )
+    }""")
 elif filename.endswith(".json"):
     png = filename[0 : len(filename) - len(".json")] + ".png"
     needle = json.load(open(filename))
@@ -264,8 +262,7 @@ master.bind("<Insert>", addrect)
 master.bind("<Delete>", delrect)
 master.bind("t", changetype)
 
-print(
-    """Use cursor keys to move
+print("""Use cursor keys to move
 Use shift + cursor keys to resize
 +/-: Change increment for move/resize
 
@@ -274,6 +271,5 @@ ins = add area, del = remove area
 <TAB>: select next area
 
 s = save, q = quit
-"""
-)
+""")
 master.mainloop()
