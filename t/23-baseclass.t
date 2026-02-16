@@ -942,6 +942,7 @@ subtest 'deprecate backend' => sub {
     throws_ok { backend::baseclass::handle_deprecate_backend('AMT') } qr/is unsupported and planned to be\nremoved from os-autoinst eventually/, 'deprecated message is displayed';
     $bmwqemu::vars{NO_DEPRECATE_BACKEND_TESTBACKEND} = 1;
     stderr_like { backend::baseclass::handle_deprecate_backend('TESTBACKEND') } qr/DEPRECATED: 'backend::TESTBACKEND' is unsupported/, 'deprecation message is logged';
+    throws_ok { backend::baseclass::handle_deprecate_backend('FOO', condition => 'BAR') } qr/backend::FOO.*in combination with.*BAR[\s\S]*NO_DEPRECATE_BACKEND_FOO_BAR/, 'backend with condition is deprecated';
 };
 
 done_testing;
