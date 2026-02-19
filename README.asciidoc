@@ -24,7 +24,7 @@ link:https://build.opensuse.org/project/show/devel:openQA[devel repository].
 For further details, have a look at the
 link:http://open.qa/docs/#_development_version_repository[openQA documentation].
 
-For building os-autoinst manually checkout the build instructions below.
+For building os-autoinst manually check out the build instructions below.
 
 The main executable `isotovideo` can read test parameters from the command
 line or read test parameters from a file named `vars.json`. This file stores
@@ -83,7 +83,7 @@ below.
 == How to run test cases
 
 This following instructions shows how to run test cases. First one needs to
-clone the test distribution. Checkout
+clone the test distribution. Check out
 link:https://github.com/os-autoinst/os-autoinst-distri-example[os-autoinst-distri-example]
 for an example of a minimal test distribution.
 
@@ -199,7 +199,7 @@ https://deepwiki.com/os-autoinst/os-autoinst
 === Rules for commits
 
 * Every commit is checked by our CI system as soon as you create a pull request
-  but you *should* run the os-autoinst tests locally. Checkout the build
+  but you *should* run the os-autoinst tests locally. Check out the build
   instructions for further details.
 
 * For git commit messages use the rules stated on

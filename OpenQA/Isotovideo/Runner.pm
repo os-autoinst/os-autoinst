@@ -213,12 +213,12 @@ sub checkout_code ($self) {
     # multiple distributions or flavors in one repository.
     $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 
-    # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
+    # check out Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
     checkout_git_repo_and_branch('NEEDLES_DIR');
 
     bmwqemu::ensure_valid_vars();
 
-    # as we are about to load the test modules checkout the specified git refspec,
+    # as we are about to load the test modules check out the specified git refspec,
     # if specified, or simply store the git hash that has been used. If it is not a
     # git repo fail silently, i.e. store an empty variable
 

@@ -182,7 +182,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         return $handle_output->($?, @out) unless ($branch && grep /fatal: Remote branch .* not found in upstream origin/, @out);
     }
 
-    # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and checkout the missing
+    # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and check out the missing
     # ref manually
     $handle_output->($?, my @out = qx{$clone_cmd $depth_args $source_url 2>&1});
     return 1 unless $branch;
@@ -206,7 +206,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
     }
     @out = qx{git -C $local_path checkout $branch};
     bmwqemu::diag "@out" if @out;
-    die "Unable to checkout branch '$branch' in cloned Git repository \"$dir\"" unless $? == 0;
+    die "Unable to check out branch '$branch' in cloned Git repository \"$dir\"" unless $? == 0;
     return 1;
 }
 
@@ -313,7 +313,7 @@ sub checkout_git_refspec ($dir, $refspec_variable) {
     if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
         bmwqemu::diag "Checking out local git refspec '$refspec' in '$dir'";
         qx{env git -C $dir checkout -q $refspec};
-        die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
+        die "Failed to check out '$refspec' in '$dir'\n" unless $? == 0;
     }
     my $hash = calculate_git_hash($dir);
     my $url = git_remote_url($dir);
