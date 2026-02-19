@@ -59,7 +59,7 @@ VIRSH_VMM_TYPE=hvm
 ```
 
 If you add multiple instances, be sure to assign a different `VIRSH_INSTANCE`
-and `VIRSH_MAC`. For more details about the variables, checkout
+and `VIRSH_MAC`. For more details about the variables, check out
 [backend_vars.asciidoc](backend_vars.asciidoc).
 
 `VIRSH_OPENQA_BASEDIR` must be set in accordance with `OPENQA_BASEDIR` if you
@@ -105,7 +105,7 @@ openqa-clone-job https://openqa.opensuse.org/tests/2320084 \
 ```
 
 Note that `svirt` backend normally requires additional handling on the test
-distribution-side. Checkout the `bootloader_svirt` test module of the openSUSE
+distribution-side. Check out the `bootloader_svirt` test module of the openSUSE
 test distribution for details. When cloning an openSUSE test, the
 `bootloader_svirt` test module is automatically added to the schedule when
 setting `BACKEND=svirt`. When overriding `SCHEDULE` you have to take it into
