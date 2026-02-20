@@ -1,15 +1,23 @@
 ---
-# https://github.com/marketplace/actions/gs-commit-message-checker
+# Check if commit messages follow the conventional commits format
 name: 'Commit message check'
 # yamllint disable-line rule:truthy
 on:
   pull_request:
   push:
     branches:
-      - '!master'  # we must not fix commit messages when they already reached master
+      - '!master'
 
 jobs:
   check-commit-message:
-    secrets:
-      accessToken: "${{ secrets.GITHUB_TOKEN }}"
-    uses: os-autoinst/os-autoinst-common/.github/workflows/base-commit-message-checker.yml@master
+    runs-on: ubuntu-latest
+    container:
+      image: registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitlint
+        run: |
+          git config --global --add safe.directory '*'
+          make test-local TESTS="test-local-git-commit-message"

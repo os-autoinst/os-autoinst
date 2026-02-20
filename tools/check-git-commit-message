@@ -1,0 +1,12 @@
+#!/bin/bash -e
+set -eo pipefail
+GITLINT="${1:-gitlint}"
+
+if [ -n "$GITHUB_BASE_REF" ]; then
+    echo "Checking commit range: origin/${GITHUB_BASE_REF}..HEAD"
+    git fetch origin "$GITHUB_BASE_REF" --depth=50
+    "$GITLINT" --commits "origin/${GITHUB_BASE_REF}..HEAD"
+else
+    echo "Checking latest commit (HEAD)"
+    "$GITLINT"
+fi

@@ -179,6 +179,7 @@ test_requires:
   '%test_non_s390_requires':
   '%python_support_requires':
   '%lua_support_requires':
+  python3-gitlint:
   python3-Pillow-tk:
   ffmpeg:
 
