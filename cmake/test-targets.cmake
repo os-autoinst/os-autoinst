@@ -77,6 +77,18 @@ else ()
     message(STATUS "Set SH_PATH to the path of the shfmt executable to enable bash script syntax checks.")
 endif ()
 
+# add test for git commit messages
+find_program(GITLINT_PATH gitlint)
+if (GITLINT_PATH)
+    add_test(
+        NAME test-local-git-commit-message
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-git-commit-message" "${GITLINT_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+else ()
+    message(STATUS "Set GITLINT_PATH to the path of the gitlint executable to enable git commit message checks.")
+endif ()
+
 # add spell checking for test API documentation
 find_program(PODSPELL_PATH podspell)
 find_program(SPELL_PATH spell)
