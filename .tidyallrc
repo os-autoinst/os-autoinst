@@ -2,3 +2,32 @@
 select = **/*.{pl,pm,t} script/check_qemu_oom script/imgsearch script/isotovideo script/os-autoinst-openvswitch
 ignore = external/**/*
 argv = --profile=$ROOT/.perltidyrc
+
+[PerlCritic]
+select = **/*.{pl,pm,t} script/check_qemu_oom script/imgsearch script/isotovideo script/os-autoinst-openvswitch
+ignore = external/**/*
+argv = --profile=$ROOT/.perlcriticrc
+
+[GenericValidator / Black]
+select = **/*.py
+ignore = external/**/*
+cmd = black
+argv = --check --quiet --fast
+
+[GenericValidator / yamllint]
+select = **/*.{yml,yaml}
+ignore = external/**/*
+cmd = yamllint
+argv = --strict
+
+[GenericValidator / shellcheck]
+select = **/*.sh
+ignore = external/**/*
+cmd = shellcheck
+argv = --format=gcc
+
+[GenericValidator / shfmt]
+select = **/*.sh
+ignore = external/**/*
+cmd = shfmt
+argv = -d
