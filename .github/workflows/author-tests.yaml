@@ -15,4 +15,6 @@ jobs:
         run: |
           git config --global --add safe.directory '*'
           make
-          make test-local
+          # see .github/workflows/commit-message-checker.yml
+          # for the git commit message check
+          ctest --output-on-failure -R "test-local-.*" -E "test-local-git-commit-message"
