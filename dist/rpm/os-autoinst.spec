@@ -121,7 +121,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk python3-gitlint
+%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %test_base_requires %test_non_s390_requires ffmpeg python3-Pillow-tk
 %ifnarch s390x
 # The following line is generated from dependencies.yaml
 %define devel_non_s390_requires ShellCheck
@@ -129,7 +129,7 @@ Source0:        %{name}-%{version}.tar.xz
 %define devel_non_s390_requires %{nil}
 %endif
 # The following line is generated from dependencies.yaml
-%define devel_requires %devel_non_s390_requires %python_style_requires %test_requires file perl(Code::TidyAll) perl(Devel::Cover) perl(Module::CPANfile) perl(Perl::Tidy) perl(Template::Toolkit) perl(Test::CheckGitStatus) sed shfmt
+%define devel_requires %devel_non_s390_requires %python_style_requires %spellcheck_requires %test_requires %yamllint_requires file perl(Code::TidyAll) perl(Devel::Cover) perl(Module::CPANfile) perl(Perl::Tidy) perl(Template::Toolkit) perl(Test::CheckGitStatus) python3-gitlint sed shfmt
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale openssh-clients
 %define ipmi_requires ipmitool
 %define qemu_requires qemu-tools e2fsprogs
