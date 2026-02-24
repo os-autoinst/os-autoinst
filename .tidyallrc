@@ -1,33 +1,34 @@
 [PerlTidy]
 select = **/*.{pl,pm,t} script/check_qemu_oom script/imgsearch script/isotovideo script/os-autoinst-openvswitch
-ignore = external/**/*
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
 argv = --profile=$ROOT/.perltidyrc
 
 [PerlCritic]
 select = **/*.{pl,pm,t} script/check_qemu_oom script/imgsearch script/isotovideo script/os-autoinst-openvswitch
-ignore = external/**/*
-argv = --profile=$ROOT/.perlcriticrc
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
+cmd = perl
+argv = -I $ROOT/tools/lib/perlcritic -I $ROOT/external/os-autoinst-common/lib/perlcritic -S perlcritic --profile=$ROOT/.perlcriticrc
 
-[GenericValidator / Black]
+[GenericTransformer / Black]
 select = **/*.py
-ignore = external/**/*
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
 cmd = black
-argv = --check --quiet --fast
+argv = --quiet --fast
 
 [GenericValidator / yamllint]
 select = **/*.{yml,yaml}
-ignore = external/**/*
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
 cmd = yamllint
 argv = --strict
 
 [GenericValidator / shellcheck]
 select = **/*.sh
-ignore = external/**/*
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
 cmd = shellcheck
-argv = --format=gcc
+argv = --format=gcc --severity=warning --shell=bash
 
-[GenericValidator / shfmt]
+[GenericTransformer / shfmt]
 select = **/*.sh
-ignore = external/**/*
+ignore = external/**/* t/data/**/* t/fake/**/* local/**/* install/**/*
 cmd = shfmt
-argv = -d
+argv = -w
