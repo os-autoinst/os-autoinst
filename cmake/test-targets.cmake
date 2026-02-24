@@ -26,7 +26,7 @@ find_program(YAMLLINT_PATH yamllint)
 if (YAMLLINT_PATH)
     add_test(
         NAME test-local-yaml-syntax
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --select "**/*.{yml,yaml}" --check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericValidator / yamllint" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif ()
@@ -36,7 +36,7 @@ find_program(RUFF_PATH ruff)
 if (RUFF_PATH)
     add_test(
         NAME test-local-python-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --select "**/*.py" --check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericTransformer / Black" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
@@ -93,7 +93,7 @@ find_program(SHELLCHECK_PATH shellcheck)
 if (SHELLCHECK_PATH)
     add_test(
         NAME test-local-shellcheck
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --select "**/*.sh" --check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericValidator / shellcheck" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif ()
@@ -103,7 +103,7 @@ find_program(PERLCRITIC_PATH perlcritic)
 if (PERLCRITIC_PATH)
     add_test(
         NAME test-local-perl-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --select "**/*.{pl,pm,t}" --check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins PerlCritic -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif ()
@@ -113,7 +113,7 @@ find_program(SH_PATH shfmt)
 if (SH_PATH)
     add_test(
         NAME test-local-bash-syntax
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --select "**/*.sh" --check
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericTransformer / shfmt" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 endif ()
