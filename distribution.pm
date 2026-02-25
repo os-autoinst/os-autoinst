@@ -6,6 +6,7 @@ package distribution;
 use Mojo::Base -strict, -signatures;
 
 use testapi ();
+use log 'fctwarn';
 use Carp 'croak';
 
 sub new ($class, @) {
@@ -132,6 +133,7 @@ sub script_run ($self, $cmd, @args) {
     my %args = testapi::compat_args(
         {
             timeout => $bmwqemu::default_timeout,
+            check_typing_cmd => 1,
             output => '',
             quiet => undef,
             max_interval => testapi::DEFAULT_MAX_INTERVAL
@@ -149,7 +151,7 @@ sub script_run ($self, $cmd, @args) {
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker, max_interval => $args{max_interval});
             my $type_cmd_res = testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
-            croak "typing command '$cmd' timed out" unless $type_cmd_res;
+            ($args{check_typing_cmd} ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") unless $type_cmd_res;
             testapi::type_string("\n", max_interval => $args{max_interval});
         }
         else {

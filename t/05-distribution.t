@@ -6,6 +6,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
+use Test::Output qw(combined_like);
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -63,6 +64,10 @@ subtest 'script_run' => sub {
     $wait_serial_res = 0;
     @wait_serial_calls = ();
     throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'timeout while typing command handled';
+
+    @wait_serial_calls = ();
+    combined_like { $d->script_run('foo', check_typing_cmd => 0) }
+    qr/typing command 'foo' timed out/, 'timeout while typing command just logged when opted-out';
 };
 
 subtest 'set expected serial and autoinst failures' => sub {
