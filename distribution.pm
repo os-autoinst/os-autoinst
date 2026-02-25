@@ -148,7 +148,8 @@ sub script_run ($self, $cmd, @args) {
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker, max_interval => $args{max_interval});
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
+            my $type_cmd_res = testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
+            croak "typing command '$cmd' timed out" unless $type_cmd_res;
             testapi::type_string("\n", max_interval => $args{max_interval});
         }
         else {
