@@ -6,6 +6,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
+use Test::Output qw(combined_like);
 use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -34,8 +35,8 @@ subtest 'script_run' => sub {
     lives_ok { $d->script_run('foo\&') } 'escaped terminator is accepted';
     lives_ok { $d->script_run('foo && bar') } 'AND operator is accepted';
     lives_ok { $d->script_run('foo "x&"') } 'quoted & is accepted';
-    $mock_testapi->redefine(wait_serial => sub {
-            my $regexp = shift;
+    my $wait_serial_res = 1;
+    $mock_testapi->redefine(wait_serial => sub ($regexp, @args) {
             push @wait_serial_calls, {
                 regexp => $regexp,
                 timeout => 90,
@@ -44,8 +45,9 @@ subtest 'script_run' => sub {
                 no_regex => 0,
                 buffer_size => undef,
                 record_output => undef,
-                @_
+                @args
             };
+            return $wait_serial_res;
     });
     $mock_testapi->redefine(is_serial_terminal => 1);
     $d->script_run('short_command');
@@ -58,6 +60,14 @@ subtest 'script_run' => sub {
     $d->script_run('long_command' x 512);
     $cmdcall = $wait_serial_calls[1];
     is $cmdcall->{buffer_size}, 6272, 'appropriate buffer size used for long command';
+
+    $wait_serial_res = 0;
+    @wait_serial_calls = ();
+    throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'timeout while typing command handled';
+
+    @wait_serial_calls = ();
+    combined_like { $d->script_run('foo', check_typing_cmd => 0) }
+    qr/typing command 'foo' timed out/, 'timeout while typing command just logged when opted-out';
 };
 
 subtest 'set expected serial and autoinst failures' => sub {

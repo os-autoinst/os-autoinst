@@ -6,6 +6,7 @@ package distribution;
 use Mojo::Base -strict, -signatures;
 
 use testapi ();
+use log 'fctwarn';
 use Carp 'croak';
 
 sub new ($class, @) {
@@ -102,6 +103,8 @@ sub disable_key_repeat ($self) {
     testapi::enter_cmd('kbdrate -s -d99999');
 }
 
+sub _handle_cmd_typing_error ($cmd, $args) { ($args->{check_typing_cmd} // 1 ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") }
+
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
@@ -132,6 +135,7 @@ sub script_run ($self, $cmd, @args) {
     my %args = testapi::compat_args(
         {
             timeout => $bmwqemu::default_timeout,
+            check_typing_cmd => 1,
             output => '',
             quiet => undef,
             max_interval => testapi::DEFAULT_MAX_INTERVAL
@@ -148,7 +152,8 @@ sub script_run ($self, $cmd, @args) {
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker, max_interval => $args{max_interval});
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128);
+            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128)
+              or _handle_cmd_typing_error($cmd, \%args);
             testapi::type_string("\n", max_interval => $args{max_interval});
         }
         else {
@@ -190,7 +195,7 @@ sub background_script_run ($self, $cmd, %args) {
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string($marker);
-        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
         testapi::type_string("\n");
     }
     else {
