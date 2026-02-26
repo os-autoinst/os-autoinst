@@ -121,11 +121,19 @@ create_gre_preup_script() {
     local location=$1
     cat > "$location" << EOF
 #!/bin/sh
+OVS_CMD=\$(command -v ovs-vsctl)
+if [ -z "\$OVS_CMD" ]; then
+    logger "Error: ovs-vsctl not found. Skipping script \$0"
+    exit 0 # Exit 0 to avoid breaking NetworkManager's flow
+fi
+TARGET_BRIDGE=\$("\$OVS_CMD" list-br)
 action="\$1"
 bridge="\$2"
-ovs-vsctl set bridge \$bridge rstp_enable=true
-# TODO add entries according to your network topology
-#ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+if [ "\$bridge" = "\$TARGET_BRIDGE" ] && ([ "\$action" = "pre-up" ] || [ "\$action" = "up" ]); then
+    ovs-vsctl set bridge \$bridge rstp_enable=true
+    # TODO add entries according to your network topology
+    #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+fi
 EOF
     chmod +x "$location"
 }
