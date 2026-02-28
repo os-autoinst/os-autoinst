@@ -235,6 +235,7 @@ main_requires:
   perl(Net::IP):
   perl(Net::SNMP):
   perl(Net::SSH2):
+  perl(Object::Pad):
   perl(POSIX):
   perl(Scalar::Util):
   perl(Socket):
