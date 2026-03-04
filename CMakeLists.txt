@@ -4,7 +4,7 @@ project(os-autoinst CXX)
 # list non-C++ source files
 set(DOC_FILES
     doc/architecture.md
-    doc/backend_vars.asciidoc
+    doc/backend_vars.md
     doc/backends.md
     doc/memorydumps.md
     doc/networking.md

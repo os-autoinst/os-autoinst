@@ -5,7 +5,7 @@ available backends, though. Note that instructions for QEMU are already given in
 the main README file.
 
 For backend specific variables, there is a
-[separate documentation](backend_vars.asciidoc).
+[separate documentation](backend_vars.md).
 
 ## General recommendations
 Normally the execution environment for exotic backends (like svirt and s390x) is
@@ -60,7 +60,7 @@ VIRSH_VMM_TYPE=hvm
 
 If you add multiple instances, be sure to assign a different `VIRSH_INSTANCE`
 and `VIRSH_MAC`. For more details about the variables, check out
-[backend_vars.asciidoc](backend_vars.asciidoc).
+[backend_vars.md](backend_vars.md).
 
 `VIRSH_OPENQA_BASEDIR` must be set in accordance with `OPENQA_BASEDIR` if you
 changed that environment variable.
