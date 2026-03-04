@@ -251,7 +251,8 @@ Call
 make help
 ----
 
-to list all available targets.
+to list all available targets. One especially useful target for developers is
+`make setup-hooks` which installs git pre-commit hooks to check commit styles.
 
 The above commands use a convenience Makefile calling `cmake`. For packaging,
 when using an IDE or to conduct the steps manually it is suggested to use CMake
