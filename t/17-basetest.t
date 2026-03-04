@@ -126,6 +126,19 @@ subtest modules_test => sub {
     ok($basetest->is_applicable, 'a passlisted module shows up');
     $bmwqemu::vars{EXCLUDE_MODULES} = 'foo';
     ok(!$basetest->is_applicable, 'passlisted modules are overridden by blocklist');
+    $bmwqemu::vars{EXCLUDE_MODULES} = '';
+    $bmwqemu::vars{EXIT_AFTER_MODULE} = 'foo';
+    ok($basetest->is_applicable, 'matching module itself is still applicable');
+    @autotest::testorder = ($basetest);
+    ok(!$basetest->is_applicable, 'after matching module, it is not applicable anymore');
+    my $other = basetest->new('installation');
+    $other->{class} = 'bar';
+    $other->{fullname} = 'installation-bar';
+    ok(!$other->is_applicable, 'any other module after matching module is not applicable');
+    $bmwqemu::vars{EXIT_AFTER_MODULE} = 'installation-foo';
+    ok(!$other->is_applicable, 'matches fullname too');
+    $bmwqemu::vars{EXIT_AFTER_MODULE} = '';
+    @autotest::testorder = ();
 };
 
 subtest parse_serial_output => sub {
