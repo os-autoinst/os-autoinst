@@ -12,7 +12,6 @@ use bmwqemu ();
 use ocr;
 use testapi ();
 use autotest ();
-use List::Util 'any';
 use MIME::Base64 'decode_base64';
 use OpenQA::Exceptions;
 use Mojo::File 'path';
@@ -74,35 +73,11 @@ This code is run during test.
 
 Return false if the test should be skipped.
 
-By default it checks the test name and fullname against a comma-separated
-blocklist in C<EXCLUDE_MODULES> variable and returns false if it is found there.
-
-If C<INCLUDE_MODULES> is set it will only return true for modules matching the
-passlist specified in a comma-separated list in C<EXCLUDE_MODULES> matching
-either test name or fullname.
-
-C<EXCLUDE_MODULES> has precedence over C<INCLUDE_MODULES> and can be combined
-to blocklist test modules from the passlist specified in C<INCLUDE_MODULES>.
-
 Can eg. check vars{BIGTEST}, vars{LIVETEST}
 
 =cut
 
 sub is_applicable ($self) {
-    if ($bmwqemu::vars{EXCLUDE_MODULES}) {
-        my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
-
-        return 0 if $excluded{$self->{class}};
-        return 0 if $excluded{$self->{fullname}};
-    }
-    if ($bmwqemu::vars{INCLUDE_MODULES}) {
-        my %included = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES});
-
-        return 0 unless ($included{$self->{class}} || $included{$self->{fullname}});
-    }
-    if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
-        return 0 if any { $_->{class} eq $exit_after || $_->{fullname} eq $exit_after } @autotest::testorder;
-    }
     return 1;
 }
 

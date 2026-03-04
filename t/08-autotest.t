@@ -307,6 +307,37 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
   && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
   for 1 .. 10;
 
+subtest 'scheduling rules' => sub {
+    %autotest::tests = ();
+    @autotest::testorder = ();
+
+    $bmwqemu::vars{EXCLUDE_MODULES} = 'start';
+    autotest::loadtest('tests/start.pm');
+    is scalar @autotest::testorder, 0, 'exclude by name works';
+
+    $bmwqemu::vars{EXCLUDE_MODULES} = 'tests-next';
+    autotest::loadtest('tests/next.pm');
+    is scalar @autotest::testorder, 0, 'exclude by fullname works';
+
+    $bmwqemu::vars{EXCLUDE_MODULES} = '';
+    $bmwqemu::vars{INCLUDE_MODULES} = 'start';
+    loadtest 'start';
+    is scalar @autotest::testorder, 1, 'include by name works';
+    autotest::loadtest('tests/next.pm');
+    is scalar @autotest::testorder, 1, 'include excludes others';
+
+    $bmwqemu::vars{INCLUDE_MODULES} = '';
+    $bmwqemu::vars{EXIT_AFTER_MODULE} = 'next';
+    loadtest 'next';
+    is scalar @autotest::testorder, 2, 'exit_after_module does not exclude itself';
+    autotest::loadtest('tests/fatal.pm');
+    is scalar @autotest::testorder, 2, 'exit_after_module excludes subsequent modules';
+
+    $bmwqemu::vars{EXIT_AFTER_MODULE} = '';
+    @autotest::testorder = ();
+};
+
+
 subtest 'test scheduling test modules at test runtime' => sub {
     $autotest::tests_running = 0;
     @autotest::testorder = ();
@@ -529,7 +560,6 @@ subtest 'lua_runtest' => sub {
     like $out, qr{testarray:\t1,2,3}, 'arrays work';
     like $out, qr{foo = bar}, 'hashes work';
 };
-
 
 done_testing();
 

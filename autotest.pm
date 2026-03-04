@@ -17,6 +17,7 @@ use Carp qw();
 use cv;
 use signalblocker;
 use Scalar::Util 'blessed';
+use List::Util 'any';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use Mojo::File qw(path);
@@ -246,6 +247,43 @@ sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
     return $code;
 }
 
+=head2 _should_schedule
+
+Return false if the test should be skipped.
+
+It checks the test name and fullname against a comma-separated blocklist in
+C<EXCLUDE_MODULES> variable and returns false if it is found there.
+
+If C<INCLUDE_MODULES> is set it will only return true for modules matching the
+passlist specified in a comma-separated list in C<INCLUDE_MODULES> matching
+either test name or fullname.
+
+C<EXCLUDE_MODULES> has precedence over C<INCLUDE_MODULES> and can be combined
+to blocklist test modules from the passlist specified in C<INCLUDE_MODULES>.
+
+If C<EXIT_AFTER_MODULE> is set it will return false for all modules scheduled
+after the module matching the specified name or fullname.
+
+Finally it calls C<is_applicable> on the test module itself which can e.g.
+check C<vars{BIGTEST}> or C<vars{LIVETEST}>.
+
+=cut
+
+sub _should_schedule ($test) {
+    if ($bmwqemu::vars{EXCLUDE_MODULES}) {
+        my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
+        return 0 if $excluded{$test->{class}} || $excluded{$test->{fullname}};
+    }
+    if ($bmwqemu::vars{INCLUDE_MODULES}) {
+        my %included = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES});
+        return 0 unless $included{$test->{class}} || $included{$test->{fullname}};
+    }
+    if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
+        return 0 if any { $_->{class} eq $exit_after || $_->{fullname} eq $exit_after } @testorder;
+    }
+    return $test->is_applicable;
+}
+
 sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $script_path = find_script($script);
@@ -293,7 +331,7 @@ sub loadtest ($script, %args) {
 
     $tests{$fullname . $nr} = $test;
 
-    return unless $test->is_applicable;
+    return unless _should_schedule($test);
     push @testorder, $test;
 
     # Test schedule may change at runtime. Update test_order.json to notify
