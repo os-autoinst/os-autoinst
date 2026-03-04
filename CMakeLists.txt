@@ -6,7 +6,7 @@ set(DOC_FILES
     doc/architecture.md
     doc/backend_vars.asciidoc
     doc/backends.md
-    doc/memorydumps.asciidoc
+    doc/memorydumps.md
     doc/networking.md
 )
 set(PERL_FILES
