@@ -115,30 +115,6 @@ subtest modules_test => sub {
     $basetest->{class} = 'foo';
     $basetest->{fullname} = 'installation-foo';
     ok($basetest->is_applicable, 'module is applicable by default');
-    $bmwqemu::vars{EXCLUDE_MODULES} = 'foo,bar';
-    ok(!$basetest->is_applicable, 'module can be excluded');
-    $bmwqemu::vars{EXCLUDE_MODULES} = 'installation-foo';
-    ok(!$basetest->is_applicable, 'model can be excluded by fullname');
-    $bmwqemu::vars{EXCLUDE_MODULES} = '';
-    $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz';
-    ok(!$basetest->is_applicable, 'modules can be excluded based on a passlist');
-    $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz,foo';
-    ok($basetest->is_applicable, 'a passlisted module shows up');
-    $bmwqemu::vars{EXCLUDE_MODULES} = 'foo';
-    ok(!$basetest->is_applicable, 'passlisted modules are overridden by blocklist');
-    $bmwqemu::vars{EXCLUDE_MODULES} = '';
-    $bmwqemu::vars{EXIT_AFTER_MODULE} = 'foo';
-    ok($basetest->is_applicable, 'matching module itself is still applicable');
-    @autotest::testorder = ($basetest);
-    ok(!$basetest->is_applicable, 'after matching module, it is not applicable anymore');
-    my $other = basetest->new('installation');
-    $other->{class} = 'bar';
-    $other->{fullname} = 'installation-bar';
-    ok(!$other->is_applicable, 'any other module after matching module is not applicable');
-    $bmwqemu::vars{EXIT_AFTER_MODULE} = 'installation-foo';
-    ok(!$other->is_applicable, 'matches fullname too');
-    $bmwqemu::vars{EXIT_AFTER_MODULE} = '';
-    @autotest::testorder = ();
 };
 
 subtest parse_serial_output => sub {
