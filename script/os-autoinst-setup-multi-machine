@@ -123,16 +123,34 @@ create_gre_preup_script() {
 #!/bin/sh
 OVS_CMD=\$(command -v ovs-vsctl)
 if [ -z "\$OVS_CMD" ]; then
-    logger "Error: ovs-vsctl not found. Skipping script \$0"
+    logger -- "Error: ovs-vsctl not found. Skipping script \$0"
     exit 0 # Exit 0 to avoid breaking NetworkManager's flow
 fi
 TARGET_BRIDGE=\$("\$OVS_CMD" list-br)
-action="\$1"
-bridge="\$2"
-if [ "\$bridge" = "\$TARGET_BRIDGE" ] && ([ "\$action" = "pre-up" ] || [ "\$action" = "up" ]); then
-    ovs-vsctl set bridge \$bridge rstp_enable=true
-    # TODO add entries according to your network topology
-    #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+# NM_DISPATCHER_ACTION env var is set when NM calls scripts via dispatcher service
+# Ref: https://networkmanager.dev/docs/api/1.44.4/NetworkManager-dispatcher.html
+# 2. Argument Normalization (NetworkManager vs. wicked)
+# NetworkManager: \$1 = interface name, \$2 = action
+# wicked: \$1 = action, \$2 = interface name
+if [ -n "\$NM_DISPATCHER_ACTION" ]; then
+    # Environment detected as NetworkManager
+    bridge="\$1"
+    action="\$2"
+else
+    # Environment detected as wicked (or manual call)
+    action="\$1"
+    bridge="\$2"
+fi
+
+# use grep -qx to ensure the bridge exists in the OVS database if more than one ovs bridge are in db
+if "\$OVS_CMD" list-br | grep -qx "\$bridge"; then
+    if [ "\$action" = "pre-up" ] || [ "\$action" = "up" ]; then
+        ovs-vsctl set bridge \$bridge rstp_enable=true
+        # TODO add entries according to your network topology
+        #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
+    fi
+else
+    logger -- "\$0: ovs bridge \$bridge doesn't exists"
 fi
 EOF
     chmod +x "$location"
