@@ -152,7 +152,7 @@ subtest 'WebSocket handshake succeeds' => sub {
 
     $mock_stream->redefine(on => sub ($self, $event, $cb) {
             if ($event eq 'read') {
-                $cb->($self, "dummy raw data");
+                $cb->($self, 'dummy raw data');
             }
     });
     $mock_stream->redefine(write => sub ($self, $bytes) {
@@ -164,11 +164,11 @@ subtest 'WebSocket handshake succeeds' => sub {
     ok(grep(/WebSocket connection established/, @log_messages),
         'WebSocket connection established');
 
-    $ws_on_text->(undef, "dummy text message");
-    pass("Text message received via WebSocket");
-    $ws_on_binary->(undef, "dummy binary data");
-    pass("Binary message received via WebSocket");
-    $ws_on_finish->(undef, 1000, "Normal closure");
+    $ws_on_text->(undef, 'dummy text message');
+    pass('Text message received via WebSocket');
+    $ws_on_binary->(undef, 'dummy binary data');
+    pass('Binary message received via WebSocket');
+    $ws_on_finish->(undef, 1000, 'Normal closure');
     ok(grep(/WebSocket closed with status 1000/, @log_messages),
         'WebSocket closed as expected');
 };

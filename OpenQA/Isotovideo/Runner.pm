@@ -64,7 +64,7 @@ sub run ($self) {
 
 sub _read_response ($self, $rsp, $fd) {
     if (!defined $rsp) {
-        fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($fd), fileno($self->testfd), fileno($self->cmd_srv_fd));
+        fctwarn sprintf('THERE IS NOTHING TO READ %d %d %d', fileno($fd), fileno($self->testfd), fileno($self->cmd_srv_fd));
         $self->loop(0);
     } elsif ($fd == $self->command_handler->backend_out_fd) {
         $self->command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
@@ -173,7 +173,7 @@ sub stop_commands ($self, $reason) {
 
     if ($self->cmd_srv_port && $reason && $reason eq 'test execution ended') {
         my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:" . $self->cmd_srv_port . "/$job_token/broadcast";
+        my $url = 'http://127.0.0.1:' . $self->cmd_srv_port . "/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
         # note: If the job is stopped by the worker because it has been
@@ -253,14 +253,14 @@ sub init ($self, @args) {
 }
 
 sub exit_code_from_test_results ($self) {
-    my @results = glob(path(bmwqemu::result_dir(), "result-*.json"));
+    my @results = glob(path(bmwqemu::result_dir(), 'result-*.json'));
     return EXIT_STATUS_ERR_NO_TESTS if @results == 0;
 
     my $did_fail = 0;
     for my $result_file_path (@results) {
         my $result_file = path($result_file_path);
         my $test_result = decode_json($result_file->slurp)->{result};
-        diag sprintf("Test result [%s] %s", $result_file->to_string, $test_result);
+        diag sprintf('Test result [%s] %s', $result_file->to_string, $test_result);
         # If a failure (anything different from ok & softfail) is found, keep it.
         next if $did_fail;
 

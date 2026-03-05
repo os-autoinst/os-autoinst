@@ -112,7 +112,7 @@ sub new ($classname, $jsonfile) {
     warn "$jsonfile missing match area\n" and return unless $gotmatch;
 
     $self->{name} = basename($jsonfile, '.json');
-    my $png = $self->{png} || $self->{name} . ".png";
+    my $png = $self->{png} || $self->{name} . '.png';
 
     $self->{png} = path(dirname($jsonfile), $png)->to_string;
     warn "$self->{png} is empty or not found" and return unless -s $self->{png};
@@ -228,18 +228,18 @@ sub has_tag ($self, $tag) {
 }
 
 sub has_property ($self, $property_name) {
-    return grep { ref($_) eq "HASH" ? $_->{name} eq $property_name : $_ eq $property_name } @{$self->{properties}};
+    return grep { ref($_) eq 'HASH' ? $_->{name} eq $property_name : $_ eq $property_name } @{$self->{properties}};
 }
 
 sub get_property_value ($self, $property_name) {
     for my $property (@{$self->{properties}}) {
-        if (ref($property) eq "HASH") {
+        if (ref($property) eq 'HASH') {
             return $property->{value} if ($property->{name} eq $property_name);
         }
     }
-    if ($property_name eq "workaround") {
+    if ($property_name eq 'workaround') {
         if ($self->{name} =~ /\S+\-(bsc|poo|bnc|boo)(\d+)\-\S+/) {
-            return $1 . "#" . $2;
+            return $1 . '#' . $2;
         }
     }
     return undef;
@@ -271,7 +271,7 @@ sub init ($init_needles_dir = $bmwqemu::vars{NEEDLES_DIR} // default_needles_dir
     %tags = ();
     bmwqemu::diag("init needles from $needles_dir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
-    bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
+    bmwqemu::diag(sprintf('loaded %d needles', scalar keys %needles));
 
     $cleanuphandler->() if $cleanuphandler;
     return $needles_dir;
@@ -295,7 +295,7 @@ sub tags ($wanted) {
         for (@wanted) {
             next NEEDLE if !$n->has_tag($_);
         }
-        print "adding ", $n->{name}, "\n";
+        print 'adding ', $n->{name}, "\n";
         push(@results, $n);
     }
     return \@results;

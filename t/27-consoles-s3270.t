@@ -13,9 +13,9 @@ use OpenQA::Test::TimeLimit '5';
 use backend::baseclass;
 use consoles::s3270;
 
-$bmwqemu::vars{ZVM_HOST} = "localhost.localdomain";
-$bmwqemu::vars{ZVM_GUEST} = "guest.user";
-$bmwqemu::vars{ZVM_PASSWORD} = "password";
+$bmwqemu::vars{ZVM_HOST} = 'localhost.localdomain';
+$bmwqemu::vars{ZVM_GUEST} = 'guest.user';
+$bmwqemu::vars{ZVM_PASSWORD} = 'password';
 
 my $ipc_run_mock = Test::MockModule->new('IPC::Run');
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
@@ -23,7 +23,7 @@ my $localXvnc_mock = Test::MockModule->new('consoles::localXvnc');
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $socket_mock = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
 
-$localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = "display" });
+$localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = 'display' });
 $vnc_mock->redefine(_read_socket => sub { substr(${$_[1]}, $_[3], $_[2]) = $socket_mock->mocked_read; length ${$_[1]} });
 $vnc_mock->redefine(login => 1);
 $inet_mock->redefine(new => $socket_mock);
@@ -45,8 +45,8 @@ subtest 's3270_console start' => sub {
 subtest 's3270 send' => sub {
     my $ret = $s3270_console->send_3270("Connect($bmwqemu::vars{ZVM_HOST})", command_status => 'ok');
     is $s3270_console->{in}, "Connect($bmwqemu::vars{ZVM_HOST})\n", 'input command matches';
-    is $ret->{terminal_status}, "start to execute process", 'terminal status matches';
-    is $ret->{command_status}, "ok", 'command status matches';
+    is $ret->{terminal_status}, 'start to execute process', 'terminal status matches';
+    is $ret->{command_status}, 'ok', 'command status matches';
     is_deeply $ret->{command_output}, ['success', "connet($bmwqemu::vars{ZVM_HOST})"], 'command output matches';
 
     $s3270_console->{out} = "success\nconnet($bmwqemu::vars{ZVM_HOST})\nstart to execute process\nok";
@@ -124,8 +124,8 @@ subtest 'expect_3270 tests' => sub {
             if ($command eq 'Snap(Ascii)') {
                 ff(5);
                 $return_lines = {'command_output' => ["\n", 'InputLine', 'DONE']} if $count == 3;
-                $return_lines = {'command_output' => ["OutputArea", 'InputLine', 'DONE']} if $count == 2;
-                $return_lines = {'command_output' => ["OutputArea", 'InputLine', 'RUNNING']} if $count == 1;
+                $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'DONE']} if $count == 2;
+                $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'RUNNING']} if $count == 1;
                 $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'MORE...']} if $count == 0;
                 $count += 1;
             }

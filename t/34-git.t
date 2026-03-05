@@ -32,10 +32,10 @@ subtest 'failure to clone results once' => sub {
     my $failed_once = 0;
     $utils_mock->redefine(clone_git => sub (@) {
             unless ($failed_once++) {
-                bmwqemu::diag "Connection reset by peer";
-                die "Unable to clone Git repository";
+                bmwqemu::diag 'Connection reset by peer';
+                die 'Unable to clone Git repository';
             }
-            bmwqemu::diag "Cloning into ...";
+            bmwqemu::diag 'Cloning into ...';
             return 1;
     });
     combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git', retry_count => 3) } qr@Clone failed, retries left: 3 of 3@;
@@ -49,8 +49,8 @@ subtest 'failure to clone results in repeated attempts' => sub {
     $utils_mock->redefine(clone_git => sub ($dir, @) {
             ok !-e $dir, "$dir cleaned up" or return 1;
             path($dir)->make_path;
-            bmwqemu::diag "Connection reset by peer";
-            die "Unable to clone Git repository";
+            bmwqemu::diag 'Connection reset by peer';
+            die 'Unable to clone Git repository';
     });
     combined_like {
         throws_ok { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Unable to clone Git repository@;
@@ -64,7 +64,7 @@ my $case_dir = "file://$git_dir#abcdef";
 subtest 'failing clone' => sub {
     %bmwqemu::vars = (CASEDIR => $case_dir);
     my $out = combined_from {
-        throws_ok { checkout_git_repo_and_branch('CASEDIR', retry_count => 0) } qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, "Error message when trying to clone wrong git hash"
+        throws_ok { checkout_git_repo_and_branch('CASEDIR', retry_count => 0) } qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, 'Error message when trying to clone wrong git hash'
     };
     like $out, qr{Fetching 'abcdef' from origin manually}s, 'manual git fetch for revspec was attempted';
     like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch with --depth option was attempted';
@@ -211,7 +211,7 @@ touch README.md && \
 git add README.md && \
 git commit -mInit >/dev/null
 EOM
-    system $git_init and die "git init failed";
+    system $git_init and die 'git init failed';
 
     # Create some dummy commits so the code has to increase the clone depth a
     # couple of times

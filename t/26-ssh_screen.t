@@ -27,7 +27,7 @@ subtest 'Correct message when type_string timeouts' => sub {
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     $mock_bmwqemu->noop('log_call');
     my $sshscreen = consoles::ssh_screen->new(ssh_connection => $mock_ssh, ssh_channel => $mock_channel);
-    throws_ok { $sshscreen->type_string({text => 'This should timeout'}) } qr/consoles::ssh_screen::type_string: Timed out after 1000 seconds/, "sub dies with correct error message and display the correct caller";
+    throws_ok { $sshscreen->type_string({text => 'This should timeout'}) } qr/consoles::ssh_screen::type_string: Timed out after 1000 seconds/, 'sub dies with correct error message and display the correct caller';
 };
 
 subtest 'test old net ssh2 error handling' => sub {

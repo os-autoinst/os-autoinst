@@ -37,7 +37,7 @@ our $openqa_default_share = '/var/lib/openqa/share';
 
 my @ocrrect;
 
-our $screenshotpath = "qemuscreenshot";
+our $screenshotpath = 'qemuscreenshot';
 
 # global vars
 
@@ -116,11 +116,11 @@ our $topdir;
 sub init () {
     load_vars();
 
-    $vars{BACKEND} ||= "qemu";
+    $vars{BACKEND} ||= 'qemu';
 
     # remove directories for asset upload
-    remove_tree("assets_public");
-    remove_tree("assets_private");
+    remove_tree('assets_public');
+    remove_tree('assets_private');
 
     remove_tree(result_dir);
     mkdir result_dir;
@@ -149,7 +149,7 @@ sub ensure_valid_vars () {
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
-    die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
+    die 'CASEDIR variable not set, unknown test case directory' if !defined $vars{CASEDIR};
     die "No scripts in CASEDIR '$vars{CASEDIR}'\n" unless -e $vars{CASEDIR};
     die "WHEELS_DIR '$vars{WHEELS_DIR}' does not exist" if defined $vars{WHEELS_DIR} && !-d $vars{WHEELS_DIR};
     _check_publish_vars();
@@ -229,9 +229,9 @@ sub log_call (@args) {
                 # only quote if needed
                 $key = pp($key);
             }
-            push @result, join("=", $key, pp($value));
+            push @result, join('=', $key, pp($value));
         }
-        $params = join(", ", @result);
+        $params = join(', ', @result);
     }
 
     foreach (@masked) {
@@ -256,7 +256,7 @@ sub stop_vm () {
 
 sub mydie ($cause_of_death) {
     log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
+    croak 'mydie';
 }
 
 # runtime information gathering functions end
@@ -264,7 +264,7 @@ sub mydie ($cause_of_death) {
 
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
-    open(my $fd, ">", "$fn.new");
+    open(my $fd, '>', "$fn.new");
     my $json;
     try { $json = Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) }
     catch ($e) {

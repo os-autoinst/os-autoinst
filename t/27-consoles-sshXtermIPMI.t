@@ -26,7 +26,7 @@ $bmwqemu::vars{IPMI_USER} = 'root';
 $bmwqemu::vars{IPMI_PASSWORD} = 'root';
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
-$bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
+$bmwqemu::vars{HARDWARE_CONSOLE_LOG} = 1;
 $bmwqemu::vars{IPMI_SOL_MAX_RECONNECTS} = 5;
 
 my @printed;
@@ -48,7 +48,7 @@ $vnc_mock->redefine(_read_socket => sub { substr(${$_[1]}, $_[3], $_[2]) = $s->m
 $inet_mock->redefine(new => $s);
 $backend_mock->redefine(do_mc_reset => sub { bmwqemu::diag('IPMI mc reset success'); });
 $testapi_console_mock->redefine(backend => $backend);
-$localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = "display"; });
+$localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = 'display'; });
 $vnc_mock->noop('_server_initialization');
 $vnc_mock->noop('login');
 

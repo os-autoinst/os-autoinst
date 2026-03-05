@@ -132,7 +132,7 @@ sub open_pipe ($self) {
 
     my $newsize = $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} // path('/proc/sys/fs/pipe-max-size')->slurp();
     for my $fd (($fd_w, $fd_r)) {
-        my $old = $self->get_pipe_sz($fd) or die("Unable to read PIPE_SZ");
+        my $old = $self->get_pipe_sz($fd) or die('Unable to read PIPE_SZ');
         {
             my $new;
             while ($newsize > $old) {

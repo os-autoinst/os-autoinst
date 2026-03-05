@@ -21,9 +21,9 @@ sub start ($self) {
     $self->{raw_expect_queue} = Thread::Queue->new;
 
     # start the local terminal emulator
-    $self->{in} = "";
-    $self->{out} = "";
-    $self->{err} = "";
+    $self->{in} = '';
+    $self->{out} = '';
+    $self->{err} = '';
 
     $self->{connection} = IPC::Run::start(\@{$self->{s3270}}, \$self->{in}, \$self->{out}, \$self->{err});
 
@@ -45,7 +45,7 @@ sub finish ($self) { IPC::Run::finish($self->{connection}) }
 # }
 
 sub send_3270 ($self, $command = '', %arg) {
-    $arg{command_status} //= "ok";
+    $arg{command_status} //= 'ok';
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
       unless (grep $arg{command_status}, ['ok', 'error', 'any']);
 
@@ -55,7 +55,7 @@ sub send_3270 ($self, $command = '', %arg) {
     # grab and flush the IPC output.  IPC will only append, so the out
     # var needs to be flushed.
     my $out_string = $self->{out};
-    $self->{out} = "";
+    $self->{out} = '';
 
     # split output in three pieces: command status, terminal status
     # and command output, if any.
@@ -81,7 +81,7 @@ sub ensure_screen_update ($self) {
     $self->{backend}->request_screen_update();
     usleep(5_000);
     $self->{backend}->capture_screenshot();
-    $self->send_3270("Clear");
+    $self->send_3270('Clear');
 }
 
 sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
@@ -89,8 +89,8 @@ sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
 
     # grab any pending output
     if ($self->wait_output()) {
-        $self->send_3270("Snap");
-        my $r = $self->send_3270("Snap(Ascii)");
+        $self->send_3270('Snap');
+        my $r = $self->send_3270('Snap(Ascii)');
         # split it according to the screen sections
         my $co = $r->{command_output};
 
@@ -246,7 +246,7 @@ sub sequence_3270 ($self, @commands) { $self->send_3270($_) for @commands }
 
 # map the terminal status of x3270 to a hash
 sub nice_3270_status ($self, $status_string) {
-    my (@raw_status) = split(" ", $status_string);
+    my (@raw_status) = split(' ', $status_string);
     my @status_names = (
         'keyboard_state',
         ## If the keyboard is unlocked, the letter U. If the
@@ -303,7 +303,7 @@ sub nice_3270_status ($self, $status_string) {
 sub _connect_3270 ($self, $host) {
     my $sent = $self->send_3270("Connect($host)");
     confess "connect to host >$host< failed.\n" . Dump($sent) if $sent->{terminal_status} !~ / C\($host\) /;
-    $self->send_3270("Wait(InputField)");
+    $self->send_3270('Wait(InputField)');
     my $lines = $self->expect_3270();
     confess "doesn't look like zVM login prompt." unless grep /Fill in your USERID and PASSWORD and press ENTER/, @$lines;
     return $lines;
@@ -313,8 +313,8 @@ sub _login_guest ($self, $guest, $password) {
     my ($username) = $guest =~ /(.*?)\..*$/;
     $self->send_3270("String($username)");
     $self->send_3270("String($password)");
-    $self->send_3270("ENTER");
-    $self->send_3270("Wait(InputField)");
+    $self->send_3270('ENTER');
+    $self->send_3270('Wait(InputField)');
 
     # Depending on which application is running on the host vm guest,
     # we get various status lines:
@@ -377,7 +377,7 @@ sub connect_and_login ($self, $reconnect_ok = 0) {
 sub new_3270_console ($self) {
     $self->{s3270} = [
         qw(x3270),
-        "-display", $self->{DISPLAY},
+        '-display', $self->{DISPLAY},
         qw(-script -charset us -xrm x3270.visualBell:true -xrm x3270.keypadOn:false
           -set screenTrace -xrm x3270.traceDir:.
           -trace -xrm x3270.traceMonitor:false),

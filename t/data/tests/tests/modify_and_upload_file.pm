@@ -28,7 +28,7 @@ sub run ($) {
     save_tmp_file('modified.xml', $content);
     # Verify that correct file is downloaded
     assert_script_run("wget -q $url");
-    script_run "echo '72d2c15cb10535f36862d7d2eecc8a79  modified.xml' > modified.md5";
-    assert_script_run("md5sum -c modified.md5");
+    script_run q{echo '72d2c15cb10535f36862d7d2eecc8a79  modified.xml' > modified.md5};
+    assert_script_run('md5sum -c modified.md5');
     enter_cmd 'echo save_tmp_file returned expected file';
 }

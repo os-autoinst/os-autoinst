@@ -28,11 +28,11 @@ $console->mock('ret_hash', sub { %console_const_hash; });
 $console->mock('ret_hash_empty', sub { my %empty_hash; });
 $console->mock('ret_hash_ref', sub { {x => 'a', y => 'b', z => 'c'}; });
 $console->mock('ret_hash_ref_empty', sub { {} });
-$console->mock('ret_scalar', sub { "a" });
+$console->mock('ret_scalar', sub { 'a' });
 $console->mock('ret_undef', sub { return undef; });
 $console->mock('ret_list', sub { qw(a b c d); });
 $console->mock('ret_list_empty', sub { return; });
-$console->mock('ret_die', sub { die("!!Urgs!!"); });
+$console->mock('ret_die', sub { die('!!Urgs!!'); });
 $console->mock('check_args', sub {
         my ($self, @args) = @_;
         is_deeply(\@args, $console_check_args, 'Got expected (' . join(',', @args) . ') arguments');
@@ -73,7 +73,7 @@ subtest 'Verify fake console return values in scalar context' => sub {
     is_deeply(scalar($console->ret_hash_empty()), 0, 'Empty HASH');
     is_deeply(scalar($console->ret_hash_ref()), {x => 'a', y => 'b', z => 'c'}, 'HASH-REF');
     is_deeply(scalar($console->ret_hash_ref_empty()), {}, 'Empty HASH-REF');
-    is_deeply(scalar($console->ret_scalar()), "a", 'SCALAR');
+    is_deeply(scalar($console->ret_scalar()), 'a', 'SCALAR');
     is_deeply(scalar($console->ret_undef()), undef, 'Return undef');
     is_deeply(scalar($console->ret_list()), 'd', 'LIST');
     is_deeply(scalar($console->ret_list_empty()), undef, 'Empty LIST');
@@ -125,11 +125,11 @@ subtest 'testapi::console() => backend::console_proxy => backend::baseclass::pro
                 wantarray => !!1,
             },
         ];
-        is_deeply([@{$jsonrpc_cmds}[-3 .. -1]], $exp, "Expected call parameters!");
+        is_deeply([@{$jsonrpc_cmds}[-3 .. -1]], $exp, 'Expected call parameters!');
     }
 
-    throws_ok { console('a-console')->ret_die() } qr/!!Urgs!!/, "Exception forwarded";
-    like($jsonrpc_results->[-1]->{exception}, qr/!!Urgs!!/, "Exception was JSON encoded");
+    throws_ok { console('a-console')->ret_die() } qr/!!Urgs!!/, 'Exception forwarded';
+    like($jsonrpc_results->[-1]->{exception}, qr/!!Urgs!!/, 'Exception was JSON encoded');
 
     my $exp = {
         cmd => 'backend_proxy_console_call',
@@ -141,15 +141,15 @@ subtest 'testapi::console() => backend::console_proxy => backend::baseclass::pro
 
     $exp->{args} = $console_check_args = [];
     console->check_args();
-    is_deeply($jsonrpc_cmds->[-1], $exp, "Call without arguments");
+    is_deeply($jsonrpc_cmds->[-1], $exp, 'Call without arguments');
 
     $exp->{args} = $console_check_args = [qw( a b c d e )];
     console->check_args('a', 'b', 'c', 'd', 'e');
-    is_deeply($jsonrpc_cmds->[-1], $exp, "Call with 5 arguments");
+    is_deeply($jsonrpc_cmds->[-1], $exp, 'Call with 5 arguments');
 
     $exp->{args} = $console_check_args = [qw(foo bar)];
     console->check_args(foo => 'bar');
-    is_deeply($jsonrpc_cmds->[-1], $exp, "Call with hash as argument");
+    is_deeply($jsonrpc_cmds->[-1], $exp, 'Call with hash as argument');
 };
 
 done_testing;

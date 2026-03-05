@@ -35,7 +35,7 @@ $mock_console->redefine(_get_ffmpeg_cmd => sub ($self, $url) {
         my @cmd = ('cat', $mock_video_source);
         return \@cmd;
 });
-$mock_console->redefine(_get_ustreamer_cmd => ["true"]);
+$mock_console->redefine(_get_ustreamer_cmd => ['true']);
 
 my $mock_backend = Test::MockObject->new();
 $mock_backend->{xres} = 1024;
@@ -48,25 +48,25 @@ $mock_bmwqemu->noop('diag', 'fctinfo', 'log_call');
 subtest 'connect stream' => sub {
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     $console->connect_remote({url => 'udp://@:5004'});
-    is $console->{dv_timings_supported}, 0, "correctly detected non-v4l2 stream";
-    is_deeply \@v4l2_ctl_calls, [], "calls to v4l2-ctl";
+    is $console->{dv_timings_supported}, 0, 'correctly detected non-v4l2 stream';
+    is_deeply \@v4l2_ctl_calls, [], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = ('' => '');
     $console->connect_remote({url => '/dev/video0'});
-    is $console->{dv_timings_supported}, 0, "still no need to use v4l2-ctl";
-    is_deeply \@v4l2_ctl_calls, [[('/dev/video0', undef, '--get-dv-timings')]], "calls to v4l2-ctl";
+    is $console->{dv_timings_supported}, 0, 'still no need to use v4l2-ctl';
+    is_deeply \@v4l2_ctl_calls, [[('/dev/video0', undef, '--get-dv-timings')]], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
     # no input connected
     %v4l2_ctl_results = ('--get-dv-timings' => '0x0pnan');
     $console->connect_remote({url => '/dev/video0'});
-    is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
-    is $console->{dv_timings}, '', "correct lack of resolution";
+    is $console->{dv_timings_supported}, 1, 'use v4l2-ctl';
+    is $console->{dv_timings}, '', 'correct lack of resolution';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', undef, '--get-dv-timings')],
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = (
@@ -74,13 +74,13 @@ subtest 'connect stream' => sub {
         '--set-dv-bt-timings query' => 'BT timings set',
     );
     $console->connect_remote({url => '/dev/video0'});
-    is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
-    is $console->{dv_timings}, '640x480p60', "correct resolution";
+    is $console->{dv_timings_supported}, 1, 'use v4l2-ctl';
+    is $console->{dv_timings}, '640x480p60', 'correct resolution';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', undef, '--get-dv-timings')],
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
         [('/dev/video0', undef, '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = (
@@ -89,23 +89,23 @@ subtest 'connect stream' => sub {
         '--set-dv-bt-timings query' => 'BT timings set',
     );
     $console->connect_remote({url => '/dev/video0', edid => 'type=hdmi'});
-    is $console->{dv_timings_supported}, 1, "use v4l2-ctl and set edid";
+    is $console->{dv_timings_supported}, 1, 'use v4l2-ctl and set edid';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', undef, '--set-edid type=hdmi')],
         [('/dev/video0', undef, '--get-dv-timings')],
         [('/dev/video0', undef, '--set-dv-bt-timings query')],
         [('/dev/video0', undef, '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     my $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, 'udp://@:5004');
     is_deeply $cmd, [
         'ffmpeg', '-loglevel', 'fatal', '-i', 'udp://@:5004',
-        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 4, '-'], "correct cmd built for UDP source";
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 4, '-'], 'correct cmd built for UDP source';
 
     $cmd = $mock_console->original('_get_ffmpeg_cmd')->($console, '/dev/video0?fps=3');
     is_deeply $cmd, [
         'ffmpeg', '-loglevel', 'fatal', '-i', '/dev/video0',
-        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], "correct cmd built for fps=3";
+        '-vcodec', 'ppm', '-f', 'rawvideo', '-r', 3, '-'], 'correct cmd built for fps=3';
 
     # unsupported format=
     throws_ok { $mock_console->original('_get_ffmpeg_cmd')->($console, '/dev/video0?fps=3&format=BGR3') } qr/does not support format/, 'dies ok - ffmpeg cmdline with format=';
@@ -121,20 +121,20 @@ subtest 'connect stream ustreamer' => sub {
     plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     @v4l2_ctl_calls = ();
-    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'frame1.ppm', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
-    is $console->{dv_timings_supported}, 0, "correctly skipping DV timing";
-    is_deeply \@v4l2_ctl_calls, [], "calls to v4l2-ctl";
+    is $console->{dv_timings_supported}, 0, 'correctly skipping DV timing';
+    is_deeply \@v4l2_ctl_calls, [], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = (
         '--set-edid type=hdmi' => "CTA-861 Header\n...\n\nHDMI Vendor-Specific Data Block\n...\n",
     );
     $console->connect_remote({url => 'ustreamer:///dev/video0', edid => 'type=hdmi'});
-    is $console->{dv_timings_supported}, 0, "use v4l2-ctl and set edid";
+    is $console->{dv_timings_supported}, 0, 'use v4l2-ctl and set edid';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', undef, '--set-edid type=hdmi')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     my $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
@@ -142,54 +142,54 @@ subtest 'connect stream ustreamer' => sub {
         '-m', 'UYVY',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--persistent', '--dv-timings'], "correct cmd built for ustreamer";
+        '--persistent', '--dv-timings'], 'correct cmd built for ustreamer';
     $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0?fps=2&format=BGR24', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '2',
         '-m', 'BGR24',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--persistent', '--dv-timings'], "correct cmd built for fps=2 and format=BGR24";
+        '--persistent', '--dv-timings'], 'correct cmd built for fps=2 and format=BGR24';
     $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0&format=BGR24', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
         '-m', 'BGR24',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--persistent', '--dv-timings'], "correct cmd built for format=BGR24";
+        '--persistent', '--dv-timings'], 'correct cmd built for format=BGR24';
     $cmd = $mock_console->original('_get_ustreamer_cmd')->($console, '/dev/video0&format=RGB24swap', 'raw-sink-dev-video0.raw');
     is_deeply $cmd, [
         'ustreamer', '--device', '/dev/video0', '-f', '5',
         '-m', 'RGB24',
         '-c', 'NOOP',
         '--raw-sink', 'raw-sink-dev-video0.raw', '--raw-sink-rm',
-        '--persistent', '--dv-timings', '--format-swap-rgb', '1'], "correct cmd built for format=RGB24swap";
+        '--persistent', '--dv-timings', '--format-swap-rgb', '1'], 'correct cmd built for format=RGB24swap';
 };
 
 subtest 'frames parsing' => sub {
     my ($img, $received_img);
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
-    $mock_video_source = $data_dir . "frame1.ppm";
+    $mock_video_source = $data_dir . 'frame1.ppm';
     $console->activate;
 
-    $img = tinycv::read($data_dir . "frame1.png");
+    $img = tinycv::read($data_dir . 'frame1.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for single frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
 
     # now two frames
-    $mock_video_source = $data_dir . "frames12.ppm";
+    $mock_video_source = $data_dir . 'frames12.ppm';
     $console->connect_remote({url => 'udp://@:5004'});
 
-    $img = tinycv::read($data_dir . "frame2.png");
+    $img = tinycv::read($data_dir . 'frame2.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for second frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
 
     # now incomplete frame
-    $mock_video_source = $data_dir . "incompleteframe.ppm";
+    $mock_video_source = $data_dir . 'incompleteframe.ppm';
     $console->connect_remote({url => 'udp://@:5004'});
 
     # make sure cat process has finished to guarantee that pipe has data on the
@@ -197,7 +197,7 @@ subtest 'frames parsing' => sub {
     waitpid($console->{ffmpegpid}, 0);
 
     my $received_update = $console->update_framebuffer();
-    is $received_update, 0, "detected incomplete frame";
+    is $received_update, 0, 'detected incomplete frame';
     $console->disable_video;
 
     # now invalid frame - not in PPM format to test exception
@@ -215,92 +215,92 @@ subtest 'frame parsing - ustreamer' => sub {
     # practice ustreamer is only used on aarch64, restrict tests to
     # aarch64 and x86_64 (x86_64 for CI convenience)
     # see https://progress.opensuse.org/issues/161969
-    try { pack("D", 1.0) }
+    try { pack('D', 1.0) }
     catch ($e) { plan skip_all => 'packing long double is not supported' }    # uncoverable statement
     plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
 
     my ($img, $received_img);
 
     # ustreamer frame, invalid magic
-    copy($data_dir . "frame1.ppm", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'frame1.ppm', '/dev/shm/raw-sink-dev-video0.raw');
     my $console = consoles::video_stream->new(undef, {url => 'ustreamer:///dev/video0'});
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
     my $received_update = $console->update_framebuffer();
-    is $received_update, 0, "detected invalid data";
+    is $received_update, 0, 'detected invalid data';
     $console->disable_video;
 
     # ustreamer frame, unsupported version
-    copy($data_dir . "ustreamer6-invalid", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer6-invalid', '/dev/shm/raw-sink-dev-video0.raw');
     $console = consoles::video_stream->new(undef, {url => 'ustreamer:///dev/video0'});
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
     throws_ok { $console->update_framebuffer(); }
-    qr/Unsupported ustreamer version '6'/, "detected unsupported version";
+    qr/Unsupported ustreamer version '6'/, 'detected unsupported version';
     $console->disable_video;
 
     # ustreamer frame, "no signal" message encoded as JPEG
-    copy($data_dir . "ustreamer-shared-no-signal", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer-shared-no-signal', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer-shared-no-signal.png");
+    $img = tinycv::read($data_dir . 'ustreamer-shared-no-signal.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for JPEG frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct JPEG frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct JPEG frame';
     $console->disable_video;
 
     # ustreamer frame, actual data, encoded as UYVY
-    copy($data_dir . "ustreamer-shared-full-frame", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer-shared-full-frame', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer-shared-full-frame.png");
+    $img = tinycv::read($data_dir . 'ustreamer-shared-full-frame.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for UYVY frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct UYVY frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct UYVY frame';
     $console->disable_video;
 
     # ustreamer v7 frame, "no signal" message encoded as RGB3
-    copy($data_dir . "ustreamer7-shared-no-signal", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer7-shared-no-signal', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer7-shared-no-signal.png");
+    $img = tinycv::read($data_dir . 'ustreamer7-shared-no-signal.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for RGB3 v7 no-signal message' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct RGB3 v7 no-signal message";
+    is $received_img->similarity($img), 1_000_000, 'received correct RGB3 v7 no-signal message';
     $console->disable_video;
 
     # ustreamer v7 frame, full frame encoded as RGB3
-    copy($data_dir . "ustreamer7-shared-full-frame-rgb3", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer7-shared-full-frame-rgb3', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame-rgb3.png");
+    $img = tinycv::read($data_dir . 'ustreamer7-shared-full-frame-rgb3.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for RGB3 v7 frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct RGB3 v7 frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct RGB3 v7 frame';
     $console->disable_video;
 
     # ustreamer v7 frame, actual data, encoded as UYVY
-    copy($data_dir . "ustreamer7-shared-full-frame", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer7-shared-full-frame', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame.png");
+    $img = tinycv::read($data_dir . 'ustreamer7-shared-full-frame.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for UYVY v7 frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct UYVY v7 frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct UYVY v7 frame';
     $console->disable_video;
 
     # ustreamer v7 frame, actual data, encoded as BGR3 aka BGR24
-    copy($data_dir . "ustreamer7-shared-full-frame-bgr3", '/dev/shm/raw-sink-dev-video0.raw');
+    copy($data_dir . 'ustreamer7-shared-full-frame-bgr3', '/dev/shm/raw-sink-dev-video0.raw');
     $console->connect_remote({url => 'ustreamer:///dev/video0'});
 
-    $img = tinycv::read($data_dir . "ustreamer7-shared-full-frame-bgr3.png");
+    $img = tinycv::read($data_dir . 'ustreamer7-shared-full-frame-bgr3.png');
     $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for BGR3 v7 frame' or return;
-    is $received_img->similarity($img), 1_000_000, "received correct BGR3 v7 frame";
+    is $received_img->similarity($img), 1_000_000, 'received correct BGR3 v7 frame';
     $console->disable_video;
 };
 
 subtest 'v4l2 resolution' => sub {
-    $mock_video_source = $data_dir . "frame1.ppm";
+    $mock_video_source = $data_dir . 'frame1.ppm';
     my $console = consoles::video_stream->new(undef, {
             url => '/dev/video0',
             video_cmd_prefix => 'ssh host',
@@ -323,7 +323,7 @@ subtest 'v4l2 resolution' => sub {
     is $console->{dv_timings}, '640x480p60', 'correct resolution detected';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', 'ssh host', '--query-dv-timings')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
 
@@ -341,7 +341,7 @@ subtest 'v4l2 resolution' => sub {
         [('/dev/video0', 'ssh host', '--query-dv-timings')],
         [('/dev/video0', 'ssh host', '--set-dv-bt-timings query')],
         [('/dev/video0', 'ssh host', '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+    ], 'calls to v4l2-ctl';
 
     @v4l2_ctl_calls = ();
 
@@ -357,7 +357,7 @@ subtest 'v4l2 resolution' => sub {
     is $console->{dv_timings}, '', 'correct dv_timings returned';
     is_deeply \@v4l2_ctl_calls, [
         [('/dev/video0', 'ssh host', '--query-dv-timings')]
-    ], "calls to v4l2-ctl matching";
+    ], 'calls to v4l2-ctl matching';
 
     $console->disable_video;
 };
@@ -395,7 +395,7 @@ subtest 'input events' => sub {
         "mouse_button 2\n",
         "mouse_button 0\n",
         "mouse_move 1023 767\n",
-    ], "correct commands sent";
+    ], 'correct commands sent';
 
     $console->activate;
     $console->send_key({key => 'a'});
@@ -408,7 +408,7 @@ subtest 'input events' => sub {
         "a\n",
         "ctrl-x\n",
         "s\n", "o\n", "m\n", "e\n", "spc\n", "t\n", "e\n", "s\n", "t\n", "ret\n",
-    ], "correct commands sent";
+    ], 'correct commands sent';
 
     $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL} = 'http://127.0.0.42:42000/cmd';
 
@@ -417,7 +417,7 @@ subtest 'input events' => sub {
     my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
     my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
     $user_agent_mock->redefine(get => sub ($ua, $url) { push(@$urls, "$url"); Mojo::Transaction::HTTP->new });
-    $http->redefine(result => sub { Mojo::Message::Response->new->code(200)->body("hallo") });
+    $http->redefine(result => sub { Mojo::Message::Response->new->code(200)->body('hallo') });
 
     $console->activate;
     $console->send_key({key => 'a'});
@@ -428,7 +428,7 @@ subtest 'input events' => sub {
         'http://127.0.0.42:42000/cmd?sendkey=a',
         'http://127.0.0.42:42000/cmd?sendkey=ctrl-x',
         'http://127.0.0.42:42000/cmd?type=some+test%0A'
-    ], "correct kbd emu requests sent";
+    ], 'correct kbd emu requests sent';
 
     $console->activate;
     $console->mouse_set({x => 60, y => 60});

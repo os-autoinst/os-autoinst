@@ -77,7 +77,7 @@ sub init_switch ($self) {
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
     my $rewrite_target_hex = unpack('H*', pack('C*', split('\.', $rewrite_target)));
-    my $rewrite_target_hex_ipv6 = "fec0:0000:0000:0001:0000:0000:0000:0000";
+    my $rewrite_target_hex_ipv6 = 'fec0:0000:0000:0001:0000:0000:0000:0000';
     $rewrite_target_hex_ipv6 =~ s/://g;
 
     # the VM have unique MAC that differs in the last 16 bits (see /usr/lib/os-autoinst/backend/qemu.pm)
@@ -200,13 +200,13 @@ sub check_min_ovs_version ($min_ver) {
     my @min_ver = split(/\./, $min_ver);
     return if (@ver != @min_ver);
 
-    return sprintf("%04d%04d%04d", @ver) >= sprintf("%04d%04d%04d", @min_ver);
+    return sprintf('%04d%04d%04d', @ver) >= sprintf('%04d%04d%04d', @min_ver);
 }
 
 # uncoverable statement count:1..5
 sub _set_ip ($tap) { _cmd('ip', 'link', 'set', $tap, 'up') }
 
-dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
+dbus_method('set_vlan', ['string', 'uint32'], ['int32', 'string']);
 
 sub set_vlan ($self, $tap, $vlan) {
     my $return_output;
@@ -240,7 +240,7 @@ sub set_vlan ($self, $tap, $vlan) {
     return $return_code, $return_code != 0 ? "Failed to set $tap up: $return_error" : '';
 }
 
-dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
+dbus_method('unset_vlan', ['string', 'uint32'], ['int32', 'string']);
 
 sub unset_vlan ($self, $tap, $vlan) {
     my $return_output;
@@ -266,7 +266,7 @@ sub unset_vlan ($self, $tap, $vlan) {
 # uncoverable statement count:1..3
 sub _ovs_show () { _cmd('ovs-vsctl', 'show') }
 
-dbus_method("show", [], ["int32", "string"]);
+dbus_method('show', [], ['int32', 'string']);
 
 sub show ($self) {
     my ($return_code, undef, $ovs_vsctl_output) = _ovs_show;
@@ -285,7 +285,7 @@ sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 
 sub run_dbus($bus = Net::DBus->system, $reactor_main = Net::DBus::Reactor->main) {
     say 'Initializing D-Bus service and Open vSwitch';
-    my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
+    my $service = $bus->export_service('org.opensuse.os_autoinst.switch');
     my $object = OVS->new($service);
     say 'Running D-Bus service';
     $reactor_main->run;

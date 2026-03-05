@@ -120,7 +120,7 @@ subtest 'web socket route' => sub {
 };
 
 subtest 'data api (directory download)' => sub {
-    die "'cpio' is needed for these tests" unless which 'cpio';
+    die q{'cpio' is needed for these tests} unless which 'cpio';
 
     $t->get_ok("$base_url/$job/data")->status_is(200)->content_type_is('application/x-cpio');
     my $tmpdir = tempdir;
@@ -137,7 +137,7 @@ subtest 'data api (directory download)' => sub {
 
     $t->get_ok("$base_url/$job/data/mod1");
     $t->status_is(200);
-    $t->content_type_is("application/x-cpio");
+    $t->content_type_is('application/x-cpio');
     $tmpdir = tempdir;
     $outfile = path($tmpdir . '/data_full.cpio');
     $outfile->spew($t->tx->res->body);

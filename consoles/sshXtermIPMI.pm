@@ -22,7 +22,7 @@ sub start_sol ($self) {
 
     # Try to deactivate IPMI SOL before activate
     # IPMI response like SOL payload already de-activated is expected
-    try { $self->backend->ipmitool("sol deactivate") }
+    try { $self->backend->ipmitool('sol deactivate') }
     catch ($e) { die "Unexpected IPMI response: $e" unless $e =~ /SOL payload already de-activated/ }
     $self->{xterm_pid} = $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
@@ -37,7 +37,7 @@ sub activate ($self) {
 sub reset ($self) {
     # Deactivate sol connection if it is activated
     if ($self->{activated}) {
-        $self->backend->ipmitool("sol deactivate");
+        $self->backend->ipmitool('sol deactivate');
         $self->{activated} = 0;
     }
     return;

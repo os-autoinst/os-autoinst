@@ -153,7 +153,7 @@ subtest 'mmapi: general usage' => sub {
     combined_like {
         is_deeply(mmapi::get_job_info(101), undef, 'query job info (no result)');
     } qr/get_job_info: 404 response.*URL was.*101/, 'query job info error logged';
-    is_deeply(mmapi::get_job_autoinst_url(100), "http://fake-host:20423/fake-jobtoken", 'get autoinst URL');
+    is_deeply(mmapi::get_job_autoinst_url(100), 'http://fake-host:20423/fake-jobtoken', 'get autoinst URL');
     combined_like {
         is_deeply(mmapi::get_job_autoinst_vars(101), undef, 'get autoinst vars (no result)');
     } qr/get_job_autoinst_url: .*/, 'error to get autoinst URL logged';
@@ -207,17 +207,17 @@ subtest 'lockapi: successful use' => sub {
 };
 
 subtest 'lockapi::barrier_wait() failures' => sub {
-    combined_like { throws_ok { lockapi::barrier_wait({name => 'not-exists'}) } qr/mydie/, "die() on not-exists" } qr/lock owner already finished/, "Throw exception if lock doesn't exists or already finished";
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'not-exists'}) } qr/mydie/, 'die() on not-exists' } qr/lock owner already finished/, "Throw exception if lock doesn't exists or already finished";
     my $start = time;
     my $timeout = lockapi::POLL_INTERVAL - 1;
-    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, 'die() on timeout' } qr/barrier 'blocked' timeout after/, 'barrier_wait() die on timeout specified';
     is(time - $start, $timeout, "Wait $timeout seconds, for timeout < POLL_INTERVAL");
     $start = time;
     $timeout = lockapi::POLL_INTERVAL + 1;
-    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => $timeout}) } qr/mydie/, 'die() on timeout' } qr/barrier 'blocked' timeout after/, 'barrier_wait() die on timeout specified';
     is(time - $start, $timeout, "Wait $timeout seconds, for timeout > POLL_INTERVAL");
     $start = time;
-    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => 0}) } qr/mydie/, "die() on timeout" } qr/barrier 'blocked' timeout after/, "barrier_wait() die on timeout specified";
+    combined_like { throws_ok { lockapi::barrier_wait({name => 'blocked', timeout => 0}) } qr/mydie/, 'die() on timeout' } qr/barrier 'blocked' timeout after/, 'barrier_wait() die on timeout specified';
     is(time - $start, 0, "Don't wait for timeout == 0");
 };
 

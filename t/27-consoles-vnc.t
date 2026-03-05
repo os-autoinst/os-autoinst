@@ -254,7 +254,7 @@ subtest 'update framebuffer' => sub {
     is scalar @printed, 1, 'no further image requested' or always_explain \@printed;
 
     my $of_type_tight_with_coordinates_12_42_4_4 = pack(nnnnNC => 12, 42, 4, 4, 7);
-    my $fill_compression = pack("C", 0x80);
+    my $fill_compression = pack('C', 0x80);
     subtest 'Tight encoding, FillCompression' => sub {
         $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
         $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
@@ -286,11 +286,11 @@ subtest 'update framebuffer' => sub {
     subtest 'Tight encoding, JpegCompression' => sub {
         my $jpeg_data = path(dirname(__FILE__) . '/data/frame1.jpeg')->slurp;
         my $of_type_tight_with_coordinates_0_0_1024_768 = pack(nnnnNC => 0, 0, 1024, 768, 7);
-        my $jpeg_compression = pack("C", 0x90);
+        my $jpeg_compression = pack('C', 0x90);
         my $data_len = length($jpeg_data);
-        my $data_len1 = pack("C", ($data_len & 0x7f) | 0x80);
-        my $data_len2 = pack("C", (($data_len >> 7) & 0x7f) | 0x80);
-        my $data_len3 = pack("C", ($data_len >> 14));
+        my $data_len1 = pack('C', ($data_len & 0x7f) | 0x80);
+        my $data_len2 = pack('C', (($data_len >> 7) & 0x7f) | 0x80);
+        my $data_len3 = pack('C', ($data_len >> 14));
 
         $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_0_0_1024_768, $jpeg_compression, $data_len1, $data_len2, $data_len3, $jpeg_data);
         $c->_framebuffer(undef)->width(1024)->height(768);

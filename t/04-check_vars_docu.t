@@ -127,5 +127,5 @@ find(\&read_backend_pm, (BACKEND_DIR));
 # check if vars are properly documented and update data
 write_doc;
 $error_found = $ignore_errors ? 0 : $error_found;
-ok($error_found ? 0 : 1, "No errors found");
+ok($error_found ? 0 : 1, 'No errors found');
 done_testing;

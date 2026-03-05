@@ -65,7 +65,7 @@ sub disable ($self, @) {
 sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
     my @cmd = split(/ /, $cmd_prefix // '');    # uncoverable statement
     $device =~ s/\?fps=([0-9]+)//;    # uncoverable statement
-    push(@cmd, ("v4l2-ctl", "--device", $device, "--concise"));    # uncoverable statement
+    push(@cmd, ('v4l2-ctl', '--device', $device, '--concise'));    # uncoverable statement
     push(@cmd, split(/ /, $cmd));    # uncoverable statement
 
     # uncoverable statement
@@ -92,14 +92,14 @@ sub connect_remote ($self, $args) {
     if ($args->{url} =~ m/^(ustreamer:\/\/)?(\/dev\/video\d+)/) {
         if ($args->{edid}) {
             my $ret = _v4l2_ctl($2, $args->{video_cmd_prefix}, "--set-edid $args->{edid}");
-            die "Failed to set EDID" unless defined $ret;
+            die 'Failed to set EDID' unless defined $ret;
         }
     }
 
     if ($args->{url} =~ m/^\/dev\/video/) {
         my $timings = _v4l2_ctl($args->{url}, $args->{video_cmd_prefix}, '--get-dv-timings');
         if ($timings) {
-            if ($timings ne "0x0pnan") {
+            if ($timings ne '0x0pnan') {
                 $self->{dv_timings} = $timings;
             } else {
                 $self->{dv_timings} = '';
@@ -109,7 +109,7 @@ sub connect_remote ($self, $args) {
             bmwqemu::diag "Current DV timings: $timings";
         } else {
             $self->{dv_timings_supported} = 0;
-            bmwqemu::diag "DV timings not supported";
+            bmwqemu::diag 'DV timings not supported';
         }
     } else {
         # applies to v4l via ffmpeg only
@@ -124,7 +124,7 @@ sub connect_remote ($self, $args) {
 
 sub _get_ffmpeg_cmd ($self, $url) {
     my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
-    die "ffmpeg url does not support format=" if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
+    die 'ffmpeg url does not support format=' if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
     $fps //= 4;
     my @cmd;
     @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
@@ -156,7 +156,7 @@ sub _get_ustreamer_cmd ($self, $url, $sink_name) {
 sub connect_remote_video ($self, $url) {
     if ($self->{dv_timings_supported}) {
         if (!_v4l2_ctl($url, $self->{args}->{video_cmd_prefix}, '--set-dv-bt-timings query')) {
-            bmwqemu::diag("No video signal");
+            bmwqemu::diag('No video signal');
             $self->{dv_timings} = '';
             return;
         }
@@ -178,9 +178,9 @@ sub connect_remote_video ($self, $url) {
             usleep(100_000);    # uncoverable statement
             $timeout -= 1;    # uncoverable statement
         }
-        die "ustreamer startup timeout" if $timeout <= 0;
-        open($self->{ustreamer}, "+<", "/dev/shm/$sink_name")
-          or die "Failed to open ustreamer memsink";
+        die 'ustreamer startup timeout' if $timeout <= 0;
+        open($self->{ustreamer}, '+<', "/dev/shm/$sink_name")
+          or die 'Failed to open ustreamer memsink';
     } else {
         my $cmd = $self->_get_ffmpeg_cmd($url);
         my $ffmpeg;
@@ -201,7 +201,7 @@ sub connect_remote_video ($self, $url) {
 sub connect_remote_input ($self, $cmd) {
     $self->{mouse} = {x => -1, y => -1};
 
-    bmwqemu::diag "Connecting input device";
+    bmwqemu::diag 'Connecting input device';
 
     my $input_pipe;
     my $input_feedback;
@@ -256,7 +256,7 @@ sub _receive_frame_ustreamer ($self) {
 
     flock($self->{ustreamer}, Fcntl::LOCK_EX);
     my $ustreamer_map;
-    map_handle($ustreamer_map, $ustreamer, "+<");
+    map_handle($ustreamer_map, $ustreamer, '+<');
     {
         my $unlock = scope_guard sub {
             unmap($ustreamer_map);
@@ -322,7 +322,7 @@ sub _receive_frame_ustreamer ($self) {
         #     ... data
         # } us_memsink_shared_s;
 
-        my ($magic, $version, $id, $used) = unpack("QLx4QQ", $ustreamer_map);
+        my ($magic, $version, $id, $used) = unpack('QLx4QQ', $ustreamer_map);
         # This is US_MEMSINK_MAGIC, but perl considers hex literals over 32bits non-portable
         if ($magic != 14627333968358193854) {
             bmwqemu::diag "Invalid ustreamer magic: $magic";
@@ -343,14 +343,14 @@ sub _receive_frame_ustreamer ($self) {
 
         # tell ustreamer we are reading, otherwise it won't write new frames
         my $clock = clock_gettime(CLOCK_MONOTONIC);
-        substr($ustreamer_map, $client_clock_offset, 16) = pack("D", $clock);
+        substr($ustreamer_map, $client_clock_offset, 16) = pack('D', $clock);
         # no new frame
         return undef if $self->{ustreamer_last_id} && $id == $self->{ustreamer_last_id};
         $self->{ustreamer_last_id} = $id;
         # empty frame
         return undef unless $used;
 
-        my ($width, $height, $format, $stride) = unpack("IIa4ICCxxI", substr($ustreamer_map, $meta_offset, 28));
+        my ($width, $height, $format, $stride) = unpack('IIa4ICCxxI', substr($ustreamer_map, $meta_offset, 28));
 
         my $img;
         if ($format eq 'JPEG') {
@@ -410,7 +410,7 @@ sub update_framebuffer ($self) {
                 $self->disable_video;
                 $self->connect_remote_video($self->{args}->{url});
             } elsif ($self->{dv_timings} && !$current_timings) {
-                bmwqemu::diag "video disconnected";
+                bmwqemu::diag 'video disconnected';
                 $self->disable_video;
                 $self->{dv_timings} = '';
             }
@@ -484,7 +484,7 @@ sub _send_keyboard_emulator_cmd ($self, %args) {
     $self->{_ua} //= Mojo::UserAgent->new;
     my $server_response = $self->{_ua}->get($url)->result->body;
     chomp($server_response);
-    bmwqemu::diag("Keyboard emulator says: " . bmwqemu::pp($server_response));
+    bmwqemu::diag('Keyboard emulator says: ' . bmwqemu::pp($server_response));
     return {};
 }
 

@@ -92,7 +92,7 @@ sub mutex_unlock ($name, $where = undef) {
 
 sub mutex_create ($name, @) {
     bmwqemu::mydie('missing lock name') unless $name;
-    return _api_call_with_logging_and_error_handling("mutex create '$name'", post => "mutex", {name => $name});
+    return _api_call_with_logging_and_error_handling("mutex create '$name'", post => 'mutex', {name => $name});
 }
 
 # Wrapper for mutex_lock & mutex_unlock

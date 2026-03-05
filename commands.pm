@@ -34,14 +34,14 @@ use Time::HiRes 'gettimeofday';
 sub _makecpiohead ($name = undef, $s = undef) {
     return "07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000b00000000TRAILER!!!\0\0\0\0" if !$s;
     #        magic ino
-    my $h = "07070100000000";
+    my $h = '07070100000000';
     # mode                S_IFREG
-    $h .= sprintf("%08x", oct(100000) | $s->[2] & oct(777));
+    $h .= sprintf('%08x', oct(100000) | $s->[2] & oct(777));
     #      uid     gid     nlink
-    $h .= "000000000000000000000001";
-    $h .= sprintf("%08x%08x", $s->[9], $s->[7]);
-    $h .= "00000000000000000000000000000000";
-    $h .= sprintf("%08x", length($name) + 1);
+    $h .= '000000000000000000000001';
+    $h .= sprintf('%08x%08x', $s->[9], $s->[7]);
+    $h .= '00000000000000000000000000000000';
+    $h .= sprintf('%08x', length($name) + 1);
     $h .= "00000000$name\0";
     $h .= substr("\0\0\0\0", (length($h) & 3)) if length($h) & 3;
     my $pad = '';
@@ -314,7 +314,7 @@ sub start_server ($port) {
         set_pipes => 0)->start;
 
     close($isotovideo);
-    $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });
+    $process->on(collected => sub { bmwqemu::diag('commands process exited: ' . shift->exit_status); });
     return ($process, $child);
 }
 

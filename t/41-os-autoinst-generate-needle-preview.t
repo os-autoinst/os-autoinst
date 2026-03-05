@@ -14,7 +14,7 @@ use OpenQA::Test::TimeLimit '5';
 
 sub check_os_autoinst_generate_needle_preview_default_needle ($use_stdin) {
     my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1, CLEANUP => 1);
-    my $needle = "os-autoinst-generate-needle-preview";
+    my $needle = 'os-autoinst-generate-needle-preview';
     path("$Bin/data/$needle.json")->copy_to("$dir/$needle.json");
     path("$Bin/data/$needle.png")->copy_to("$dir/$needle.png");
     if ($use_stdin) {

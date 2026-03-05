@@ -27,7 +27,7 @@ sub disable_vnc_stalls ($self) {
 sub connect_remote ($self, $args) {
     $self->{mouse} = {x => -1, y => -1};
 
-    die "Need parameters 'hostname' and 'port'" unless $args->{hostname} && $args->{port};
+    die q{Need parameters 'hostname' and 'port'} unless $args->{hostname} && $args->{port};
     bmwqemu::diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
@@ -63,19 +63,19 @@ sub current_screen ($self) {
 }
 
 sub send_key_event ($self, $key, $delay) {
-    die "No VNC console connection available" unless $self->{vnc};
+    die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->map_and_send_key($key, undef, $delay);
 }
 
 sub hold_key ($self, $args) {
-    die "No VNC console connection available" unless $self->{vnc};
+    die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub release_key ($self, $args) {
-    die "No VNC console connection available" unless $self->{vnc};
+    die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
@@ -97,7 +97,7 @@ sub mouse_button ($self, $args) {
     my $bstate = $args->{bstate};
     my $mask = {left => $bstate, right => $bstate << 2, middle => $bstate << 1}->{$button} // 0;
     bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
-    die "No VNC console connection available" unless $self->{vnc};
+    die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

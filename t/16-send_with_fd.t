@@ -50,7 +50,7 @@ shutdown($bsk, 2);
 my $buf = '';
 POSIX::read($afd, $buf, 4)
   || die "Failed to read echo from pipe: $!";
-ok($buf eq 'echo', "Receive echo on pipe FD we sent");
+ok($buf eq 'echo', 'Receive echo on pipe FD we sent');
 POSIX::close($afd);
 
 wait;

@@ -311,10 +311,10 @@ sub _handshake_security ($self) {
         # found in https://github.com/kanaka/noVNC
         $self->old_ikvm($num_tunnels > 0x1000000 ? 1 : 0);
         $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
-        my @bytes = unpack("C20", $ikvm_session);
-        print "Session info: ";
+        my @bytes = unpack('C20', $ikvm_session);
+        print 'Session info: ';
         for my $byte (@bytes) {
-            printf "%02x ", $byte;
+            printf '%02x ', $byte;
         }
         print "\n";
         # examples
@@ -404,7 +404,7 @@ sub _server_initialization ($self) {
 
         my ($current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable) = unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
-        die "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
+        die q{Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?} unless $ikvm_km_enable;
         return;    # the rest is kindly ignored by ikvm anyway
     }
 
@@ -617,7 +617,7 @@ sub init_x11_keymap ($self) {
     for my $key (1 .. 12) {
         $keymap{"f$key"} = 0xffbd + $key;
     }
-    for my $key ("a" .. "z") {
+    for my $key ('a' .. 'z') {
         $keymap{$key} = ord($key);
         # shift-H looks strange, but that's how VNC works
         $keymap{uc $key} = [$keymap{shift}, ord(uc $key)];
@@ -633,12 +633,12 @@ sub init_x11_keymap ($self) {
 sub init_ikvm_keymap ($self) {
     return if $self->keymap;
     my %keymap = %$keymap_ikvm;
-    for my $key ("a" .. "z") {
+    for my $key ('a' .. 'z') {
         my $code = 0x4 + ord($key) - ord('a');
         $keymap{$key} = $code;
         $keymap{uc $key} = [$keymap{shift}, $code];
     }
-    for my $key ("1" .. "9") {
+    for my $key ('1' .. '9') {
         $keymap{$key} = 0x1e + ord($key) - ord('1');
     }
     for my $key (1 .. 12) {
@@ -654,7 +654,7 @@ sub init_ikvm_keymap ($self) {
 
 
 sub map_and_send_key ($self, $keys, $down_flag, $delay) {
-    die "need delay" unless $delay;
+    die 'need delay' unless $delay;
     my $down_delay = $delay * 0.5;
     # the key down delay is capped because if it's too long, we risk
     # unintended repeat inputs
@@ -732,7 +732,7 @@ sub update_framebuffer ($self) {
     }
     catch ($e) {
         die $e unless blessed $e && $e->isa('OpenQA::Exception::VNCProtocolError');
-        bmwqemu::fctwarn "Error in VNC protocol - relogin: " . $e->error;
+        bmwqemu::fctwarn 'Error in VNC protocol - relogin: ' . $e->error;
         $self->login;
     }
     return $have_recieved_update;
@@ -765,7 +765,7 @@ sub send_update_request ($self, $incremental = undef) {
         if ($self->_vnc_stalled && $time_since_last_update > $time_after_vnc_is_considered_stalled) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag sprintf("considering VNC stalled, no update for %.2f seconds", $time_since_last_update);
+            bmwqemu::diag sprintf('considering VNC stalled, no update for %.2f seconds', $time_since_last_update);
             $self->socket->close;
             $self->socket(undef);
             return $self->login;
@@ -877,8 +877,8 @@ sub _receive_update ($self) {
         }
         elsif ($encoding_type == -261) {
             my $led_data;
-            $socket->read($led_data, 1) || die "unexpected end of data";
-            my @bytes = unpack("C", $led_data);
+            $socket->read($led_data, 1) || die 'unexpected end of data';
+            my @bytes = unpack('C', $led_data);
             # 100     CapsLock is on, NumLock and ScrollLock are off
             # 010     NumLock is on, CapsLock and ScrollLock are off
             # 111     CapsLock, NumLock and ScrollLock are on
@@ -939,7 +939,7 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $status = $self->{_inflater}->inflate($data, $out, 1);
     OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status") unless $status == Z_OK;
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
-    OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data") if $old_total_out + $res != $self->{_inflater}->total_out;
+    OpenQA::Exception::VNCProtocolError->throw(error => 'not read enough data') if $old_total_out + $res != $self->{_inflater}->total_out;
     return $res;
 }
 
@@ -994,7 +994,7 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
         $read_len += $len;
     }
     my $rect = tinycv::from_ppm($data);
-    OpenQA::Exception::VNCProtocolError->throw(error => "Invalid width/height of the rectangle (${w}x${h} != " . $rect->xres . "x" . $rect->yres . ")")
+    OpenQA::Exception::VNCProtocolError->throw(error => "Invalid width/height of the rectangle (${w}x${h} != " . $rect->xres . 'x' . $rect->yres . ')')
       unless $w == $rect->xres and $h == $rect->yres;
     $image->blend($rect, $x, $y);
     $self->_framebuffer($image);
@@ -1034,12 +1034,12 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
         return if $data_len == 0;
         my $required_data = $w * $h * 2;
         my $data;
-        print "Additional Bytes: ";
+        print 'Additional Bytes: ';
         while ($data_len > $required_data) {
-            $socket->read($data, 1) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
+            $socket->read($data, 1) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
             $data_len--;
-            my @bytes = unpack("C", $data);
-            printf "%02x ", $bytes[0];
+            my @bytes = unpack('C', $data);
+            printf '%02x ', $bytes[0];
         }
         print "\n";
 
@@ -1050,12 +1050,12 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     }
     elsif ($encoding_type == 0) {
         # ikvm manages to redeclare raw to be something completely different ;(
-        $socket->read(my $data, 10) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
+        $socket->read(my $data, 10) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
         my ($type, $segments, $length) = unpack('CxNN', $data);
         while ($segments--) {
-            $socket->read(my $data, 6) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
+            $socket->read(my $data, 6) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
-            $socket->read($data, 512) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
+            $socket->read($data, 512) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
 
@@ -1075,7 +1075,7 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     }
     elsif ($encoding_type == 87) {
         return if $data_len == 0;
-        die "we guessed wrong - this is a new board!" if $self->old_ikvm;
+        die 'we guessed wrong - this is a new board!' if $self->old_ikvm;
         $socket->read(my $data, $data_len);
         # enforce high quality to simplify our decoder
         if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
