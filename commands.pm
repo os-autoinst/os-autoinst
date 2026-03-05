@@ -65,17 +65,14 @@ sub _test_data_dir ($self, $base) {
             next;    # uncoverable statement
         }
         my $fn = 'data/' . substr($file, length($base));
-        local $/;    # enable localized slurp mode
-        my $fd;
-        try { (open($fd, '<:raw', $file)) }
+        my $file_data;
+        try { $file_data = path($file)->slurp }
         catch ($e) {
             $self->app->log->error("Error reading test distribution file '$file': $!");    # uncoverable statement
             next;    # uncoverable statement
         }
         my ($header, $pad) = _makecpiohead($fn, \@s);
-        $data .= $header;
-        $data .= <$fd>;
-        close $fd;
+        $data .= $header . $file_data;
         $data .= $pad if $pad;
     }
     $data .= _makecpiohead();
