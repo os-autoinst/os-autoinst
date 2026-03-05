@@ -63,7 +63,7 @@ my $video_mock = Test::MockModule->new('consoles::video_stream');
 my @video_connects;
 my $connect_fail = 0;
 $video_mock->redefine(connect_remote => sub {
-        die "connect_remote failed" if $connect_fail;
+        die 'connect_remote failed' if $connect_fail;
         push @video_connects, [shift->{args}->{url}];
 });
 $video_mock->redefine($_ => sub { }) for (qw(update_framebuffer request_screen_update));
@@ -129,7 +129,7 @@ subtest 'is_shutdown' => sub {
 subtest 'eject_cd' => sub {
     @invoked_cmds = ();
     $backend->eject_cd;
-    $backend->eject_cd({id => "cd1"});
+    $backend->eject_cd({id => 'cd1'});
     $backend->eject_cd({force => 1});
     is_deeply(\@invoked_cmds, [
             [$cmd_ctl, 'eject'],

@@ -32,7 +32,7 @@ sub write_with_thumbnail (@) { }
 
 # Anything added to $serial_buffer will be returned by the next call
 # to read_serial, used e.g. by basetest::get_new_serial_output.
-my $serial_buffer = "";
+my $serial_buffer = '';
 # Mock the JSON call for read_serial
 my $cmds;
 my $jsonmod = Test::MockModule->new('myjsonrpc');
@@ -75,7 +75,7 @@ $mock_bmwqemu->noop('log_call');
 
 subtest run_post_fail_test => sub {
     my $basetest_class = 'basetest';
-    Test::MockModule->new("autotest")->noop('set_current_test');
+    Test::MockModule->new('autotest')->noop('set_current_test');
     my $mock_basetest = Test::MockModule->new($basetest_class);
     $mock_basetest->noop('take_screenshot');
     $mock_basetest->mock(run => sub { die(); });
@@ -209,10 +209,10 @@ subtest parse_serial_output => sub {
 subtest get_new_serial_output => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     my $basetest = basetest->new('installation');
-    $serial_buffer = "Some serial string";
+    $serial_buffer = 'Some serial string';
     is($basetest->get_new_serial_output(), 'Some serial string', 'returns serial output');
     is($basetest->get_new_serial_output(), '', 'returns nothing if nothing got added');
-    $serial_buffer .= "Some more data";
+    $serial_buffer .= 'Some more data';
     is($basetest->get_new_serial_output(), 'Some more data', 'returns new serial output');
 };
 
@@ -360,7 +360,7 @@ subtest record_screenmatch => sub {
     # check a needle has workaround property
     my $basetest_for_workaround = basetest->new();
     my $misc_needles_dir = dirname(__FILE__) . '/misc_needles/';
-    my $needle_file = $misc_needles_dir . "check-workaround-hash-20190522.json";
+    my $needle_file = $misc_needles_dir . 'check-workaround-hash-20190522.json';
     my %workaround_match = (
         area => [
             {x => 1, y => 2, w => 3, h => 4, similarity => 0, result => 'ok'},

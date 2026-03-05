@@ -44,7 +44,7 @@ sub ipmitool ($self, $cmd, %args) {
     chomp $stdout;
     chomp $stderr;
     # Output error message with ipmi password masked
-    die join(' ', map { $_ eq $bmwqemu::vars{IPMI_PASSWORD} ? "[masked]" : $_ } @cmd) . ": $stderr" unless ($ret);
+    die join(' ', map { $_ eq $bmwqemu::vars{IPMI_PASSWORD} ? '[masked]' : $_ } @cmd) . ": $stderr" unless ($ret);
 
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
@@ -61,7 +61,7 @@ sub restart_host ($self) {
 
     my $stdout = $self->ipmitool('chassis power status', tries => $tries);
     if ($stdout !~ m/is off/) {
-        $self->ipmitool("chassis power off");
+        $self->ipmitool('chassis power off');
         for (0 .. $tries) {
             sleep(3);
             my $stdout = $self->ipmitool('chassis power status', tries => $tries);
@@ -70,7 +70,7 @@ sub restart_host ($self) {
         }
     }
 
-    $self->ipmitool("chassis power on");
+    $self->ipmitool('chassis power on');
     for (0 .. $tries) {
         sleep(3);
         my $ret = $self->ipmitool('chassis power status', tries => $tries);
@@ -101,7 +101,7 @@ sub do_start_vm ($self, @) {
 }
 
 sub do_stop_vm ($self, @) {
-    $self->ipmitool("chassis power off") unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
+    $self->ipmitool('chassis power off') unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
     $self->deactivate_console({testapi_console => 'sol'}) if defined $testapi::distri->{consoles}->{sol};
     return {};
 }
@@ -114,19 +114,19 @@ sub is_shutdown ($self, @) {
 sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write) }
 
 sub get_mc_status ($self) {
-    $self->ipmitool("mc guid");
-    $self->ipmitool("mc info");
-    $self->ipmitool("mc selftest") unless $bmwqemu::vars{IPMI_SKIP_SELFTEST};
+    $self->ipmitool('mc guid');
+    $self->ipmitool('mc info');
+    $self->ipmitool('mc selftest') unless $bmwqemu::vars{IPMI_SKIP_SELFTEST};
 }
 
 sub do_mc_reset ($self) {
     # deactivate sol console before doing mc reset because it breaks sol connection
     if (defined $testapi::distri->{consoles}->{sol}) {
-        bmwqemu::diag("Before doing mc reset, sol console exists, so cleanup it");
+        bmwqemu::diag('Before doing mc reset, sol console exists, so cleanup it');
         $testapi::distri->{consoles}->{sol}->reset();
-        bmwqemu::diag("sol console reset done");
+        bmwqemu::diag('sol console reset done');
         $self->deactivate_console({testapi_console => 'sol'});
-        bmwqemu::diag("deactivate console sol done");
+        bmwqemu::diag('deactivate console sol done');
     }
 
     # during the execution of following commands, SIG{__DIE__} will definitely be triggered, let it go
@@ -135,7 +135,7 @@ sub do_mc_reset ($self) {
     # mc reset cmd should return immediately, try maximum 5 times to ensure cmd executed
     my $max_tries = $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} // 5;
     for (1 .. $max_tries) {
-        try { $self->ipmitool("mc reset cold") }
+        try { $self->ipmitool('mc reset cold') }
         catch ($e) {
             bmwqemu::diag("IPMI mc reset failure: $e");
             sleep 3;
@@ -159,7 +159,7 @@ sub do_mc_reset ($self) {
             # ping pass, check ipmitool function normally
             try { $self->ipmitool('chassis power status', tries => $ipmi_tries) }
             catch ($e) { next }    # uncoverable statement
-            bmwqemu::diag("IPMI: ipmitool is recovered after mc reset");
+            bmwqemu::diag('IPMI: ipmitool is recovered after mc reset');
             return;
         }
     }

@@ -31,7 +31,7 @@ sub process_file ($filename) {
 
     chomp $filename;
     my $pp = Mojo::File->new($filename);
-    my $name = $pp->basename(".json");
+    my $name = $pp->basename('.json');
     printf "Working on %s\n", $name;
     my $pngpath = path($pp->dirname, "${name}.png");
     my $output = qx/file --brief "${pngpath}"/;
@@ -105,7 +105,7 @@ sub process_file ($filename) {
     return 0;
 }
 
-Getopt::Long::Configure("no_ignore_case");
+Getopt::Long::Configure('no_ignore_case');
 
 my %options;
 

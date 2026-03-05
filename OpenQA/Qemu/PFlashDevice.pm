@@ -24,7 +24,7 @@ has 'readonly';
 sub gen_cmdline ($self) {
     my $drive = $self->drive;
     my @params = ('id=' . $drive->node_name,
-        "if=pflash",
+        'if=pflash',
         'file=' . $drive->file);
 
     $self->_push_ifdef(\@params, 'unit=', $self->unit);

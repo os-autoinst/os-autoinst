@@ -31,7 +31,7 @@ sub log_format_callback ($time, $level, @items) {
 }
 
 sub diag (@args) {
-    confess "missing input" unless @args;
+    confess 'missing input' unless @args;
     $args[-1] = color('white') . ($args[-1] // '') . color('reset');
     logger->debug(@args);
     return;

@@ -35,7 +35,7 @@ sub handle_ws_client_disconnects ($self, $id) {
 }
 
 sub start_ws ($self) {
-    my $id = sprintf "%s", $self->tx;
+    my $id = sprintf '%s', $self->tx;
     $self->app->log->debug('cmdsrv: client connected: ' . $id);
     $self->app->defaults('clients')->{$id} = $self->tx;
 

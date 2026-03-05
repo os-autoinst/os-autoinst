@@ -55,7 +55,7 @@ sub run_cmd_retcode ($self, $cmd, @extra_args) {
 
 sub run_cmd ($self, $cmd, @extra_args) {
     my $ret = $self->run_cmd_retcode($cmd, @extra_args);
-    die "Failed to run command '" . $self->get_cmd($cmd) . join(" ", @extra_args) . "' (deduced from test variable $cmd): $ret\n" if ($ret != 0);
+    die q{Failed to run command '} . $self->get_cmd($cmd) . join(' ', @extra_args) . "' (deduced from test variable $cmd): $ret\n" if ($ret != 0);
 }
 
 # wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
@@ -91,7 +91,7 @@ sub power ($self, $args) {
 sub eject_cd($self, $args = {}) {
     my @extra_args;
     push @extra_args, "--id=$args->{id}" if ($args->{id});
-    push @extra_args, "--force" if ($args->{force});
+    push @extra_args, '--force' if ($args->{force});
     $self->run_cmd('GENERAL_HW_EJECT_CMD', @extra_args);
 }
 
@@ -191,8 +191,8 @@ sub start_serial_grab ($self) {
     return unless $self->{serialpid} == 0;
     setpgrp 0, 0;    # uncoverable statement
     open(my $serial, '>', $self->{serialfile});    # uncoverable statement
-    open(STDOUT, ">&", $serial);    # uncoverable statement
-    open(STDERR, ">&", $serial);    # uncoverable statement
+    open(STDOUT, '>&', $serial);    # uncoverable statement
+    open(STDERR, '>&', $serial);    # uncoverable statement
     exec($self->get_cmd('GENERAL_HW_SOL_CMD'));    # uncoverable statement
     die "exec failed $!";    # uncoverable statement
 }
@@ -213,7 +213,7 @@ sub do_extract_assets ($self, $args) {
     my $name = $args->{name};
     my $img_dir = $args->{dir};
     my $hdd_num = $args->{hdd_num} - 1;
-    die "extracting pflash vars not supported" if $args->{pflash_vars};
+    die 'extracting pflash vars not supported' if $args->{pflash_vars};
 
     $self->run_cmd('GENERAL_HW_IMAGE_CMD', ($hdd_num, "$img_dir/$name"));
 }

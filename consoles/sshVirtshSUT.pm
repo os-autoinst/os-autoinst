@@ -37,7 +37,7 @@ sub disable ($self) {
 
 sub activate ($self) {
     my $backend = $self->{backend};
-    bmwqemu::diag(sprintf("Activate console on libvirt_domain:%s devname:%s port:%s",
+    bmwqemu::diag(sprintf('Activate console on libvirt_domain:%s devname:%s port:%s',
             $self->{libvirt_domain}, $self->{pty_dev}, $self->{serial_port_no}));
     my ($ssh, $chan) = $backend->open_serial_console_via_ssh(
         $self->{libvirt_domain}, devname => $self->{pty_dev}, port => $self->{serial_port_no}, blocking => 0);

@@ -24,7 +24,7 @@ use signalblocker;
 use log qw(diag fctinfo);
 
 sub _collect_orphan ($session, $p, @) {
-    fctinfo "Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status;
+    fctinfo 'Driver backend collected unknown process with pid ' . $p->pid . ' and exit status: ' . $p->exit_status;
 }
 
 sub new ($class, $name) {
@@ -54,8 +54,8 @@ sub start ($self) {
             my $process = shift;
             $0 = "$0: backend";
 
-            open STDOUT, ">&", $STDOUTPARENT;
-            open STDERR, ">&", $STDERRPARENT;
+            open STDOUT, '>&', $STDOUTPARENT;
+            open STDERR, '>&', $STDERRPARENT;
 
             # initialize OpenCV
             my $signal_blocker = signalblocker->new;
@@ -68,7 +68,7 @@ sub start ($self) {
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
         });
 
-    $backend_process->on(collected => sub { diag("backend process exited: " . shift->exit_status) });
+    $backend_process->on(collected => sub { diag('backend process exited: ' . shift->exit_status) });
     $backend_process->start;
 
     diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
@@ -93,7 +93,7 @@ sub stop ($self) {
 
 sub start_vm ($self) {
     my $json = to_json({backend => $self->{backend_name}});
-    open(my $runf, ">", 'backend.run');
+    open(my $runf, '>', 'backend.run');
     print $runf "$json\n";
     close $runf;
 
@@ -101,7 +101,7 @@ sub start_vm ($self) {
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->_send_json({cmd => 'start_vm'}) || die "failed to start VM";
+    $self->_send_json({cmd => 'start_vm'}) || die 'failed to start VM';
     return 1;
 }
 
@@ -119,7 +119,7 @@ sub mouse_hide ($self, $border_offset = 0) { $self->_send_json({cmd => 'mouse_hi
 # virtual methods end
 
 sub _send_json ($self, $cmd) {
-    croak "no backend running" unless $self->{backend_process}->channel_in;
+    croak 'no backend running' unless $self->{backend_process}->channel_in;
     my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
     my $rsp = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
 

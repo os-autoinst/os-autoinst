@@ -49,7 +49,7 @@ subtest 'log_call' => sub {
     stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
 
     sub log_call_indent {
-        my $lines = ["a", ["b"]];
+        my $lines = ['a', ['b']];
         bmwqemu::log_call(test => $lines);
     }
     stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
@@ -67,9 +67,9 @@ subtest 'log_call' => sub {
     stderr_like { log_call_test_secret(text => $do_not_show_me, psk => $do_not_show_me, -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(text="[masked]", psk="[masked]")}, 'Hide secrets with special regex chars';
     stderr_like { log_call_test_secret(text => "$do_not_show_me$do_not_show_me", -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(text="[masked][masked]")}, 'Hide secrets if it occure multiple times';
 
-    stderr_like { log_call_test_secret(text => "a666b42c", -masked => ['666', '42']) } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as array';
-    stderr_like { log_call_test_secret(text => "a666b42c", -masked => '666', -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as multiple arguments';
-    stderr_like { log_call_test_secret(text => "a666b42c5", -masked => ['666', '5'], -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c[masked]")}, 'Hide multiple secrets given in mixed format';
+    stderr_like { log_call_test_secret(text => 'a666b42c', -masked => ['666', '42']) } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as array';
+    stderr_like { log_call_test_secret(text => 'a666b42c', -masked => '666', -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as multiple arguments';
+    stderr_like { log_call_test_secret(text => 'a666b42c5', -masked => ['666', '5'], -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c[masked]")}, 'Hide multiple secrets given in mixed format';
 
     my $super_long_partly_secret_string = "Hallo world my psk is $do_not_show_me";
     stderr_like { log_call_test_secret(output => $super_long_partly_secret_string, -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(output="Hallo world my psk is [masked]")}, 'Hide secrets as part of a string';
@@ -120,7 +120,7 @@ subtest 'save_vars' => sub {
 
 subtest load_vars => sub {
     path('vars.json')->spew(']]]');
-    throws_ok { bmwqemu::load_vars() } qr/parse error in vars.json.*malformed/s, "load_vars dies on invalid vars.json";
+    throws_ok { bmwqemu::load_vars() } qr/parse error in vars.json.*malformed/s, 'load_vars dies on invalid vars.json';
 };
 
 subtest 'save_vars no_secret' => sub {
@@ -158,7 +158,7 @@ subtest 'invalid vars characters' => sub {
     is exists $bmwqemu::vars{LOWERCASE_NOT_ACCEPTED}, 1, 'exists $vars{...} works';
 };
 
-my %new_json = (foo => 'bar', baz => 42, object => bless {this => "cannot be encoded"}, 'Foo');
+my %new_json = (foo => 'bar', baz => 42, object => bless {this => 'cannot be encoded'}, 'Foo');
 throws_ok { bmwqemu::save_json_file(\%new_json, 'new_json_file.json') } qr{Cannot encode input.*encountered object.*bless.*cannot be encoded}s;
 delete $new_json{object};
 ok bmwqemu::save_json_file(\%new_json, 'new_json_file.json'), 'JSON file can be saved with save_json_file';
