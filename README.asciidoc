@@ -347,6 +347,9 @@ Tidy all changed perl files:
 tools/tidyall --git
 ----
 
+One especially useful make target for developers is `make setup-hooks` which
+installs git pre-commit hooks to check commit styles.
+
 Further notes:
 
 * When using the `test-perl-testsuite` target, `ctest` is not used (and
