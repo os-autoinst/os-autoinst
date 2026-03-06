@@ -4,9 +4,9 @@ project(os-autoinst CXX)
 # list non-C++ source files
 set(DOC_FILES
     doc/architecture.md
-    doc/backend_vars.asciidoc
+    doc/backend_vars.md
     doc/backends.md
-    doc/memorydumps.asciidoc
+    doc/memorydumps.md
     doc/networking.md
 )
 set(PERL_FILES
@@ -210,7 +210,7 @@ install(
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
     PERMISSIONS ${EXECUTABLE_PERMISSIONS}
 )
-foreach (FILE README.asciidoc COPYING ${GENERATED_DOC_FILES})
+foreach (FILE README.md COPYING ${GENERATED_DOC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DOC_DIR}")
 endforeach ()
 foreach (PYTHON_BINDING IN LISTS PYTHON_BINDINGS)

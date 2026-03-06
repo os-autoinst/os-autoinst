@@ -19,7 +19,7 @@ use constant {
     BACKEND_DIR => "$FindBin::Bin/../backend",
     DOC_DIR => "$FindBin::Bin/../doc",
 };
-use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
+use constant VARS_DOC => DOC_DIR . '/backend_vars.md';
 
 # array of ignored "backends"
 my @backend_blocklist = qw();
@@ -39,31 +39,25 @@ my $error_found = 0;
 # ignore errors for now
 my $ignore_errors = 1;
 
-my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
 sub read_doc () {
     # read and parse old vars doc
     my @lines = split /\n/, path(VARS_DOC)->slurp;
     my $backend;
-    my $reading;
     for my $line (@lines) {
-        if (!$backend && $line =~ /^\.([^ ]+) backend$/) {
+        if ($line =~ /^## ([^ ]+) backend$/) {
             $backend = $1;
         }
-        elsif ($backend) {
-            if ($line =~ /^\|====/) {
-                $reading = $reading ? 0 : 1;
-                $backend = undef unless $reading;
-            }
-            elsif ($reading) {
-                next if ($line =~ /$table_header/);
-                my ($var, $value, $default, $explanation) = $line =~ /^([^;]+);\s*([^;]*);\s*([^;]*);\s*(.*)$/;
-                next unless ($var);
-                $default = '' unless (defined $default);
-                $value = '' unless (defined $value);
-                fail "still missing explanation for backend $backend variable $var" unless $explanation;
-                $documented_vars{$backend}{$var} = [$value, $default, $explanation];
-            }
+        elsif ($backend && $line =~ /^\| (.*) \| (.*) \| (.*) \| (.*) \|$/) {
+            my ($var, $value, $default, $explanation) = ($1, $2, $3, $4);
+            $var =~ s/^\s+|\s+$//g;
+            $value =~ s/^\s+|\s+$//g;
+            $default =~ s/^\s+|\s+$//g;
+            $explanation =~ s/^\s+|\s+$//g;
+            next if $var eq 'Variable' or $var =~ /^[ \-]*-*[ \-]*$/;
+            # Unescape pipes in explanation
+            $explanation =~ s/\\\|/|/g;
+            $documented_vars{$backend}{$var} = [$value, $default, $explanation];
         }
     }
 }
@@ -71,18 +65,14 @@ sub read_doc () {
 sub write_doc () {
     my $data = <<EO_HEADER;
 Supported variables per backend
--------------------------------
+===============================
 
 EO_HEADER
     for my $backend (sort keys %found_vars) {
         my $backend = uc $backend;
-        $data .= <<EO_BACKEND_HEADER;
-.$backend backend
-[grid="rows",format="csv"]
-[options="header",cols="^m,^m,^m,v",separator=";"]
-|====================
-$table_header
-EO_BACKEND_HEADER
+        $data .= "## $backend backend\n\n";
+        $data .= "| Variable | Values allowed | Default value | Explanation |\n";
+        $data .= "| --- | --- | --- | --- |\n";
         for my $var (sort keys %{$found_vars{$backend}}) {
             # skip perl variables i.e. $bmwqemu{$k}
             next if ($var =~ /^\$[a-zA-Z]/);
@@ -93,12 +83,12 @@ EO_BACKEND_HEADER
                 fail "missing documentation for backend $backend variable $var, please update backend_vars";    # uncoverable statement
             }
             my @var_docu = @{$documented_vars{$backend}{$var}};
-            $data .= sprintf "%s;%s;%s;%s\n", $var, @var_docu;
+            # Escape pipes for Markdown
+            @var_docu = map { defined $_ ? $_ : '' } @var_docu;
+            @var_docu = map { s/\|/\\\|/g; $_ } @var_docu;
+            $data .= sprintf "| %s | %s | %s | %s |\n", $var, @var_docu;
         }
-        $data .= <<EO_BACKEND_FOOTER;
-|====================
-
-EO_BACKEND_FOOTER
+        $data .= "\n";
     }
     path(VARS_DOC . '.newvars')->spew($data);
 }
