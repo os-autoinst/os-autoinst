@@ -20,4 +20,4 @@ jobs:
       - name: Run gitlint
         run: |
           git config --global --add safe.directory '*'
-          make test-local TESTS="test-local-git-commit-message"
+          prove -v xt/70-git-commit-message.t
