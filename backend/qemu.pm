@@ -71,7 +71,7 @@ sub start_audiocapture ($self, $args) {
 }
 
 sub stop_audiocapture ($self, $args) {
-    $self->handle_qmp_command(_wrap_hmc("stopcapture 0"));
+    $self->handle_qmp_command(_wrap_hmc('stopcapture 0'));
 }
 
 # parameters: acpi, reset, (on), off
@@ -90,7 +90,7 @@ sub power ($self, $args) {
 }
 
 sub eject_cd ($self, $args = {}) {
-    die "'device' parameter is not supported anymore, use 'id'" if defined $args->{device};
+    die q{'device' parameter is not supported anymore, use 'id'} if defined $args->{device};
     my $id = $args->{id} // 'cd0-device';
     $self->handle_qmp_command({execute => 'eject', arguments => {
                 id => $id,
@@ -107,8 +107,8 @@ sub disconnect_usb ($self, $args = {}) {
 sub execute_qmp_command ($self, $args) { $self->handle_qmp_command($args->{query}) }
 
 sub cpu_stat ($self) {
-    my $stat = path("/proc/" . $self->{proc}->_process->pid . "/stat")->slurp;
-    my @a = split(" ", $stat);
+    my $stat = path('/proc/' . $self->{proc}->_process->pid . '/stat')->slurp;
+    my @a = split(' ', $stat);
     return [@a[13, 14]];
 }
 
@@ -128,8 +128,8 @@ sub _dbus_do_call ($self, $fn, @args) {
     # queueing up signals we are not interested in handling:
     # https://progress.opensuse.org/issues/90872
     my $bus = Net::DBus->system(private => 1);
-    my $bus_service = $bus->get_service("org.opensuse.os_autoinst.switch");
-    my $bus_object = $bus_service->get_object("/switch", "org.opensuse.os_autoinst.switch");
+    my $bus_service = $bus->get_service('org.opensuse.os_autoinst.switch');
+    my $bus_object = $bus_service->get_object('/switch', 'org.opensuse.os_autoinst.switch');
     my @result = $bus_object->$fn(@args);
     $bus->get_connection->disconnect;
     return @result;
@@ -310,7 +310,7 @@ sub _migrate_to_file ($self, %args) {
     # mark. However it is easier for QEMU if the VM is already frozen.
     $self->freeze_vm();
     # migrate consumes the file descriptor, so we do not need to call closefd
-    my $migration_strategy = $migration_use_multifd ? "file" : "fd";
+    my $migration_strategy = $migration_use_multifd ? 'file' : 'fd';
     $self->handle_qmp_command(
         {
             execute => 'migrate',
@@ -324,7 +324,7 @@ sub _migrate_to_file ($self, %args) {
 
 sub switch_network ($self, $args) {
     $self->handle_qmp_command({execute => 'set_link', arguments => {
-                name => $args->{network_link_name} // "qanet0",
+                name => $args->{network_link_name} // 'qanet0',
                 up => (!defined $args->{network_enabled} || $args->{network_enabled} ? Mojo::JSON->true : Mojo::JSON->false)
     }}, fatal => 1);
 }
@@ -405,7 +405,7 @@ sub save_storage ($self, $args) {
         $self->inflate_balloon();
         $self->freeze_vm();
     }
-    mkpath("assets_public");
+    mkpath('assets_public');
     $bdc->for_each_drive(sub ($drive) {
             my $size = $drive->{drive}->{size};
             my $id = "$drive->{id}-backup-$fname";
@@ -437,7 +437,7 @@ sub save_storage ($self, $args) {
                 --$timeout;
             } while (@$return);
     });
-    bmwqemu::diag("Saving storage complete");
+    bmwqemu::diag('Saving storage complete');
     if ($was_running) {
         $self->cont_vm();
         $self->deflate_balloon();
@@ -599,7 +599,7 @@ sub delete_virtio_console_fifo () { unlink $_ or bmwqemu::fctwarn("Could not unl
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
-    $vars->{QEMUMACHINE} //= "usb=off";
+    $vars->{QEMUMACHINE} //= 'usb=off';
     # set the initial resolution on PCC and SPARC
     sp('g', "$self->{xres}x$self->{yres}");
     return 1;
@@ -635,37 +635,37 @@ sub setup_tpm ($self) {
 sub _set_graphics_backend ($self) {
     my $vars = \%bmwqemu::vars;
     my $device;
-    my $options = "";
+    my $options = '';
     if ($vars->{QEMU_VIDEO_DEVICE}) {
-        bmwqemu::fctwarn("Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!") if $vars->{QEMUVGA};
+        bmwqemu::fctwarn('Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!') if $vars->{QEMUVGA};
         $device = $vars->{QEMU_VIDEO_DEVICE};
     }
     elsif ($vars->{QEMUVGA}) {
         my $vga = $vars->{QEMUVGA};
-        bmwqemu::fctwarn("QEMUVGA is deprecated, please set QEMU_VIDEO_DEVICE");
-        $device = "virtio-vga" if ($vga eq "virtio");
-        $device = "qxl-vga" if ($vga eq "qxl");
-        $device = "cirrus-vga" if ($vga eq "cirrus");
-        $device = "VGA" if ($vga eq "std");
+        bmwqemu::fctwarn('QEMUVGA is deprecated, please set QEMU_VIDEO_DEVICE');
+        $device = 'virtio-vga' if ($vga eq 'virtio');
+        $device = 'qxl-vga' if ($vga eq 'qxl');
+        $device = 'cirrus-vga' if ($vga eq 'cirrus');
+        $device = 'VGA' if ($vga eq 'std');
     }
     elsif ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
-        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
+        bmwqemu::fctwarn('QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead');
     }
     elsif (is_arm($vars->{ARCH})) {
         # annoying pre-existing special-case default for ARM
-        $device = "virtio-gpu-pci";
+        $device = 'virtio-gpu-pci';
     }
     elsif (is_s390x($vars->{ARCH})) {
-        $device = "virtio-gpu";
+        $device = 'virtio-gpu';
     }
-    $device //= "VGA";
-    my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display", "virtio-gpu");
+    $device //= 'VGA';
+    my @edids = ('VGA', 'virtio-vga', 'virtio-gpu-pci', 'bochs-display', 'virtio-gpu');
     if (grep { $device eq $_ } @edids) {
         # these devices support EDID
         $options = ",edid=on,xres=$self->{xres},yres=$self->{yres}";
     }
     if ($vars->{QEMU_VIDEO_DEVICE_OPTIONS}) {
-        $options .= "," . $vars->{QEMU_VIDEO_DEVICE_OPTIONS};
+        $options .= ',' . $vars->{QEMU_VIDEO_DEVICE_OPTIONS};
     }
     sp('device', "${device}${options}");
 }
@@ -719,7 +719,7 @@ sub start_qemu ($self) {
     if ($vars->{UEFI} && ($arch eq 'x86_64')) {
         $vars->{UEFI_PFLASH_CODE} //= find_ovmf;
         $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/$&=~tr,CcOoDdEe,VvAaRrSs,r/eir;
-        die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
+        die 'No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or UEFI_BIOS or install an appropriate package' unless $vars->{UEFI_PFLASH_CODE};
     }
 
     foreach my $attribute (qw(KERNEL INITRD)) {
@@ -765,19 +765,19 @@ sub start_qemu ($self) {
 
     # disk settings
     if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL} ||= "scsi-hd";
+        $vars->{HDDMODEL} ||= 'scsi-hd';
         $vars->{PATHCNT} ||= 2;
     }
     $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $vars->{HDDSIZEGB} ||= 10;
-    $vars->{CDMODEL} ||= "scsi-cd";
-    $vars->{HDDMODEL} ||= "virtio-blk";
+    $vars->{CDMODEL} ||= 'scsi-cd';
+    $vars->{HDDMODEL} ||= 'virtio-blk';
 
     # network settings
-    $vars->{NICMODEL} ||= "virtio-net";
-    $vars->{NICTYPE} ||= "user";
-    $vars->{NICMAC} ||= "52:54:00:12:34:56" if $vars->{NICTYPE} eq 'user';
-    if ($vars->{NICTYPE} eq "vde") {
+    $vars->{NICMODEL} ||= 'virtio-net';
+    $vars->{NICTYPE} ||= 'user';
+    $vars->{NICMAC} ||= '52:54:00:12:34:56' if $vars->{NICTYPE} eq 'user';
+    if ($vars->{NICTYPE} eq 'vde') {
         $vars->{VDE_SOCKETDIR} ||= '.';
         # use consistent port. port 1 is slirpvde so add + 2.
         # *2 to have another slot for slirpvde. Default number
@@ -833,11 +833,11 @@ sub start_qemu ($self) {
     # put it back to the vars for saving
     $vars->{NICMAC} = join ',', @nicmac;
     $vars->{NICVLAN} = join ',', @nicvlan;
-    $vars->{TAPDEV} = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
-    $vars->{TAPSCRIPT} = join ',', @tapscript if $vars->{NICTYPE} eq "tap";
-    $vars->{TAPDOWNSCRIPT} = join ',', @tapdownscript if $vars->{NICTYPE} eq "tap";
+    $vars->{TAPDEV} = join ',', @tapdev if $vars->{NICTYPE} eq 'tap';
+    $vars->{TAPSCRIPT} = join ',', @tapscript if $vars->{NICTYPE} eq 'tap';
+    $vars->{TAPDOWNSCRIPT} = join ',', @tapdownscript if $vars->{NICTYPE} eq 'tap';
 
-    if ($vars->{NICTYPE} eq "vde") {
+    if ($vars->{NICTYPE} eq 'vde') {
         my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
         my $port = $vars->{VDE_PORT};
         my $vlan = $nicvlan[0];
@@ -891,9 +891,9 @@ sub start_qemu ($self) {
             my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
             my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
             sp('audiodev', $audiobackend . ',id=snd0');
-            if ("$audiodev" eq "intel-hda") {
+            if ("$audiodev" eq 'intel-hda') {
                 sp('device', $audiodev);
-                $audiodev = "hda-output";
+                $audiodev = 'hda-output';
             }
             sp('device', $audiodev . ',audiodev=snd0');
         }
@@ -918,22 +918,22 @@ sub start_qemu ($self) {
         sp('device', 'virtio-balloon,deflate-on-oom=on') if $vars->{QEMU_BALLOON_TARGET};
 
         for (my $i = 0; $i < $num_networks; $i++) {
-            if ($vars->{NICTYPE} eq "user") {
+            if ($vars->{NICTYPE} eq 'user') {
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
                 $nictype_user_options .= ",smb=${\(dirname($basedir))}" if ($vars->{QEMU_ENABLE_SMBD});
                 sp('netdev', [qv "user id=qanet$i$nictype_user_options"]);
             }
-            elsif ($vars->{NICTYPE} eq "tap") {
+            elsif ($vars->{NICTYPE} eq 'tap') {
                 sp('netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"]);
             }
-            elsif ($vars->{NICTYPE} eq "vde") {
+            elsif ($vars->{NICTYPE} eq 'vde') {
                 sp('netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"]);
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
-            my $bootorder = $vars->{PXEBOOT} ? "bootindex=" . ($i + 1) : '';
-            my $nicpciaddr = ($vars->{NICPCIADDR} && $vars->{NICTYPE} eq "user") ? sprintf(" bus=pci.0 addr=0x%x", $vars->{NICPCIADDR} + $i) : '';
+            my $bootorder = $vars->{PXEBOOT} ? 'bootindex=' . ($i + 1) : '';
+            my $nicpciaddr = ($vars->{NICPCIADDR} && $vars->{NICTYPE} eq 'user') ? sprintf(' bus=pci.0 addr=0x%x', $vars->{NICPCIADDR} + $i) : '';
             sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i] $bootorder$nicpciaddr"]);
         }
 
@@ -995,7 +995,7 @@ sub start_qemu ($self) {
         # See https://progress.opensuse.org/issues/193258
         sp('device', 'virtio-keyboard') if $vars->{QEMU_VIRTIO_KEYBOARD} // is_s390x($arch);
 
-        sp("device", "canokey,file=canokey") if $vars->{FIDO2};
+        sp('device', 'canokey,file=canokey') if $vars->{FIDO2};
 
         my $smp_config = [$vars->{QEMUCPUS}];
         for my $key (qw(QEMUSOCKETS QEMUDIES QEMUCLUSTERS QEMUCORES QEMUTHREADS)) {
@@ -1063,13 +1063,13 @@ sub start_qemu ($self) {
             hostname => 'localhost',
             connect_timeout => 3,
             port => 5900 + $bmwqemu::vars{VNC},
-            description => "QEMU's VNC"});
+            description => q{QEMU's VNC}});
 
     $vnc->backend($self);
     my $ret = $self->select_console({testapi_console => 'sut'});
     die $ret->{error} if $ret->{error};
 
-    if ($vars->{NICTYPE} eq "tap") {
+    if ($vars->{NICTYPE} eq 'tap') {
         $self->{allocated_networks} = $num_networks;
         $self->{allocated_tap_devices} = \@tapdev;
         $self->{allocated_vlan_tags} = \@nicvlan;
@@ -1090,16 +1090,16 @@ sub start_qemu ($self) {
 
         if (exists $vars->{OVS_DEBUG} && $vars->{OVS_DEBUG} == 1) {
             my (undef, $output) = $self->_dbus_call('show');
-            bmwqemu::diag "Open vSwitch networking status:";
+            bmwqemu::diag 'Open vSwitch networking status:';
             bmwqemu::diag $output;
         }
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        bmwqemu::diag("DELAYED_START set, not starting CPU, waiting for resume_vm()");
+        bmwqemu::diag('DELAYED_START set, not starting CPU, waiting for resume_vm()');
     }
     else {
-        bmwqemu::diag("Start CPU");
+        bmwqemu::diag('Start CPU');
         $self->handle_qmp_command({execute => 'cont'});
     }
 
@@ -1131,7 +1131,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
     try {
         # die explicitly to workaround bug resulting in a warning when a function fails that got undef as an argument:
         # "Use of uninitialized value $args[0] in join or string at /usr/lib/perl5/5.40.1/autodie/exception.pm line 507"
-        die "Can't syswrite(<UNDEF>, <BUFFER>): Bad file descriptor" unless $sk;
+        die q{Can't syswrite(<UNDEF>, <BUFFER>): Bad file descriptor} unless $sk;
         $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
     }
     catch ($e) {
@@ -1148,7 +1148,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
     do {
         $hash = myjsonrpc::read_json($sk);
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . Mojo::JSON::to_json($hash);
+            bmwqemu::diag 'EVENT ' . Mojo::JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
@@ -1160,7 +1160,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
 
 sub process_qemu_output ($buffer) {
     for my $line (split(/\n/, $buffer)) {
-        die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
+        die 'QEMU: Shutting down the job' if $line =~ m/key event queue full/;
         if ($line =~ /^\s*qemu-system-[^:]+: (?!terminating on signal)/) {
             bmwqemu::fctwarn $line, '';
         }

@@ -137,7 +137,7 @@ subtest 'isotovideo with wheels' => sub {
     my $case_dir = "$data_dir/tests";
     my $wheels_dir = "$data_dir/wheels_dir";
     my $specfile = path($case_dir)->make_path->child('wheels.yaml');
-    $specfile->spew("wheels: [foo/bar]");
+    $specfile->spew('wheels: [foo/bar]');
     throws_ok { checkout_wheels(
             $case_dir, $wheels_dir) } qr@Invalid.*\Q$specfile\E.*Missing property@, 'invalid YAML causes error';
     $specfile->spew("version: v99\nwheels: [foo/bar]");
@@ -218,7 +218,7 @@ subtest 'isotovideo with wheels' => sub {
         $runner_mock->redefine(checkout_git_refspec => sub { 1 });
         my $wheels_dir = '/does/not/exist';
         $bmwqemu::vars{WHEELS_DIR} = $wheels_dir;
-        throws_ok { OpenQA::Isotovideo::Runner->checkout_code } qr{WHEELS_DIR '$wheels_dir' does not exist}, "Invalid WHEELS_DIR dies";
+        throws_ok { OpenQA::Isotovideo::Runner->checkout_code } qr{WHEELS_DIR '$wheels_dir' does not exist}, 'Invalid WHEELS_DIR dies';
     };
 };
 
@@ -348,7 +348,7 @@ subtest 'publish assets' => sub {
 
     subtest 'unsuccessful do_extract_assets' => sub {
         my $mock = Test::MockModule->new('backend::qemu');
-        $mock->redefine(do_extract_assets => sub (@) { die "oops" });
+        $mock->redefine(do_extract_assets => sub (@) { die 'oops' });
         $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
         $command_handler->test_completed(1);
         my $return_code;
@@ -380,7 +380,7 @@ subtest 'publish assets' => sub {
 done_testing();
 
 END {
-    unlink "./serial0" if -e "./serial0";
+    unlink './serial0' if -e './serial0';
     rmtree "$Bin/data/tests/product";
     rmtree "$data_dir/wheels_dir/writer";
     rmtree "$pool_dir/writer";

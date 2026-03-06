@@ -114,7 +114,7 @@ sub remaining ($start, $timeout) {
 # Otherwise leave as is.
 sub normalise_pattern ($pattern, $no_regex) {
     if (ref $pattern eq 'ARRAY' && !$no_regex) {
-        my $re = join "|", map { "($_)" } @$pattern;
+        my $re = join '|', map { "($_)" } @$pattern;
         return qr{$re};
     }
 

@@ -17,7 +17,7 @@ sub screen ($self) { $self->{screen} }
 
 sub disable ($self) {
     return unless $self->{ssh};
-    bmwqemu::diag("Closing SSH connection with " . $self->{ssh}->hostname);
+    bmwqemu::diag('Closing SSH connection with ' . $self->{ssh}->hostname);
     $self->{ssh}->disconnect;
     $self->{ssh} = $self->{screen} = undef;
     return;
@@ -55,7 +55,7 @@ sub activate ($self) {
     $self->{screen} = consoles::ssh_screen->new(
         ssh_connection => $ssh,
         ssh_channel => $chan,
-        logfile => $self->{args}->{logfile} // "serial_terminal.txt"
+        logfile => $self->{args}->{logfile} // 'serial_terminal.txt'
     );
     $self->{ssh} = $ssh;
     return;

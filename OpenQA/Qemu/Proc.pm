@@ -175,10 +175,10 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         if (defined $backing_file) {
             $backing_file = path($backing_file)->to_abs;
             # Handle files compressed as *.xz
-            my ($name, $path, $ext) = fileparse($backing_file, ".xz");
+            my ($name, $path, $ext) = fileparse($backing_file, '.xz');
             if ($ext =~ qr /.xz/) {
                 die 'unxz was not found in PATH' unless defined which('unxz');
-                bmwqemu::diag("Extracting XZ compressed file");
+                bmwqemu::diag('Extracting XZ compressed file');
                 runcmd('nice', 'ionice', 'unxz', '-k', '-f', $backing_file);
                 $backing_file = $path . $name;
             }
@@ -210,12 +210,12 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         if ($vars->{USBBOOT}) {
             $size = $vars->{USBSIZEGB} . 'G' if $vars->{USBSIZEGB};
             my $drive = $bdc->add_iso_drive('usbstick', $iso, 'usb-storage', $size);
-            $drive->bootindex(0) if $bootfrom ne "disk";
+            $drive->bootindex(0) if $bootfrom ne 'disk';
         }
         else {
             my $drive = $bdc->add_iso_drive('cd0', $iso, $vars->{CDMODEL}, $size);
             $drive->serial('cd0');
-            $drive->bootindex(0) if $bootfrom eq "cdrom";
+            $drive->bootindex(0) if $bootfrom eq 'cdrom';
         }
     }
     my $is_first = 1;
@@ -230,7 +230,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         $drive->serial("cd$i");
         # first connected cdrom gets ",bootindex=0 when booting from cdrom and
         # there wasn't `ISO` defined
-        if ($is_first && $bootfrom eq "cdrom" && !$iso) {
+        if ($is_first && $bootfrom eq 'cdrom' && !$iso) {
             $drive->bootindex(0);
             $is_first = 0;
         }
@@ -369,7 +369,7 @@ sub exec_qemu ($self) {
             $SIG{__DIE__} = undef;    # overwrite the default - just exit
             system $self->qemu_bin, '-version';
             # don't try to talk to the host's PA
-            $ENV{QEMU_AUDIO_DRV} = "none";
+            $ENV{QEMU_AUDIO_DRV} = 'none';
             exec(@params);
     });
     $process->separate_err(0)->start();
@@ -399,7 +399,7 @@ sub connect_qmp ($self) {
     osutils::attempt {
         attempts => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
         condition => sub () { $sk },
-        or => sub () { die "Can't open QMP socket" },
+        or => sub () { die q{Can't open QMP socket} },
         cb => sub () {
             die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(

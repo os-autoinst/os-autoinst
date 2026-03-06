@@ -159,7 +159,7 @@ subtest 'SSH utilities' => sub {
             });
             $self->mock(channel => sub {
                     my $self = shift;
-                    die("Not connected") unless ($self->{connected});
+                    die('Not connected') unless ($self->{connected});
                     return $fail_on_channel_call = undef if $fail_on_channel_call;
                     my $mock_channel = Test::MockObject->new();
                     $mock_channel->{ssh} = $self;
@@ -239,12 +239,12 @@ subtest 'SSH utilities' => sub {
     $log::logger = $default_logger;
 
     # Double check references
-    isnt(refaddr($ssh1), refaddr($ssh2), "Got new connection each call");
-    is(refaddr($ssh3), refaddr($ssh4), "Got same connection with keep_open");
-    is(refaddr($ssh4), refaddr($ssh5), "Got same connection with keep_open");
-    isnt(refaddr($ssh5), refaddr($ssh6), "Got new connection with different credentials");
-    isnt(refaddr($ssh5), refaddr($ssh7), "Got new connection, when SSH session got broke");
-    isnt(refaddr($ssh4), refaddr($ssh8), "Got same connection with different ports");
+    isnt(refaddr($ssh1), refaddr($ssh2), 'Got new connection each call');
+    is(refaddr($ssh3), refaddr($ssh4), 'Got same connection with keep_open');
+    is(refaddr($ssh4), refaddr($ssh5), 'Got same connection with keep_open');
+    isnt(refaddr($ssh5), refaddr($ssh6), 'Got new connection with different credentials');
+    isnt(refaddr($ssh5), refaddr($ssh7), 'Got new connection, when SSH session got broke');
+    isnt(refaddr($ssh4), refaddr($ssh8), 'Got same connection with different ports');
 
     $ssh_auth_ok = 0;
     @net_ssh2_error = (-1, 'MY_ERROR', 'Error connecting to');
@@ -285,25 +285,25 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 8, "Expect 8 connected SSH connections");
-    is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
-    is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
-    is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
-    is($ssh8->{connected}, 1, "SSH connection ssh8 connected");
-    is($ssh9->{connected}, 1, "SSH connection ssh9 connected");
+    is(scalar(@connected_ssh), 8, 'Expect 8 connected SSH connections');
+    is($ssh1->{connected}, 1, 'SSH connection ssh1 connected');
+    is($ssh2->{connected}, 1, 'SSH connection ssh2 connected');
+    is($ssh7->{connected}, 1, 'SSH connection ssh7 connected');
+    is($ssh8->{connected}, 1, 'SSH connection ssh8 connected');
+    is($ssh9->{connected}, 1, 'SSH connection ssh9 connected');
     # +1 unnamed connection form implicit run_ssh_cmd()
 
-    is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
-    is($ssh3->{connected}, 0, "SSH connection ssh3 disconnected");
+    is(scalar(@disconnected_ssh), 3, 'Expect 3 disconnected SSH connections');
+    is($ssh3->{connected}, 0, 'SSH connection ssh3 disconnected');
     # +1 from auth failure
     # +1 run_ssh_cmd(keep_open => 0)
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     is scalar @connected_ssh, 5, 'Expect 5 connected SSH connections (ssh1, ssh2 and ssh9)';
-    is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
-    is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
-    is($ssh9->{connected}, 1, "SSH connection ssh9 connected (user agent auth)");
+    is($ssh1->{connected}, 1, 'SSH connection ssh1 connected');
+    is($ssh2->{connected}, 1, 'SSH connection ssh2 connected');
+    is($ssh9->{connected}, 1, 'SSH connection ssh9 connected (user agent auth)');
 
     subtest 'Serial SSH' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
@@ -406,7 +406,7 @@ subtest 'video-encoder' => sub {
     is $baseclass->{video_encoders}, undef, 'video_encoders entry was deleted';
 
     my $mock = Test::MockModule->new('backend::baseclass');
-    $mock->redefine(_write_buffered_data_to_file_handle => sub { die "FAIL!" });
+    $mock->redefine(_write_buffered_data_to_file_handle => sub { die 'FAIL!' });
     my $mockbmw = Test::MockModule->new('bmwqemu');
     my @diag;
     $mockbmw->redefine(diag => sub { push @diag, @_ });
@@ -456,8 +456,8 @@ Some leftover
 UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /
 UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
 BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, 'Test regex match multiline leftover');
-    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test regex mismatch");
-    is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
+    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, 'Test regex mismatch');
+    is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, 'Test string literal mismatch');
 
     subtest 'waiting for serial terminal' => sub {
         my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true('read_until');
@@ -574,7 +574,7 @@ subtest check_select_rate => sub {
         }
         is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "The fd 42 does not hit the limit, as time isn't up");
         is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 0, "The fd 42 does not hit the limit, cause not all fd's hit it!");
-        is($buckets->{BUCKET}->{42}, 1, "The counter of fd 42 was reset to 1");
+        is($buckets->{BUCKET}->{42}, 1, 'The counter of fd 42 was reset to 1');
     };
 
     subtest single_fd_hit_the_limit => sub {
@@ -582,7 +582,7 @@ subtest check_select_rate => sub {
         for my $loop (1 .. ($hit_limit)) {
             is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "$loop hit on fd 42 after reset.");
         }
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "The fd 42 hit now the limit.");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, 'The fd 42 hit now the limit.');
     };
 
     subtest all_fds_hit_the_limit => sub {
@@ -592,7 +592,7 @@ subtest check_select_rate => sub {
                 is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0), 0, "$loop hit on $fd return 0");
             }
         }
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "Hit the limit, as all fds hit it!");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, 'Hit the limit, as all fds hit it!');
     };
 };
 
@@ -630,7 +630,7 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     my $video_encoder_fh = 41;
     my $external_video_encoder_fh = 42;
     my $other_fh = 43;
-    my $fake_pipe = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # create *some* handle to use as cmdpipe
+    my $fake_pipe = IO::Handle->new_from_fd(fileno(STDOUT), 'w');    # create *some* handle to use as cmdpipe
     my $io_select_mock = Test::MockModule->new('IO::Select');
     my $io_select_timeout;
     my @io_select_res = ([$file_fh], [$external_video_encoder_fh, $other_fh]);

@@ -31,13 +31,13 @@ sub find_bin ($dir, @candidates) { first { -e && -x } map { path($dir, $_) } @ca
 # if the parameter is equal to "", the value is not pushed to the array.
 sub gen_params ($array, $argument, $parameter = undef, %args) {
     return unless ($parameter);
-    $args{prefix} = "-" unless $args{prefix};
+    $args{prefix} = '-' unless $args{prefix};
 
-    if (ref($parameter) eq "") {
+    if (ref($parameter) eq '') {
         $parameter = quote($parameter) if $parameter =~ /\s+/ && !$args{no_quotes};
         push(@$array, $args{prefix} . "${argument}", $parameter);
     }
-    elsif (ref($parameter) eq "ARRAY") {
+    elsif (ref($parameter) eq 'ARRAY') {
         push(@$array, $args{prefix} . "${argument}", join(',', @$parameter));
     }
 
@@ -45,7 +45,7 @@ sub gen_params ($array, $argument, $parameter = undef, %args) {
 
 # doubledash shortcut version. Same can be achieved with gen_params.
 sub dd_gen_params ($array, $argument, $parameter) {
-    gen_params($array, $argument, $parameter, prefix => "--");
+    gen_params($array, $argument, $parameter, prefix => '--');
 }
 
 # It merely splits a string into pieces interpolating variables inside it.

@@ -36,7 +36,7 @@ sub new ($class) {
     $self->{libvirt_pool_name} = undef;
 
     my $path = Mojo::File::path($self->{vagrant_cwd})->make_path();
-    $self->{vagrantfile} = $path->child("Vagrantfile");
+    $self->{vagrantfile} = $path->child('Vagrantfile');
     bmwqemu::diag("Writing Vagrantfile to $self->{vagrantfile}");
 
     my $vagrant_file_contents = <<END;
@@ -63,7 +63,7 @@ END
     } elsif ($self->{provider} eq 'libvirt') {
         $self->{libvirt_storage_pool_path} = "$self->{vagrant_cwd}/pool";
         mkdir $self->{libvirt_storage_pool_path};
-        $self->{libvirt_pool_name} = "vagrant" . int(rand(100_000));
+        $self->{libvirt_pool_name} = 'vagrant' . int(rand(100_000));
 
         $vagrant_file_contents .= <<END;
   config.vm.provider :libvirt do |libvirt|
@@ -88,8 +88,8 @@ END
 sub run_vagrant_command ($self, $args) {
     my ($retval, $stdin, $stdout, $stderr);
 
-    my @vagrant_cmd = ("vagrant", $args->{cmd});
-    push(@vagrant_cmd, ("--machine-readable")) unless $args->{not_machine_readable};
+    my @vagrant_cmd = ('vagrant', $args->{cmd});
+    push(@vagrant_cmd, ('--machine-readable')) unless $args->{not_machine_readable};
     push @vagrant_cmd, @{$args->{extra_args}} if defined $args->{extra_args};
     my $timeout = $args->{timeout} // ONE_MINUTE;
 
@@ -105,13 +105,13 @@ sub run_vagrant_command ($self, $args) {
 }
 
 sub get_ssh_credentials ($self) {
-    my $vagrant_ssh_conf_res = $self->run_vagrant_command({cmd => "ssh-config", not_machine_readable => 1});
-    die "obtaining the ssh config failed!" unless $vagrant_ssh_conf_res->{retval} == 0;
+    my $vagrant_ssh_conf_res = $self->run_vagrant_command({cmd => 'ssh-config', not_machine_readable => 1});
+    die 'obtaining the ssh config failed!' unless $vagrant_ssh_conf_res->{retval} == 0;
     my $stdout = $vagrant_ssh_conf_res->{stdout};
     my %con_creds = (
-        hostname => "localhost",
-        username => "vagrant",
-        password => "vagrant",
+        hostname => 'localhost',
+        username => 'vagrant',
+        password => 'vagrant',
         port => 22
     );
 
@@ -131,7 +131,7 @@ sub do_start_vm ($self, @) {
     if (defined($self->{libvirt_pool_name})) {
         my ($stdout, $stderr, $virsh_res);
 
-        my @virsh_cmd = ("virsh", "pool-create-as", "--target", $self->{libvirt_storage_pool_path}, "--name", $self->{libvirt_pool_name}, "--type", "dir");
+        my @virsh_cmd = ('virsh', 'pool-create-as', '--target', $self->{libvirt_storage_pool_path}, '--name', $self->{libvirt_pool_name}, '--type', 'dir');
         my $handle = IPC::Run::start(\@virsh_cmd, \undef, \$stdout, \$stderr);
         IPC::Run::finish($handle);
         $virsh_res = $handle->full_result(0);
@@ -143,8 +143,8 @@ sub do_start_vm ($self, @) {
           if (($virsh_res != 0) && !($stderr =~ m/$re/));
     }
 
-    my @prov = ("--provider", $self->{provider});
-    my $args = {cmd => "up", extra_args => \@prov, timeout => $self->{up_timeout}};
+    my @prov = ('--provider', $self->{provider});
+    my $args = {cmd => 'up', extra_args => \@prov, timeout => $self->{up_timeout}};
 
     my $res = $self->run_vagrant_command($args);
     die "Failed to execute vagrant up, got:\n$res->{stdout}\n\n$res->{stderr}\n"
@@ -158,27 +158,27 @@ sub do_start_vm ($self, @) {
 }
 
 sub do_stop_vm ($self, @) {
-    my $res = $self->run_vagrant_command({cmd => "halt"});
+    my $res = $self->run_vagrant_command({cmd => 'halt'});
     if ($res->{retval} != 0) {
         bmwqemu::fctwarn("vagrant: failed to execute vagrant halt, got $res->{retval},\n$res->{stdout}\n$res->{stderr}");
     }
 
-    my @extra_args = ("-f");
-    my $destroy_res = $self->run_vagrant_command({cmd => "destroy", extra_args => \@extra_args});
+    my @extra_args = ('-f');
+    my $destroy_res = $self->run_vagrant_command({cmd => 'destroy', extra_args => \@extra_args});
     if ($destroy_res->{retval} != 0) {
         bmwqemu::fctwarn("vagrant: failed to destroy the vagrant VM, got:\n$destroy_res->{stdout}\n$destroy_res->{stderr}");
     }
 
     # ensure that the box is gone:
-    my $extra_remove_args = ["remove", "-af", "--provider", $self->{provider}, $self->{box_name}];
-    my $box_remove_res = $self->run_vagrant_command({cmd => "box", extra_args => $extra_remove_args});
+    my $extra_remove_args = ['remove', '-af', '--provider', $self->{provider}, $self->{box_name}];
+    my $box_remove_res = $self->run_vagrant_command({cmd => 'box', extra_args => $extra_remove_args});
     if ($box_remove_res->{retval} != 0) {
         bmwqemu::fctwarn("vagrant: failed to destroy the vagrant box $self->{box_name}, got:\n$box_remove_res->{stdout}\n$box_remove_res->{stderr}");
     }
 
     if (defined($self->{libvirt_pool_name})) {
         my ($stdout, $stderr, $virsh_res);
-        my @virsh_cmd = ("virsh", "pool-destroy", $self->{libvirt_pool_name});
+        my @virsh_cmd = ('virsh', 'pool-destroy', $self->{libvirt_pool_name});
         my $handle = IPC::Run::start(\@virsh_cmd, \undef, \$stdout, \$stderr);
         IPC::Run::finish($handle);
         $virsh_res = $handle->full_result(0);
@@ -191,7 +191,7 @@ sub do_stop_vm ($self, @) {
 
 sub run_cmd ($self, $cmd) {
     my @args = ('--', split(/ /, $cmd));
-    my $res = $self->run_vagrant_command({cmd => "ssh", not_machine_readable => 1, extra_args => \@args});
+    my $res = $self->run_vagrant_command({cmd => 'ssh', not_machine_readable => 1, extra_args => \@args});
 
     chomp $res->{stdout};
     return $res->{stdout};
@@ -200,7 +200,7 @@ sub run_cmd ($self, $cmd) {
 sub can_handle ($self, @) { }
 
 sub is_shutdown ($self, @) {
-    my $res = $self->run_vagrant_command({cmd => "status", timeout => 5});
+    my $res = $self->run_vagrant_command({cmd => 'status', timeout => 5});
     chomp($res->{stdout});
     return $res->{stdout} =~ /default,state,(shutoff|not_created|poweroff)/;
 }

@@ -37,7 +37,7 @@ package basic_needle {
 }    # uncoverable statement
 
 sub usage ($r) {
-    print "imgsearch [options]
+    print 'imgsearch [options]
 
 options:
     --needle-images    specifies images to look for
@@ -49,7 +49,7 @@ example:
 imagesearch \
     --needle-images logo1.png logo2.png \
     --haystack-images asset.png screenshot.png
-";
+';
     exit $r;
 }
 

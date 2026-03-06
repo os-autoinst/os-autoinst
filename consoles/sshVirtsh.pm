@@ -27,7 +27,7 @@ sub new ($class, $testapi_console = undef, $args = {}) {
 
     $self->instance($bmwqemu::vars{VIRSH_INSTANCE} // 1);
     # default name
-    $self->name("openQA-SUT-" . $self->instance);
+    $self->name('openQA-SUT-' . $self->instance);
     $self->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} // 'kvm');
     $self->vmm_type($bmwqemu::vars{VIRSH_VMM_TYPE} // 'hvm');
     $self->vmm_firmware($bmwqemu::vars{VIRSH_VMM_FIRMWARE} // 'efi');
@@ -325,7 +325,7 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
             my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
             if ($stderr =~ /lock/i) {
                 $bucket--;
-                die "Too many attempts to format HDD" unless $bucket;
+                die 'Too many attempts to format HDD' unless $bucket;
                 bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
                 sleep 5;
                 next;
@@ -379,7 +379,7 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
-    my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? "set -x;" : "";
+    my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
     my $cmd =
       "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
       "while lsof | grep 'cp.*$file_basename'; do " .
@@ -401,7 +401,7 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
       "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
       "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
     $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-    die "Can't create thin VMware image" if $retval;
+    die q{Can't create thin VMware image} if $retval;
 }
 
 sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_path) {
@@ -412,7 +412,7 @@ sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_pat
       "set -x; if [ -e $vmware_vmx_path ] && [ -e $vmware_nvram_path ]; then " .
       "cp -f $vmware_nvram_path ${vmware_openqa_datastore}${name}.nvram; fi;";
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-    die "No nvram was set in the source vmx file" if $retval;
+    die 'No nvram was set in the source vmx file' if $retval;
 }
 
 sub _system (@cmd) { system @cmd }    # uncoverable statement
@@ -549,13 +549,13 @@ sub virsh () {
 }
 
 sub suspend ($self) {
-    $self->run_cmd(virsh() . " suspend " . $self->name) && die "Can't suspend VM ";
-    bmwqemu::diag "VM " . $self->name . " suspended";
+    $self->run_cmd(virsh() . ' suspend ' . $self->name) && die q{Can't suspend VM };
+    bmwqemu::diag 'VM ' . $self->name . ' suspended';
 }
 
 sub resume ($self) {
-    $self->run_cmd(virsh() . " resume " . $self->name) && die "Can't resume VM ";
-    bmwqemu::diag "VM " . $self->name . " resumed";
+    $self->run_cmd(virsh() . ' resume ' . $self->name) && die q{Can't resume VM };
+    bmwqemu::diag 'VM ' . $self->name . ' resumed';
 }
 
 sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
@@ -575,20 +575,20 @@ sub _encode_config ($self, $config, $key) {
 }
 
 sub define_and_start ($self) {
-    my $remote_vmm = "";
+    my $remote_vmm = '';
     if ($self->vmm_family eq 'vmware') {
-        my ($fh, $libvirtauthfilename) = File::Temp::tempfile('libvirtauth-XXXX', DIR => "/tmp/");
+        my ($fh, $libvirtauthfilename) = File::Temp::tempfile('libvirtauth-XXXX', DIR => '/tmp/');
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.
         $self->run_cmd(
-            "cat > $libvirtauthfilename <<__END
+            qq{cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . ($bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME') . "
-password=" . ($bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD') . "
-[auth-esx-" . ($bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST') . "]
+username=} . ($bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME') . '
+password=' . ($bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD') . '
+[auth-esx-' . ($bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST') . ']
 credentials=vmware
-__END"
+__END'
         );
         my $user = $bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME';
         my $host = $bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST';
@@ -598,7 +598,7 @@ __END"
 
     my $instance = $self->instance;
     my $xmldata = $self->{domainxml}->toString(2);
-    my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
+    my $xmlfilename = '/var/lib/libvirt/images/' . $self->name . '.xml';
     my $ret;
     bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
     my ($ssh, $chan) = $self->backend->run_ssh("cat > $xmlfilename", $self->get_ssh_credentials(), keep_open => 1);
@@ -614,7 +614,7 @@ __END"
     $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
 
     # define the new domain
-    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
+    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die 'virsh define failed';
     if ($self->vmm_family eq 'vmware') {
         my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
 
@@ -641,7 +641,7 @@ __END"
                     $self->run_cmd(qq{echo 'guestinfo.ignition.config.data = "$conf"' >> $vmx}, domain => 'sshVMwareServer');
                 }
             } elsif ($fb_tool eq 'cloud-init') {
-                croak "GUESTINFO_CLOUD_INIT is unset, or does not contain user-data and meta-data configs" unless ($bmwqemu::vars{GUESTINFO_CLOUD_INIT});
+                croak 'GUESTINFO_CLOUD_INIT is unset, or does not contain user-data and meta-data configs' unless ($bmwqemu::vars{GUESTINFO_CLOUD_INIT});
 
                 my ($conf, $meta) = split(',', $bmwqemu::vars{GUESTINFO_CLOUD_INIT});
                 $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
@@ -657,7 +657,7 @@ __END"
     }
 
     $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
-    bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
+    bmwqemu::diag('Dump actually used libvirt configuration file ' . ($ret ? '(broken)' : '(working)'));
     my $config = $self->get_cmd_output("virsh $remote_vmm dumpxml " . $self->name);
     die "virsh start failed: $ret\n\nvirsh domain XML:\n$config" if $ret;
     my $config_domain = Mojo::DOM->new($config)->at('domain');

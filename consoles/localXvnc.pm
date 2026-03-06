@@ -30,14 +30,14 @@ sub sshCommand ($self, $username, $host, $gui = undef) {
 sub callxterm ($self, $command, $window_name) {
     my $display = $self->{DISPLAY};
     $command = "TERM=xterm $command";
-    my $xterm_vt_cmd = which "xterm-console";
-    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
-    die('Missing "Xvnc"') unless which('Xvnc');
-    die('Missing "icewm"') unless which('icewm');
-    die('Missing "xterm"') unless which('xterm');
+    my $xterm_vt_cmd = which 'xterm-console';
+    die q{Missing 'xterm-console'} unless $xterm_vt_cmd;
+    die('Missing "Xvnc"') unless which 'Xvnc';
+    die('Missing "icewm"') unless which 'icewm';
+    die('Missing "xterm"') unless which 'xterm';
     if ($self->{args}->{log}) {
         mkpath 'ulogs';
-        $command = "script -af ulogs/hardware-console-log.txt -c \"$command\"";
+        $command = qq{script -af ulogs/hardware-console-log.txt -c "$command"};
     }
     my $pid = fork();
     exec("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command'")    # uncoverable statement
@@ -50,8 +50,8 @@ sub fullscreen ($self, $args) {
     my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
 
-    my $xdotool = $ENV{OS_AUTOINST_XDOTOOL} // which "xdotool";
-    die "Missing 'xdotool'" unless $xdotool;
+    my $xdotool = $ENV{OS_AUTOINST_XDOTOOL} // which 'xdotool';
+    die q{Missing 'xdotool'} unless $xdotool;
 
     # search for YaST Window and grab the id
     my $window_id = qx"DISPLAY=$display $xdotool search --sync --onlyvisible --name $window_name";
@@ -71,8 +71,8 @@ sub start_xvnc ($s, $display) {
     my $peer;    # uncoverable statement
     accept($peer, $s);    # uncoverable statement
     close($s);    # uncoverable statement
-    open(STDIN, "<&", $peer);    # uncoverable statement
-    open(STDOUT, ">&", $peer);    # uncoverable statement
+    open(STDIN, '<&', $peer);    # uncoverable statement
+    open(STDOUT, '>&', $peer);    # uncoverable statement
     close($peer);    # uncoverable statement
     exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");    # uncoverable statement
 }
@@ -103,7 +103,7 @@ sub activate ($self) {
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    system("DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo \"icewm PID is \$!\"");
+    system(qq{DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo "icewm PID is \$!"});
     return;
 }
 

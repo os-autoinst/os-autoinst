@@ -43,7 +43,7 @@ sub send_json ($to_fd, $cmd) {
     $cmdcopy{json_cmd_token} ||= bmwqemu::random_string(8);
 
     my $json = $cjx->encode(\%cmdcopy);
-    bmwqemu::diag(sprintf("send_json(%d) JSON=%s", fileno($to_fd), $json =~ s/"([^"]{30})[^"]+"/"$1"/gr)) if is_debug();
+    bmwqemu::diag(sprintf('send_json(%d) JSON=%s', fileno($to_fd), $json =~ s/"([^"]{30})[^"]+"/"$1"/gr)) if is_debug();
     $json .= "\n";
 
     confess 'myjsonrpc: called on undefined file descriptor' unless defined $to_fd;
@@ -84,13 +84,13 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
         # remember the trailing text
         if ($hash) {
             $sockets->{$fd} = $cjx->incr_text();
-            bmwqemu::diag(sprintf("read_json(%d) json_cmd_token=%s", $fd, $hash->{json_cmd_token} // 'no-token')) if is_debug();
+            bmwqemu::diag(sprintf('read_json(%d) json_cmd_token=%s', $fd, $hash->{json_cmd_token} // 'no-token')) if is_debug();
             if ($hash->{QUIT}) {
-                bmwqemu::diag("received magic close");
+                bmwqemu::diag('received magic close');
                 push @results, undef;
                 last;
             }
-            confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
+            confess 'ERROR: the token does not match - questions and answers not in the right order' if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
             push @results, $hash;
             # parse all lines from buffer
             next if $multi;

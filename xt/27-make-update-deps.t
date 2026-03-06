@@ -7,7 +7,7 @@ use Test::Warnings;
 use FindBin '$Bin';
 
 if (not -e "$Bin/../.git") {
-    pass("Skipping all tests, not in a git repository");    # uncoverable statement
+    pass('Skipping all tests, not in a git repository');    # uncoverable statement
     done_testing;    # uncoverable statement
     exit;    # uncoverable statement
 }

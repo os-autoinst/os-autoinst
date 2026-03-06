@@ -107,7 +107,7 @@ sub _debug_python_version () {
     return Inline::Python::py_eval('__import__("sys").version', 0);
     EOM
     my $debug = eval $code;
-    bmwqemu::diag "Using python version " . $debug;
+    bmwqemu::diag 'Using python version ' . $debug;
 }
 
 
@@ -176,7 +176,7 @@ sub _load_lua () {
     EOM
     my $debug = eval $code;
     bmwqemu::diag "Using Lua version $debug";
-    lua_set("use", \&_lua_use);
+    lua_set('use', \&_lua_use);
 }
 
 sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
@@ -323,7 +323,7 @@ sub loadtest ($script, %args) {
 
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
-        my $new_name = join "#", $name, ++$nr;
+        my $new_name = join '#', $name, ++$nr;
         $test->{name} = $new_name;
         $test->{fullname} = "$category-$new_name";
     }
@@ -384,7 +384,7 @@ sub write_test_order () {
                 flags => $t->test_flags(),
                 script => $t->{script}});
     }
-    bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
+    bmwqemu::save_json_file(\@result, bmwqemu::result_dir . '/test_order.json');
 }
 
 sub make_snapshot ($sname) {
@@ -421,7 +421,7 @@ sub run_all () {
     }
     try {
         bmwqemu::save_vars(no_secret => 1);
-        bmwqemu::diag("Sending tests_done");
+        bmwqemu::diag('Sending tests_done');
         my $token = myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
         myjsonrpc::read_json($isotovideo, $token);    # wait for response from isotovideo before exiting
     }
@@ -476,7 +476,7 @@ sub start_process () {
         separate_err => 0,
         set_pipes => 0,
         internal_pipes => 0)->start;
-    $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
+    $process->on(collected => sub { bmwqemu::diag '[' . __PACKAGE__ . '] process exited: ' . shift->exit_status; });
 
     close $isotovideo;
     return ($process, $child);
@@ -524,12 +524,12 @@ sub pause_on_failure ($reason, $command = undef) {
 }
 
 sub runalltests () {
-    die "ERROR: no tests loaded" unless @testorder;
+    die 'ERROR: no tests loaded' unless @testorder;
 
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    bmwqemu::diag 'Snapshots are ' . ($snapshots_supported ? '' : 'not ') . 'supported';
 
     write_test_order();
 
@@ -609,7 +609,7 @@ sub runalltests () {
 }
 
 sub loadtestdir ($dir) {
-    die "need argument \$dir" unless $dir;
+    die 'need argument $dir' unless $dir;
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;

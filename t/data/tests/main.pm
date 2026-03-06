@@ -11,7 +11,7 @@ use testdistribution;
 set_var(ENABLE_MODERN_PERL_FEATURES => 1);
 
 if (get_var('TEST_NON_STRICT_MODULE')) {
-    eval { autotest::loadtest "tests/non_strict_module.pm" };
+    eval { autotest::loadtest 'tests/non_strict_module.pm' };
     die 'was able to load module violating strictness' unless my $error = $@;
     die "error message did not refer to expected line of code: $error"
       unless $error =~ m{Bareword.*"FOO".*at.*t/data/tests/tests/non_strict_module\.pm.*line 8}i;
@@ -26,8 +26,8 @@ sub unregister_needle_tags ($tag) {
 }
 
 sub cleanup_needles () {
-    unregister_needle_tags("ENV-VERSION-2") if check_var('VERSION', '1');
-    unregister_needle_tags("ENV-VERSION-1") unless check_var('VERSION', '1');
+    unregister_needle_tags('ENV-VERSION-2') if check_var('VERSION', '1');
+    unregister_needle_tags('ENV-VERSION-1') unless check_var('VERSION', '1');
 }
 
 $needle::cleanuphandler = \&cleanup_needles;
@@ -35,29 +35,29 @@ $needle::cleanuphandler = \&cleanup_needles;
 # openQA tests set INTEGRATION_TESTS to 1 when reusing the os-autoinst tests
 my $integration_tests = get_var('INTEGRATION_TESTS');
 
-autotest::loadtest "tests/freeze.pm" unless $integration_tests;
+autotest::loadtest 'tests/freeze.pm' unless $integration_tests;
 
 # Add import path for local test python modules from pool directory
 if (!$integration_tests && eval { require Inline::Python }) {
     Inline::Python::py_eval("import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))");
-    autotest::loadtest "pythontests/pre_boot.py";
+    autotest::loadtest 'pythontests/pre_boot.py';
 }
 
 if (!$integration_tests && eval { require Inline::Lua }) {
-    autotest::loadtest "luatests/pre_boot_lua.lua";
+    autotest::loadtest 'luatests/pre_boot_lua.lua';
 }
 
-autotest::loadtest "tests/boot.pm";
-autotest::loadtest "tests/assert_screen.pm";
+autotest::loadtest 'tests/boot.pm';
+autotest::loadtest 'tests/assert_screen.pm';
 unless ($integration_tests) {
-    autotest::loadtest "tests/save_storage.pm";
-    autotest::loadtest "tests/typing.pm";
-    autotest::loadtest "tests/select_console_fail_test.pm";
-    autotest::loadtest "tests/select_ssh_console_fail_test.pm";
-    autotest::loadtest "tests/assert_screen_fail_test.pm";
-    autotest::loadtest "tests/reload_needles.pm";
-    autotest::loadtest "tests/modify_and_upload_file.pm";
+    autotest::loadtest 'tests/save_storage.pm';
+    autotest::loadtest 'tests/typing.pm';
+    autotest::loadtest 'tests/select_console_fail_test.pm';
+    autotest::loadtest 'tests/select_ssh_console_fail_test.pm';
+    autotest::loadtest 'tests/assert_screen_fail_test.pm';
+    autotest::loadtest 'tests/reload_needles.pm';
+    autotest::loadtest 'tests/modify_and_upload_file.pm';
 }
-autotest::loadtest "tests/shutdown.pm";
+autotest::loadtest 'tests/shutdown.pm';
 
 1;

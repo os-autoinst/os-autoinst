@@ -55,7 +55,7 @@ has [qw(
 sub new ($class) {
     my $self = bless({class => $class}, $class);
     $self->{started} = 0;
-    $self->{serialfile} = "serial0";
+    $self->{serialfile} = 'serial0';
     $self->{serial_offset} = 0;
     $self->{video_frame_data} = [];
     $self->{video_frame_number} = 0;
@@ -101,18 +101,18 @@ sub backend_signalhandler ($sig) {
 }
 
 sub run ($self, $cmdpipe, $rsppipe) {
-    die "there can be only one!" if $backend;
+    die 'there can be only one!' if $backend;
     $backend = $self;
 
     $SIG{__DIE__} = \&die_handler;
     $SIG{TERM} = \&backend_signalhandler;
 
     my $io = IO::Handle->new();
-    $io->fdopen($cmdpipe, "r") || die "r fdopen $!";
+    $io->fdopen($cmdpipe, 'r') || die "r fdopen $!";
     $self->{cmdpipe} = $io;
 
     $io = IO::Handle->new();
-    $io->fdopen($rsppipe, "w") || die "w fdopen $!";
+    $io->fdopen($rsppipe, 'w') || die "w fdopen $!";
     $rsppipe = $io;
     $io->autoflush(1);
     $self->{rsppipe} = $io;
@@ -123,10 +123,10 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     my $select_read = $self->{select_read} = OpenQA::NamedIOSelect->new;
     my $select_write = $self->{select_write} = OpenQA::NamedIOSelect->new;
-    $select_read->add($self->{cmdpipe}, "baseclass::cmdpipe");
-    $select_write->add($self->{cmdpipe}, "baseclass::cmdpipe");
+    $select_read->add($self->{cmdpipe}, 'baseclass::cmdpipe');
+    $select_write->add($self->{cmdpipe}, 'baseclass::cmdpipe');
 
-    $self->last_update_request("-Inf" + 0);
+    $self->last_update_request('-Inf' + 0);
     $self->last_screenshot(undef);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
     # query the VNC backend more often than we write out screenshots, so the chances
@@ -140,7 +140,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     $self->run_capture_loop;
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));    # uncoverable statement
+    bmwqemu::diag('management process exit at ' . POSIX::strftime('%F %T', gmtime));    # uncoverable statement
 }
 
 sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
@@ -198,7 +198,7 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
     my $hits_limit = $self->{hits_limit};
     return 0 unless $self->{cmdpipe};
     my $now = gettimeofday;
-    my $time_to_timeout = "Inf" + 0;
+    my $time_to_timeout = 'Inf' + 0;
     if (defined $timeout && defined $starttime) {
         $time_to_timeout = $timeout - ($now - $starttime);
         return 0 if $time_to_timeout <= 0;
@@ -477,7 +477,7 @@ sub stop_vm ($self, @) {
 sub notimplemented ($self) {
     my $method = (caller(1))[3];
     $method =~ s/^backend::baseclass:://;
-    confess sprintf "backend method '%s' not implemented for class '%s'",
+    confess sprintf q{backend method '%s' not implemented for class '%s'},
       $method, ref $self;
 }
 
@@ -515,9 +515,9 @@ sub format_vtt_timestamp ($self, $walltime) {
     my $frametime_ms = 1000 * $self->{video_frame_number} / 24;
     my $caption = "\n$self->{video_frame_number}\n";
     # presentation time span (one frame)
-    $caption .= sprintf(POSIX::strftime("%T.%%03d", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
+    $caption .= sprintf(POSIX::strftime('%T.%%03d', gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
     $frametime_ms += 1000 / 24;
-    $caption .= " --> ";
+    $caption .= ' --> ';
     $caption .= sprintf(POSIX::strftime("%T.%%03d\n", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
     # clock value as caption text
     $caption .= sprintf(POSIX::strftime("[%FT%T.%%03d]\n", localtime($walltime)), 1000 * ($walltime - int($walltime)));
@@ -530,14 +530,14 @@ sub enqueue_screenshot ($self, $image) {
     $watch->start();
 
     $image = $image->scale($self->{xres}, $self->{yres});
-    $watch->lap("scaling");
+    $watch->lap('scaling');
 
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
-    $watch->lap("similarity");
+    $watch->lap('similarity');
 
     $self->{min_image_similarity} -= 1;
     $self->{min_image_similarity} = $sim if $sim < $self->{min_image_similarity};
@@ -565,7 +565,7 @@ sub enqueue_screenshot ($self, $image) {
     }
     else {
         my $imgdata = $self->{last_image_data} = $image->ppm_data;
-        $watch->lap("convert ppm data");
+        $watch->lap('convert ppm data');
         push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
         push(@{$self->{video_frame_data}}, $imgdata);
         $self->{min_video_similarity} = 10_000;
@@ -583,7 +583,7 @@ sub enqueue_screenshot ($self, $image) {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
-        bmwqemu::fctwarn sprintf("enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        bmwqemu::fctwarn sprintf('enqueue_screenshot took %.2f seconds', $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
 
@@ -614,7 +614,7 @@ sub close_pipes ($self, $closeall = 0) {
     # disarm SIGTERM handler to avoid re-entrant stop_vm call, stopping anyway
     $SIG{TERM} = 'IGNORE';
 
-    bmwqemu::diag "sending magic and exit";
+    bmwqemu::diag 'sending magic and exit';
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
     Devel::Cover::report() if Devel::Cover->can('report');
@@ -638,7 +638,7 @@ sub check_socket ($self, $fh, $write = undef) {
     }
     else {
         use Data::Dumper;
-        die "no command in " . Dumper($cmd);
+        die 'no command in ' . Dumper($cmd);
     }
     return 1;
 }
@@ -865,7 +865,7 @@ Returns the output and the offset after reading on the serial device from positi
 =cut
 
 sub read_serial ($self, $position, $whence = 0) {
-    open(my $SERIAL, "<", $self->{serialfile});
+    open(my $SERIAL, '<', $self->{serialfile});
     seek($SERIAL, $position, $whence);
     local $/;
     my $data = <$SERIAL>;
@@ -926,7 +926,7 @@ sub similiarity_to_reference ($self, $args) {
 sub find_needles_with_tags ($mustmatch) {
     my $needles = [];
     my @tags;
-    if (ref($mustmatch) eq "ARRAY") {
+    if (ref($mustmatch) eq 'ARRAY') {
         my @a = @$mustmatch;
         while (my $n = shift @a) {
             if (ref($n) eq '') {
@@ -936,7 +936,7 @@ sub find_needles_with_tags ($mustmatch) {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                warn "invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n);
+                warn 'invalid needle passed <' . ref($n) . '> ' . bmwqemu::pp($n);
                 next;
             }
             push @$needles, $n;
@@ -1009,7 +1009,7 @@ sub _failed_screens_to_json ($self) {
 
 sub time_remaining_str ($time) {
     # compensate rounding to be consistent with truncation in $search_ratio calculation
-    return sprintf("%.1fs", $time - 0.05);
+    return sprintf('%.1fs', $time - 0.05);
 }
 
 sub _reset_asserted_screen_check_variables ($self) {
@@ -1035,7 +1035,7 @@ sub check_asserted_screen ($self, $args) {
 
     my @registered_needles = grep { !$_->{unregistered} } @{$self->assert_screen_needles};
     my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
-    $watch->lap("Needle search") unless $watch->{debug};
+    $watch->lap('Needle search') unless $watch->{debug};
     if ($foundneedle) {
         $self->_reset_asserted_screen_check_variables;
         return {
@@ -1049,7 +1049,7 @@ sub check_asserted_screen ($self, $args) {
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval * $self->{needle_check_factor}) {
         bmwqemu::fctwarn sprintf(
-            "check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
+            'check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific',
             $watch->as_data()->{total_time},
             scalar(@registered_needles));
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
@@ -1058,7 +1058,7 @@ sub check_asserted_screen ($self, $args) {
     my $no_match_diag = 'no match: ' . time_remaining_str($n);
     if (my $best_candidate = $failed_candidates->[0]) {
         $no_match_diag .= sprintf(
-            ", best candidate: %s (%.2f)",
+            ', best candidate: %s (%.2f)',
             $best_candidate->{needle}->{name},
             1 - sqrt($best_candidate->{error})
         );
@@ -1139,12 +1139,12 @@ sub _reduce_to_biggest_changes ($imglist, $limit) {
 }
 
 sub freeze_vm ($self, @) {
-    bmwqemu::diag "ignored freeze_vm";
+    bmwqemu::diag 'ignored freeze_vm';
     return;
 }
 
 sub cont_vm ($self, @) {
-    bmwqemu::diag "ignored cont_vm";
+    bmwqemu::diag 'ignored cont_vm';
     return;
 }
 
@@ -1194,7 +1194,7 @@ sub new_ssh_connection ($self, %args) {
     # e.g. using hyperv_intermediate host which is running Windows need to keep the connection.
     # Otherwise a mount point doesn't exists within the next command.
     if ($args{keep_open}) {
-        $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username port));
+        $connection_key = join(',', map { $_ . '=' . $args{$_} } qw(hostname username port));
         my $con = $self->{ssh_connections}->{$connection_key};
         if (defined($con)) {
             # Check if we still can create channels on that connection
@@ -1254,7 +1254,7 @@ sub start_ssh_serial ($self, %args) {
 
     my $ssh = $self->{serial} = $self->new_ssh_connection(%args);
     my $chan = $self->{serial_chan} = $ssh->channel();
-    $ssh->die_with_error("Unable to establish SSH channel for serial console") unless $chan;
+    $ssh->die_with_error('Unable to establish SSH channel for serial console') unless $chan;
     $chan->blocking(0);
     $chan->pty(1);
     $chan->ext_data('merge');
@@ -1348,8 +1348,8 @@ sub run_ssh ($self, $cmd, %args) {
     bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     $args{blocking} //= 1;
     my $ssh = $self->new_ssh_connection(%args);
-    my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");
-    $chan->exec($cmd) || $ssh->die_with_error("Unable to execute \"$cmd\"");
+    my $chan = $ssh->channel() || $ssh->die_with_error(qq{Unable to create SSH channel for executing "$cmd"});
+    $chan->exec($cmd) || $ssh->die_with_error(qq{Unable to execute "$cmd"});
     $ssh->blocking($args{blocking});
     return ($ssh, $chan);
 }
@@ -1407,10 +1407,10 @@ sub _stop_children_processes ($self) {
 }
 
 sub _child_process ($self, $code) {
-    die "Can't spawn child without code" unless ref($code) eq "CODE";
+    die q{Can't spawn child without code} unless ref($code) eq 'CODE';
 
     my $pid = fork();
-    die "fork failed" unless defined($pid);    # uncoverable statement
+    die 'fork failed' unless defined($pid);    # uncoverable statement
 
     if ($pid == 0) {
         $code->();    # uncoverable statement

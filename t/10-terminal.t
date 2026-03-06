@@ -39,7 +39,7 @@ Welcome to SUSE Linux Enterprise Server 12 SP2 RC3 (x86_64) - Kernel 4.4.21-65-d
 
 FIN.
 $login_prompt_data .= 'linux-5rw7 login: ';
-my $user_name_prompt_data = "login: ";
+my $user_name_prompt_data = 'login: ';
 my $user_name_data = "root\n";
 my $password_prompt_data = 'Password: ';
 my $password_data = "$testapi::password\n";
@@ -222,7 +222,7 @@ sub test_terminal_directly () {
     $tb->reset;
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
-    report_child_test(ok => $term->console_key eq "ctrl-alt-f3", 'console_key set correct');
+    report_child_test(ok => $term->console_key eq 'ctrl-alt-f3', 'console_key set correct');
 
     $term->activate;
     my $scrn = $term->screen;
@@ -304,7 +304,7 @@ sub test_terminal_disabled () {
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {});
     try { $term->activate }
-    catch ($e) { die "Expected message about unavailable terminal" unless $e =~ /no virtio-serial.*available/ }
+    catch ($e) { die 'Expected message about unavailable terminal' unless $e =~ /no virtio-serial.*available/ }
 }
 
 # Called after waitpid to check child's exit
@@ -322,8 +322,8 @@ sub check_child ($child, $expected_exit_status = 0) {
 # so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
 # returns if a signal is received which has a handler set. We must initially
 # block the signal in case SIGCONT is emitted before we reach sigsuspend.
-my $pipe_in = $socket_path . ".in";
-my $pipe_out = $socket_path . ".out";
+my $pipe_in = $socket_path . '.in';
+my $pipe_out = $socket_path . '.out';
 
 for (($pipe_in, $pipe_out)) {
     unlink($_) if (-p $_);
@@ -365,8 +365,8 @@ for my $pid (sort keys %$child_tests) {
 }
 
 done_testing;
-unlink $socket_path . ".in";
-unlink $socket_path . ".out";
+unlink $socket_path . '.in';
+unlink $socket_path . '.out';
 say "The IO log file is at $log_path and the error log is $err_path.";
 
 # We need this because the test numbers need to be in the right order
@@ -395,7 +395,7 @@ sub retrieve_child_tests () {
         try { $data = decode_json($line) }
         catch ($e) {
             diag("Error decoding '$line': $e");    # uncoverable statement
-            ok(0, "Valid JSON");    # uncoverable statement
+            ok(0, 'Valid JSON');    # uncoverable statement
             next;    # uncoverable statement
         }
         my ($pid, $test) = @$data;

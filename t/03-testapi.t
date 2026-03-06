@@ -402,7 +402,7 @@ sub assert_script_sudo_test ($waittime, $is_serial_terminal) {
     $mock_testapi->redefine(hashed_string => 'XXX');
     $mock_testapi->redefine(wait_serial => 'XXX-0-');
     $mock_testapi->redefine(is_serial_terminal => $is_serial_terminal);
-    $mock_testapi->redefine(script_sudo => sub { $script_sudo = "$_[0]"; return "XXX-0-" });
+    $mock_testapi->redefine(script_sudo => sub { $script_sudo = "$_[0]"; return 'XXX-0-' });
     is assert_script_sudo('echo foo', $waittime), undef, 'successful assertion of script_sudo (1)';
     is $script_sudo, 'echo foo', 'script_sudo called like expected(1)';
     is assert_script_sudo('bash', $waittime), undef, 'successful assertion of script_sudo (2)';
@@ -633,7 +633,7 @@ subtest 'upload_logs' => sub {
 };
 
 subtest 'script_sudo' => sub {
-    script_sudo "rm /boot/grub/menu.lst";
+    script_sudo 'rm /boot/grub/menu.lst';
     is_deeply($cmds, [
             {
                 text => "sudo rm /boot/grub/menu.lst; echo XXX > /dev/null\n",
@@ -654,7 +654,7 @@ subtest 'script_sudo' => sub {
             }
     ]);
     $cmds = [];
-    script_sudo("ls /", 0);
+    script_sudo('ls /', 0);
     is $cmds->[0]{text}, "sudo ls /\n", 'text argument of script_sudo matched';
     is_deeply $cmds->[0], {text => "sudo ls /\n", cmd => 'backend_type_string'}, 'sudo command is typed';
     ok $cmds->[2]{secret}, 'password is treated as secret';
@@ -666,13 +666,13 @@ subtest 'parse_extra_log' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->define(parser => sub { $mock_parser });
     my $i = 0;
-    $mock_parser->fake_module("OpenQA::Parser", import => sub { $i++; });
+    $mock_parser->fake_module('OpenQA::Parser', import => sub { $i++; });
     $mock_parser->mock(write_output => sub { $i++; });
     $mock_parser->mock(write_test_result => sub { $i++; });
     $mock_parser->mock(tests => sub { $mock_parser });
     $mock_parser->mock(each => sub($self, $cb) { $_ = $mock_parser; $cb->() });
     $mock_parser->mock(to_openqa => sub { return {name => 'foo'} });
-    parse_junit_log "foo.log";
+    parse_junit_log 'foo.log';
     is $i, 3, 'Correct number of methods called';
     is_deeply($autotest::current_test->{extra_test_results}->[0], {name => 'foo', script => undef});
 };
@@ -866,10 +866,10 @@ subtest 'validate_script_output' => sub {
     $mock_testapi->redefine(script_output => sub ($script, @args) { $arguments = {@args}; return '' });
     my @exp_args_list = (
         [123, proceed_on_failure => 1, type_command => 1, fail_message => 'fail_message'] => {%script_output_defaults, timeout => 123, proceed_on_failure => 1, type_command => 1},
-        [123, title => "FOO"] => {%script_output_defaults, timeout => 123},
-        [title => "FOO", timeout => 123] => {%script_output_defaults, timeout => 123},
+        [123, title => 'FOO'] => {%script_output_defaults, timeout => 123},
+        [title => 'FOO', timeout => 123] => {%script_output_defaults, timeout => 123},
         [123] => {%script_output_defaults, timeout => 123},
-        [fail_message => "FOO"] => {%script_output_defaults},
+        [fail_message => 'FOO'] => {%script_output_defaults},
 
     );
     while (@exp_args_list) {
@@ -1040,7 +1040,7 @@ subtest '_calculate_clickpoint' => sub {
     is $y, 110, 'clickpoint y';
 
     # Everything is provided but the click point is 'center'
-    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, "center");
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, 'center');
     is $x, 125, 'clickpoint x centered';
     is $y, 120, 'clickpoint y centered';
 
@@ -1062,7 +1062,7 @@ subtest 'mouse_drag' => sub {
 
     my ($startx, $starty) = (0, 0);
     my ($endx, $endy) = (200, 200);
-    my $button = "left";
+    my $button = 'left';
     $cmds = [];
     # Startpoint from a needle. Endpoint coordinates.
     mouse_drag(startpoint => 'foo', endx => $endx, endy => $endy, button => $button, timeout => 30);
@@ -1143,7 +1143,7 @@ subtest 'mouse_drag' => sub {
 
     # Both needle and coordinates provided for startpoint (coordinates should win).
     $cmds = [];
-    mouse_drag(startpoint => "foo", endx => $endx, endy => $endy, startx => $startx, starty => $starty, button => $button, timeout => 30);
+    mouse_drag(startpoint => 'foo', endx => $endx, endy => $endy, startx => $startx, starty => $starty, button => $button, timeout => 30);
     is_deeply($cmds, [
             {
                 cmd => 'backend_mouse_set',
@@ -1249,7 +1249,7 @@ subtest 'send_key_until_needlematch' => sub {
     # Skip the first check_screen
     shift @$cmds;
     for my $cmd (@$cmds) {
-        is($cmd->{timeout}, 1, "timeout for other check_screen is nonzero") if $cmd->{cmd} eq 'check_screen';
+        is($cmd->{timeout}, 1, 'timeout for other check_screen is nonzero') if $cmd->{cmd} eq 'check_screen';
         $count_send_key++ if $cmd->{cmd} eq 'backend_send_key';
     }
     is($count_send_key, 3, 'tried to send_key three times') || always_explain $cmds;

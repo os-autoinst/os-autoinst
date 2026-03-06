@@ -71,12 +71,12 @@ like $log, qr/save_tmp_file returned expected file/, 'save_tmp_file test';
 unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected termination';
 
 my $ignore_results_re = qr/fail/;
-for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
+for my $result (grep { $_ !~ $ignore_results_re } glob('testresults/result*.json')) {
     my $json = decode_json(path($result)->slurp);
     is($json->{result}, 'ok', "Result in $result is ok");
 }
 
-for my $result (glob("testresults/result*fail*.json")) {
+for my $result (glob('testresults/result*fail*.json')) {
     my $json = decode_json(path($result)->slurp);
     is($json->{result}, 'fail', "Result in $result is fail");
 }

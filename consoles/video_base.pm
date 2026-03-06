@@ -13,12 +13,12 @@ use constant TYPING_LIMIT_DEFAULT => 30;
 use constant DEFAULT_MAX_INTERVAL => 250;
 
 my $CHARMAP = {
-    "-" => 'minus',
+    '-' => 'minus',
     "\t" => 'tab',
     "\n" => 'ret',
     "\b" => 'backspace',
     "\e" => 'esc',
-    " " => 'spc',
+    ' ' => 'spc',
 };
 
 sub screen ($self) { $self }
@@ -50,7 +50,7 @@ sub type_string ($self, $args) {
         $seconds_per_keypress += 1 / sqrt($args->{max_interval});
     }
 
-    for my $letter (split("", $args->{text})) {
+    for my $letter (split('', $args->{text})) {
         next if ($letter eq "\r");
         $letter = $CHARMAP->{$letter} || $letter;
         # 50% of the delay used on key press, 50% searching the next key
@@ -80,7 +80,7 @@ sub mouse_height ($self) { $self->{backend}->{yres}; }
 sub mouse_absolute ($self) { return 1; }
 
 sub _mouse_move ($self, $x, $y) {
-    die "need parameter \$x and \$y" unless (defined $x and defined $y);
+    die 'need parameter $x and $y' unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -119,7 +119,7 @@ sub mouse_hide ($self, $args) {
 }
 
 sub mouse_set ($self, $args) {
-    die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
+    die 'Need x/y arguments' unless (defined $args->{x} && defined $args->{y});
     $self->_mouse_move(int($args->{x}), int($args->{y}));
     return {};
 }

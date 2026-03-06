@@ -105,7 +105,7 @@ sub scp_get ($self, $src, $dest) {
 
     bmwqemu::diag("SCP file: '$src' => '$dest'");
     my $output = IO::Scalar->new;
-    $ssh->scp_get($src, $output) or die "SCP failed";
+    $ssh->scp_get($src, $output) or die 'SCP failed';
     path($dest)->spew($output);
     $ssh->disconnect();
 }
@@ -114,7 +114,7 @@ sub can_handle ($self, $args) {
     $args->{function} eq 'snapshots' && _vmm_family =~ qr/kvm|hyperv|vmware/ ? {ret => 1} : undef;
 }
 
-sub is_shutdown_cmd_hyperv ($vmname) { "powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"" }
+sub is_shutdown_cmd_hyperv ($vmname) { qq{powershell -Command "if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }"} }
 
 sub is_shutdown_cmd_svirt ($vmname) {
     my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
@@ -163,7 +163,7 @@ sub load_snapshot ($self, $args) {
               unless $self->run_ssh_cmd(
                 "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
                 $self->get_ssh_credentials('hyperv'));
-            $self->die("xfreerdp did not start") if ($i eq 5);
+            $self->die('xfreerdp did not start') if ($i eq 5);
         }
     }
     else {
@@ -253,13 +253,13 @@ sub open_serial_console_via_ssh ($self, $name, %args) {
     bmwqemu::log_call(name => $name, %args);
     my $port = $args{port} // '';
     my $devname = $args{devname} // '';
-    my $marker = "CONSOLE_EXIT_" . $bmwqemu::vars{JOBTOKEN} or die 'Need variable JOBTOKEN' . ":";
+    my $marker = 'CONSOLE_EXIT_' . $bmwqemu::vars{JOBTOKEN} or die 'Need variable JOBTOKEN' . ':';
     my $log = $self->serial_terminal_log_file();
     my $max_tries = 10;
     my $cmd = _is_hyperv ? serial_console_cmd_hyperv($name, $devname, $port) :
       _is_vmware ? serial_console_cmd_vmware($name, $devname, $port) :
       serial_console_cmd_svirt($name, $devname, $port);
-    my $cmd_full = "script -f $log -c '$cmd; echo \"$marker \$?\"'";
+    my $cmd_full = qq{script -f $log -c '$cmd; echo "$marker \$?"'};
     bmwqemu::diag("Starting SSH connection to connect to libvirt domain '$name' (cmd: '$cmd'), full cmd: '$cmd_full'");
 
     my ($ssh, $chan) = $self->run_ssh($cmd_full, blocking => 0);
@@ -284,7 +284,7 @@ sub delete_log ($self) {
 # Intent to use CORE::GLOBAL::die, that does not have $self.
 sub die ($self, $err = '') {
     if ($self->{need_delete_log}) {
-        bmwqemu::fctwarn("error, cleanup logs before die");
+        bmwqemu::fctwarn('error, cleanup logs before die');
         $self->delete_log();
     }
     die $err;

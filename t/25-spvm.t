@@ -27,15 +27,15 @@ subtest 'SSH credentials in spvm' => sub {
 
     set_var('NOVALINK_HOSTNAME', 'my_foo_hostname');
     set_var('NOVALINK_PASSWORD', 'foo');
-    is($spvm->run_cmd('true'), 0, "Test default credentials - without user");
+    is($spvm->run_cmd('true'), 0, 'Test default credentials - without user');
 
     set_var('NOVALINK_USERNAME', 'tony');
     $expected_credentials->{username} = 'tony';
-    is($spvm->run_cmd('true'), 0, "Test default credentials - with user");
-    is($spvm->run_cmd('false'), 1, "Test different return code");
+    is($spvm->run_cmd('true'), 0, 'Test default credentials - with user');
+    is($spvm->run_cmd('false'), 1, 'Test different return code');
 
     $expected_credentials = {hostname => 'specific_hostname', username => 'tony', password => 'specific_password'};
-    is($spvm->run_cmd('true', $expected_credentials->{hostname}, $expected_credentials->{password}), 0, "Test specific credentials");
+    is($spvm->run_cmd('true', $expected_credentials->{hostname}, $expected_credentials->{password}), 0, 'Test specific credentials');
 };
 
 subtest 'PowerVM power actions' => sub {
@@ -47,7 +47,7 @@ subtest 'PowerVM power actions' => sub {
     my $spvm = backend::spvm->new();
     my $lpar_id = 3;
     set_var(NOVALINK_LPAR_ID => $lpar_id);
-    is($spvm->power({action => 'on'}), "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm", "Test power on");
+    is($spvm->power({action => 'on'}), "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm", 'Test power on');
     throws_ok { $spvm->power({action => 'reboot'}) } qr/Unknown power action reboot/, 'Unknown power action';
 };
 done_testing;

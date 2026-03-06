@@ -118,7 +118,7 @@ Create a media fragment time from a given framenumber
 =cut
 
 sub _framenumber_to_timerange ($frame) {
-    return defined($frame) ? [sprintf("%.2f", $frame / 24.0), sprintf("%.2f", ($frame + 1) / 24.0)] : undef;
+    return defined($frame) ? [sprintf('%.2f', $frame / 24.0), sprintf('%.2f', ($frame + 1) / 24.0)] : undef;
 }
 
 sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $frame = undef) {
@@ -137,13 +137,13 @@ sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $
     };
 
     # make sure needle is blessed
-    my $foundneedle = bless $match->{needle}, "needle";
+    my $foundneedle = bless $match->{needle}, 'needle';
 
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
     if (my $workaround = $foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
-        $result->{result} = "softfail";
+        $result->{result} = 'softfail';
 
         # write a test result file
         my $reason = $foundneedle->get_property_value('workaround');
@@ -269,7 +269,7 @@ sub skip_if_not_running ($self) {
 
 sub timeout_screenshot ($self) {
     my $n = ++$self->{timeoutcounter};
-    $self->take_screenshot(sprintf("timeout-%02i", $n));
+    $self->take_screenshot(sprintf('timeout-%02i', $n));
 }
 
 sub pre_run_hook ($self) {
@@ -309,7 +309,7 @@ sub execution_time ($now) { time - $now }
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
     $self->{execution_time} = execution_time($self->{test_start_time});
-    bmwqemu::modstate(sprintf("finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
+    bmwqemu::modstate(sprintf('finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time}));
 }
 
 sub runtest ($self) {
@@ -383,7 +383,7 @@ sub save_test_result ($self) {
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 
     # be aware that $name has to be unique within one job (also assumed in several other places)
-    my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", $self->{name});
+    my $fn = bmwqemu::result_dir() . sprintf('/result-%s.json', $self->{name});
     bmwqemu::save_json_file($result, $fn);
     return $result;
 }
@@ -564,10 +564,10 @@ sub verify_sound_image ($self, $imgpath, $mustmatch, $check) {
         my $foundneedle = $rsp->{found};
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        bmwqemu::fctres(sprintf('found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         return $foundneedle;
     }
-    bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
+    bmwqemu::fctres(sprintf('failed to find %s', $mustmatch));
     my @needles_params = (img => $img, needles => $rsp->{candidates}, tags => [$mustmatch]);
     if ($check) {
         $self->record_screenfail(@needles_params, result => 'unk');
@@ -629,7 +629,7 @@ sub parse_serial_output_qemu ($self) {
             }
         }
     }
-    die "Got serial hard failure" if $die;
+    die 'Got serial hard failure' if $die;
     return;
 }
 
