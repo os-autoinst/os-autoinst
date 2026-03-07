@@ -107,6 +107,7 @@ RUN zypper in -y -C \
        'perl(JSON::Validator)' \
        'perl(List::MoreUtils)' \
        'perl(List::Util)' \
+       'perl(MCE)' \
        'perl(Module::CPANfile)' \
        'perl(Mojo::IOLoop::ReadWriteProcess)' \
        'perl(Mojo::JSON)' \
