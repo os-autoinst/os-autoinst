@@ -1,6 +1,10 @@
 #!/bin/bash -e
 
 PROVE_ARGS="${PROVE_ARGS:-"--timer"}"
+# Add parallelism if not already specified in PROVE_ARGS
+if [[ ! $PROVE_ARGS =~ "-j" ]]; then
+    PROVE_ARGS="$PROVE_ARGS -j$(nproc 2> /dev/null || echo 1)"
+fi
 
 source_directory=$(dirname "$0")/..
 source_directory=$(realpath "$source_directory")
