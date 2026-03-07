@@ -4,7 +4,7 @@
 use base 'basetest';
 use testapi;
 
-sub run ($self) {
+sub run ($) {
     record_soft_failure('failing me softly with this song');
 }
 
