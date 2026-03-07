@@ -142,6 +142,7 @@ RUN zypper in -y -C \
        'perl(Test::Mojo)' \
        'perl(Test::Most)' \
        'perl(Test::Output)' \
+       'perl(Test::Perl::Critic)' \
        'perl(Test::Pod)' \
        'perl(Test::Strict)' \
        'perl(Test::Warnings)' \
