@@ -79,6 +79,7 @@ on 'test' => sub {
     requires 'FindBin';
     requires 'Inline::Lua';
     requires 'Inline::Python';
+    requires 'MCE';
     requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.28';
     requires 'Perl::Critic';
     requires 'Perl::Critic::Community';
