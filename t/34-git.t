@@ -155,8 +155,9 @@ subtest 'cloning with caching' => sub {
     subtest 'clone default branch' => sub {
         $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
         my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
+        chomp(my $branch = qx{git -C $git_dir symbolic-ref --short HEAD});
         combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }
-          qr/master/, 'detected master branch';
+          qr/$branch/, "detected $branch branch";
     };
 
     subtest 'index creation' => sub {
@@ -205,7 +206,6 @@ cd $git_dir && \
 git init >/dev/null 2>&1 && \
 git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
-git config init.defaultBranch main >/dev/null && \
 git config commit.gpgsign false >/dev/null && \
 touch README.md && \
 git add README.md && \
