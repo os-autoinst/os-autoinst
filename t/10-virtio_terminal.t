@@ -10,6 +10,7 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::MockModule;
 use Test::Output;
 use POSIX qw(mkfifo _exit);
+use Errno;
 use Time::Seconds;
 use consoles::virtio_terminal;
 use testapi;
@@ -38,13 +39,17 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
         $SIG{ALRM} = sub {
             die('Timeout for pipe other side helper');    # uncoverable statement
         };
-        alarm ONE_MINUTE;
+        alarm 5 * ONE_MINUTE;
         my $fd_r = IO::Handle->new();
         my $fd_w = IO::Handle->new();
-        open($fd_r, "<", $pipe_in)
-          or die "Can't open in pipe for writing $!";
-        open($fd_w, ">", $pipe_out)
-          or die "Can't open out pipe for reading $!";
+        until (open($fd_r, "<", $pipe_in)) {
+            next if $! == Errno::EINTR;
+            die "Can't open in pipe for reading $!";
+        }
+        until (open($fd_w, ">", $pipe_out)) {
+            next if $! == Errno::EINTR;
+            die "Can't open out pipe for writing $!";
+        }
 
         syswrite($fd_w, $write_buffer) if ($write_buffer);
         $fd_w->flush();
