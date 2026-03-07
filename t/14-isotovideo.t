@@ -38,6 +38,8 @@ $ENV{OS_AUTOINST_STORAGE_KEEP_FREE_RATIO} = 0;
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
+    my $vnc_port = 90 + ($$ % 100);
+    $args{default_opts} .= " vnc=$vnc_port" unless $args{default_opts} =~ /vnc=/ || $args{opts} =~ /vnc=/;
     $args{exit_code} //= 1;
     chdir "$Bin/..";
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split ' ', $args{opts});

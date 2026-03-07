@@ -20,8 +20,11 @@ use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 use Cpanel::JSON::XS ();
 use Test::Warnings qw(warning :report_warnings);
+use File::chdir;
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
+my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
+$CWD = $tmpdir;
 my $data_dir = "$toplevel_dir/t/data";
 
 sub create_vars ($data) { path('vars.json')->spew(Cpanel::JSON::XS->new->pretty->canonical->encode($data)) }
