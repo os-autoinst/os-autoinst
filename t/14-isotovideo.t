@@ -37,7 +37,9 @@ sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
     my $vnc_port = 90 + ($$ % 100);
+    my $qemu_port = 15000 + ($$ % 1000);
     $args{default_opts} .= " vnc=$vnc_port" unless $args{default_opts} =~ /vnc=/ || $args{opts} =~ /vnc=/;
+    $args{default_opts} .= " qemuport=$qemu_port" unless $args{default_opts} =~ /qemuport=/ || $args{opts} =~ /qemuport=/;
     $args{exit_code} //= 1;
     chdir "$Bin/..";
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split ' ', $args{opts});
