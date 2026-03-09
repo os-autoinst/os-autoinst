@@ -149,8 +149,6 @@ if "\$OVS_CMD" list-br | grep -qx "\$bridge"; then
         # TODO add entries according to your network topology
         #ovs-vsctl --may-exist add-port \$bridge gre1 -- set interface gre1 type=gre options:remote_ip=<IP address of other host>
     fi
-else
-    logger -- "\$0: ovs bridge \$bridge doesn't exists"
 fi
 EOF
     chmod +x "$location"
