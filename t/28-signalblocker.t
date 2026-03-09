@@ -73,7 +73,7 @@ ok($received_sigterm > 0, "received SIGTERM $received_sigterm times; no crashes 
 
 $received_sigchld = 0;
 # 0 here means WIFEXITED and WEXITSTATUS == 0
-cmp_ok(system("true"), '==', 0, 'system returns exit status');
+cmp_ok(system('true'), '==', 0, 'system returns exit status');
 is($received_sigchld, 1, 'got SIGCHLD after system');
 
 cmp_ok(thread_count, '<=', $last_thread_count, 'still no new threads after sending signals');

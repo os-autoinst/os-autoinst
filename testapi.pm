@@ -77,7 +77,7 @@ our %cmd;
 
 our $distri;
 
-our $realname = "Bernhard M. Wiedemann";
+our $realname = 'Bernhard M. Wiedemann';
 our $username;
 our $password;
 
@@ -265,7 +265,7 @@ sub _handle_found_needle ($foundneedle, $rsp, $tags) {
     $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates}, $frame);
     my $lastarea = $foundneedle->{area}->[-1];
     bmwqemu::fctres(
-        sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0));
+        sprintf('found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0));
     $last_matched_needle = $foundneedle;
     return $foundneedle;
 }
@@ -278,7 +278,7 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
     }
     elsif ($rsp->{timeout}) {
         my $method = $check ? 'check_screen' : 'assert_screen';
-        my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout ($method)";
+        my $status_message = 'match=' . join(',', @$tags) . " timed out after $timeout ($method)";
         bmwqemu::fctres($status_message);
 
         # add the final mismatch as 'unk' result to be able to create a new needle from it
@@ -334,7 +334,7 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
                 record_info('Stall detected', 'Stall was detected during assert_screen fail', result => 'fail');
             }
             else {
-                bmwqemu::fctwarn("stall detected during check_screen failure!");
+                bmwqemu::fctwarn('stall detected during check_screen failure!');
             }
         }
         if (!$check && !$rsp->{saveresult}) {
@@ -356,14 +356,14 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
         }
     }
     else {
-        die "unexpected response " . bmwqemu::pp($rsp);
+        die 'unexpected response ' . bmwqemu::pp($rsp);
     }
     return;
 }
 
 sub _check_or_assert ($mustmatch, $check, %args) {
-    die "no tags specified" if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
-    die "current_test undefined" unless $autotest::current_test;
+    die 'no tags specified' if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
+    die 'current_test undefined' unless $autotest::current_test;
 
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
@@ -882,7 +882,7 @@ sub wait_serial {    # no:style:signatures
     $ret->{string} =~ s,\r\n,\n,g;
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string}) unless ($args{quiet});
     bmwqemu::fctres("$regexp: $matched");
-    return $ret->{string} if ($matched eq "ok");
+    return $ret->{string} if ($matched eq 'ok');
     return;    # false
 }
 
@@ -1207,9 +1207,9 @@ sub validate_script_output {    # no:style:signatures
             $res = 'fail';
             bmwqemu::diag("output does not pass the code block:\n$output");
         }
-        my $deparse = B::Deparse->new("-p");
+        my $deparse = B::Deparse->new('-p');
         # avoid "use strict; use warnings" in the output to make it shorter
-        $deparse->ambient_pragmas(warnings => [], strict => "all");
+        $deparse->ambient_pragmas(warnings => [], strict => 'all');
 
         my $body = $deparse->coderef2text($check);
 
@@ -1227,7 +1227,7 @@ sub validate_script_output {    # no:style:signatures
           $script, $check, $output;
     }
     else {
-        croak "Invalid use of validate_script_output(), second arg must be a coderef or regexp";
+        croak 'Invalid use of validate_script_output(), second arg must be a coderef or regexp';
     }
     $autotest::current_test->record_resultfile(
         $title, $message,
@@ -1613,7 +1613,7 @@ sub mouse_drag (%args) {
         die "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
     }
     # Get the button variable. If no button has been provided, assume the "left" button.
-    my $button = $args{button} // "left";
+    my $button = $args{button} // 'left';
 
     # Now, perform the actual mouse drag. Navigate to the startpoint location,
     # press and hold the mouse button, then navigate to the endpoint location
@@ -1853,7 +1853,7 @@ sub check_shutdown ($timeout = undef) {
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
-            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+            bmwqemu::diag('Backend does not implement is_shutdown - just sleeping');
             sleep($timeout);
         }
         # -1 counts too
@@ -1945,7 +1945,7 @@ sub save_memory_dump (%nargs) {
     $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
-    bmwqemu::diag("Trying to save machine state");
+    bmwqemu::diag('Trying to save machine state');
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
 }
@@ -1985,7 +1985,7 @@ sub freeze_vm () {
     # While it might be a good idea to allow the user to stop the vm within a test
     # we're not encouraging them to do that outside a post_fail_hook or at any point
     # in the test code.
-    bmwqemu::diag "Call freeze_vm within a post_fail_hook or very early in your test"
+    bmwqemu::diag 'Call freeze_vm within a post_fail_hook or very early in your test'
       unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::log_call();
     query_isotovideo('backend_freeze_vm');
@@ -2118,7 +2118,7 @@ sub autoinst_url ($path = undef, $query = undef, $args = {}) {
     $query //= {};
     my $hostname = get_var('AUTOINST_URL_HOSTNAME', host_ip($args));
     # QEMUPORT is historical for the base port of the worker instance
-    my $workerport = get_required_var("QEMUPORT") + 1;
+    my $workerport = get_required_var('QEMUPORT') + 1;
 
     my $token = get_required_var('JOBTOKEN');
     my $querystring = join('&', map { "$_=$query->{$_}" } sort keys %$query);
@@ -2139,8 +2139,8 @@ in the corresponding variable
 =cut
 
 sub data_url ($name) {
-    autoinst_url($name =~ /^REPO_\d$/ ? "/assets/repo/" . get_var($name) :
-          $name =~ /^ASSET_\d$/ ? "/assets/other/" . get_var($name) : "/data/$name");
+    autoinst_url($name =~ /^REPO_\d$/ ? '/assets/repo/' . get_var($name) :
+          $name =~ /^ASSET_\d$/ ? '/assets/other/' . get_var($name) : "/data/$name");
 }
 
 
@@ -2221,7 +2221,7 @@ sub upload_asset ($file, $public = undef, $nocheck = undef) {
     }
     bmwqemu::log_call(file => $file, public => $public, nocheck => $nocheck);
     my $cmd = "curl --form upload=\@$file ";
-    $cmd .= "--form target=assets_public " if $public;
+    $cmd .= '--form target=assets_public ' if $public;
     $cmd .= show_curl_progress_meter();
     my $basename = basename($file);
     $cmd .= autoinst_url("/upload_asset/$basename");
@@ -2251,7 +2251,7 @@ sub compat_args ($def_args, $fix_keys, @args) {
             $ret{$key} = shift @args if (@args >= 1 && (!defined($args[0]) || !exists $def_args->{$args[0]}));
         }
     }
-    carp("Odd number of arguments") unless ((@args % 2) == 0);
+    carp('Odd number of arguments') unless ((@args % 2) == 0);
     %ret = (%{$def_args}, %ret, @args);
     map { $ret{$_} //= $def_args->{$_} } keys(%{$def_args});
     return %ret;

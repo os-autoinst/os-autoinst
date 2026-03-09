@@ -20,7 +20,7 @@ BEGIN { *consoles::localXvnc::exec = sub { _exit("@_" =~ /hardware-console-log/ 
 use backend::ipmi;    # SUT
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
-$bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
+$bmwqemu::vars{HARDWARE_CONSOLE_LOG} = 1;
 $bmwqemu::vars{IPMI_SOL_MAX_RECONNECTS} = 1;
 ok my $backend = backend::ipmi->new(), 'backend can be created';
 $bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
@@ -53,10 +53,10 @@ ok $backend->get_mc_status, 'can call get_mc_status';
 
 is $testapi::distri->{consoles}->{sol}->{args}->{log}, '1';
 combined_like {
-    $testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
-    my $pid = $testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console");
+    $testapi::distri->{consoles}->{sol}->{DISPLAY} = 'display';
+    my $pid = $testapi::distri->{consoles}->{sol}->callxterm('ipmi', 'console');
     is waitpid($pid, 0), $pid, 'can start xterm subprocess';
-    is $?, 0x100, "can create console with log enabled";
+    is $?, 0x100, 'can create console with log enabled';
 } qr/
     Xterm\ PID:\ \d+
 /x, 'callxterm outputs expected debug message';

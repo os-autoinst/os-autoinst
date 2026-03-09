@@ -57,7 +57,7 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
         bmwqemu::fctwarn("skipping $needle->{name}: missing PNG");
         return undef;
     }
-    $stopwatch->lap("**++ search__: get image") if $stopwatch;
+    $stopwatch->lap('**++ search__: get image') if $stopwatch;
 
     my $img = $self;
     for my $area (@{$needle->{area}}) {
@@ -70,9 +70,9 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
         $img = $self->copy;
         for my $exclude_area (@exclude) {
             $img->replacerect(@{$exclude_area}{qw(xpos ypos width height)});
-            $stopwatch->lap("**++-- search__: rectangle replacement") if $stopwatch;
+            $stopwatch->lap('**++-- search__: rectangle replacement') if $stopwatch;
         }
-        $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
+        $stopwatch->lap('**++ search__: areas exclusion') if $stopwatch;
     }
     my $ret = {ok => 1, needle => $needle, area => []};
     for my $area (@match) {
@@ -143,9 +143,9 @@ sub cmp_by_error_type_ {    # no:style:signatures
 sub search ($self, $needle, $threshold = undef, $search_ratio = undef, $stopwatch = undef) {
     return unless $needle;
 
-    $stopwatch->lap("Searching for needles") if $stopwatch;
+    $stopwatch->lap('Searching for needles') if $stopwatch;
 
-    if (ref($needle) eq "ARRAY") {
+    if (ref($needle) eq 'ARRAY') {
         my @candidates;
         # try to match all needles and return the one with the highest similarity
         for my $n (@$needle) {
@@ -185,7 +185,7 @@ sub write_with_thumbnail ($self, $filename) {
     $self->write($filename) or die "Unable to write '$filename'\n";
 
     my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
-    my $dir = File::Basename::dirname($filename) . "/.thumbs";
+    my $dir = File::Basename::dirname($filename) . '/.thumbs';
     my $base = File::Basename::basename($filename);
 
     mkdir($dir);

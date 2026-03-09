@@ -20,7 +20,7 @@ sub new ($class, @args) {
     croak('Missing parameter ssh_channel') unless $self->ssh_channel;
 
     if ($self->{logfile}) {
-        open($self->{loghandle}, ">>", $self->{logfile})
+        open($self->{loghandle}, '>>', $self->{logfile})
           or croak('Cannot open logfile ' . $self->{logfile});
     }
 

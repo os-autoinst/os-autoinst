@@ -20,17 +20,17 @@ subtest qv => sub {
     my $bar = 3;
     my $vars;
 
-    is_deeply [qv "$apple $tree $bar"], [qw(1 2 3)], "Can interpolate variables";
+    is_deeply [qv "$apple $tree $bar"], [qw(1 2 3)], 'Can interpolate variables';
     is_deeply [
         qv "$apple
                     $tree
                     $bar"
       ],
-      [qw(1 2 3)], "Can interpolate variables even if on new lines";
-    is_deeply [qv "3 45 5"], [qw(3 45 5)], "Can interpolate words";
+      [qw(1 2 3)], 'Can interpolate variables even if on new lines';
+    is_deeply [qv '3 45 5'], [qw(3 45 5)], 'Can interpolate words';
 
-    $vars->{HDDMODEL} = "test";
-    is_deeply [qv "$vars->{HDDMODEL} 45 5"], [qw(test 45 5)], "Can interpolate variables and hash values";
+    $vars->{HDDMODEL} = 'test';
+    is_deeply [qv "$vars->{HDDMODEL} 45 5"], [qw(test 45 5)], 'Can interpolate variables and hash values';
 
 };
 
@@ -40,46 +40,46 @@ subtest gen_params => sub {
     my @params = qw(-foo bar -baz foobar);
     my $condition = 0;
 
-    gen_params \@params, "test", "1";
-    is_deeply(\@params, [qw(-foo bar -baz foobar -test 1)], "added parameter");
+    gen_params \@params, 'test', '1';
+    is_deeply(\@params, [qw(-foo bar -baz foobar -test 1)], 'added parameter');
 
     my $nothing;
     @params = qw(-foo bar);
-    gen_params \@params, "test", $nothing;
+    gen_params \@params, 'test', $nothing;
     is_deeply(\@params, [qw(-foo bar)], "didn't added any parameter");
 
     @params = qw(-foo bar);
-    gen_params \@params, "test", [qw(1 2 3)];
-    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref");
+    gen_params \@params, 'test', [qw(1 2 3)];
+    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], 'Added parameter if parameter is an arrayref');
 
     @params = qw(-foo bar);
     my $apple = 1;
     my $tree = 2;
     my $bar = 3;
-    gen_params \@params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
+    gen_params \@params, 'test', [qv "$apple $tree $bar"];
+    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], 'Added parameter if parameter is an arrayref supplied with qv()');
 
     my $nothing_is_there;
     @params = qw(-foo bar);
-    gen_params \@params, "test", $nothing_is_there;
+    gen_params \@params, 'test', $nothing_is_there;
     is_deeply(\@params, [qw(-foo bar)], "don't add parameter if it's empty");
 
 
     @params = qw(!!foo bar);
-    gen_params \@params, "test", [qv "$apple $tree $bar"], prefix => "!!";
-    is_deeply(\@params, [qw(!!foo bar !!test), '1,2,3'], "Added parameter if parameter is an arrayref and with custom prefix");
+    gen_params \@params, 'test', [qv "$apple $tree $bar"], prefix => '!!';
+    is_deeply(\@params, [qw(!!foo bar !!test), '1,2,3'], 'Added parameter if parameter is an arrayref and with custom prefix');
 
     @params = qw(-kernel vmlinuz -initrd initrd);
-    gen_params \@params, "append", "ro root=/dev/sda1";
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")], "Quote itself if parameter contains whitespace");
+    gen_params \@params, 'append', 'ro root=/dev/sda1';
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")], 'Quote itself if parameter contains whitespace');
 
     @params = qw(-kernel vmlinuz -initrd initrd);
-    gen_params \@params, "append", "ro root=/dev/sda1", no_quotes => 1;
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument");
+    gen_params \@params, 'append', 'ro root=/dev/sda1', no_quotes => 1;
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', 'ro root=/dev/sda1')], 'Do not quote itself if pass no_quotes argument');
 
     @params = qw(-kernel vmlinuz);
-    gen_params \@params, "append", "ro root=/dev/sda1", no_quotes => 1, prefix => '--';
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '--append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument with custom prefix");
+    gen_params \@params, 'append', 'ro root=/dev/sda1', no_quotes => 1, prefix => '--';
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '--append', 'ro root=/dev/sda1')], 'Do not quote itself if pass no_quotes argument with custom prefix');
 };
 
 subtest dd_gen_params => sub {
@@ -88,28 +88,28 @@ subtest dd_gen_params => sub {
     my @params = qw(--foo bar --baz foobar);
     my $condition = 0;
 
-    dd_gen_params \@params, "test", "1";
-    is_deeply(\@params, [qw(--foo bar --baz foobar --test 1)], "added parameter");
+    dd_gen_params \@params, 'test', '1';
+    is_deeply(\@params, [qw(--foo bar --baz foobar --test 1)], 'added parameter');
 
     my $nothing;
     @params = qw(--foo bar);
-    dd_gen_params \@params, "test", $nothing;
+    dd_gen_params \@params, 'test', $nothing;
     is_deeply(\@params, [qw(--foo bar)], "didn't added any parameter");
 
     @params = qw(--foo bar);
-    dd_gen_params \@params, "test", [qw(1 2 3)];
-    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref");
+    dd_gen_params \@params, 'test', [qw(1 2 3)];
+    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], 'Added parameter if parameter is an arrayref');
 
     @params = qw(--foo bar);
     my $apple = 1;
     my $tree = 2;
     my $bar = 3;
-    dd_gen_params \@params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
+    dd_gen_params \@params, 'test', [qv "$apple $tree $bar"];
+    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], 'Added parameter if parameter is an arrayref supplied with qv()');
 
     my $nothing_is_there;
     @params = qw(--foo bar);
-    dd_gen_params \@params, "test", $nothing_is_there;
+    dd_gen_params \@params, 'test', $nothing_is_there;
     is_deeply(\@params, [qw(--foo bar)], "don't add parameter if it's empty");
 
 };
@@ -120,29 +120,29 @@ subtest find_bin => sub {
 
     my $sandbox = tempdir;
 
-    my $test_file = path($sandbox, "test")->spew("testfile");
+    my $test_file = path($sandbox, 'test')->spew('testfile');
     chmod 0755, $test_file;
-    is find_bin($sandbox, qw(test)), $test_file, "Executable file found";
+    is find_bin($sandbox, qw(test)), $test_file, 'Executable file found';
 
-    $test_file = path($sandbox, "test2")->spew("testfile");
-    is find_bin($sandbox, qw(test2)), undef, "Executable file found but not executable";
-    is find_bin($sandbox, qw(test3)), undef, "Executable file not found";
+    $test_file = path($sandbox, 'test2')->spew('testfile');
+    is find_bin($sandbox, qw(test2)), undef, 'Executable file found but not executable';
+    is find_bin($sandbox, qw(test3)), undef, 'Executable file not found';
 
 };
 
 subtest quote => sub {
     use osutils 'quote';
 
-    my $foo = "foo";
-    my $bar = "bar bar";
+    my $foo = 'foo';
+    my $bar = 'bar bar';
     my $vars;
 
-    is quote($foo), "\'foo\'", "Quote variables";
-    is quote($bar), "\'bar bar\'", "Quote words";
-    is quote('foo' . $bar), "\'foobar bar\'", "Quote words and variables";
+    is quote($foo), "\'foo\'", 'Quote variables';
+    is quote($bar), "\'bar bar\'", 'Quote words';
+    is quote('foo' . $bar), "\'foobar bar\'", 'Quote words and variables';
 
-    $vars->{ADDONS} = "ha,geo,sdk";
-    is quote($vars->{ADDONS}), "\'ha,geo,sdk\'", "Quote variables and hash values";
+    $vars->{ADDONS} = 'ha,geo,sdk';
+    is quote($vars->{ADDONS}), "\'ha,geo,sdk\'", 'Quote variables and hash values';
 };
 
 subtest runcmd => sub {
@@ -151,11 +151,11 @@ subtest runcmd => sub {
     my @cmd = ('qemu-img', 'create', '-f', 'qcow2', 'image.qcow2', '1G');
     my $ret;
     stderr_like { $ret = runcmd(@cmd) } qr/running `qemu-img/, 'debug runcmd progress output';
-    is $ret, 0, "qemu-image creation and get its return code";
+    is $ret, 0, 'qemu-image creation and get its return code';
     stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running `rm/, 'debug runcmd output with rm';
-    is $ret, 0, "delete image and get its return code";
+    is $ret, 0, 'delete image and get its return code';
     stderr_like {
-        throws_ok { runcmd('ls', 'image.qcow2') } qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die"
+        throws_ok { runcmd('ls', 'image.qcow2') } qr/runcmd 'ls image.qcow2' failed with exit code \d+/, 'command failed and calls die'
     } qr/No such file or directory/, 'no image found as expected';
 };
 

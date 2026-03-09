@@ -43,7 +43,7 @@ $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
 $bmwqemu::vars{VIRSH_HOSTNAME} = 'foobar';
 $bmwqemu::vars{VIRSH_USERNAME} = 'root';
 $bmwqemu::vars{VIRSH_PASSWORD} = 'password';
-$bmwqemu::vars{JOBTOKEN} = "JobToken";
+$bmwqemu::vars{JOBTOKEN} = 'JobToken';
 
 my $distri = $testapi::distri = distribution->new();
 
@@ -60,20 +60,20 @@ subtest 'Generic svirt backend' => sub {
     # not kvm/hyperv or vmware
     is $backend->can_handle({function => 'snapshots'}), undef, 'can not handle snapshots';
     $bmwqemu_mock->mock(diag => sub { push @diag_log, @_ });
-    is $backend->save_snapshot({name => "Snap1"}), undef, 'can save snapshot - always return undef or die';
-    like "@diag_log", qr/SAVE VM/, "vm snapshot logged";
+    is $backend->save_snapshot({name => 'Snap1'}), undef, 'can save snapshot - always return undef or die';
+    like "@diag_log", qr/SAVE VM/, 'vm snapshot logged';
     $bmwqemu_mock->noop('diag');
-    is $backend->load_snapshot({name => "Snap1"}), '', 'can load snapshot - returns empty string';
+    is $backend->load_snapshot({name => 'Snap1'}), '', 'can load snapshot - returns empty string';
     ok $backend->start_serial_grab('svirt'), 'can start serial grab';
     ok $backend->do_stop_vm, 'can stop vm';
-    redefine_ssh "Power OFF";
+    redefine_ssh 'Power OFF';
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 
 subtest 'VMWARE backend' => sub {
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
-    $bmwqemu::vars{VMWARE_HOST} = "foobar";
-    $bmwqemu::vars{VMWARE_SERIAL_PORT} = "222";
+    $bmwqemu::vars{VMWARE_HOST} = 'foobar';
+    $bmwqemu::vars{VMWARE_SERIAL_PORT} = '222';
 
     my $backend = backend::svirt->new;
     my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
@@ -84,11 +84,11 @@ subtest 'VMWARE backend' => sub {
     $backend->{need_delete_log} = 1;
     ok $backend->do_start_vm, 'can start vm';
     is $backend->can_handle({function => 'snapshots'})->{ret}, 1, 'can handle snapshots';
-    is $backend->save_snapshot({name => "Snap1"}), undef, 'can save snapshot - always returns undef or die';
-    is $backend->load_snapshot({name => "Snap1"}), 'vmware_fixup', 'can load snapshot - on wmware returns string "vmware_fixup"';
+    is $backend->save_snapshot({name => 'Snap1'}), undef, 'can save snapshot - always returns undef or die';
+    is $backend->load_snapshot({name => 'Snap1'}), 'vmware_fixup', 'can load snapshot - on wmware returns string "vmware_fixup"';
     ok $backend->start_serial_grab('svirt'), 'can start serial grab';
     ok $backend->do_stop_vm, 'can stop vm';
-    redefine_ssh "Power OFF";
+    redefine_ssh 'Power OFF';
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 
@@ -107,16 +107,16 @@ subtest 'HyperV backend' => sub {
     redefine_ssh;
     ok $backend->do_start_vm, 'can start vm';
     is $backend->can_handle({function => 'snapshots'})->{ret}, 1, 'can handle snapshots';
-    is $backend->save_snapshot({name => "Snap1"}), undef, 'can save snapshot - always return undef';
+    is $backend->save_snapshot({name => 'Snap1'}), undef, 'can save snapshot - always return undef';
     redefine_ssh(1);
-    throws_ok { $backend->load_snapshot({name => "Snap1"}) } qr/freerdp/, 'throws exception during load_snapshot - freerdp';
+    throws_ok { $backend->load_snapshot({name => 'Snap1'}) } qr/freerdp/, 'throws exception during load_snapshot - freerdp';
     redefine_ssh;
     $chan_object->set_false('exec');
     $bmwqemu_mock->mock(fctwarn => sub { push @warn_log, @_ });
     ok $backend->start_serial_grab('svirt'), 'can start serial grab';
     like "@warn_log", qr/Mock SSH Error/, 'capture SSH Error';
     ok $backend->do_stop_vm, 'can stop vm';
-    redefine_ssh "Power OFF";
+    redefine_ssh 'Power OFF';
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 

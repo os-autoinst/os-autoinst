@@ -201,7 +201,7 @@ subtest 'test always_rollback flag' => sub {
 
 my $targs = OpenQA::Test::RunArgs->new();
 stderr_like {
-    autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => $targs)
+    autotest::loadtest('tests/run_args.pm', name => 'alt_name', run_args => $targs)
 }
 qr@scheduling alt_name tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up';
@@ -209,13 +209,13 @@ stderr_like { autotest::run_all } qr/finished alt_name tests/, 'dynamic schedule
 is($died, 0, 'run_args test should not die');
 is($completed, 1, 'run_args test should complete');
 
-stderr_like { autotest::loadtest("tests/run_args.pm", name => 'alt_name') } qr@scheduling alt_name tests/run_args.pm@;
+stderr_like { autotest::loadtest('tests/run_args.pm', name => 'alt_name') } qr@scheduling alt_name tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'run_args test should not die if there is no run_args');
 is($completed, 0, 'run_args test should not complete if there is no run_args');
 
-throws_ok { autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => {foo => 'bar'}) } qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error message mentions RunArgs';
+throws_ok { autotest::loadtest('tests/run_args.pm', name => 'alt_name', run_args => {foo => 'bar'}) } qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error message mentions RunArgs';
 
 # now let's make the tests fail...but so far none is fatal. We also
 # have to mock query_isotovideo so we think snapshots are supported.
@@ -248,7 +248,7 @@ $mock_basetest->unmock('runtest');
 # mock reading of the serial output
 $mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
         $self->{fatal_failure} = 1;
-        die "Got serial hard failure";
+        die 'Got serial hard failure';
 });
 
 $bmwqemu::vars{MAKETESTSNAPSHOTS} = 1;
@@ -261,7 +261,7 @@ $bmwqemu::vars{MAKETESTSNAPSHOTS} = 0;
 $mock_basetest->unmock('search_for_expected_serial_failures');
 $mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
         $self->{fatal_failure} = 0;
-        die "Got serial hard failure";
+        die 'Got serial hard failure';
 });
 
 $autotest::current_test = Test::MockObject->new->set_true('record_resultfile');
@@ -424,7 +424,7 @@ subtest 'python with bad run method' => sub {
     my $p1 = $autotest::tests{'tests-pythontest_with_bad_run_fn'};
 
     stderr_like {
-        throws_ok { $p1->runtest } qr{test pythontest_with_bad_run_fn died}, "expected failure on python side";
+        throws_ok { $p1->runtest } qr{test pythontest_with_bad_run_fn died}, 'expected failure on python side';
     } qr{TypeError: run\(\) takes 0 positional arguments but 1 was given}, 'Expected output from pythontest_with_bad_runargs.py';
     is $bmwqemu::vars{PY_SUPPORT_FN_NOT_CALLED}, undef, 'set_var() was never called';
 };
@@ -520,7 +520,7 @@ subtest 'test skipping tests' => sub {
 };
 
 subtest 'start_process' => sub {
-    my $fh = path(\"fake-file")->open('<');
+    my $fh = path(\'fake-file')->open('<');
     $autotest::isotovideo = $fh;
     # Test the start_process subroutine
     my ($process, $child) = autotest::start_process();
@@ -530,7 +530,7 @@ subtest 'start_process' => sub {
 
     ok $child->autoflush, 'autoflush was called on child handle';
     ok $fh->autoflush, 'autoflush was called on isotovideo handle';
-    $fh = path(\"fake-file")->open('<');
+    $fh = path(\'fake-file')->open('<');
     $autotest::isotovideo = $fh;
     stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 };

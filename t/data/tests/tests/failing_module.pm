@@ -5,7 +5,7 @@ use base 'basetest';
 use testapi;
 
 sub run ($) {
-    die "fail";
+    die 'fail';
 }
 
 1;

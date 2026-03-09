@@ -109,7 +109,7 @@ use Feature::Compat::Try;
 use Getopt::Long;
 use Mojo::File qw(curfile);
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
-Getopt::Long::Configure("no_ignore_case");
+Getopt::Long::Configure('no_ignore_case');
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
@@ -141,7 +141,7 @@ sub version () {
 
 sub handle_shutdown () {
     # terminate/kill the command server and let it inform its websocket clients before
-    diag("isotovideo handle_shutdown");
+    diag('isotovideo handle_shutdown');
     $runner->stop_commands('test execution ended');
     if ($runner->testfd) {
         # unusual shutdown

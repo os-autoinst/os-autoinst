@@ -61,7 +61,7 @@ sub add_console ($self, $testapi_console, $backend_console, $backend_args = unde
 }
 
 sub x11_start_program (@) {
-    die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI', '');
+    die 'TODO: implement x11_start_program for your distri ' . testapi::get_var('DISTRI', '');
 }
 
 sub ensure_installed ($self, @pkglist) {
@@ -74,7 +74,7 @@ sub ensure_installed ($self, @pkglist) {
     else {
         die "TODO: implement 'ensure_installed' for your distri " . testapi::get_var('DISTRI', '');
     }
-    if ($testapi::password) { testapi::type_password; testapi::send_key("ret"); }
+    if ($testapi::password) { testapi::type_password; testapi::send_key('ret'); }
     testapi::wait_still_screen(7, 90);    # wait for install
 }
 
@@ -148,7 +148,7 @@ sub script_run ($self, $cmd, @args) {
     if ($args{timeout} > 0) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
-        my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker, max_interval => $args{max_interval});
@@ -191,7 +191,7 @@ sub background_script_run ($self, $cmd, %args) {
 
     $cmd = "( $cmd )";
     testapi::type_string $cmd;
-    my $str = testapi::hashed_string("SR" . $cmd);
+    my $str = testapi::hashed_string('SR' . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string($marker);
@@ -223,9 +223,9 @@ sub script_sudo ($self, $prog, $wait = 10) {
         $prog = "$prog; echo $str > /dev/$testapi::serialdev";
     }
     testapi::type_string "sudo $prog\n";
-    if (testapi::check_screen "sudo-passwordprompt", 3) {
+    if (testapi::check_screen 'sudo-passwordprompt', 3) {
         testapi::type_password;
-        testapi::send_key "ret";
+        testapi::send_key 'ret';
     }
     if ($str) {
         return testapi::wait_serial($str, $wait);
@@ -270,7 +270,7 @@ sub script_output ($self, $script, @args) {
 
     # prevent use of network for offline installations
     if (testapi::get_var('OFFLINE_SUT')) {
-        testapi::record_info('forced type_cmd', "Forced typing the command as we are offline");
+        testapi::record_info('forced type_cmd', 'Forced typing the command as we are offline');
         $args{type_command} = 1;
     }
 
@@ -297,11 +297,11 @@ sub script_output ($self, $script, @args) {
         testapi::send_key('ctrl-d');
     }
     else {
-        open my $fh, ">", 'current_script' or croak("Could not open file. $!");
+        open my $fh, '>', 'current_script' or croak("Could not open file. $!");
         print $fh $script;
         close $fh;
-        testapi::assert_script_run("curl -f -v " . testapi::autoinst_url("/current_script") . " > $script_path");
-        testapi::script_run "clear";
+        testapi::assert_script_run('curl -f -v ' . testapi::autoinst_url('/current_script') . " > $script_path");
+        testapi::script_run 'clear';
         unlink 'current_script';
     }
 

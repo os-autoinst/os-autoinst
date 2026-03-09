@@ -17,7 +17,7 @@ use Mojo::Base -strict, -signatures;
 use Feature::Compat::Try;
 use Getopt::Long;
 
-Getopt::Long::Configure("no_ignore_case");
+Getopt::Long::Configure('no_ignore_case');
 
 my %options;
 

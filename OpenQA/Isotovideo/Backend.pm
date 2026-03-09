@@ -10,7 +10,7 @@ use bmwqemu;
 use log qw(diag);
 
 sub new ($class, @args) {
-    $bmwqemu::vars{BACKEND} ||= "qemu";
+    $bmwqemu::vars{BACKEND} ||= 'qemu';
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
 
     path('os-autoinst.pid')->spew("$$");
