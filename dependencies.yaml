@@ -99,7 +99,7 @@ devel_requires:
   perl(Devel::Cover):
   perl(Module::CPANfile):
   perl(Template::Toolkit):
-  perl(Perl::Tidy): == 20250912.0.0
+  perl(Perl::Tidy): == 20260204.0.0
   perl(Test::CheckGitStatus):
   shfmt:
 
