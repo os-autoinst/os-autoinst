@@ -198,13 +198,15 @@ sub start_serial_grab ($self) {
 }
 
 sub stop_serial_grab ($self, @) {
-    return 0 unless $self->{serialpid};
-    try { kill -TERM => $self->{serialpid} }
-    catch ($e) {
-        return -1 if $e =~ qr/No such process/i;
-        die "$e\n";    # uncoverable statement
+    my $pid = delete $self->{serialpid};
+    return -1 unless $pid;
+    kill -TERM => $pid;
+    my $ret = eval { no autodie 'waitpid'; CORE::waitpid($pid, 0) };
+    if (defined $ret && $ret == 0) {
+        kill -KILL => $pid;
+        $ret = CORE::waitpid($pid, 0);
     }
-    return waitpid $self->{serialpid}, 0;
+    return $ret // -1;
 }
 
 # serial grab end
