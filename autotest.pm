@@ -54,17 +54,17 @@ sub find_script ($script) {
     if (defined(my $wheel = bsd_glob "$wheels_dir/*/tests/$script")) {
         return $wheel;
     }
-    my $casedir = $bmwqemu::vars{CASEDIR};
+    my $casedir = $bmwqemu::vars{CASEDIR} // '';
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
         return path($script_override_path)->to_rel($casedir);
     }
-    elsif (!-f join('/', $casedir, $script)) {
+    elsif ($casedir && !-f join('/', $casedir, $script)) {
         warn "loadtest needs a script below $casedir - $script is not\n";
         return path($script)->to_rel($casedir);
     }
-    return "$casedir/$script";
+    return $casedir ? "$casedir/$script" : $script;
 }
 
 =head2 loadtest
