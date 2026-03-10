@@ -202,8 +202,9 @@ subtest 'serial grab' => sub {
     subtest 'stop grabbing' => sub {
         $bmwqemu::vars{GENERAL_HW_SOL_CMD} .= ' && sleep';
         $backend->start_serial_grab;
+        my $pid = $backend->{serialpid};
         $backend->stop_serial_grab;
-        is waitpid($backend->{serialpid}, WNOHANG), -1, 'process terminated via stop_serial_grab';
+        is waitpid($pid, WNOHANG), -1, 'process terminated via stop_serial_grab';
         is $backend->stop_serial_grab, -1, 'returns -1 if process does not exist (but does not die)';
     };
 
