@@ -10,6 +10,7 @@ use File::Basename;
 use File::Path qw(make_path remove_tree);
 use File::Temp 'tempfile';
 use Cwd;
+use Mojo::File qw(tempdir);
 use OpenQA::Benchmark::Stopwatch;
 use needle;
 use cv;
@@ -18,9 +19,7 @@ cv::init();
 require tinycv;
 
 my $data_dir = "$Bin/data";
-my $result_dir = "$data_dir/results";
-
-make_path($result_dir);
+my $result_dir = tempdir("/tmp/$FindBin::Script-XXXX");
 
 opendir my $dir, $data_dir or die "Cannot read directories: $data_dir";
 
