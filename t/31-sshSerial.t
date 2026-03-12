@@ -13,6 +13,13 @@ use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 use consoles::sshSerial;
 
+use Mojo::File qw(tempdir);
+use Mojo::Util qw(scope_guard);
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $cleanup_dir = scope_guard sub { chdir $Bin; undef $dir };
+chdir $dir;
+
 my $eagain = [
     LIBSSH2_ERROR_EAGAIN,
     'LIBSSH2_ERROR_EAGAIN',
