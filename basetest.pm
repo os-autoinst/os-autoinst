@@ -86,6 +86,7 @@ sub is_applicable ($self) {
 Return a hash of flags that are either there or not
 
   'fatal'          - abort whole test suite if this fails (and set overall state 'failed')
+  'always_run'      - requests that a test module is always executed regardless if a previous test module is set to 'fatal'
   'ignore_failure' - if this module fails, it will not affect the overall result at all
   'milestone'      - after this test succeeds, update 'lastgood'
   'no_rollback'     - don't roll back to 'lastgood' snapshot if this fails
