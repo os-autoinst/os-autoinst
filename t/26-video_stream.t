@@ -171,9 +171,13 @@ subtest 'frames parsing' => sub {
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     $mock_video_source = $data_dir . 'frame1.ppm';
     $console->activate;
+    for (1 .. 100) {
+        $received_img = $console->current_screen();
+        last if $received_img;
+        select undef, undef, undef, 0.1;
+    }
 
     $img = tinycv::read($data_dir . 'frame1.png');
-    $received_img = $console->current_screen();
     ok $received_img, 'current screen available to read for single frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
@@ -183,7 +187,11 @@ subtest 'frames parsing' => sub {
     $console->connect_remote({url => 'udp://@:5004'});
 
     $img = tinycv::read($data_dir . 'frame2.png');
-    $received_img = $console->current_screen();
+    for (1 .. 100) {
+        $received_img = $console->current_screen();
+        last if $received_img;
+        select undef, undef, undef, 0.1;
+    }
     ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
