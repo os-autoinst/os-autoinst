@@ -151,6 +151,7 @@ test_base_requires:
   perl(Test::Mojo):
   perl(Test::Most):
   perl(Test::Output):
+  perl(Test::Perl::Critic):
   perl(Test::Pod):
   perl(Test::Strict):
   perl(Test::Warnings): '>= 0.029'

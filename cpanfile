@@ -92,6 +92,7 @@ on 'test' => sub {
     requires 'Test::Mojo';
     requires 'Test::Most';
     requires 'Test::Output';
+    requires 'Test::Perl::Critic';
     requires 'Test::Pod';
     requires 'Test::Strict';
     requires 'Test::Warnings', '>= 0.029';
