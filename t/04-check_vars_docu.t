@@ -11,7 +11,8 @@ use Test::Warnings ':report_warnings';
 use Feature::Compat::Try;
 use FindBin;
 use File::Find;
-use Mojo::File 'path';
+use Mojo::File qw(path tempdir);
+use Mojo::Util qw(scope_guard);
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -21,6 +22,9 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.md';
 
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $cleanup_dir = scope_guard sub { chdir $FindBin::Bin; undef $dir };
+chdir $dir;
 # blocklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blocklist = (
     QEMU => ['WORKER_ID', 'WORKER_INSTANCE', 'NAME'],
@@ -112,6 +116,7 @@ read_doc;
 find(\&read_backend_pm, (BACKEND_DIR));
 # check if vars are properly documented and update data
 write_doc;
+path(VARS_DOC . '.newvars')->remove;
 $error_found = $ignore_errors ? 0 : $error_found;
 ok $error_found ? 0 : 1, 'No errors found';
 done_testing;
