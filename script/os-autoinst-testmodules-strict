@@ -1,0 +1,175 @@
+#!/usr/bin/perl
+# Copyright SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+=head1 SYNOPSIS
+
+os-autoinst-testmodules-strict [OPTIONS] [files]
+
+Check test modules for Mojo::Base statements (and optionally add them
+automatically).
+
+Will exit with code 2 if there are any changes.
+
+Use a special comment in a file to let me know to leave it alone:
+
+    ## no os-autoinst style
+
+Example:
+
+    tools/os-autoinst-testmodules-strict tests/*/*.pm --write
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--write>
+
+Write changed file(s)
+
+=item B<-v, --verbose>
+
+Be verbose
+
+=item B<-h, -?, --help>
+
+Show this help.
+
+=back
+
+=cut
+
+use Mojo::Base -signatures;
+use Getopt::Long;
+use List::Util qw(max);
+use Mojo::File qw(path);
+use PPI;
+use Syntax::Keyword::Try;
+
+sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
+
+my $rc = 0;
+unless (caller) {
+    $|++;
+    GetOptions(\my %options, 'help|h|?', 'verbose|v', 'write') or usage(1);
+    usage(0) if $options{help};
+    usage(1) unless @ARGV;
+    $rc = main(\%options, @ARGV);
+}
+END {
+    $? = 2 if $rc;
+}
+
+sub main ($options, @files) {
+    my $rc = 0;
+    my $length = max map { length } @files;
+    my $format = "[%3d%%] %9s %-*s\r";
+    for my $i (0 .. $#files) {
+        my $file = $files[$i];
+        my $code = ref $file ? $$file : path($file)->slurp;
+        my $doc = PPI::Document->new(\$code) or die "Could not parse code\n";
+        my $progress = int 100 * $i / @files;
+        $options->{verbose} and printf $format, $progress, 'Analyzing', $length, $file;
+        my $module;
+        try {
+            $module = analyze($doc);
+        }
+        catch ($e) {    # uncoverable statement
+            say "\nError in '$file': $e";
+            $rc = 1;
+            next;
+        }
+        next if $module->{nofix};
+
+        my $old = "$doc";
+        my $changed = fix($module);
+        if ($changed and "$changed" ne $old) {
+            if ($options->{write}) {
+                say sprintf '      Writing %-*s', $length, $file;
+                ref $file ? $$file = "$doc" : $doc->save($file);
+            }
+            else {
+                say sprintf '    Would change %-*s', $length, $file;
+                $rc = 1;
+            }
+        }
+    }
+    return $rc;
+}
+
+sub fix ($module) {
+    my %seen;
+    my @classes = grep { not $seen{$_}++ } @{$module->{base_classes}};
+    my $new_code;
+    if (@classes > 1) {
+        $new_code = "use Mojo::Base qw(@classes), -signatures;\n\n";
+    }
+    else {
+        $new_code = "use Mojo::Base '$classes[0]', -signatures;\n\n";
+    }
+    my $temp_doc = PPI::Document->new(\$new_code);
+    my $new_statement = $temp_doc->child(0)->clone;
+
+    my ($first, @objects) = @{$module->{objects}};
+    $first->insert_before($new_statement);
+    $first->remove;
+    for my $obj (@objects) {
+        my $next = $obj->next_sibling;
+        $next->remove if $next->isa('PPI::Token::Whitespace');
+        $obj->remove;
+    }
+    return $module->{doc};
+}
+
+sub add_include ($module, $stmt) {
+    my %include = (class => $stmt->module);
+    my @args;
+    for my $token ($stmt->arguments) {
+        next if $token->isa('PPI::Token::Operator');
+        if ($token->isa('PPI::Token::Quote')) {
+            push @args, $token->string;
+        }
+        elsif ($token->isa('PPI::Token::QuoteLike::Words')) {
+            push @args, $token->literal;
+        }
+        elsif ($token->isa('PPI::Token::Word')) {
+            # unquoted word
+            push @args, $token->content;
+        }
+    }
+    for my $arg (@args) {
+        if ($arg eq '-signatures') {
+            $module->{signatures} = 1;
+        }
+        elsif ($arg eq '-strict') {
+            $module->{strict} = 1;
+        }
+        else {
+            push @{$module->{base_classes}}, $arg;
+        }
+    }
+    return \%include;
+}
+
+sub analyze ($doc) {
+    my %module = (doc => $doc);
+    $module{objects} = \my @objects;
+    $module{base_classes} = \my @classes;
+    my $comments = $doc->find('PPI::Token::Comment') || [];
+    for my $comment (@$comments) {
+        if ($comment->content =~ m/^## no os-autoinst style/) {
+            $module{nofix} = 1;
+            return \%module;
+        }
+    }
+
+    my $includes = $doc->find('PPI::Statement::Include') || [];
+    for my $stmt (@$includes) {
+        next unless $stmt->module =~ m/^(?:base|Mojo::Base|parent)$/;
+        next unless my $include = add_include(\%module, $stmt);
+        push @objects, $stmt;
+    }
+    die 'No base statements' unless @classes;
+    return \%module;
+}
+
