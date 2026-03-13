@@ -399,9 +399,9 @@ sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50_00
     ++$self->{test_count};
 }
 
-sub next_resultname ($self, $type, $name = undef) {
+sub next_resultname ($self, $type, $name = undef, $inc = 1) {
     my $testname = $self->{name};
-    my $count = $self->_increment_test_count;
+    my $count = $inc ? $self->_increment_test_count : $self->{test_count};
     return $name ? "$testname-$count.$name.$type" : "$testname-$count.$type";
 }
 
@@ -509,7 +509,7 @@ sub _result_add_screenshot ($self, $result) {
     $img = tinycv::from_ppm(decode_base64($img));
     return $result unless $img;
 
-    my $file_name = $self->next_resultname('png');
+    my $file_name = $self->next_resultname('png', undef, 0);
     $img->write_with_thumbnail(join('/', bmwqemu::result_dir(), $file_name));
 
     $result->{screenshot} = $file_name;

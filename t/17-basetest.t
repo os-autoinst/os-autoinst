@@ -261,10 +261,10 @@ subtest record_testresult => sub {
     my $res = $basetest->take_screenshot();
     is(ref delete $res->{frametime}, 'ARRAY', 'frametime returned');
 
-    is_deeply($res, {result => 'unk', screenshot => 'test-11.png'},
+    is_deeply($res, {result => 'unk', screenshot => 'test-10.png'},
         'mock image added to details');
 
-    is($basetest->{test_count}, 11, 'test_count accumulated');
+    is($basetest->{test_count}, 10, 'test_count accumulated');
     is(scalar @{$basetest->{details}}, 10, 'all details added');
 };
 
