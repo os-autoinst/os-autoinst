@@ -436,7 +436,11 @@ subtest 'misc functions' => sub {
     }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or always_explain $called{handle_qmp_command};
 
     @bmwqemu::ovmf_locations = ('does not exist', "$Bin/$Script", 'does not exist either');
+    @bmwqemu::ovmf_locations_no_secure_boot = ('does not exist', "$Bin/18-qemu-options.t", 'does not exist either');
     is backend::qemu::find_ovmf, "$Bin/$Script", 'locating ovmf (normally "/usr/share/qemu/ovmf-x86_64-ms-code.bin")';
+
+    $bmwqemu::vars{UEFI_SECURE_BOOT} = 0;
+    is backend::qemu::find_ovmf, "$Bin/18-qemu-options.t", 'locating ovmf with SecureBoot disabled (normally "/usr/share/qemu/ovmf-x86_64-code.bin")';
 };
 
 subtest 'saving memory dump qemu8' => sub {

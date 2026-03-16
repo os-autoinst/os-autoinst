@@ -44,14 +44,19 @@ our $screenshotpath = 'qemuscreenshot';
 # Known locations of OVMF (UEFI) firmware: first is openSUSE, second is
 # the kraxel.org nightly packages, third is Fedora's edk2-ovmf package,
 # fourth is Debian's ovmf package.
+our @ovmf_locations_no_secure_boot = (
+    '/usr/share/qemu/ovmf-x86_64-4m-code.bin', '/usr/share/qemu/ovmf-x86_64-ms-code.bin',
+);
 our @ovmf_locations = (
-    '/usr/share/qemu/ovmf-x86_64-ms-4m-code.bin',
-    '/usr/share/qemu/ovmf-x86_64-ms-code.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd',
+    '/usr/share/qemu/ovmf-x86_64-ms-4m-code.bin', '/usr/share/qemu/ovmf-x86_64-ms-code.bin',
+    '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd',
     '/usr/share/edk2/ovmf/OVMF_CODE.fd', '/usr/share/OVMF/OVMF_CODE.fd'
 );
 
 our %vars;
 tie %vars, 'bmwqemu::tiedvars', %vars;
+
+sub ovmf_locations () { ($vars{UEFI_SECURE_BOOT} // 1) ? \@ovmf_locations : \@ovmf_locations_no_secure_boot }
 
 sub result_dir () { 'testresults' }
 
