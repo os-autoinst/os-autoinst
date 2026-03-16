@@ -18,3 +18,4 @@ build/
 
 # Common dir for Devel::Cover
 cover_db
+/cover-by-test
