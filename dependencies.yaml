@@ -121,7 +121,10 @@ lint_requires:
   perl(Perl::Critic::Utils):
 
 python_style_requires:
-  python3-black:
+  python3-ruff:
+  python3-vulture:
+  python3-radon:
+  python3-ty:
 
 python_support_requires:
   perl(Inline::Python):
@@ -180,6 +183,10 @@ test_requires:
   '%test_non_s390_requires':
   '%python_support_requires':
   '%lua_support_requires':
+  python3-pytest:
+  python3-pytest-cov:
+  python3-pytest-mock:
+  python3-pytest-xdist:
   python3-gitlint:
   python3-Pillow-tk:
   ffmpeg:

@@ -1,0 +1,7 @@
+#!/bin/sh -e
+# Check for banned coding patterns (e.g. @patch decorator)
+if git grep -nE '^\s*@(unittest\.mock\.|mock\.)?patch' t/ 2> /dev/null; then
+    echo "Error: @patch decorator detected in tests/. Avoid to prevent argument ordering bugs."
+    echo "   Fix: Use the 'mocker' fixture (pytest-mock) or a 'with patch():' context manager."
+    exit 1
+fi

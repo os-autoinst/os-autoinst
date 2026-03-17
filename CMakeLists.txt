@@ -274,3 +274,13 @@ add_custom_target(
     COMMAND sh -c "'${CLANG_FORMAT_PATH}" "--style=WebKit" "-i" "$$(find" "." "-name" "\*.h" "-o" "-name" "\*.cc" "-o" "-name" "\*.cpp)'"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
+
+# add target for formatting Python source code
+find_program(RUFF_PATH ruff)
+add_custom_target(
+    tidy-python
+    COMMENT "Formatting Python source code"
+    COMMAND "${RUFF_PATH}" format .
+    COMMAND "${RUFF_PATH}" check --fix .
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)

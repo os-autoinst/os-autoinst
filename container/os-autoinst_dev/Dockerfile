@@ -44,9 +44,16 @@ RUN zypper in -y -C \
        pkg-config \
        procps \
        python3-Pillow-tk \
-       python3-black \
        python3-gitlint \
+       python3-pytest \
+       python3-pytest-cov \
+       python3-pytest-mock \
+       python3-pytest-xdist \
+       python3-radon \
+       python3-ruff \
        python3-setuptools \
+       python3-ty \
+       python3-vulture \
        python3-yamllint \
        qemu \
        qemu-tools \

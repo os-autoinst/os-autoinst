@@ -2,13 +2,15 @@
 # Copyright 2013-2016 SUSE LLC
 # SPDX-License-Identifier: MIT
 
-from tkinter import Tk, Canvas, NW
-from PIL import Image, ImageTk
 import json
 import optparse
-import sys
+import pathlib
 import shutil
+import sys
 from os.path import basename
+from tkinter import NW, Canvas, Tk
+
+from PIL import Image, ImageTk
 
 parser = optparse.OptionParser()
 parser.add_option("--new", metavar="NAME", help="create new")
@@ -27,7 +29,7 @@ if filename.endswith(".png"):
     }""")
 elif filename.endswith(".json"):
     png = filename[0 : len(filename) - len(".json")] + ".png"
-    needle = json.load(open(filename))
+    needle = json.load(pathlib.Path(filename).open())
 
 else:
     print("Error: needs to end in .png or .json")
@@ -120,7 +122,7 @@ def selectarea():
     print("highlighting %d" % rect)
 
     area = needle["area"][rect]
-    for r in range(0, len(uiareas)):
+    for r in range(len(uiareas)):
         color = "green"
         if r == rect:
             color = "cyan"
@@ -195,7 +197,7 @@ def delrect(arg):
     del needle["area"][rect]
     uiareas[rect].destroy()
     a = []
-    for r in range(0, len(uiareas)):
+    for r in range(len(uiareas)):
         if r == rect:
             continue
         a.append(uiareas[r])
@@ -239,7 +241,7 @@ def save_quit(arg):
         pat = environ["CASEDIR"] + "/needles/%s.%s"
         shutil.copyfile(png, pat % (options.new, "png"))
         filename = pat % (options.new, "json")
-    json.dump(needle, open(filename, "w"), sort_keys=True, indent=4, separators=(",", ": "))
+    json.dump(needle, pathlib.Path(filename).open("w"), sort_keys=True, indent=4, separators=(",", ": "))
     print("saved %s" % filename)
     master.quit()
 

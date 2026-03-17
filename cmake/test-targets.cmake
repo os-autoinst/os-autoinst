@@ -31,15 +31,61 @@ else ()
 endif ()
 
 # add test for python code style
-find_program(BLACK_PATH black)
-if (BLACK_PATH)
+find_program(RUFF_PATH ruff)
+if (RUFF_PATH)
     add_test(
         NAME test-local-python-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-style" "${BLACK_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-style" "${RUFF_PATH}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
-    message(STATUS "Set BLACK_PATH to the path of the black executable to enable python style checks.")
+    message(STATUS "Set RUFF_PATH to the path of the ruff executable to enable python style checks.")
+endif ()
+
+find_program(VULTURE_PATH vulture)
+if (VULTURE_PATH)
+    add_test(
+        NAME test-local-python-code-health
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-code-health" "${VULTURE_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+endif ()
+
+find_program(RADON_PATH radon)
+if (RADON_PATH)
+    add_test(
+        NAME test-local-python-maintainability
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-maintainability" "${RADON_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+endif ()
+
+add_test(
+    NAME test-local-python-conventions
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-conventions"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+find_program(TY_PATH ty)
+if (TY_PATH)
+    add_test(
+        NAME test-local-python-typecheck
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/typecheck-python" "${TY_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+endif ()
+
+find_program(PYTEST_PATH pytest)
+if (PYTEST_PATH)
+    add_test(
+        NAME test-python-testsuite
+        COMMAND "${PYTEST_PATH}" -n auto -v --cov --cov-report=xml --cov-report=term-missing
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    # The current python files are data/fake modules for other tests, not pytest-runnable tests themselves.
+    # We set this to pass even if no tests are found, to avoid CI failure until real tests are added.
+    # pytest returns exit code 5 when no tests are collected.
+    set_tests_properties(test-python-testsuite PROPERTIES PASS_REGULAR_EXPRESSION "test session starts")
 endif ()
 
 find_program(SHELLCHECK_PATH shellcheck)
