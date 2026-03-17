@@ -1,7 +1,6 @@
 #!/bin/sh -e
 # fall back to find if there is no git, e.g. in package builds
 # shellcheck disable=SC2046
-RUFF="${1:-ruff}"
+VULTURE="${1:-vulture}"
 set -- $(git ls-files "*.py" 2> /dev/null || find . -name '*.py')
-"$RUFF" check "$@"
-"$RUFF" format --check "$@"
+"$VULTURE" "$@" --min-confidence 80 --exclude t/fake/tests/faulty.py

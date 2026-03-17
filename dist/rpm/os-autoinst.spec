@@ -92,7 +92,7 @@ Source0:        %{name}-%{version}.tar.xz
 %endif
 %if %{with black}
 # The following line is generated from dependencies.yaml
-%define python_style_requires python3-black
+%define python_style_requires python3-radon python3-ruff python3-ty python3-vulture
 %else
 %define python_style_requires %{nil}
 %endif
@@ -121,7 +121,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk python3-gitlint
+%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk python3-gitlint python3-pytest python3-pytest-cov python3-pytest-mock python3-pytest-xdist
 %ifnarch s390x
 # The following line is generated from dependencies.yaml
 %define devel_non_s390_requires ShellCheck
