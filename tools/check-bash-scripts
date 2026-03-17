@@ -1,4 +1,5 @@
 #!/bin/sh -e
 executable=$1
 path=$2
-"${executable:-shfmt}" -d "${path}"
+# shellcheck disable=SC2046
+"${executable:-shfmt}" -d $("${executable:-shfmt}" -f "${path}" | grep -v "${path}/local/")
