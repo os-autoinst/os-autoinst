@@ -190,6 +190,7 @@ Supported variables per backend
 | TAPSCRIPT |  |  | Script used during the backend network creation |
 | TESTDEBUG | boolean | 0 | Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run |
 | UEFI | boolean | 0 | Enable UEFI |
+| UEFI_SECURE_BOOT | boolean | 1 | Whether the auto-selection of `UEFI_PFLASH_CODE` and `UEFI_PFLASH_VARS` should use firmware with SecureBoot enabled |
 | UEFI_PFLASH_CODE | string |  | Specify the file name of the UEFI firmware code which will be loaded onto a read-only PFLASH drive |
 | UEFI_PFLASH_VARS | string |  | Specify the file name which contains the UEFI firmware variables which will be loaded onto a mutable PFLASH drive |
 | PUBLISH_PFLASH_VARS | string |  | Specify the file name to publish the UEFI vars file as |

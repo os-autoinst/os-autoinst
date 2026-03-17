@@ -576,7 +576,7 @@ sub do_extract_assets ($self, $args) {
 
 # baseclass virt method overwrite end
 
-sub find_ovmf () { first { -e } @bmwqemu::ovmf_locations }
+sub find_ovmf () { first { -e } @{bmwqemu::ovmf_locations()} }
 
 sub virtio_console_names () {
     return () unless $bmwqemu::vars{VIRTIO_CONSOLE};
