@@ -153,6 +153,17 @@ sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_outp
     return $cache_dir;
 }
 
+sub _update_submodules ($local_path, $handle_output) {
+    return 1 unless -e "$local_path/.gitmodules" || -d "$local_path/.git/modules";
+    
+    bmwqemu::fctinfo "Initializing and updating git submodules in '$local_path'";
+    
+    my @out = qx{git -C "$local_path" submodule update --init --recursive 2>&1};
+    $handle_output->($?, @out);
+    
+    return 1;
+}
+
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
     if (-e $local_path) {
         bmwqemu::diag "Skipping to clone \"$clone_url\"; $local_path already exists";
@@ -179,17 +190,28 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
     my $depth_args = $cache_dir ? '' : "--depth='$clone_depth'";    # cannot use `--depth` with $cache_dir
     if (!$cache_dir) {    # cannot use `--branch` with $cache_dir so just move to fallback directly
         my @out = qx{$clone_cmd $depth_args $branch_args $source_url 2>&1};
-        return $handle_output->($?, @out) unless ($branch && grep /fatal: Remote branch .* not found in upstream origin/, @out);
+        unless ($branch && grep /fatal: Remote branch .* not found in upstream origin/, @out) {
+            $handle_output->($?, @out);
+            _update_submodules($local_path, $handle_output);
+            return 1;
+        }
     }
 
     # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and check out the missing
     # ref manually
     $handle_output->($?, my @out = qx{$clone_cmd $depth_args $source_url 2>&1});
-    return 1 unless $branch;
+    unless ($branch) {
+        _update_submodules($local_path, $handle_output);
+        return 1;
+    }
     if ($direct_fetch) {
         bmwqemu::diag "Fetching '$branch' from origin manually";
         @out = qx{git -C "$local_path" fetch origin "$branch" 2>&1 && git -C "$local_path" checkout FETCH_HEAD 2>&1};
-        return $handle_output->($?, @out) unless (grep /could(n't| not) find remote ref/, @out);
+        unless (grep /could(n't| not) find remote ref/, @out) {
+            $handle_output->($?, @out);
+            _update_submodules($local_path, $handle_output);
+            return 1;
+        }
     }
 
     # if fetching the specified rev did not work, take yet another approach (maybe we just misspelled, though)
@@ -207,6 +229,7 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
     @out = qx{git -C $local_path checkout $branch};
     bmwqemu::diag "@out" if @out;
     die "Unable to check out branch '$branch' in cloned Git repository \"$dir\"" unless $? == 0;
+    _update_submodules($local_path, $handle_output);
     return 1;
 }
 
