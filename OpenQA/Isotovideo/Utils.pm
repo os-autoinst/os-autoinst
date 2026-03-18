@@ -59,7 +59,9 @@ sub git_remote_url ($git_repo_dir, $fallback = undef) {
     my $safe_dir_cmd = _configure_safe_dir_cmd($status);
     chomp(my @remotes = qx{$safe_dir_cmd git -C "$git_repo_dir" remote});
     return $fallback // 'UNKNOWN (origin remote not found)' unless grep { $_ eq 'origin' } @remotes;
-    chomp(my $url = qx{$safe_dir_cmd git -C "$git_repo_dir" remote get-url origin 2>&1});
+    chomp(my $url_str = qx{$safe_dir_cmd git -C "$git_repo_dir" remote get-url origin 2>&1});
+    # Hide user credentials from $url_str
+    my $url = Mojo::URL->new($url_str)->to_string;
     return git_remote_url($url, $url) if $? == 0;    # recursive lookup to handle caching
     bmwqemu::diag("Could not retrieve remote url of $git_repo_dir: \"$url\"");    # uncoverable statement
     return $fallback // 'UNKNOWN (error on git remote call)';    # uncoverable statement
@@ -183,8 +185,11 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         return 1;
     };
 
-    my $cache_dir = _handle_caching($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output);
-    my $source_url = $cache_dir // $clone_url;
+    # string url with userinfo
+    my $unsafe_url = $clone_url->to_unsafe_string;
+    
+    my $cache_dir = _handle_caching($unsafe_url, $clone_depth, $branch, $clone_cmd, $handle_output);
+    my $source_url = $cache_dir // $unsafe_url;
 
     # attempt to clone with `--branch`
     my $depth_args = $cache_dir ? '' : "--depth='$clone_depth'";    # cannot use `--depth` with $cache_dir
