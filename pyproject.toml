@@ -84,7 +84,6 @@ max-complexity = 10
 [tool.ruff.lint.per-file-ignores]
 "t/**/*" = ["PLR2004", "ANN401", "PLR0913", "S101", "S105", "S106", "PLR0917", "D103", "D100", "CPY001", "T201", "INP001", "F403", "F405", "ANN", "E402", "ARG001", "TRY002", "TRY003", "EM101", "C406", "RUF100"]
 "script/crop.py" = ["D100", "D101", "D102", "D103", "D107", "ANN", "T201", "CPY001", "PTH119", "PLW1514", "SIM115", "C901", "PLR6104", "SIM102", "PLW0602", "PLW0603", "UP031", "A001", "PLC0415", "ARG001", "PLR2004"]
-"os_autoinst_setup.py" = ["D100", "ANN", "T201", "CPY001"]
 
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.
