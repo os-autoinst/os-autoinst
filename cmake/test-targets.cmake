@@ -11,6 +11,9 @@ if (VERBOSE_CTEST)
     set(CMAKE_CTEST_COMMAND ${CMAKE_CTEST_COMMAND} -V)
 endif ()
 
+# enable parallel tests on CTest level by default
+set(CMAKE_CTEST_ARGUMENTS "--parallel" "0")
+
 # test for install target
 add_test(
     NAME test-installed-files
@@ -180,8 +183,8 @@ if (PROVE_PATH)
         USES_TERMINAL
     )
 endif ()
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_BINARY_DIR} USES_TERMINAL)
-add_custom_target(check-pkg-build COMMAND ${CMAKE_CTEST_COMMAND} -E "test-local-.*" WORKING_DIRECTORY ${CMAKE_BINARY_DIR} USES_TERMINAL)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CMAKE_CTEST_ARGUMENTS} WORKING_DIRECTORY ${CMAKE_BINARY_DIR} USES_TERMINAL)
+add_custom_target(check-pkg-build COMMAND ${CMAKE_CTEST_COMMAND} ${CMAKE_CTEST_ARGUMENTS} -E "test-local-.*" WORKING_DIRECTORY ${CMAKE_BINARY_DIR} USES_TERMINAL)
 foreach (CUSTOM_TARGET test-perl-testsuite check check-pkg-build)
     add_dependencies(${CUSTOM_TARGET} symlinks)
 endforeach ()
