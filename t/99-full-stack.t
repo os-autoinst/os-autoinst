@@ -8,7 +8,7 @@ use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '450';
+use OpenQA::Test::TimeLimit '300';
 use Test::Warnings ':report_warnings';
 use File::Basename;
 use Cwd 'abs_path';
@@ -43,6 +43,9 @@ path('vars.json')->spew(<<EOV);
    "VERSION" : "1",
    "SSH_CONNECT_RETRY"  : "2",
    "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
+   "VNC_CONNECT_SLEEP" : "0",
+   "VNC_CONNECT_TIMEOUT_LOCAL" : "0.001",
+   "VNC_CONNECT_TIMEOUT_REMOTE" : "0.001",
    "NAME" : "00001-1-i386@32bit",
    "TEST_NON_STRICT_MODULE": "1",
 }

@@ -169,7 +169,7 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
             # qemu) so ignore the first occurrences of a failed
             # connection attempt.
             bmwqemu::fctwarn($error_message) if $err_cnt > $connect_failure_limit;
-            sleep 1;
+            sleep($bmwqemu::vars{VNC_CONNECT_SLEEP} // 1);
             next;
         }
         $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
