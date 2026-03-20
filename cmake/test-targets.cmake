@@ -21,16 +21,17 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
+# add targets for invoking Perl test suite
+find_program(PROVE_PATH prove)
+
 # add test for YAML syntax
 find_program(YAMLLINT_PATH yamllint)
 if (YAMLLINT_PATH)
     add_test(
         NAME test-local-yaml-syntax
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-yaml-syntax" "${YAMLLINT_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericValidator / yamllint" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-else ()
-    message(STATUS "Set YAMLLINT_PATH to the path of the yamllint executable to enable YAML syntax checks.")
 endif ()
 
 # add test for python code style
@@ -38,7 +39,7 @@ find_program(RUFF_PATH ruff)
 if (RUFF_PATH)
     add_test(
         NAME test-local-python-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-style" "${RUFF_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericTransformer / Black" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
@@ -95,11 +96,9 @@ find_program(SHELLCHECK_PATH shellcheck)
 if (SHELLCHECK_PATH)
     add_test(
         NAME test-local-shellcheck
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-shellcheck" "${SHELLCHECK_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericValidator / shellcheck" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-else ()
-    message(STATUS "Set SHELLCHECK_PATH to the path of shellcheck to enable Shell style checks.")
 endif ()
 
 # add test for Perl syntax/style issues
@@ -107,11 +106,9 @@ find_program(PERLCRITIC_PATH perlcritic)
 if (PERLCRITIC_PATH)
     add_test(
         NAME test-local-perl-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-perl-style" "${PERLCRITIC_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins PerlCritic -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-else ()
-    message(STATUS "Set PERLCRITIC_PATH to the path of the perlcritic executable to enable Perl syntax/style checks.")
 endif ()
 
 # add test for bash script syntax
@@ -119,39 +116,31 @@ find_program(SH_PATH shfmt)
 if (SH_PATH)
     add_test(
         NAME test-local-bash-syntax
-	 COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-bash-scripts" "${SH_PATH}" "${CMAKE_SOURCE_DIR}"
-	 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    )
-else ()
-    message(STATUS "Set SH_PATH to the path of the shfmt executable to enable bash script syntax checks.")
-endif ()
-
-# add test for git commit messages
-find_program(GITLINT_PATH gitlint)
-if (GITLINT_PATH)
-    add_test(
-        NAME test-local-git-commit-message
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-git-commit-message" "${GITLINT_PATH}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidyall" --plugins "GenericTransformer / shfmt" -a --check
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-else ()
-    message(STATUS "Set GITLINT_PATH to the path of the gitlint executable to enable git commit message checks.")
 endif ()
 
-# add spell checking for test API documentation
+# add test for git commit messages and spellchecking
+find_program(GITLINT_PATH gitlint)
+if (GITLINT_PATH AND PROVE_PATH)
+    add_test(
+        NAME test-local-git-commit-message
+        COMMAND "${PROVE_PATH}" xt/70-author.t
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+endif ()
+
 find_program(PODSPELL_PATH podspell)
 find_program(SPELL_PATH spell)
-if (PODSPELL_PATH AND SPELL_PATH)
+if (PODSPELL_PATH AND SPELL_PATH AND PROVE_PATH)
     add_test(
         NAME test-doc-testapi-spellchecking
-        COMMAND sh -c "\"${PODSPELL_PATH}\" \"${CMAKE_CURRENT_SOURCE_DIR}/testapi.pm\" | \"${SPELL_PATH}\""
+        COMMAND "${PROVE_PATH}" xt/70-author.t
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
-else ()
-    message(STATUS "Set PODSPELL_PATH/SPELL_PATH to the path of the podspell/spell executable to enable spell checking.")
 endif ()
 
-# add targets for invoking Perl test suite
-find_program(PROVE_PATH prove)
 find_program(UNBUFFER_PATH unbuffer)
 if (PROVE_PATH)
     set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --unbuffer-tool "${UNBUFFER_PATH}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
