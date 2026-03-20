@@ -128,6 +128,7 @@ RUN zypper in -y -C \
        'perl(Net::SNMP)' \
        'perl(Net::SSH2)' \
        'perl(POSIX)' \
+       'perl(PPI)' \
        'perl(Perl::Critic)' \
        'perl(Perl::Critic::Community)' \
        'perl(Perl::Critic::Policy)' \
