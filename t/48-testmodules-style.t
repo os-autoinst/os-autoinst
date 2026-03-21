@@ -19,20 +19,21 @@ subtest 'various inputs' => sub {
         my $test = $tests[$i];
         my ($in, $exp) = @$test;
         note $in;
-        my ($doc, $base_statements, $nofix);
+        my $doc = PPI::Document->new(\$in) or die "Could not parse code";
+        my $module;
         my $err;
         try {
-            ($doc, $base_statements, $nofix) = main::analyze($in);
+            $module = main::analyze($doc);
         }
         catch ($e) {
             $err = $e;
         }
         if ($in =~ m/## no os-autoinst style/) {
-            ok $nofix;
+            ok $module->{nofix};
             next;
         }
         if ($exp) {
-            my $changed = fix($doc, $base_statements);
+            my $changed = fix($module);
             if ($changed) {
                 $changed =~ s/^\n+//;
             }
@@ -50,7 +51,7 @@ subtest 'main' => sub {
     combined_like { main::main({}, @args) } qr/Would change @args/, 'checking file';
 
     my $code = 'use CGI';
-    combined_like { main::main({}, \$code) } qr/Error.*No base/, 'no base statements';;
+    combined_like { main::main({}, \$code) } qr/Error.*No base/, 'no base statements';
 
     $code = 'use base "x"';
     combined_like { main::main({}, \$code) } qr/Would change/, 'checking string';

@@ -67,21 +67,22 @@ sub main ($options, @files) {
     for my $i (0 .. $#files) {
         my $file = $files[$i];
         my $code = ref $file ? $$file : path($file)->slurp;
+        my $doc = PPI::Document->new(\$code) or die "Could not parse code\n";
         my $progress = int 100 * $i / @files;
         $options->{verbose} and printf $format, $progress, 'Analyzing', $length, $file;
-        my ($doc, $base_statements, $nofix);
+        my $module;
         try {
-            ($doc, $base_statements, $nofix) = analyze($code);
-            next if $nofix;
+            $module = analyze($doc);
         }
         catch ($e) {    # uncoverable statement
             say "\nError in '$file': $e";
             $rc = 1;
             next;
         }
-        my $old = "$doc";
+        next if $module->{nofix};
 
-        my $changed = fix($doc, $base_statements);
+        my $old = "$doc";
+        my $changed = fix($module);
         if ($changed and "$changed" ne $old) {
             if ($options->{write}) {
                 say sprintf '      Writing %-*s', $length, $file;
@@ -96,18 +97,9 @@ sub main ($options, @files) {
     return $rc;
 }
 
-sub fix ($doc, $base_statements) {
-    my @classes;
-    my $first;
-    my @objects;
-    for my $use (@$base_statements) {
-        my $base = $use->{base};
-        push @classes, @$base;
-        $first ||= $use->{object};
-        push @objects, $use->{object};
-    }
+sub fix ($module) {
     my %seen;
-    @classes = grep { not $seen{$_}++ } @classes;
+    my @classes = grep { not $seen{$_}++ } @{$module->{base_classes}};
     my $new_code;
     if (@classes > 1) {
         $new_code = "use Mojo::Base qw(@classes), -signatures;\n\n";
@@ -117,62 +109,67 @@ sub fix ($doc, $base_statements) {
     }
     my $temp_doc = PPI::Document->new(\$new_code);
     my $new_statement = $temp_doc->child(0)->clone;
+
+    my ($first, @objects) = @{$module->{objects}};
     $first->insert_before($new_statement);
     $first->remove;
-    for my $obj (@objects[1..$#objects]) {
+    for my $obj (@objects) {
         my $next = $obj->next_sibling;
         $next->remove if $next->isa('PPI::Token::Whitespace');
         $obj->remove;
     }
-    return $doc;
+    return $module->{doc};
 }
 
-sub include ($include) {
-    my %use = (object => $include, module => $include->module);
-    my @base;
-    for my $token ($include->arguments) {
+sub add_include ($module, $stmt) {
+    my %include = (class => $stmt->module);
+    my @args;
+    for my $token ($stmt->arguments) {
         next if $token->isa('PPI::Token::Operator');
-        my $content = $token->content;
-        if ($token->isa('PPI::Token::Word') and $content eq '-signatures') {
-            $use{signatures} = 1;
-        }
-        elsif ($token->isa('PPI::Token::Word') and $content eq '-strict') {
-            $use{strict} = 1;
-        }
-        elsif ($token->isa('PPI::Token::Quote')) {
-            push @base, $token->string;
+        if ($token->isa('PPI::Token::Quote')) {
+            push @args, $token->string;
         }
         elsif ($token->isa('PPI::Token::QuoteLike::Words')) {
-            push @base, $token->literal;
+            push @args, $token->literal;
         }
         elsif ($token->isa('PPI::Token::Word')) {
             # unquoted word
-            push @base, $token->content;
+            push @args, $token->content;
         }
     }
-    $use{base} = \@base;
-    return \%use;
+    for my $arg (@args) {
+        if ($arg eq '-signatures') {
+            $module->{signatures} = 1;
+        }
+        elsif ($arg eq '-strict') {
+            $module->{strict} = 1;
+        }
+        else {
+            push @{$module->{base_classes}}, $arg;
+        }
+    }
+    return \%include;
 }
 
-sub analyze ($code) {
-    my $doc = PPI::Document->new(\$code) or die "Could not parse code\n";
+sub analyze ($doc) {
+    my %module = (doc => $doc);
+    $module{objects} = \my @objects;
+    $module{base_classes} = \my @classes;
     my $comments = $doc->find('PPI::Token::Comment') || [];
     for my $comment (@$comments) {
         if ($comment->content =~ m/^## no os-autoinst style/) {
-            return ($doc, [], 1);
+            $module{nofix} = 1;
+            return \%module;
         }
     }
 
     my $includes = $doc->find('PPI::Statement::Include') || [];
-    my @use;
-    for my $include (@$includes) {
-        next unless $include->module =~ m/^(?:base|Mojo::Base|parent)$/;
-        next unless my $info = include($include);
-        push @use, $info;
+    for my $stmt (@$includes) {
+        next unless $stmt->module =~ m/^(?:base|Mojo::Base|parent)$/;
+        next unless my $include = add_include(\%module, $stmt);
+        push @objects, $stmt;
     }
-    if (not grep { @{ $_->{base} } } @use) {
-        die "No base statements";
-    }
-    return ($doc, \@use);
+    die "No base statements" unless @classes;
+    return \%module;
 }
 
