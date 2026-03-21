@@ -85,6 +85,7 @@ on 'test' => sub {
     requires 'Perl::Critic::Policy';
     requires 'Perl::Critic::Utils';
     requires 'Pod::Coverage';
+    requires 'Test::Compile';
     requires 'Test::Mock::Time';
     requires 'Test::MockModule';
     requires 'Test::MockObject';
@@ -94,7 +95,6 @@ on 'test' => sub {
     requires 'Test::Output';
     requires 'Test::Perl::Critic';
     requires 'Test::Pod';
-    requires 'Test::Strict';
     requires 'Test::Warnings', '>= 0.029';
 
 };

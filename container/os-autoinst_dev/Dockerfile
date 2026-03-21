@@ -143,6 +143,7 @@ RUN zypper in -y -C \
        'perl(Template::Toolkit)' \
        'perl(Term::ANSIColor)' \
        'perl(Test::CheckGitStatus)' \
+       'perl(Test::Compile)' \
        'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \
        'perl(Test::MockObject)' \
@@ -152,7 +153,6 @@ RUN zypper in -y -C \
        'perl(Test::Output)' \
        'perl(Test::Perl::Critic)' \
        'perl(Test::Pod)' \
-       'perl(Test::Strict)' \
        'perl(Test::Warnings)' \
        'perl(Thread::Queue)' \
        'perl(Time::HiRes)' \
