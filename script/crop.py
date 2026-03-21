@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2013-2016 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
 
 import json
