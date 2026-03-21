@@ -9,8 +9,8 @@ use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use Test::MockObject;
 use File::Temp;
-use Mojo::File qw(path);
-use Mojo::Util qw(b64_encode);
+use Mojo::File qw(path tempdir);
+use Mojo::Util qw(b64_encode scope_guard);
 use Test::Output qw(combined_like stderr_like stderr_unlike);
 use Test::Warnings qw(:all :report_warnings);
 use Scalar::Util 'looks_like_number';
@@ -25,6 +25,10 @@ use needle;
 
 require bmwqemu;
 require tinycv;
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $cleanup_dir = scope_guard sub { chdir $Bin; undef $dir };
+chdir $dir;
 
 ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
 
@@ -1270,9 +1274,9 @@ subtest 'mouse click' => sub {
     is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or always_explain $cmds;
 };
 
-$bmwqemu::vars{CASEDIR} = 'foo';
+$bmwqemu::vars{CASEDIR} = '/foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
-$bmwqemu::vars{CASEDIR} = 't';
+$bmwqemu::vars{CASEDIR} = $Bin;
 like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 lives_ok { become_root } 'become_root can be called';
 lives_ok { hold_key('ret') } 'hold_key can be called';

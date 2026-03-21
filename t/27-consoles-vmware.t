@@ -188,7 +188,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
 
     # connect to dewebsockify and let everything run
     my $data_received_via_raw_socket = '';
-    my $configured_connect_attempts = OpenQA::Test::TimeLimit::scale_timeout($ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_CONNECT_ATTEMPTS} // 25);
+    my $configured_connect_attempts = OpenQA::Test::TimeLimit::scale_timeout($ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_CONNECT_ATTEMPTS} // 100);
     my ($close_immediately, $connect_attempts, $connect_to_dewebsockify);
     $connect_to_dewebsockify = sub ($loop) {
         note "connecting to dewebsockify on port $tcp_port";
@@ -196,7 +196,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                 if ($err) {
                     if (--$connect_attempts) {
                         note "unable to connect to dewebsockify on port $tcp_port: $err (will try again $connect_attempts times)";
-                        return $loop->timer(0.1 => $connect_to_dewebsockify);
+                        return $loop->timer(0.05 => $connect_to_dewebsockify);
                     }
                     fail "unable to connect to dewebsockify on port $tcp_port: $err";    # uncoverable statement
                     return $loop->stop;    # uncoverable statement

@@ -36,6 +36,10 @@ $ENV{OS_AUTOINST_GIT_RETRY_COUNT} = 0;
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
+    my $vnc_port = 90 + ($$ % 100);
+    my $qemu_port = 15000 + ($$ % 1000);
+    $args{default_opts} .= " vnc=$vnc_port" unless $args{default_opts} =~ /vnc=/ || $args{opts} =~ /vnc=/;
+    $args{default_opts} .= " qemuport=$qemu_port" unless $args{default_opts} =~ /qemuport=/ || $args{opts} =~ /qemuport=/;
     $args{exit_code} //= 1;
     chdir "$Bin/..";
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split(' ', $args{opts}));
@@ -238,6 +242,8 @@ subtest 'productdir variable relative/absolute' => sub {
     my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
     like $log, qr/scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
     unlike $log, qr/assert_screen_fail_test/, 'assert screen test not scheduled';
+    unlink("$data_dir/tests/product/main.pm");
+    rmdir("$data_dir/tests/product");
 };
 
 subtest 'exit status from test results' => sub {
@@ -279,14 +285,15 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
-    mkdir('my_cases') unless -e 'my_cases';
-    symlink("$data_dir/tests/lib", 'my_cases/lib') unless -e 'my_cases/lib';
-    mkdir('my_cases/products') unless -e 'my_cases/products';
-    mkdir('my_cases/products/foo') unless -e 'my_cases/foo';
-    symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
-    symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
+    my $casedir = "my_cases_$$";
+    mkdir($casedir) unless -e $casedir;
+    symlink("$data_dir/tests/lib", "$casedir/lib") unless -e "$casedir/lib";
+    mkdir("$casedir/products") unless -e "$casedir/products";
+    mkdir("$casedir/products/foo") unless -e "$casedir/products/foo";
+    symlink("$data_dir/tests/tests", "$casedir/tests") unless -e "$casedir/tests";
+    symlink("$data_dir/tests/needles", "$casedir/products/foo/needles") unless -e "$casedir/products/foo/needles";
     my $module = 'tests/failing_module';
-    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    my $log = combined_from { isotovideo(opts => "casedir=$casedir productdir=$casedir/products/foo schedule=$module", exit_code => 0) };
     unlike $log, qr/\[warn\]/, 'no warnings';
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/loaded 4 needles/, 'loaded needles successfully';
