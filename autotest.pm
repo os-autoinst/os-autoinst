@@ -532,6 +532,7 @@ sub runalltests () {
     bmwqemu::diag 'Snapshots are ' . ($snapshots_supported ? '' : 'not ') . 'supported';
 
     write_test_order();
+    my $fatal_reason;
 
     for (my $testindex = 0; $testindex <= $#testorder; $testindex++) {
         my $t = $testorder[$testindex];
@@ -542,8 +543,8 @@ sub runalltests () {
             load_snapshot($bmwqemu::vars{TESTDEBUG} ? 'lastgood' : $firsttest) if $bmwqemu::vars{SKIPTO};
             $vmloaded = 1;
         }
-        if (!$vmloaded) {
-            bmwqemu::diag "skipping $fullname";
+        if (!$vmloaded || ($fatal_reason && !$flags->{always_run})) {
+            bmwqemu::diag "skipping $fullname" . ($vmloaded ? ' (after fatal failure)' : '');
             $t->skip_if_not_running();
             $t->save_test_result();
             next;
@@ -570,22 +571,23 @@ sub runalltests () {
             bmwqemu::diag $msg if $msg !~ /^test.*died/;
             query_isotovideo('backend_save_memory_dump', {filename => $fullname}) if $bmwqemu::vars{DUMP_MEMORY_ON_FAIL};
             if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
-                my $reason = ($t->{fatal_failure} || $flags->{fatal})
-                  ? 'after a fatal test failure'
-                  : ($bmwqemu::vars{TESTDEBUG}
-                    ? 'because TESTDEBUG has been set'
-                    : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly');
-                bmwqemu::diag "stopping overall test execution $reason";
-                bmwqemu::stop_vm();
-                return 0;
+                unless ($fatal_reason) {
+                    $fatal_reason = ($t->{fatal_failure} || $flags->{fatal})
+                      ? 'after a fatal test failure'
+                      : ($bmwqemu::vars{TESTDEBUG}
+                        ? 'because TESTDEBUG has been set'
+                        : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly');
+                    bmwqemu::diag "scheduled stop of overall test execution $fatal_reason";
+                }
             }
-            elsif (defined $next_test && !$flags->{no_rollback} && $last_milestone) {
+            elsif (defined $next_test && !$flags->{no_rollback} && $last_milestone && !$fatal_reason) {
                 load_snapshot('lastgood');
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok');
                 rollback_activated_consoles();
             }
         }
         else {
+            next if $fatal_reason;
             if (defined $next_test && !$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
                 load_snapshot('lastgood');
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
@@ -604,6 +606,11 @@ sub runalltests () {
                 $last_milestone_console = $selected_console;
             }
         }
+    }
+    if ($fatal_reason) {
+        bmwqemu::diag "stopping overall test execution $fatal_reason";
+        bmwqemu::stop_vm();
+        return 0;
     }
     return 1;
 }
