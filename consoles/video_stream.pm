@@ -123,9 +123,8 @@ sub connect_remote ($self, $args) {
 }
 
 sub _get_ffmpeg_cmd ($self, $url) {
-    my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
+    my $fps = $url =~ s/[\?&]fps=([0-9]+)// ? $1 : 4;
     die 'ffmpeg url does not support format=' if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
-    $fps //= 4;
     my @cmd;
     @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
     push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
@@ -134,10 +133,8 @@ sub _get_ffmpeg_cmd ($self, $url) {
 }
 
 sub _get_ustreamer_cmd ($self, $url, $sink_name) {
-    my $fps = $1 if ($url =~ s/[\?&]fps=([0-9]+)//);
-    my $format = $1 if ($url =~ s/[\?&]format=([A-Z0-9]+(swap)?)//);
-    $fps //= 5;
-    $format //= 'UYVY';
+    my $fps = $url =~ s/[\?&]fps=([0-9]+)// ? $1 : 5;
+    my $format = $url =~ s/[\?&]format=([A-Z0-9]+(swap)?)// ? $1 : 'UYVY';
     my $swap = ($format =~ /swap$/);
     $format =~ s/swap$//;
     my $cmd = [
