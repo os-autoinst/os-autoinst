@@ -1,0 +1,13 @@
+---
+name: 'Commit message check'
+
+on:
+  pull_request:
+  push:
+    branches:
+      # we must not fix commit messages when they already reached master
+      - '!master'
+
+jobs:
+  check-commit-message:
+    uses: os-autoinst/os-autoinst-common/.github/workflows/base-commit-message-checker.yml
