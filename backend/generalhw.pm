@@ -35,7 +35,7 @@ sub get_cmd ($self, $cmd) {
         'GENERAL_HW_EJECT_CMD' => 'GENERAL_HW_EJECT_ARGS',
         'GENERAL_HW_IS_SHUTDOWN_CMD' => 'GENERAL_HW_IS_SHUTDOWN_ARGS',
     );
-    my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
+    my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
     $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
     $cmd = "$dir/" . basename($cmd);
@@ -88,7 +88,7 @@ sub power ($self, $args) {
     }
 }
 
-sub eject_cd($self, $args = {}) {
+sub eject_cd ($self, $args = {}) {
     my @extra_args;
     push @extra_args, "--id=$args->{id}" if ($args->{id});
     push @extra_args, '--force' if ($args->{force});

@@ -283,7 +283,7 @@ use Getopt::Long;
 
 sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 
-sub run_dbus($bus = Net::DBus->system, $reactor_main = Net::DBus::Reactor->main) {
+sub run_dbus ($bus = Net::DBus->system, $reactor_main = Net::DBus::Reactor->main) {
     say 'Initializing D-Bus service and Open vSwitch';
     my $service = $bus->export_service('org.opensuse.os_autoinst.switch');
     my $object = OVS->new($service);

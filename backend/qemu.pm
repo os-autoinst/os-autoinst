@@ -670,7 +670,7 @@ sub _set_graphics_backend ($self) {
     sp('device', "${device}${options}");
 }
 
-sub determine_qemu_version($self, $qemubin) {
+sub determine_qemu_version ($self, $qemubin) {
     my $qemu_version = qx{$qemubin -version};
     $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
     $qemu_version = $1;

@@ -129,7 +129,7 @@ sub _lua_use ($perlmod, $import = undef) {
     eval "use $perlmod ()";
     if ($@) { die "Could not load '$perlmod': $@" }
     my %exports;
-    no strict 'refs';
+    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict, TestingAndDebugging::ProhibitProlongedStrictureOverride)
     my @export = @{"${perlmod}::EXPORT"};
     my @export_ok = @{"${perlmod}::EXPORT_OK"};
     @exports{@export, @export_ok} = ();

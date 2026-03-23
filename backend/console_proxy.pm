@@ -30,7 +30,7 @@ sub AUTOLOAD {    # no:style:signatures
     $function =~ s,.*::,,;
 
     # allow symbolic references
-    no strict 'refs';
+    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict)
     *$AUTOLOAD = sub {    # no:style:signatures
         my $self = shift;
         my $args = \@_;

@@ -122,8 +122,8 @@ usage(1) unless @ARGV;
 my $has_error = 0;
 if ($ARGV[0] eq '-') {
     # Read a list of files to process from stdin
-    while (<STDIN>) {
-        $has_error |= process_file $_;
+    while (my $line = <STDIN>) {
+        $has_error |= process_file $line;
     }
 } else {
     for (@ARGV) {

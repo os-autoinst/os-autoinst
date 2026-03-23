@@ -123,7 +123,7 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
 # if match is equal quality prefer workaround needle to non-workaround
 # the name doesn't matter, but we prefer alphabetic order
 sub cmp_by_error_type_ {    # no:style:signatures
-    ## no critic ($a/$b outside of sort block)
+    ## no critic (Community::DollarAB)
     my $okay = $b->{ok} <=> $a->{ok};
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
