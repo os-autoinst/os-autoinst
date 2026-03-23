@@ -789,9 +789,9 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(is_serial_terminal => sub { return $is_serial_terminal });
 
     $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-0-");
-    $bmwqemu::vars{'OFFLINE_SUT'} = 1;
+    $bmwqemu::vars{OFFLINE_SUT} = 1;
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
-    $bmwqemu::vars{'OFFLINE_SUT'} = 0;
+    $bmwqemu::vars{OFFLINE_SUT} = 0;
 
     $mock_testapi->redefine(wait_serial => 'SCRIPT_FINISHEDXXX-0-');
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
