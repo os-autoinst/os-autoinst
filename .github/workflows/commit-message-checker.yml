@@ -10,4 +10,4 @@ on:
 
 jobs:
   check-commit-message:
-    uses: os-autoinst/os-autoinst-common/.github/workflows/base-commit-message-checker.yml
+    uses: os-autoinst/os-autoinst-common/.github/workflows/base-commit-message-checker.yml@master
