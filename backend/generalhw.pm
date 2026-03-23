@@ -88,7 +88,7 @@ sub power ($self, $args) {
     }
 }
 
-sub eject_cd($self, $args = {}) {
+sub eject_cd ($self, $args = {}) {
     my @extra_args;
     push @extra_args, "--id=$args->{id}" if ($args->{id});
     push @extra_args, '--force' if ($args->{force});
