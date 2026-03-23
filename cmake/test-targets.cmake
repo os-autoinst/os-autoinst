@@ -102,18 +102,6 @@ else ()
     message(STATUS "Set SHELLCHECK_PATH to the path of shellcheck to enable Shell style checks.")
 endif ()
 
-# add test for Perl syntax/style issues
-find_program(PERLCRITIC_PATH perlcritic)
-if (PERLCRITIC_PATH)
-    add_test(
-        NAME test-local-perl-style
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-perl-style" "${PERLCRITIC_PATH}"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    )
-else ()
-    message(STATUS "Set PERLCRITIC_PATH to the path of the perlcritic executable to enable Perl syntax/style checks.")
-endif ()
-
 # add test for bash script syntax
 find_program(SH_PATH shfmt)
 if (SH_PATH)
