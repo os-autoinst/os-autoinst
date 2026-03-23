@@ -1,5 +1,5 @@
 ---
-name: 'Commit message check'
+name: 'copy of base-commit-message-checker'
 on:
   workflow_call:
   pull_request:
