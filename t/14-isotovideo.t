@@ -6,10 +6,10 @@ use Term::ANSIColor qw(colorstrip);
 use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use autodie ':all';
-
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '20';
+use autodie ':all';
 
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from stderr_from);
@@ -24,7 +24,7 @@ use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $data_dir = "$toplevel_dir/t/data";
+my $data_dir = $toplevel_dir . '/t/data';
 my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
@@ -43,7 +43,6 @@ sub isotovideo (%args) {
     $args{default_opts} .= " vnc=$vnc_port" unless $args{default_opts} =~ /vnc=/ || $args{opts} =~ /vnc=/;
     $args{default_opts} .= " qemuport=$qemu_port" unless $args{default_opts} =~ /qemuport=/ || $args{opts} =~ /qemuport=/;
     $args{exit_code} //= 1;
-    chdir "$Bin/..";
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split ' ', $args{opts});
     chdir $pool_dir;
     note "Starting isotovideo with: @cmd";
@@ -299,6 +298,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     unlike $log, qr/\[warn\]/, 'no warnings';
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/loaded 4 needles/, 'loaded needles successfully';
+    rmtree $casedir;
 };
 
 
