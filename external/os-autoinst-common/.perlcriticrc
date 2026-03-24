@@ -1,7 +1,6 @@
 theme = community + openqa
 severity = 4
 include = strict ValuesAndExpressions::ProhibitInterpolationOfLiterals
-exclude = OpenQA::RedundantStrictWarning
 
 verbose = ::warning file=%f,line=%l,col=%c,title=%m - severity %s::[%p] %e\n
 
