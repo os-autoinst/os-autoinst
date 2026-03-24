@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 # We need :no_end_test here because otherwise it would output a no warnings
 # test for each of the modules, but with the same test number
 use Test::Warnings qw(:no_end_test :report_warnings);

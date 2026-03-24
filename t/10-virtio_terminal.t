@@ -2,7 +2,7 @@
 # Copyright 2020-2021 SUSE LLC
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Test::Warnings qw(:all :report_warnings);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler

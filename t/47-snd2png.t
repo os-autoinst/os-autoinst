@@ -8,7 +8,7 @@ use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Mojo::File qw(path tempdir);
 
 # ensure a consistent base for relative paths

@@ -5,7 +5,7 @@
 
 use Test::Most;
 use Test::Warnings;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use utf8;
 
 # disable time limit when testing against real VMWare instance

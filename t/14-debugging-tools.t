@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';

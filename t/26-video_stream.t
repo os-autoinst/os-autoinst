@@ -5,7 +5,7 @@
 
 use Config;
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Feature::Compat::Try;
 use Mojo::UserAgent;
 use Mojo::Transaction::HTTP;

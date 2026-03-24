@@ -2,7 +2,7 @@
 
 use Test::Most;
 use Test::Warnings;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 
 BEGIN {
     unshift @INC, '..';

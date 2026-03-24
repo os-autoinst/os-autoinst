@@ -4,7 +4,7 @@
 
 package commands;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use autodie ':all';
 
 require IPC::System::Simple;

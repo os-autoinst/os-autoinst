@@ -8,7 +8,7 @@
 
 use Test::Most;
 use Test::Mock::Time;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 
 BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT} = 1;
