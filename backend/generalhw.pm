@@ -201,10 +201,15 @@ sub stop_serial_grab ($self, @) {
     my $pid = delete $self->{serialpid};
     return -1 unless $pid;
     kill -TERM => $pid;
-    my $ret = eval { no autodie 'waitpid'; CORE::waitpid($pid, 0) };
+    my $ret = eval {
+        no autodie 'waitpid';
+        my $r;
+        do { $r = CORE::waitpid($pid, 0) } while ($r == -1 && $!{EINTR});
+        $r;
+    };
     if (defined $ret && $ret == 0) {
         kill -KILL => $pid;
-        $ret = CORE::waitpid($pid, 0);
+        do { $ret = CORE::waitpid($pid, 0) } while ($ret == -1 && $!{EINTR});
     }
     return $ret // -1;
 }

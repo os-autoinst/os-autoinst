@@ -10,9 +10,10 @@ use Mojo::Base -signatures;
 use Test::Warnings ':report_warnings';
 use Feature::Compat::Try;
 use FindBin;
+use lib "$FindBin::Bin/../external/os-autoinst-common/lib", "$FindBin::Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use File::Find;
-use Mojo::File qw(path tempdir);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path);
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -22,9 +23,7 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.md';
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-my $cleanup_dir = scope_guard sub { chdir $FindBin::Bin; undef $dir };
-chdir $dir;
+my $isolation_guard = setup_isolated_workdir();
 
 # array of ignored "backends"
 my @backend_blocklist = qw();

@@ -4,13 +4,14 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use Test::MockObject;
 use File::Temp;
-use Mojo::File qw(path tempdir);
-use Mojo::Util qw(b64_encode scope_guard);
+use Mojo::File qw(path);
+use Mojo::Util qw(b64_encode);
 use Test::Output qw(combined_like stderr_like stderr_unlike);
 use Test::Warnings qw(:all :report_warnings);
 use Scalar::Util 'looks_like_number';
@@ -26,9 +27,7 @@ use needle;
 require bmwqemu;
 require tinycv;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-my $cleanup_dir = scope_guard sub { chdir $Bin; undef $dir };
-chdir $dir;
+my $isolation_guard = setup_isolated_workdir();
 
 ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
 
