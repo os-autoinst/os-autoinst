@@ -9,10 +9,10 @@ use Mojo::Base -signatures;
 use Test::Mock::Time;
 use Feature::Compat::Try;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Output 'stderr_like';
-use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
 use Cwd 'abs_path';
@@ -20,11 +20,9 @@ use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 use Cpanel::JSON::XS ();
 use Test::Warnings qw(warning :report_warnings);
-use File::chdir;
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
-$CWD = $tmpdir;
+my $isolation_guard = setup_isolated_workdir();
 my $data_dir = "$toplevel_dir/t/data";
 
 sub create_vars ($data) { path('vars.json')->spew(Cpanel::JSON::XS->new->pretty->canonical->encode($data)) }

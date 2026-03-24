@@ -3,7 +3,8 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '10';
 use Test::MockObject;
 use Test::MockModule;
@@ -13,12 +14,7 @@ use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 use consoles::sshSerial;
 
-use Mojo::File qw(tempdir);
-use Mojo::Util qw(scope_guard);
-
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-my $cleanup_dir = scope_guard sub { chdir $Bin; undef $dir };
-chdir $dir;
+my $isolation_guard = setup_isolated_workdir();
 
 my $eagain = [
     LIBSSH2_ERROR_EAGAIN,
