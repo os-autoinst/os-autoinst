@@ -14,6 +14,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+use POSIX qw(WNOHANG);
 
 sub new ($class) {
     # required for the tests to access our HTTP port
