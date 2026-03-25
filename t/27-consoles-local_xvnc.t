@@ -14,12 +14,13 @@ use Mojo::Util qw(scope_guard);
 use POSIX qw(_exit);
 use Socket;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
+use POSIX qw(_exit);
+use Socket;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 BEGIN { *consoles::localXvnc::system = sub { 1 } }
 BEGIN { *consoles::localXvnc::exec = sub { _exit(0) } }

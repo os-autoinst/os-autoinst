@@ -4,28 +4,24 @@ use Test::Most;
 use Mojo::Base -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Output qw(combined_like combined_from);
 use File::Basename;
-use Mojo::File qw(path tempdir);
+use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
-use Mojo::Util qw(scope_guard);
 use MIME::Base64 'encode_base64';
 use cv;
 use basetest;
+use needle;
 
 cv::init;
 require tinycv;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir 'testresults';
-
-use basetest;
-use needle;
 
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail (@) { }

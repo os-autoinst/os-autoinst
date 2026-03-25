@@ -243,8 +243,8 @@ subtest 'productdir variable relative/absolute' => sub {
     my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
     like $log, qr/scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
     unlike $log, qr/assert_screen_fail_test/, 'assert screen test not scheduled';
-    unlink "$data_dir/tests/product/main.pm";
-    rmdir "$data_dir/tests/product";
+    unlink "$temp_tests_dir/product/main.pm";
+    rmdir "$temp_tests_dir/product";
 };
 
 subtest 'exit status from test results' => sub {
@@ -411,7 +411,7 @@ done_testing();
 
 END {
     unlink './serial0' if -e './serial0';
-    rmtree "$Bin/data/tests/product";
+    rmtree "$dir/tests/product" if defined $dir;
     rmtree "$data_dir/wheels_dir/writer";
     rmtree "$pool_dir/writer";
     unlink "$data_dir/tests/wheels.yaml" if -e "$data_dir/tests/wheels.yaml";
