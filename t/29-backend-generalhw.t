@@ -11,7 +11,8 @@ my @invoked_cmds;
 BEGIN { *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] } }
 
 use FindBin qw($Bin $Script);
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
