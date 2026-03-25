@@ -508,6 +508,7 @@ my $keymap_x11 = {
     'caps' => 0xffe5,
     'meta' => 0xffe7,    # left, right is e8
     'alt' => 0xffe9,    # left one, right is ea
+    'altgr' => 0xffea,    # alt-graphical, right alt key
     'ret' => 0xff0d,
     'tab' => 0xff09,
     'backspace' => 0xff08,
