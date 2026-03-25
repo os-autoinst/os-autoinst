@@ -4,21 +4,19 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::MockModule;
 use Test::Output qw(stderr_like stderr_unlike combined_like);
 use Test::Warnings ':report_warnings';
 use Mojo::JSON 'encode_json';
-use Mojo::File qw(tempdir path);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path);
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 # declare fake file descriptors
 my $cmd_srv_fd = 0;

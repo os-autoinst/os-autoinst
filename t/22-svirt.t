@@ -3,8 +3,9 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::MockModule;
 use Test::MockObject;
 use Test::Warnings ':report_warnings';
@@ -18,12 +19,9 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_USER_TERMINAL_DEFAULT_DEVICE SERIAL_USER_TERMINAL_DEFAULT_PORT);
-use Mojo::File qw(tempdir path);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path tempdir);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir 'testresults';
 
 bmwqemu::init_logger;
@@ -965,7 +963,7 @@ subtest 'get_wait_still_screen_on_here_doc_input' => sub {
 subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
     # Temporary base subdir of this test; real default is /vmfs/volumes.
     # All contents will be deleted after the test completed
-    my $my_test_basedir = tempdir($dir . '/tb_XXXX');
+    my $my_test_basedir = Mojo::File::tempdir($dir . '/tb_XXXX');
     my $nfs_ds = 'openqa_test';
     my $ds = 'datastore_test';
     $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';

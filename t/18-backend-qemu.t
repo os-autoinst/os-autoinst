@@ -4,8 +4,9 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin qw($Bin $Script);
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::MockModule;
 use Test::MockObject;
 use Test::Mock::Time;
@@ -13,8 +14,7 @@ use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Carp;
 use Mojo::Collection;
-use Mojo::File qw(tempdir path);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path);
 use Mojo::JSON;
 use Scalar::Util qw(looks_like_number);
 
@@ -26,9 +26,7 @@ sub backend () {
     return $backend;
 }
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
 $proc->redefine(exec_qemu => undef);

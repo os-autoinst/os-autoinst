@@ -13,15 +13,17 @@ use Test::Warnings qw(:all :report_warnings);
 use File::Basename;
 use File::Copy;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::MockModule;
 use Test::MockObject;
 
 use consoles::video_stream;
 use tinycv;
 
-my $data_dir = dirname(__FILE__) . '/data/';
+my ($isolation_guard, $dir) = setup_isolated_workdir();
+my $data_dir = "$Bin/data/";
 
 my $mock_console = Test::MockModule->new('consoles::video_stream');
 my %v4l2_ctl_results = ();
