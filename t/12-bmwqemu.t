@@ -13,6 +13,7 @@ use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Output 'stderr_like';
+use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
 use Cwd 'abs_path';

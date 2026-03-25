@@ -10,16 +10,14 @@ use Test::MockObject;
 use Test::MockModule;
 use Test::Output qw(stderr_like);
 use Mojo::File qw(tempdir path);
-use Mojo::Util qw(scope_guard);
 use POSIX qw(_exit);
 use Socket;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 
-my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 BEGIN { *consoles::localXvnc::system = sub { 1 } }
 BEGIN { *CORE::GLOBAL::sleep = sub { 1 } }
