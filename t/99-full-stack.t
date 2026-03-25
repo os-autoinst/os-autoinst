@@ -45,9 +45,12 @@ path('vars.json')->spew(<<EOV);
    "TEST_NON_STRICT_MODULE": "1"
 }
 EOV
+
+my $vnc_port = 90 + ($$ % 100);
+my $qemu_port = 15000 + ($$ % 1000);
 # create screenshots
 path('live_log')->touch;
-system "cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt";
+system "cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d vnc=$vnc_port qemuport=$qemu_port 2>&1 | tee $pool_dir/autoinst-log.txt";
 my $log = path('autoinst-log.txt')->slurp;
 my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';
