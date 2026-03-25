@@ -8,21 +8,24 @@ use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
+use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like combined_unlike);
 use Test::Mock::Time;
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url limit_git_cache_dir);
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
 BEGIN { $ENV{LANG} = 'C.utf8' }
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $git_repo = 'tmpgitrepo';
 my $git_dir = "$dir/source/$git_repo";
 my $clone_dir = "$dir/clone/$git_repo";
+# Standardize isolation and increase timeout for parallel stability
 
 path("$dir/source")->make_path;
 path("$dir/clone")->make_path;
@@ -104,7 +107,7 @@ subtest 'cloning with caching' => sub {
     # setup temp dir for cache and configure using it
     my $start_time = time;
     my $git_cache_dir_from_env = $ENV{OS_AUTOINST_TEST_GIT_CACHE_DIR};
-    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : tempdir('temp-git-caching-XXXXX');
+    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : Mojo::File::tempdir('temp-git-caching-XXXXX');
     $git_cache_dir = $git_cache_dir->make_path->realpath;
     note "temp dir for cache: $git_cache_dir";
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
@@ -124,7 +127,8 @@ subtest 'cloning with caching' => sub {
     };
 
     # setup temp dir for the working tree
-    my $pwd = tempdir('temp-git-working-tree-XXXXX')->make_path;
+    my $pwd = Mojo::File::tempdir('temp-git-working-tree-XXXXX')->make_path;
+
     note "temp dir for working trees: $pwd";
     my $working_tree_dir = path($repo);
     chdir $pwd;
