@@ -7,26 +7,21 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '300';
 use Test::Warnings ':report_warnings';
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
-use Mojo::File qw(path tempdir);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data/";
 my $pool_dir = "$dir/pool/";
 mkdir $pool_dir;
-
-note("data dir: $data_dir");
-note("pool dir: $pool_dir");
-
-chdir($pool_dir);
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+chdir $pool_dir;
 
 my $casedir = path($data_dir, 'tests');
 path('vars.json')->spew(<<EOV);

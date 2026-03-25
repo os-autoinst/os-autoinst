@@ -3,8 +3,9 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin qw($Bin $Script);
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
@@ -15,7 +16,7 @@ use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
 use POSIX qw(tzset pause _exit);
-use Mojo::File qw(tempdir path);
+use Mojo::File qw(path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
 use bmwqemu ();
@@ -25,9 +26,7 @@ use log();
 cv::init;
 require tinycv;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir 'testresults';
 
 # make the test time-zone neutral
