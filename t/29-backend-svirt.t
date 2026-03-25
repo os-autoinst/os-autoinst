@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Test::Warnings qw(:all :report_warnings);
 use Test::MockModule;
 use Test::MockObject;

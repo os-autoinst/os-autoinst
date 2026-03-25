@@ -6,7 +6,7 @@ use File::chdir;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Test::MockRandom 'backend::vagrant';
 use Test::MockObject;
 use Test::MockModule;

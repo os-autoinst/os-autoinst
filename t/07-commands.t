@@ -5,12 +5,12 @@
 
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';

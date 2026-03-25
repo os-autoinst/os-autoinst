@@ -5,7 +5,7 @@
 
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 
 use Test::Warnings ':report_warnings';
 use Feature::Compat::Try;

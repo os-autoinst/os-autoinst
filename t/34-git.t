@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);

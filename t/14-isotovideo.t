@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use Term::ANSIColor qw(colorstrip);
 use Test::Warnings ':report_warnings';
 use Test::MockModule;

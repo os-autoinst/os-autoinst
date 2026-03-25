@@ -2,7 +2,7 @@
 
 use Test::Most;
 use Test::Warnings ':report_warnings';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;
 use OpenQA::NamedIOSelect;
 
 subtest NamedIOSelect => sub {
