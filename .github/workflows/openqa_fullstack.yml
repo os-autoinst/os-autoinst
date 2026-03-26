@@ -18,6 +18,8 @@ env:
 
 jobs:
   fullstack:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     container:
       image: registry.opensuse.org/devel/openqa/ci/containers/base:latest

@@ -5,6 +5,8 @@ on: [push, pull_request]
 
 jobs:
   author-tests:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     name: Author tests
     container:
