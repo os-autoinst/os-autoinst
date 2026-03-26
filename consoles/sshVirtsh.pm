@@ -582,7 +582,7 @@ sub _encode_config ($self, $config, $key) {
 }
 
 sub define_and_start ($self) {
-    my $remote_vmm = '';
+    my $remote_vmm;
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = File::Temp::tempfile('libvirtauth-XXXX', DIR => '/tmp/');
 
@@ -617,11 +617,13 @@ __END'
     # shut down possibly running previous test (just to be sure) - ignore errors
     # just making sure we continue after the command finished
     my $ignore = ' |& grep -v "\(failed to get domain\|Domain not found\)"';
-    $self->run_cmd("virsh $remote_vmm destroy " . $self->name . $ignore);
-    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
+    my $virsh_cmd = 'virsh';
+    $virsh_cmd .= " $remote_vmm" if $remote_vmm;
+    $self->run_cmd("$virsh_cmd destroy " . $self->name . $ignore);
+    $self->run_cmd("$virsh_cmd undefine --snapshots-metadata " . $self->name . $ignore);
 
     # define the new domain
-    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die 'virsh define failed';
+    $self->run_cmd("$virsh_cmd define $xmlfilename") && die 'virsh define failed';
     if ($self->vmm_family eq 'vmware') {
         my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
 
@@ -663,9 +665,9 @@ __END'
         }
     }
 
-    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
+    $ret = $self->run_cmd("$virsh_cmd start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
     bmwqemu::diag('Dump actually used libvirt configuration file ' . ($ret ? '(broken)' : '(working)'));
-    my $config = $self->get_cmd_output("virsh $remote_vmm dumpxml " . $self->name);
+    my $config = $self->get_cmd_output("$virsh_cmd dumpxml " . $self->name);
     die "virsh start failed: $ret\n\nvirsh domain XML:\n$config" if $ret;
     my $config_domain = Mojo::DOM->new($config)->at('domain');
     my $vm_id = $config_domain ? $config_domain->attr('id') : '';
