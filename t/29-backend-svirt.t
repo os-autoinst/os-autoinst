@@ -120,4 +120,10 @@ subtest 'HyperV backend' => sub {
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
 };
 
+subtest 'check virsh() method' => sub {
+    $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
+    my $virsh = backend::svirt::virsh();
+    is $virsh, 'virsh my_vmm', 'correct output from virsh()';
+};
+
 done_testing;

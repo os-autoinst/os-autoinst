@@ -144,18 +144,12 @@ subtest 'allow to add, remove elements and set attributes in the domain XML' => 
     like $svirt_console->{domainxml}->toString, qr/<funny><guy hello="world"\/><\/funny>/i, 'set attributes successfully in the domain XML';
 };
 
-subtest 'check virsh() method' => sub {
-    $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
-    my $virsh = consoles::sshVirtsh::virsh();
-    is $virsh, 'virsh my_vmm', 'correct output from virsh()';
-};
-
 subtest 'check suspend() method' => sub {
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $svirt_console->suspend();
-    is_deeply \@cmds, ['virsh my_vmm suspend openQA-SUT-1'], 'correct command from suspend()';
+    is_deeply \@cmds, ['virsh suspend openQA-SUT-1'], 'correct command from suspend()';
 };
 
 subtest 'check resume() method' => sub {
@@ -163,7 +157,15 @@ subtest 'check resume() method' => sub {
     my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $svirt_console->resume();
-    is_deeply \@cmds, ['virsh my_vmm resume openQA-SUT-1'], 'correct command from suspend()';
+    is_deeply \@cmds, ['virsh resume openQA-SUT-1'], 'correct command from suspend()';
+};
+
+subtest 'check stop_vm() method' => sub {
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $called = 0;
+    $backend_mock->redefine(do_stop_vm_svirt => sub { $called = 1 });
+    $svirt_console->stop_vm();
+    is $called, 1, 'do_stop_vm_svirt called from stop_vm()';
 };
 
 subtest 'check get_remote_vmm() method' => sub {
@@ -197,10 +199,11 @@ subtest 'starting VMware console' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -209,8 +212,8 @@ subtest 'starting VMware console' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -270,10 +273,11 @@ subtest 'starting VMware console with combustion' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -283,8 +287,8 @@ subtest 'starting VMware console with combustion' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -307,10 +311,11 @@ subtest 'starting VMware console with ignition' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -320,8 +325,8 @@ subtest 'starting VMware console with ignition' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -348,6 +353,7 @@ subtest 'starting VMware console with cloud-init' => sub {
     my (@cmds, @ssh_cmds);
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
@@ -358,8 +364,8 @@ subtest 'starting VMware console with cloud-init' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -734,11 +740,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
             my $dev_id = 'dev_id_005';
             my $exp_file = $svirt->name . $dev_id . '.img';
-            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to format HDD/, 'Died after 5 retry attempts';
+            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to create disk/, 'Died after 5 retry attempts';
 
             @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [0, '', '']);
             $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 88G -f qcow2", 'Triggered img creation, after 4 errors');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 88G", 'Triggered img creation, after 4 errors');
 
             @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
 
@@ -748,7 +754,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     $exp_file = $svirt->name . $dev_id . '.img';
 
                     $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                    is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                    is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 $size", "Check different size type $size");
                 }
             };
 
@@ -756,7 +762,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             $dev_id = 'dev_id_007_NO_SIZE';
             $exp_file = $svirt->name . $dev_id . '.img';
             $svirt->add_disk({create => 1, dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 20G -f qcow2", 'Check for default size 20G');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 20G", 'Check for default size 20G');
         };
 
         # Reset xml
@@ -768,7 +774,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @ssh_cmd_return = ([0, '', '']);
             @last_ssh_commands = ();
             $svirt->add_disk({create => 1, size => '999G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 999G -f qcow2", 'Check create image was triggered');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 999G", 'Check create image was triggered');
 
             svirt_xml_validate($svirt,
                 dev => 'xvd' . $dev_id,
@@ -873,13 +879,13 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                 my $dev_id = 'dev_id_013' . $size;
                 my $exp_file = $svirt->name . $dev_id . '.img';
                 $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 $size", "Check different size type $size");
             }
 
             my $dev_id = 'dev_id_014_NO_SIZE';
             my $exp_file = $svirt->name . $dev_id . '.img';
             $svirt->add_disk({create => 1, dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 20G -f qcow2", 'Default size is 20G');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 20G", 'Default size is 20G');
         };
 
         subtest 'family svirt-xen-hvm backingfile=1' => sub {

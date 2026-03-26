@@ -300,6 +300,26 @@ sub add_interface ($self, $args) {
     return;
 }
 
+sub _do_create_disk ($self, $file, $size, $args = undef) {
+    my $bucket = 5;
+    my @cmd = "qemu-img create '$file' -f qcow2";
+    push @cmd, $args->{additional_args} if $args->{additional_args};
+    push @cmd, $size;
+
+    # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
+    while (1) {
+        my ($ret, $stdout, $stderr) = $self->run_cmd((join ' ', @cmd), wantarray => 1);
+        if (($stderr // '') =~ /lock/i) {
+            $bucket--;
+            die 'Too many attempts to create disk' unless $bucket;
+            bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
+            sleep 5;
+            next;
+        }
+        last unless $ret;
+    }
+}
+
 sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir) {
     my $size = $args->{size} || '20G';
     if ($self->vmm_family eq 'vmware') {
@@ -319,19 +339,7 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     }
     else {
         $file = $basedir . $file;
-        my $bucket = 5;
-        # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
-        while (1) {
-            my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
-            if ($stderr =~ /lock/i) {
-                $bucket--;
-                die 'Too many attempts to format HDD' unless $bucket;
-                bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
-                sleep 5;
-                next;
-            }
-            last unless $ret;
-        }
+        $self->_do_create_disk($file, $size);
     }
     return $file;
 }
@@ -469,8 +477,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
         my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
         $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
-        $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -F qcow2 -b '$basedir/%s' ${size}", $file_basename))
-          && die 'qemu-img create with backing file failed';
+        $self->_do_create_disk($file, $size, {additional_args => "-F qcow2 -b '$basedir/$file_basename'"});
     }
     return $file;
 }
@@ -542,19 +549,13 @@ sub add_disk ($self, $args) {
     return;
 }
 
-sub virsh () {
-    my $virsh = 'virsh';
-    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
-    return $virsh;
-}
-
 sub suspend ($self) {
-    $self->run_cmd(virsh() . ' suspend ' . $self->name) && die q{Can't suspend VM };
+    $self->run_cmd(backend::svirt::virsh() . ' suspend ' . $self->name) && die q{Can't suspend VM };
     bmwqemu::diag 'VM ' . $self->name . ' suspended';
 }
 
 sub resume ($self) {
-    $self->run_cmd(virsh() . ' resume ' . $self->name) && die q{Can't resume VM };
+    $self->run_cmd(backend::svirt::virsh() . ' resume ' . $self->name) && die q{Can't resume VM };
     bmwqemu::diag 'VM ' . $self->name . ' resumed';
 }
 
@@ -574,8 +575,9 @@ sub _encode_config ($self, $config, $key) {
     return $encoded_config;
 }
 
-sub define_and_start ($self) {
-    my $remote_vmm = '';
+sub define_and_start ($self, %args) {
+    $args{pre_cleanup} //= 1;
+    my $remote_vmm;
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = File::Temp::tempfile('libvirtauth-XXXX', DIR => '/tmp/');
 
@@ -607,14 +609,11 @@ __END'
     $chan->send_eof();
     $chan->close();
 
-    # shut down possibly running previous test (just to be sure) - ignore errors
-    # just making sure we continue after the command finished
-    my $ignore = ' |& grep -v "\(failed to get domain\|Domain not found\)"';
-    $self->run_cmd("virsh $remote_vmm destroy " . $self->name . $ignore);
-    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
+    # shut down possibly running previous test (just to be sure)
+    $self->backend->do_stop_vm_svirt() if $args{pre_cleanup};
 
     # define the new domain
-    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die 'virsh define failed';
+    $self->run_cmd(backend::svirt::virsh() . " define $xmlfilename") && die 'virsh define failed';
     if ($self->vmm_family eq 'vmware') {
         my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
 
@@ -656,9 +655,9 @@ __END'
         }
     }
 
-    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
+    $ret = $self->run_cmd(backend::svirt::virsh() . ' start ' . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
     bmwqemu::diag('Dump actually used libvirt configuration file ' . ($ret ? '(broken)' : '(working)'));
-    my $config = $self->get_cmd_output("virsh $remote_vmm dumpxml " . $self->name);
+    my $config = $self->get_cmd_output(backend::svirt::virsh() . ' dumpxml ' . $self->name);
     die "virsh start failed: $ret\n\nvirsh domain XML:\n$config" if $ret;
     my $config_domain = Mojo::DOM->new($config)->at('domain');
     my $vm_id = $config_domain ? $config_domain->attr('id') : '';
@@ -668,6 +667,10 @@ __END'
     $self->backend->start_serial_grab($self->name);
 
     return;
+}
+
+sub stop_vm ($self) {
+    $self->backend->do_stop_vm_svirt();
 }
 
 sub attach_to_running ($self, $args = undef) {

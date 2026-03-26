@@ -141,7 +141,7 @@ sub version () {
 
 sub handle_shutdown () {
     # terminate/kill the command server and let it inform its websocket clients before
-    diag('isotovideo handle_shutdown');
+    diag('isotovideo starting handle_shutdown');
     $runner->stop_commands('test execution ended');
     if ($runner->testfd) {
         # unusual shutdown
@@ -149,10 +149,10 @@ sub handle_shutdown () {
         CORE::close $runner->testfd;    # uncoverable statement
         $runner->stop_autotest();    # uncoverable statement
     }
-    diag 'isotovideo ' . ($RETURN_CODE ? 'failed' : 'done');
     my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
     bmwqemu::load_vars();    # read calculated variables from backend and tests
     $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
+    diag 'isotovideo completed handle_shutdown: ' . ($RETURN_CODE ? 'failed' : 'done');
 }
 
 GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v', 'exit-status-from-test-results|e') or usage(1);
