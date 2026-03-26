@@ -300,6 +300,26 @@ sub add_interface ($self, $args) {
     return;
 }
 
+sub _do_create_disk ($self, $file, $size, $args = undef) {
+    my $bucket = 5;
+    my @cmd = "qemu-img create '$file' -f qcow2";
+    push @cmd, $args->{additional_args} if $args->{additional_args};
+    push @cmd, $size;
+
+    # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
+    while (1) {
+        my ($ret, $stdout, $stderr) = $self->run_cmd((join ' ', @cmd), wantarray => 1);
+        if (($stderr // '') =~ /lock/i) {
+            $bucket--;
+            die 'Too many attempts to create disk' unless $bucket;
+            bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
+            sleep 5;
+            next;
+        }
+        last unless $ret;
+    }
+}
+
 sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir) {
     my $size = $args->{size} || '20G';
     if ($self->vmm_family eq 'vmware') {
@@ -319,19 +339,7 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     }
     else {
         $file = $basedir . $file;
-        my $bucket = 5;
-        # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
-        while (1) {
-            my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
-            if ($stderr =~ /lock/i) {
-                $bucket--;
-                die 'Too many attempts to format HDD' unless $bucket;
-                bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
-                sleep 5;
-                next;
-            }
-            last unless $ret;
-        }
+        $self->_do_create_disk($file, $size);
     }
     return $file;
 }
@@ -469,8 +477,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
         my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
         $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
-        $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -F qcow2 -b '$basedir/%s' ${size}", $file_basename))
-          && die 'qemu-img create with backing file failed';
+        $self->_do_create_disk($file, $size, {additional_args => "-F qcow2 -b '$basedir/$file_basename'"});
     }
     return $file;
 }

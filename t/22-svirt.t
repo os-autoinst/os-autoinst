@@ -734,11 +734,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
             my $dev_id = 'dev_id_005';
             my $exp_file = $svirt->name . $dev_id . '.img';
-            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to format HDD/, 'Died after 5 retry attempts';
+            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to create disk/, 'Died after 5 retry attempts';
 
             @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [0, '', '']);
             $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 88G -f qcow2", 'Triggered img creation, after 4 errors');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 88G", 'Triggered img creation, after 4 errors');
 
             @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
 
@@ -748,7 +748,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     $exp_file = $svirt->name . $dev_id . '.img';
 
                     $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                    is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                    is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 $size", "Check different size type $size");
                 }
             };
 
@@ -756,7 +756,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             $dev_id = 'dev_id_007_NO_SIZE';
             $exp_file = $svirt->name . $dev_id . '.img';
             $svirt->add_disk({create => 1, dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 20G -f qcow2", 'Check for default size 20G');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 20G", 'Check for default size 20G');
         };
 
         # Reset xml
@@ -768,7 +768,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @ssh_cmd_return = ([0, '', '']);
             @last_ssh_commands = ();
             $svirt->add_disk({create => 1, size => '999G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 999G -f qcow2", 'Check create image was triggered');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 999G", 'Check create image was triggered');
 
             svirt_xml_validate($svirt,
                 dev => 'xvd' . $dev_id,
@@ -873,13 +873,13 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                 my $dev_id = 'dev_id_013' . $size;
                 my $exp_file = $svirt->name . $dev_id . '.img';
                 $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 $size", "Check different size type $size");
             }
 
             my $dev_id = 'dev_id_014_NO_SIZE';
             my $exp_file = $svirt->name . $dev_id . '.img';
             $svirt->add_disk({create => 1, dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 20G -f qcow2", 'Default size is 20G');
+            is($last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 20G", 'Default size is 20G');
         };
 
         subtest 'family svirt-xen-hvm backingfile=1' => sub {
