@@ -50,8 +50,8 @@ path('vars.json')->spew(<<"EOV");
 }
 EOV
 
-my $vnc_port = 90 + ($$ % 100);
-my $qemu_port = 15000 + ($$ % 1000);
+my $vnc_port = 190 + ($$ % 100);
+my $qemu_port = 16000 + ($$ % 1000);
 # create screenshots
 path('live_log')->touch;
 system "cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d vnc=$vnc_port qemuport=$qemu_port 2>&1 | tee $pool_dir/autoinst-log.txt";
