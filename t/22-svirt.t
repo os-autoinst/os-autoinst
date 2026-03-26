@@ -144,18 +144,12 @@ subtest 'allow to add, remove elements and set attributes in the domain XML' => 
     like $svirt_console->{domainxml}->toString, qr/<funny><guy hello="world"\/><\/funny>/i, 'set attributes successfully in the domain XML';
 };
 
-subtest 'check virsh() method' => sub {
-    $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
-    my $virsh = consoles::sshVirtsh::virsh();
-    is $virsh, 'virsh my_vmm', 'correct output from virsh()';
-};
-
 subtest 'check suspend() method' => sub {
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $svirt_console->suspend();
-    is_deeply \@cmds, ['virsh my_vmm suspend openQA-SUT-1'], 'correct command from suspend()';
+    is_deeply \@cmds, ['virsh suspend openQA-SUT-1'], 'correct command from suspend()';
 };
 
 subtest 'check resume() method' => sub {
@@ -163,7 +157,15 @@ subtest 'check resume() method' => sub {
     my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $svirt_console->resume();
-    is_deeply \@cmds, ['virsh my_vmm resume openQA-SUT-1'], 'correct command from suspend()';
+    is_deeply \@cmds, ['virsh resume openQA-SUT-1'], 'correct command from suspend()';
+};
+
+subtest 'check stop_vm() method' => sub {
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $called = 0;
+    $backend_mock->redefine(do_stop_vm_svirt => sub { $called = 1 });
+    $svirt_console->stop_vm();
+    is $called, 1, 'do_stop_vm_svirt called from stop_vm()';
 };
 
 subtest 'check get_remote_vmm() method' => sub {
@@ -197,10 +199,11 @@ subtest 'starting VMware console' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -209,8 +212,8 @@ subtest 'starting VMware console' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -270,10 +273,11 @@ subtest 'starting VMware console with combustion' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -283,8 +287,8 @@ subtest 'starting VMware console with combustion' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -307,10 +311,11 @@ subtest 'starting VMware console with ignition' => sub {
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
-    my (@cmds, @ssh_cmds);
+    my @cmds;
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
     $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
@@ -320,8 +325,8 @@ subtest 'starting VMware console with ignition' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -348,6 +353,7 @@ subtest 'starting VMware console with cloud-init' => sub {
     my (@cmds, @ssh_cmds);
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
@@ -358,8 +364,8 @@ subtest 'starting VMware console with cloud-init' => sub {
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',

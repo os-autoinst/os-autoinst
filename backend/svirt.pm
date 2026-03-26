@@ -42,6 +42,12 @@ sub new ($class) {
 
 sub vmname ($self) { $self->console('svirt')->name }
 
+sub virsh () {
+    my $virsh = 'virsh';
+    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
+    return $virsh;
+}
+
 # we don't do anything actually
 sub do_start_vm ($self, @) {
     my $vars = \%bmwqemu::vars;
@@ -72,10 +78,8 @@ sub do_stop_vm_hyperv ($self) {
 
 sub do_stop_vm_svirt ($self) {
     my $vmname = $self->vmname;
-    my $virsh = 'virsh';
-    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
-    $self->run_ssh_cmd("$virsh destroy $vmname");
-    $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
+    $self->run_ssh_cmd(virsh() . " destroy $vmname");
+    $self->run_ssh_cmd(virsh() . " undefine --snapshots-metadata $vmname");
 }
 
 sub do_stop_vm ($self, @) {
@@ -117,8 +121,7 @@ sub can_handle ($self, $args) {
 sub is_shutdown_cmd_hyperv ($vmname) { qq{powershell -Command "if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }"} }
 
 sub is_shutdown_cmd_svirt ($vmname) {
-    my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-    return "! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'";
+    return '! ' . virsh() . " dominfo $vmname | grep -w 'shut off'";
 }
 
 sub is_shutdown ($self, @) {
@@ -132,8 +135,7 @@ sub save_snapshot_cmd_hyperv ($vmname, $snapname) {
 }
 
 sub save_snapshot_cmd_svirt ($vmname, $snapname) {
-    my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-    return "virsh $libvirt_connector snapshot-delete $vmname $snapname; virsh $libvirt_connector snapshot-create-as $vmname $snapname";
+    return virsh() . " snapshot-delete $vmname $snapname; " . virsh() . " snapshot-create-as $vmname $snapname";
 }
 
 sub save_snapshot ($self, $args) {
@@ -167,8 +169,7 @@ sub load_snapshot ($self, $args) {
         }
     }
     else {
-        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
-        $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $rsp = $self->run_ssh_cmd(virsh() . " snapshot-revert $vmname $snapname");
         $post_load_snapshot_command = 'vmware_fixup' if _is_vmware;
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
