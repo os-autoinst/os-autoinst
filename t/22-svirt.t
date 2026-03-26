@@ -336,7 +336,7 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
     $mock_baseclass->redefine('run_ssh_cmd' => sub ($self, $cmd, %args) {
             die 'Time out waiting for data (-9 LIBSSH2_ERROR_TIMEOUT)' if $fake_timeouts-- > 0;
-            for my $key (keys(%ssh_expect)) {
+            for my $key (keys %ssh_expect) {
                 is($args{$key}, $ssh_expect{$key}, "Correct $key for ssh connection") if $ssh_expect{$key};
             }
             if (ref($run_ssh_cmd_return) eq 'ARRAY') {
@@ -442,7 +442,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
             return $grep_return if ($cmd =~ m/^grep -q/);
             push @deleted_logs, ($cmd =~ /(\S+)$/) if ($cmd =~ / && rm /);
             return (0, 'FOOBAR_OUTPUT', '') if ($cmd =~ m/^cat /);
-            die('Adopt test, unexpected call of run_ssh_cmd()');
+            die 'Adopt test, unexpected call of run_ssh_cmd()';
     });
 
     my $run_ssh_expect = '$a';
@@ -502,8 +502,8 @@ sub svirt_xml_validate ($svirt, %args) {
     die 'missing bus' unless $args{bus};
     my $doc = $svirt->{domainxml};
 
-    my $xpath = sprintf('domain/devices/disk[@type="file" and @device="%s"]/target[@dev="%s" and @bus="%s"]',
-        $args{disk_device}, $args{dev}, $args{bus});
+    my $xpath = sprintf 'domain/devices/disk[@type="file" and @device="%s"]/target[@dev="%s" and @bus="%s"]',
+      $args{disk_device}, $args{dev}, $args{bus};
     my $target_nodelist = $doc->findnodes($xpath);
     is($target_nodelist->size, 1, 'Only one <target> with that dev ' . $args{dev} . ' exists');
     my $target_node = $target_nodelist->shift;

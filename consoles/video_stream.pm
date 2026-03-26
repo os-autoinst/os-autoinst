@@ -39,9 +39,9 @@ sub screen ($self, @) {
 sub _stop_process ($self, $name) {
     return undef unless my $pipe = delete $self->{$name};
     my $pid = delete $self->{"${name}pid"};
-    kill(TERM => $pid);
-    close($pipe);
-    return waitpid($pid, 0);
+    kill TERM => $pid;
+    close $pipe;
+    return waitpid $pid, 0;
 }
 
 sub disable_video ($self) {
@@ -54,28 +54,28 @@ sub disable_video ($self) {
 sub disable ($self, @) {
     my $ret = $self->disable_video;
     if ($self->{input_pipe}) {
-        close($self->{input_pipe});
-        close($self->{input_feedback});
-        waitpid($self->{inputpid}, 0);
+        close $self->{input_pipe};
+        close $self->{input_feedback};
+        waitpid $self->{inputpid}, 0;
     }
     return $ret;
 }
 
 # uncoverable statement count:1..5 note:the function is redefined in tests
 sub _v4l2_ctl ($device, $cmd_prefix, $cmd) {
-    my @cmd = split(/ /, $cmd_prefix // '');    # uncoverable statement
+    my @cmd = split / /, $cmd_prefix // '';    # uncoverable statement
     $device =~ s/\?fps=([0-9]+)//;    # uncoverable statement
-    push(@cmd, ('v4l2-ctl', '--device', $device, '--concise'));    # uncoverable statement
-    push(@cmd, split(/ /, $cmd));    # uncoverable statement
+    push @cmd, ('v4l2-ctl', '--device', $device, '--concise');    # uncoverable statement
+    push @cmd, split / /, $cmd;    # uncoverable statement
 
     # uncoverable statement
     my $pipe;
     # uncoverable statement
-    my $pid = open($pipe, '-|', @cmd) or return undef;
+    my $pid = open $pipe, '-|', @cmd or return undef;
     # uncoverable statement
     $pipe->read(my $str, 50);
     # uncoverable statement
-    my $ret = waitpid($pid, 0);
+    my $ret = waitpid $pid, 0;
     # uncoverable statement
     if ($ret > 0 && $? == 0) {
         # remove header and whitespaces
@@ -126,9 +126,9 @@ sub _get_ffmpeg_cmd ($self, $url) {
     my $fps = $url =~ s/[\?&]fps=([0-9]+)// ? $1 : 4;
     die 'ffmpeg url does not support format=' if ($url =~ s/[\?&]format=([A-Z0-9]+)//);
     my @cmd;
-    @cmd = split(/ /, $self->{args}->{video_cmd_prefix}) if $self->{args}->{video_cmd_prefix};
-    push(@cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url));
-    push(@cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', $fps, '-'));
+    @cmd = split / /, $self->{args}->{video_cmd_prefix} if $self->{args}->{video_cmd_prefix};
+    push @cmd, ('ffmpeg', '-loglevel', 'fatal', '-i', $url);
+    push @cmd, ('-vcodec', 'ppm', '-f', 'rawvideo', '-r', $fps, '-');
     return \@cmd;
 }
 
@@ -146,7 +146,7 @@ sub _get_ustreamer_cmd ($self, $url, $sink_name) {
         '--dv-timings',    # enable using DV timings (getting resolution, and reacting to changes)
     ];
     # workaround for https://github.com/raspberrypi/linux/issues/6068
-    push(@$cmd, ('--format-swap-rgb', '1')) if ($swap);
+    push @$cmd, ('--format-swap-rgb', '1') if ($swap);
     return $cmd;
 }
 
@@ -167,7 +167,7 @@ sub connect_remote_video ($self, $url) {
         $sink_name =~ s^/^-^g;
         my $cmd = $self->_get_ustreamer_cmd($dev, $sink_name);
         my $ffmpeg;
-        $self->{ustreamerpid} = open($ffmpeg, '-|', @$cmd)
+        $self->{ustreamerpid} = open $ffmpeg, '-|', @$cmd
           or die "Failed to start ustreamer for video stream at $url";
         $self->{ustreamer_pipe} = $ffmpeg;
         my $timeout = 100;
@@ -176,16 +176,16 @@ sub connect_remote_video ($self, $url) {
             $timeout -= 1;    # uncoverable statement
         }
         die 'ustreamer startup timeout' if $timeout <= 0;
-        open($self->{ustreamer}, '+<', "/dev/shm/$sink_name")
+        open $self->{ustreamer}, '+<', "/dev/shm/$sink_name"
           or die 'Failed to open ustreamer memsink';
     } else {
         my $cmd = $self->_get_ffmpeg_cmd($url);
         my $ffmpeg;
-        $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
+        $self->{ffmpegpid} = open $ffmpeg, '-|', @$cmd
           or die "Failed to start ffmpeg for video stream at $url";
         # make the pipe size large enough to hold full frame and a bit
         my $frame_size = $bmwqemu::vars{VIDEO_STREAM_PIPE_BUFFER_SIZE} // DEFAULT_VIDEO_STREAM_PIPE_BUFFER_SIZE;
-        fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, $frame_size);
+        fcntl $ffmpeg, Fcntl::F_SETPIPE_SZ, $frame_size;
         $self->{ffmpeg} = $ffmpeg;
         $ffmpeg->blocking(0);
     }
@@ -227,7 +227,7 @@ sub _receive_frame_ffmpeg ($self) {
     if (!($header =~ m/^(P6\n(\d+) (\d+)\n(\d+)\n)/)) {
         die "Invalid PPM header: $header";
     }
-    my $header_len = length($1);
+    my $header_len = length $1;
     my $width = $2;
     my $height = $3;
     my $bytes_per_pixel = ($4 < 256) ? 1 : 2;
@@ -251,13 +251,13 @@ sub _receive_frame_ustreamer ($self) {
     die 'ustreamer is not running. Probably your backend instance could not start or died.'
       unless my $ustreamer = $self->{ustreamer};
 
-    flock($self->{ustreamer}, Fcntl::LOCK_EX);
+    flock $self->{ustreamer}, Fcntl::LOCK_EX;
     my $ustreamer_map;
     map_handle($ustreamer_map, $ustreamer, '+<');
     {
         my $unlock = scope_guard sub {
             unmap($ustreamer_map);
-            flock($ustreamer, Fcntl::LOCK_UN);
+            flock $ustreamer, Fcntl::LOCK_UN;
         };
 
         # us_memsink_shared_s struct defined in https://github.com/pikvm/ustreamer/blob/master/src/libs/memsinksh.h
@@ -319,7 +319,7 @@ sub _receive_frame_ustreamer ($self) {
         #     ... data
         # } us_memsink_shared_s;
 
-        my ($magic, $version, $id, $used) = unpack('QLx4QQ', $ustreamer_map);
+        my ($magic, $version, $id, $used) = unpack 'QLx4QQ', $ustreamer_map;
         # This is US_MEMSINK_MAGIC, but perl considers hex literals over 32bits non-portable
         if ($magic != 14627333968358193854) {
             bmwqemu::diag "Invalid ustreamer magic: $magic";
@@ -340,19 +340,19 @@ sub _receive_frame_ustreamer ($self) {
 
         # tell ustreamer we are reading, otherwise it won't write new frames
         my $clock = clock_gettime(CLOCK_MONOTONIC);
-        substr($ustreamer_map, $client_clock_offset, 16) = pack('D', $clock);
+        substr($ustreamer_map, $client_clock_offset, 16) = pack 'D', $clock;
         # no new frame
         return undef if $self->{ustreamer_last_id} && $id == $self->{ustreamer_last_id};
         $self->{ustreamer_last_id} = $id;
         # empty frame
         return undef unless $used;
 
-        my ($width, $height, $format, $stride) = unpack('IIa4ICCxxI', substr($ustreamer_map, $meta_offset, 28));
+        my ($width, $height, $format, $stride) = unpack 'IIa4ICCxxI', substr $ustreamer_map, $meta_offset, 28;
 
         my $img;
         if ($format eq 'JPEG') {
             # tinycv::from_ppm in fact handles a bunch of formats, including JPEG
-            $img = tinycv::from_ppm(substr($ustreamer_map, $data_offset, $used));
+            $img = tinycv::from_ppm(substr $ustreamer_map, $data_offset, $used);
         } elsif ($format eq 'RGB3') {
             $img = tinycv::new($width, $height);
             my $vncinfo = tinycv::new_vncinfo(
@@ -383,7 +383,7 @@ sub _receive_frame_ustreamer ($self) {
             $img->map_raw_data(substr($ustreamer_map, $data_offset, $used), 0, 0, $width, $height, $vncinfo);
         } elsif ($format eq 'UYVY') {
             $img = tinycv::new($width, $height);
-            $img->map_raw_data_uyvy(substr($ustreamer_map, $data_offset, $used));
+            $img->map_raw_data_uyvy(substr $ustreamer_map, $data_offset, $used);
         } else {
             die "Unsupported video format '$format'";    # uncoverable statement
         }
@@ -480,7 +480,7 @@ sub _send_keyboard_emulator_cmd ($self, %args) {
     my $url = Mojo::URL->new($keyboard_device_url)->query(%args);
     $self->{_ua} //= Mojo::UserAgent->new;
     my $server_response = $self->{_ua}->get($url)->result->body;
-    chomp($server_response);
+    chomp $server_response;
     bmwqemu::diag('Keyboard emulator says: ' . bmwqemu::pp($server_response));
     return {};
 }

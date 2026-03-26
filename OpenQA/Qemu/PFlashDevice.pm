@@ -30,7 +30,7 @@ sub gen_cmdline ($self) {
     $self->_push_ifdef(\@params, 'unit=', $self->unit);
     $self->_push_ifdef(\@params, 'readonly=', $self->readonly);
 
-    return ('-drive', join(',', @params));
+    return ('-drive', join ',', @params);
 }
 
 1;

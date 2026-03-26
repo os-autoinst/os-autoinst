@@ -36,16 +36,16 @@ sub _makecpiohead ($name = undef, $s = undef) {
     #        magic ino
     my $h = '07070100000000';
     # mode                S_IFREG
-    $h .= sprintf('%08x', oct(100000) | $s->[2] & oct(777));
+    $h .= sprintf '%08x', oct(100000) | $s->[2] & oct 777;
     #      uid     gid     nlink
     $h .= '000000000000000000000001';
-    $h .= sprintf('%08x%08x', $s->[9], $s->[7]);
+    $h .= sprintf '%08x%08x', $s->[9], $s->[7];
     $h .= '00000000000000000000000000000000';
-    $h .= sprintf('%08x', length($name) + 1);
+    $h .= sprintf '%08x', length($name) + 1;
     $h .= "00000000$name\0";
-    $h .= substr("\0\0\0\0", (length($h) & 3)) if length($h) & 3;
+    $h .= substr "\0\0\0\0", (length($h) & 3) if length($h) & 3;
     my $pad = '';
-    $pad = substr("\0\0\0\0", ($s->[7] & 3)) if $s->[7] & 3;
+    $pad = substr "\0\0\0\0", ($s->[7] & 3) if $s->[7] & 3;
     return ($h, $pad);
 }
 
@@ -64,7 +64,7 @@ sub _test_data_dir ($self, $base) {
             $self->app->log->error("Error stating test distribution file '$file': $!");    # uncoverable statement
             next;    # uncoverable statement
         }
-        my $fn = 'data/' . substr($file, length($base));
+        my $fn = 'data/' . substr $file, length $base;
         my $file_data;
         try { $file_data = path($file)->slurp }
         catch ($e) {
@@ -289,7 +289,7 @@ sub run_daemon ($port, $isotovideo) {
 
 sub start_server ($port) {
     my ($child, $isotovideo);
-    socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+    socketpair $child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC
       or die "cmdsrv: socketpair: $!";
 
     $child->autoflush(1);
@@ -301,7 +301,7 @@ sub start_server ($port) {
             $SIG{HUP} = 'DEFAULT';
             $SIG{CHLD} = 'DEFAULT';
 
-            close($child);
+            close $child;
             $0 = "$0: commands";
             run_daemon($port, $isotovideo);
             Devel::Cover::report() if Devel::Cover->can('report');
@@ -313,7 +313,7 @@ sub start_server ($port) {
         internal_pipes => 0,
         set_pipes => 0)->start;
 
-    close($isotovideo);
+    close $isotovideo;
     $process->on(collected => sub { bmwqemu::diag('commands process exited: ' . shift->exit_status); });
     return ($process, $child);
 }

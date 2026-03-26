@@ -14,7 +14,7 @@ sub activate ($self) {
     $self->{serial_pipe} = IO::Pipe->new();
 
     setpgrp 0, 0;
-    $self->{serialpid} = fork();
+    $self->{serialpid} = fork;
 
     if ($self->{serialpid}) {
         $self->{serial_pipe}->writer();
@@ -28,16 +28,16 @@ sub activate ($self) {
     $self->{serial_pipe}->reader();
 
     my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME});
-    push(@cmd, ('-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD}));
+    push @cmd, ('-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD});
 
     # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
-    push(@cmd, '--dumponly');
+    push @cmd, '--dumponly';
 
     # our supermicro boards need workarounds to get SOL ;(
-    push(@cmd, qw(-W nochecksumcheck));
+    push @cmd, qw(-W nochecksumcheck);
 
     my $ipmi_console;
-    $self->{consolepid} = open($ipmi_console, '-|', @cmd);
+    $self->{consolepid} = open $ipmi_console, '-|', @cmd;
     $ipmi_console->blocking(0);
 
     my $s = IO::Select->new();
@@ -54,22 +54,22 @@ sub activate ($self) {
                     # impi_console is dead, restart it
                     $ipmi_console->close;
                     $s->remove($ipmi_console);
-                    my $ret = waitpid($self->{consolepid}, 0);
+                    my $ret = waitpid $self->{consolepid}, 0;
                     bmwqemu::diag "SOL failed, reconnecting [$ret]\n";
                     sleep 1;
-                    $self->{consolepid} = open($ipmi_console, '-|', @cmd);
+                    $self->{consolepid} = open $ipmi_console, '-|', @cmd;
                     $ipmi_console->blocking(0);
                     $s->add($ipmi_console);
                     next;
                 }
-                open(my $serial, '>>', $self->{args}->{serialfile});
+                open my $serial, '>>', $self->{args}->{serialfile};
                 print $serial $line;
-                close($serial);
+                close $serial;
             }
             else {
-                kill(TERM => $self->{consolepid});
+                kill TERM => $self->{consolepid};
                 $ipmi_console->close;
-                waitpid($self->{consolepid}, 0);
+                waitpid $self->{consolepid}, 0;
                 _exit(0);
             }
         }
@@ -82,7 +82,7 @@ sub disable ($self) {
     $self->{serial_pipe}->print("GO!\n");
     $self->{serial_pipe}->close;
     bmwqemu::diag "waiting for termination of ipmiconsole $self->{serialpid}";
-    my $ret = waitpid($self->{serialpid}, 0);
+    my $ret = waitpid $self->{serialpid}, 0;
     $self->{serialpid} = undef;
     return $ret;
 }

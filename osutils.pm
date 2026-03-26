@@ -35,10 +35,10 @@ sub gen_params ($array, $argument, $parameter = undef, %args) {
 
     if (ref($parameter) eq '') {
         $parameter = quote($parameter) if $parameter =~ /\s+/ && !$args{no_quotes};
-        push(@$array, $args{prefix} . "${argument}", $parameter);
+        push @$array, $args{prefix} . "${argument}", $parameter;
     }
     elsif (ref($parameter) eq 'ARRAY') {
-        push(@$array, $args{prefix} . "${argument}", join(',', @$parameter));
+        push @$array, $args{prefix} . "${argument}", join ',', @$parameter;
     }
 
 }
@@ -63,10 +63,10 @@ sub run (@args) {
     my $p = process(execute => shift @args, args => [@args]);
     $p->quirkiness(1)->separate_err(0)->start()->wait_stop();
 
-    my $stdout = join('', $p->read_stream->getlines());
+    my $stdout = join '', $p->read_stream->getlines();
     chomp $stdout;
 
-    close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
+    close $p->$_ ? $p->$_ : () for qw(read_stream write_stream error_stream);
 
     return $p->exit_status, $stdout;
 }

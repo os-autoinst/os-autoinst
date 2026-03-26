@@ -61,9 +61,9 @@ sub _add_download ($self, $needle, $extension, $path_param) {
     my $needles_dir = needle::needles_dir();
     my $download_target = "$needles_dir/$needle_name.$extension";
 
-    if (my $target_stat = stat($download_target)) {
+    if (my $target_stat = stat $download_target) {
         if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
-            $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
+            $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime $target_last_modified);
             if ($target_last_modified ge $latest_update) {
                 bmwqemu::diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
                 return;
@@ -71,10 +71,10 @@ sub _add_download ($self, $needle, $extension, $path_param) {
         }
     }
 
-    push(@{$self->files_to_download}, {
-            target => $download_target,
-            url => Mojo::URL->new($self->openqa_url . $needle->{$path_param}),
-    });
+    push @{$self->files_to_download}, {
+        target => $download_target,
+        url => Mojo::URL->new($self->openqa_url . $needle->{$path_param}),
+    };
 }
 
 sub _download_file ($self, $download) {
@@ -97,7 +97,7 @@ sub _download_file ($self, $download) {
     # store the file on disk
     return unless ($download_res);
     try {
-        unlink($download_target);
+        unlink $download_target;
         path($download_target)->spew($download_res->body);
     }
     catch ($e) { bmwqemu::diag("unable to store download under $download_target: $e") }
@@ -122,7 +122,7 @@ sub download ($self) { $self->_download_file($_) for (@{$self->files_to_download
 sub download_missing_needles ($self, $new_needles) {
     if ($new_needles && $bmwqemu::vars{SYNC_ASSETS_HOOK}) {
         bmwqemu::diag('Running SYNC_ASSETS_HOOK');
-        my $ret = system($bmwqemu::vars{SYNC_ASSETS_HOOK});
+        my $ret = system $bmwqemu::vars{SYNC_ASSETS_HOOK};
         return if ($ret == (32 << 8));
     }
     $self->add_relevant_downloads($new_needles);

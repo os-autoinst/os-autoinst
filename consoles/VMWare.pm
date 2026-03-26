@@ -39,7 +39,7 @@ sub configure_from_url ($self, $url) {
     $url = Mojo::URL->new($url);
     $self->protocol($url->protocol)->host($url->host);
     $self->username($url->username)->password($url->password);
-    $self->vm_id(substr($url->path, 1)) if length $url->path > 1;
+    $self->vm_id(substr $url->path, 1) if length $url->path > 1;
 }
 
 sub get_vmware_wss_url ($self) {

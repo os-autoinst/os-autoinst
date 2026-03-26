@@ -14,7 +14,7 @@ sub add_controller ($self, $model, $id) {
       ->model($model)
       ->id($id);
 
-    push(@{$self->_controllers}, $dc);
+    push @{$self->_controllers}, $dc;
     return $dc;
 }
 

@@ -42,7 +42,7 @@ my $last_screenshot_data;
 my $fake_ignore_failure;
 my $suppress_match;
 my @selected_consoles;
-sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
+sub fake_send_json ($to_fd, $cmd) { push @$cmds, $cmd }
 
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -78,8 +78,8 @@ subtest run_post_fail_test => sub {
     Test::MockModule->new('autotest')->noop('set_current_test');
     my $mock_basetest = Test::MockModule->new($basetest_class);
     $mock_basetest->noop('take_screenshot');
-    $mock_basetest->mock(run => sub { die(); });
-    my $basetest = bless({details => [], name => 'foo', category => 'category1', execute_time => 42}, $basetest_class);
+    $mock_basetest->mock(run => sub { die });
+    my $basetest = bless {details => [], name => 'foo', category => 'category1', execute_time => 42}, $basetest_class;
     my $logs = combined_from { dies_ok { $basetest->runtest } 'run_post_fail ends up with die (1)' };
     like $logs, qr/Test died/, 'test died';
     like $logs, qr/post fail hooks runtime:/, 'post fail hook ran and its runtime is logged';
@@ -218,12 +218,12 @@ subtest get_new_serial_output => sub {
 
 subtest record_testresult => sub {
     my $basetest_class = 'basetest';
-    my $basetest = bless({
-            result => undef,
-            details => [],
-            test_count => 0,
-            name => 'test',
-    }, $basetest_class);
+    my $basetest = bless {
+        result => undef,
+        details => [],
+        test_count => 0,
+        name => 'test',
+    }, $basetest_class;
 
     is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding unknown result');
     is($basetest->{result}, undef, 'test result unaffected');
@@ -288,7 +288,7 @@ delete $bmwqemu::vars{MAX_TEST_STEPS};
 
 subtest record_screenmatch => sub {
     my $basetest = basetest->new();
-    my $image = bless({} => __PACKAGE__);
+    my $image = bless {} => __PACKAGE__;
     my %match = (
         area => [
             {x => 1, y => 2, w => 3, h => 4, similarity => 0, result => 'ok'},

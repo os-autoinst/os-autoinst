@@ -42,11 +42,11 @@ sub _wait_for_bridge ($self) {
         print "Waiting for bridge '$self->{BRIDGE}' to be created and configured...\n";    # uncoverable statement
         sleep 1;    # uncoverable statement
     }    # uncoverable statement
-    system('ovs-vsctl', 'br-exists', $self->{BRIDGE});    # uncoverable statement
+    system 'ovs-vsctl', 'br-exists', $self->{BRIDGE};    # uncoverable statement
 }
 
 # uncoverable statement count:1..5
-sub _add_flow ($self, $rule) { system('ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule) }
+sub _add_flow ($self, $rule) { system 'ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule }
 
 # uncoverable statement count:1..4
 sub _bridge_conf ($self) { qx{ip addr show $self->{BRIDGE}} }
@@ -76,7 +76,7 @@ sub init_switch ($self) {
     my $netmask_ipv6 = $ENV{OS_AUTOINST_BRIDGE_NETMASK_IPV6} // 63;
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
-    my $rewrite_target_hex = unpack('H*', pack('C*', split('\.', $rewrite_target)));
+    my $rewrite_target_hex = unpack 'H*', pack 'C*', split '\.', $rewrite_target;
     my $rewrite_target_hex_ipv6 = 'fec0:0000:0000:0001:0000:0000:0000:0000';
     $rewrite_target_hex_ipv6 =~ s/://g;
 
@@ -183,7 +183,7 @@ sub _cmd (@args) {
 
     my @ovs_vsctl_output = <$rdr>;
     my @ovs_vsctl_error = <$err>;
-    waitpid($ovs_vsctl_pid, 0);
+    waitpid $ovs_vsctl_pid, 0;
     my $return_code = $?;
 
     return $return_code, "@ovs_vsctl_error", "@ovs_vsctl_output";
@@ -196,11 +196,11 @@ sub check_min_ovs_version ($min_ver) {
     my $out = _ovs_version;
     return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
 
-    my @ver = split(/\./, $1);
-    my @min_ver = split(/\./, $min_ver);
+    my @ver = split /\./, $1;
+    my @min_ver = split /\./, $min_ver;
     return if (@ver != @min_ver);
 
-    return sprintf('%04d%04d%04d', @ver) >= sprintf('%04d%04d%04d', @min_ver);
+    return (sprintf '%04d%04d%04d', @ver) >= sprintf '%04d%04d%04d', @min_ver;
 }
 
 # uncoverable statement count:1..5
@@ -225,7 +225,7 @@ sub set_vlan ($self, $tap, $vlan) {
 
     @cmd = ('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
     if (check_min_ovs_version('2.8.1')) {
-        push(@cmd, 'vlan_mode=dot1q-tunnel');
+        push @cmd, 'vlan_mode=dot1q-tunnel';
     }
 
     # Connect tap device to given vlan
@@ -298,5 +298,5 @@ sub main () {
     run_dbus();
 }
 
-main() unless caller();
+main() unless caller;
 1;

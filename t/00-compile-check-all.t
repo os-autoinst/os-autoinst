@@ -31,10 +31,10 @@ my @files;
 # interfer
 if (-d '.git' and which('git')) {
     my $root = qx{git rev-parse --show-toplevel};
-    chomp($root);
+    chomp $root;
     $root .= '/';
     my @all_git_files = qx{git ls-files};
-    chomp(@all_git_files);
+    chomp @all_git_files;
     my %skip = map { $_ => undef } @$TEST_SKIP;
     @files = map { $root . $_ } grep { !exists $skip{$_} && $_ !~ /^t\// } @all_git_files;    # Exclude files to skip
 }

@@ -210,7 +210,7 @@ sub qemu_cmdline (%args) {
     $bmwqemu::vars{$_} = $args{$_} for keys %args;
     $backend = backend();
     croak 'Failed to start qemu backend' unless $backend->start_qemu;
-    return join(' ', $backend->{proc}->gen_cmdline);
+    return join ' ', $backend->{proc}->gen_cmdline;
 }
 
 like qemu_cmdline(OFW => 1, XRES => 640, YRES => 480), qr/-g 640x480/, 'res is set for ppc/sparc';
@@ -269,7 +269,7 @@ subtest qemu_huge_pages_option => sub {
 };
 
 my $runcmd;
-$backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
+$backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join ' ', @cmd });
 
 subtest qemu_tpm_option => sub {
     $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
@@ -279,7 +279,7 @@ subtest qemu_tpm_option => sub {
     like $cmdline, qr|-device tpm-tis,tpmdev=tpm0|, '-device tpm-tis option added';
 
     # call qemu with QEMUTPM=2
-    mkdir("$dir/mytpm2");
+    mkdir "$dir/mytpm2";
     path("$dir/mytpm2/swtpm-sock")->touch;
     like qemu_cmdline(QEMUTPM => '2'), qr|-chardev socket,id=chrtpm,path=.*mytpm2/swtpm-sock|, '-chardev socket option added (2)';
 
@@ -704,7 +704,7 @@ subtest 'special cases when starting QEMU' => sub {
     $backend_mock->redefine(requires_audiodev => 0);
 
     my @invoked_cmds;
-    $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join(' ', @cmd) });
+    $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join ' ', @cmd });
     combined_like { $backend->start_qemu } qr{.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s, 'slirpvde started, DELAYED_START logged';
     like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot\.bin}, 'KERNEL set to absolute location';
     is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';

@@ -38,7 +38,7 @@ sub isotovideo (%args) {
     $args{opts} //= '';
     $args{exit_code} //= 1;
     chdir "$Bin/..";
-    my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split(' ', $args{opts}));
+    my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split ' ', $args{opts});
     chdir $pool_dir;
     note "Starting isotovideo with: @cmd";
     qx(cd $toplevel_dir && @cmd);
@@ -57,8 +57,8 @@ subtest 'get the version number' => sub {
 };
 
 subtest 'color output can be configured via the command-line' => sub {
-    chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
     my $out = stderr_from { isotovideo(opts => "--color=yes casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
     isnt($out, colorstrip($out), 'logs use colors when requested');
     $out = stderr_from { isotovideo(opts => "--color=no casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
@@ -72,28 +72,28 @@ subtest 'standalone isotovideo without any parameters' => sub {
 };
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
-    chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
     my $out = stderr_from { isotovideo(opts => "casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
     like $out, qr{scheduling.+(module1)}, 'requested module module1 scheduled';
     like $out, qr{scheduling.+(bar/module2)}, 'requested module bar/module2 scheduled';
 };
 
 subtest 'standard tests based on simple vars.json file' => sub {
-    chdir($pool_dir);
-    open(my $var, '>', 'vars.json');
+    chdir $pool_dir;
+    open my $var, '>', 'vars.json';
     print $var <<EOV;
 {
    "CASEDIR" : "$data_dir/tests",
    "_EXIT_AFTER_SCHEDULE" : 1,
 }
 EOV
-    close($var);
+    close $var;
     combined_like { isotovideo } qr/scheduling shutdown/, 'shutdown scheduled';
 };
 
 subtest 'isotovideo with custom git repo parameters specified' => sub {
-    chdir($pool_dir);
+    chdir $pool_dir;
     my $base_state = path(bmwqemu::STATE_FILE);
     $base_state->remove if -e $base_state;
     path('vars.json')->remove if -e 'vars.json';
@@ -124,15 +124,15 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
 };
 
 subtest 'isotovideo with git refspec specified' => sub {
-    chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1") } qr/Checking.*local.*deadbeef/, 'refspec in local git repository would be checked out';
 };
 
 subtest 'isotovideo with wheels' => sub {
-    chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
     $bmwqemu::topdir = "$Bin/..";
     my $case_dir = "$data_dir/tests";
     my $wheels_dir = "$data_dir/wheels_dir";
@@ -223,17 +223,17 @@ subtest 'isotovideo with wheels' => sub {
 };
 
 subtest 'productdir variable relative/absolute' => sub {
-    chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/scheduling.*shutdown/, 'schedule has been evaluated';
-    mkdir('product') unless -e 'product';
-    mkdir('product/foo') unless -e 'product/foo';
-    symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
+    mkdir 'product' unless -e 'product';
+    mkdir 'product/foo' unless -e 'product/foo';
+    symlink "$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm" unless -e "$pool_dir/product/foo/main.pm";
     combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo") } qr/scheduling.*shutdown/, 'schedule can still be found';
-    unlink("$pool_dir/product/foo/main.pm");
-    mkdir("$data_dir/tests/product") unless -e "$data_dir/tests/product";
-    symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
+    unlink "$pool_dir/product/foo/main.pm";
+    mkdir "$data_dir/tests/product" unless -e "$data_dir/tests/product";
+    symlink "$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm" unless -e "$data_dir/tests/product/main.pm";
     # additionally testing correct schedule for our "integration tests" mode
     my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
     like $log, qr/scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
@@ -242,7 +242,7 @@ subtest 'productdir variable relative/absolute' => sub {
 
 subtest 'exit status from test results' => sub {
     # dummy isotovideo invocations
-    chdir($pool_dir);
+    chdir $pool_dir;
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
     path('serial0')->touch;
@@ -262,7 +262,7 @@ subtest 'exit status from test results' => sub {
 
 subtest 'upload assets on demand even in failed jobs' => sub {
     # qemu isotovideo invocation
-    chdir($pool_dir);
+    chdir $pool_dir;
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
     my $module = 'tests/failing_module';
@@ -276,15 +276,15 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 
 subtest 'load test success when casedir and productdir are relative path' => sub {
     # qemu isotovideo invocation
-    chdir($pool_dir);
+    chdir $pool_dir;
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
-    mkdir('my_cases') unless -e 'my_cases';
-    symlink("$data_dir/tests/lib", 'my_cases/lib') unless -e 'my_cases/lib';
-    mkdir('my_cases/products') unless -e 'my_cases/products';
-    mkdir('my_cases/products/foo') unless -e 'my_cases/foo';
-    symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
-    symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
+    mkdir 'my_cases' unless -e 'my_cases';
+    symlink "$data_dir/tests/lib", 'my_cases/lib' unless -e 'my_cases/lib';
+    mkdir 'my_cases/products' unless -e 'my_cases/products';
+    mkdir 'my_cases/products/foo' unless -e 'my_cases/foo';
+    symlink "$data_dir/tests/tests", 'my_cases/tests' unless -e 'my_cases/tests';
+    symlink "$data_dir/tests/needles", 'my_cases/products/foo/needles' unless -e 'my_cases/products/foo/needles';
     my $module = 'tests/failing_module';
     my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
     unlike $log, qr/\[warn\]/, 'no warnings';
@@ -297,7 +297,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 package FakeBackendDriver {
 
     sub new ($class, $name) {
-        my $self = bless({class => $class}, $class);
+        my $self = bless {class => $class}, $class;
         require "backend/$name.pm";
         $self->{backend} = "backend::$name"->new();
         return $self;
@@ -384,5 +384,5 @@ END {
     rmtree "$Bin/data/tests/product";
     rmtree "$data_dir/wheels_dir/writer";
     rmtree "$pool_dir/writer";
-    unlink("$data_dir/tests/wheels.yaml") if -e "$data_dir/tests/wheels.yaml";
+    unlink "$data_dir/tests/wheels.yaml" if -e "$data_dir/tests/wheels.yaml";
 }

@@ -30,7 +30,7 @@ $ENV{OS_AUTOINST_XDOTOOL} = 'true';
 
 use consoles::localXvnc;
 
-plan skip_all => 'No network support found' unless getprotobyname('tcp');
+plan skip_all => 'No network support found' unless getprotobyname 'tcp';
 
 my $c = consoles::localXvnc->new('sut', {});
 like $c->sshCommand('user', 'localhost'), qr/^ssh/, 'can call sshCommand';

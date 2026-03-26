@@ -17,8 +17,8 @@ sub new ($class) {
 # poweron to the test
 sub do_start_vm ($self, @) {
     # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
+    open my $sf, '>', $self->{serialfile};
+    close $sf;
 
     my $ssh = $testapi::distri->add_console(
         'powerhmc-ssh',

@@ -194,7 +194,7 @@ subtest 'frames parsing' => sub {
 
     # make sure cat process has finished to guarantee that pipe has data on the
     # next call to update_framebuffer()
-    waitpid($console->{ffmpegpid}, 0);
+    waitpid $console->{ffmpegpid}, 0;
 
     my $received_update = $console->update_framebuffer();
     is $received_update, 0, 'detected incomplete frame';
@@ -203,7 +203,7 @@ subtest 'frames parsing' => sub {
     # now invalid frame - not in PPM format to test exception
     $mock_video_source = $data_dir . 'accept-ssh-host-key.png';
     $console->connect_remote({url => 'udp://@:5004'});
-    waitpid($console->{ffmpegpid}, 0);
+    waitpid $console->{ffmpegpid}, 0;
 
     throws_ok { $console->update_framebuffer() } qr/Invalid PPM header/, 'dies ok - input is not in PPM format';
     $console->disable_video;
@@ -215,7 +215,7 @@ subtest 'frame parsing - ustreamer' => sub {
     # practice ustreamer is only used on aarch64, restrict tests to
     # aarch64 and x86_64 (x86_64 for CI convenience)
     # see https://progress.opensuse.org/issues/161969
-    try { pack('D', 1.0) }
+    try { pack 'D', 1.0 }
     catch ($e) { plan skip_all => 'packing long double is not supported' }    # uncoverable statement
     plan skip_all => 'unsupported arch' unless ($Config{archname} =~ /^aarch64|x86_64/);
 
@@ -416,7 +416,7 @@ subtest 'input events' => sub {
     my $urls = [];
     my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
     my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
-    $user_agent_mock->redefine(get => sub ($ua, $url) { push(@$urls, "$url"); Mojo::Transaction::HTTP->new });
+    $user_agent_mock->redefine(get => sub ($ua, $url) { push @$urls, "$url"; Mojo::Transaction::HTTP->new });
     $http->redefine(result => sub { Mojo::Message::Response->new->code(200)->body('hallo') });
 
     $console->activate;

@@ -82,7 +82,7 @@ sub try_write ($fd, $msg) {
             }
             confess "fake_terminal: Failed to write to socket $ERRNO";    # uncoverable statement
         }
-        if ($written < length($msg)) {
+        if ($written < length $msg) {
             confess "fake_terminal: Only wrote $written bytes of: $msg";    # uncoverable statement
         }
         last;
@@ -109,7 +109,7 @@ sub try_read ($fd, $fd_w, $expected) {
     my ($buf, $text);
 
     while (1) {
-        my $read = sysread $fd, $buf, length($expected);
+        my $read = sysread $fd, $buf, length $expected;
         unless (defined $read) {
             if ($ERRNO{EINTR}) {    # uncoverable statement
                 $text .= $buf;    # uncoverable statement
@@ -118,7 +118,7 @@ sub try_read ($fd, $fd_w, $expected) {
             }
             confess "fake_terminal: Could not read from socket: $ERRNO";    # uncoverable statement
         }
-        if ($read < length($expected)) {
+        if ($read < length $expected) {
             $text .= $buf;    # uncoverable statement
             print $logfd $buf;    # uncoverable statement
             usleep(100);    # uncoverable statement
@@ -145,7 +145,7 @@ sub fake_terminal ($pipe_in, $pipe_out) {
 
     $SIG{ALRM} = sub {
         report_child_test(fail => 'fake_terminal timed out while waiting for a connection');    # uncoverable statement
-        exit(1);    # uncoverable statement
+        exit 1;    # uncoverable statement
     };
 
     alarm $timeout;
@@ -153,7 +153,7 @@ sub fake_terminal ($pipe_in, $pipe_out) {
     my $fd_w = path($pipe_out)->open('>');
     $SIG{ALRM} = sub {
         report_child_test(fail => 'fake_terminal timed out while performing IO');    # uncoverable statement
-        exit(1);    # uncoverable statement
+        exit 1;    # uncoverable statement
     };
 
     # Test::Most does not support forking, but if these tests fail it should
@@ -201,7 +201,7 @@ sub fake_terminal ($pipe_in, $pipe_out) {
     alarm $timeout;
     $SIG{ALRM} = sub {
         report_child_test(fail => 'fake_terminal timed out first');    # uncoverable statement
-        exit(0);    # uncoverable statement
+        exit 0;    # uncoverable statement
     };
 
     try_read($fd_r, $fd_w, $next_test);
@@ -326,8 +326,8 @@ my $pipe_in = $socket_path . '.in';
 my $pipe_out = $socket_path . '.out';
 
 for (($pipe_in, $pipe_out)) {
-    unlink($_) if (-p $_);
-    mkfifo($_, 0666) or die("Cannot create fifo pipe $_");
+    unlink $_ if -p $_;
+    mkfifo $_, 0666 or die "Cannot create fifo pipe $_";
 }
 
 my $fpid = fork || do {
@@ -345,11 +345,11 @@ my $tpid2 = fork || do {
     exit 0;
 };
 
-waitpid($fpid, 0);
+waitpid $fpid, 0;
 check_child('Fake terminal');
-waitpid($tpid, 0);
+waitpid $tpid, 0;
 check_child('Direct test VIRTIO_CONSOLE not set');
-waitpid($tpid2, 0);
+waitpid $tpid2, 0;
 check_child('Direct test with VIRTIO_CONSOLE=0', 0);
 my $child_tests = retrieve_child_tests();
 for my $pid (sort keys %$child_tests) {

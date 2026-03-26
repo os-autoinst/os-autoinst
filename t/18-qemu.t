@@ -403,7 +403,7 @@ subtest DriveDevice => sub {
 subtest 'relative assets' => sub {
     $vars{$_} = 'Core-7.2.iso' for qw(ISO ISO_1 UEFI_PFLASH_VARS);
     $vars{$_} = 'some.qcow2' for qw(HDD_1 UEFI_PFLASH_VARS);
-    symlink("$Bin/data/Core-7.2.iso", './Core-7.2.iso');
+    symlink "$Bin/data/Core-7.2.iso", './Core-7.2.iso';
     path('./some.qcow2')->spew('123');
     $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
@@ -427,7 +427,7 @@ subtest 'qemu was killed due to the system being out of memory' => sub {
     ok -f $base_state, qq{state file "$base_state" exists};
     my $state = decode_json($base_state->slurp);
     is($state->{msg}, 'QEMU was killed due to the system being out of memory', 'qemu was killed and the reason was shown correctly');
-    unlink('./Core-7.2.iso');
+    unlink './Core-7.2.iso';
 };
 
 subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => sub {

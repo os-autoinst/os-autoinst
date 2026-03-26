@@ -25,7 +25,7 @@ my $result_dir = "$data_dir/results";
 
 make_path($result_dir);
 
-opendir(my $dir, $data_dir) or die("Cannot read directories: $data_dir");
+opendir my $dir, $data_dir or die "Cannot read directories: $data_dir";
 
 my @all_images = grep { /\.png$/ } readdir $dir;
 

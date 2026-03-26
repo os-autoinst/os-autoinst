@@ -106,10 +106,10 @@ sub F_SETPIPE_SZ () { eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031 }
 
 sub set_pipe_sz ($self, $fd, $newsize) {
     no autodie;
-    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
+    return fcntl $fd, F_SETPIPE_SZ(), int $newsize;
 }
 
-sub get_pipe_sz ($self, $fd) { fcntl($fd, F_GETPIPE_SZ(), 0) }
+sub get_pipe_sz ($self, $fd) { fcntl $fd, F_GETPIPE_SZ(), 0 }
 
 =head2 open_pipe
 
@@ -125,14 +125,14 @@ otherwise it dies.
 sub open_pipe ($self) {
     bmwqemu::log_call(pipe_prefix => $self->{pipe_prefix});
 
-    sysopen(my $fd_w, $self->{pipe_prefix} . '.in', O_WRONLY)
+    sysopen my $fd_w, $self->{pipe_prefix} . '.in', O_WRONLY
       or die "Can't open in pipe for writing $!";
-    sysopen(my $fd_r, $self->{pipe_prefix} . '.out', O_NONBLOCK | O_RDONLY)
+    sysopen my $fd_r, $self->{pipe_prefix} . '.out', O_NONBLOCK | O_RDONLY
       or die "Can't open out pipe for reading $!";
 
     my $newsize = $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} // path('/proc/sys/fs/pipe-max-size')->slurp();
     for my $fd (($fd_w, $fd_r)) {
-        my $old = $self->get_pipe_sz($fd) or die('Unable to read PIPE_SZ');
+        my $old = $self->get_pipe_sz($fd) or die 'Unable to read PIPE_SZ';
         {
             my $new;
             while ($newsize > $old) {

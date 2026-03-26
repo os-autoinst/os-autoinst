@@ -42,10 +42,10 @@ $rpc_mock->redefine(read_json => sub {
 
 # mock bmwqemu/backend
 package FakeBackend {
-    sub new ($class) { bless({messages => []}, $class) }
+    sub new ($class) { bless {messages => []}, $class }
 
     sub _send_json ($self, $cmd) {
-        push(@{$self->{messages}}, $cmd);
+        push @{$self->{messages}}, $cmd;
         return $cmd->{cmd} eq 'is_shutdown' ? 'down' : {tags => [qw(some fake tags)]};
     }
     sub stop { die "faking stop\n" }
@@ -436,7 +436,7 @@ subtest 'No readable JSON' => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
     $runner->command_handler($command_handler);
     # We need valid fd's so fileno works but they're never used
-    open(my $readable, "$Bin");
+    open my $readable, "$Bin";
     $runner->testfd($readable);
     $runner->cmd_srv_fd($readable);
     stderr_like {

@@ -59,4 +59,4 @@ sub main ($args) {
     }
 }
 
-main(parse_args()) unless caller();
+main(parse_args()) unless caller;

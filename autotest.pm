@@ -55,12 +55,12 @@ sub find_script ($script) {
         return $wheel;
     }
     my $casedir = $bmwqemu::vars{CASEDIR};
-    my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
+    my $script_override_path = join '/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script;
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
         return path($script_override_path)->to_rel($casedir);
     }
-    elsif (!-f join('/', $casedir, $script)) {
+    elsif (!-f join '/', $casedir, $script) {
         warn "loadtest needs a script below $casedir - $script is not\n";
         return path($script)->to_rel($casedir);
     }
@@ -271,11 +271,11 @@ check C<vars{BIGTEST}> or C<vars{LIVETEST}>.
 
 sub _should_schedule ($test) {
     if ($bmwqemu::vars{EXCLUDE_MODULES}) {
-        my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
+        my %excluded = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES};
         return 0 if $excluded{$test->{class}} || $excluded{$test->{fullname}};
     }
     if ($bmwqemu::vars{INCLUDE_MODULES}) {
-        my %included = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES});
+        my %included = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES};
         return 0 unless $included{$test->{class}} || $included{$test->{fullname}};
     }
     if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
@@ -376,13 +376,12 @@ sub set_current_test ($test) {
 sub write_test_order () {
     my @result;
     for my $t (@testorder) {
-        push(
-            @result,
-            {
-                name => $t->{name},
-                category => $t->{category},
-                flags => $t->test_flags(),
-                script => $t->{script}});
+        push @result,
+          {
+            name => $t->{name},
+            category => $t->{category},
+            flags => $t->test_flags(),
+            script => $t->{script}};
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . '/test_order.json');
 }
@@ -441,7 +440,7 @@ sub handle_sigterm ($sig) {    # uncoverable statement
 
 sub start_process () {
     my $child;
-    socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+    socketpair $child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC
       or die "socketpair: $!";
 
     $child->autoflush(1);
@@ -463,7 +462,7 @@ sub start_process () {
             $0 = "$0: autotest";
             my $line = <$isotovideo>;
             _exit(0) unless $line;    # uncoverable statement
-            chomp($line);
+            chomp $line;
             bmwqemu::diag "GOT $line";
             # the backend process might have added some defaults for the backend
             bmwqemu::load_vars();
@@ -618,7 +617,7 @@ sub runalltests () {
 sub loadtestdir ($dir) {
     die 'need argument $dir' unless $dir;
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
-    $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
+    $dir = join '/', $bmwqemu::vars{CASEDIR}, $dir;    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
     loadtest($_) for map { s{^\Q$bmwqemu::vars{CASEDIR}/}{}r } (glob "$dir/*.{pm,py,lua}");
 }
@@ -632,7 +631,7 @@ sub rollback_activated_consoles () {
         autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
     }
     $activated_consoles = [];
-    if (defined($last_milestone_console)) {
+    if (defined $last_milestone_console) {
         my $ret = autotest::query_isotovideo('backend_select_console',
             {testapi_console => $last_milestone_console});
         die $ret->{error} if $ret->{error};

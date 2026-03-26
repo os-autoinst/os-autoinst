@@ -24,7 +24,7 @@ require IPC::System::Simple;
 has 'backend';
 
 sub new ($class, $testapi_console, $args) {
-    my $self = bless({class => $class}, $class);
+    my $self = bless {class => $class}, $class;
     $self->{testapi_console} = $testapi_console;
     $self->{args} = $args;
     $self->{activated} = 0;

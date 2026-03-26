@@ -14,7 +14,7 @@ sub tesseract ($img, $area) {
     $img = $img->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}) if $area;
     $img->write($imgfn);
     # disable debug output, because new versions by default only reports errors and warnings
-    system("tesseract $imgfn $txtfn quiet");
+    system "tesseract $imgfn $txtfn quiet";
     $txtfn .= '.txt';
     $txt = path($txtfn)->slurp('UTF-8');
     unlink $imgfn;

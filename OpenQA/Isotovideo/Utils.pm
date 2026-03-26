@@ -42,7 +42,7 @@ sub git_rev_parse ($dirname, $cmd_prefix = '') {
     return $version if $? == 0;
     return 'UNKNOWN' unless my $cmd = _configure_safe_dir_cmd($version);
     $version = qx{$cmd git -C "$dirname" rev-parse HEAD && rm -r \$TMPDIR} || '(unreadable git hash)';    # uncoverable statement
-    chomp($version);    # uncoverable statement
+    chomp $version;    # uncoverable statement
     return $version;    # uncoverable statement
 }
 
@@ -67,11 +67,11 @@ sub git_remote_url ($git_repo_dir, $fallback = undef) {
 
 sub _lock_cache_directory ($cache_dir) {
     my $lock_file = "$cache_dir.lock";
-    open(my $lock, '>', $lock_file) or die "Unable to open lock file '$lock_file' for Git caching: $!\n";
-    flock($lock, LOCK_EX) or die "Unable to lock '$lock_file' for Git caching: $!\n";
+    open my $lock, '>', $lock_file or die "Unable to open lock file '$lock_file' for Git caching: $!\n";
+    flock $lock, LOCK_EX or die "Unable to lock '$lock_file' for Git caching: $!\n";
     return scope_guard sub {
-        flock($lock, LOCK_UN) or die "Unable to unlock '$lock_file' after Git caching: $!\n";
-        close($lock);
+        flock $lock, LOCK_UN or die "Unable to unlock '$lock_file' after Git caching: $!\n";
+        close $lock;
     };
 }
 
@@ -108,7 +108,7 @@ sub _open_cache_index ($root_cache_dir, $index_file) {
 sub _determine_size ($dir, $handle_output) {
     $handle_output->($?, my $du = qx{du -s "$dir"});
     die "Unable to determine size of Git directory under \"$dir\": du returned '$du'\n" unless $du =~ /(\d+).*/;
-    return int($1);
+    return int $1;
 }
 
 sub limit_git_cache_dir ($root_cache_dir, $current_cache_dir, $current_relative_cache_dir, $handle_output) {
@@ -279,7 +279,7 @@ sub checkout_wheels ($case_dir, $wheels_dir = undef) {
     $validator->schema($schema_file);
     my $spec = YAML::PP->new->load_file($specfile);
     my @errors = $validator->validate($spec);
-    die "Invalid YAML ($specfile): " . join(',', @errors) if @errors;
+    die "Invalid YAML ($specfile): " . join ',', @errors if @errors;
     die "Unsupported version ($specfile): Version must be 'v0.1'" if $spec->{version} ne 'v0.1';
 
     my $old_cwd = cwd;
@@ -350,10 +350,10 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
             push @toextract, _store_asset($i, $name, $dir);
         }
         if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
-            push(@toextract, {pflash_vars => 1,
-                    name => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
-                    dir => 'assets_public',
-                    format => 'qcow2'});
+            push @toextract, {pflash_vars => 1,
+                name => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                dir => 'assets_public',
+                format => 'qcow2'};
         }
         if (@toextract && !$clean_shutdown) {
             bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', error => 1);
@@ -391,7 +391,7 @@ sub load_test_schedule (@) {
         unshift @INC, '.' unless path($bmwqemu::vars{CASEDIR})->is_abs;
         bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
         $bmwqemu::vars{INCLUDE_MODULES} = undef;
-        autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split(/[, \n]+/, $bmwqemu::vars{SCHEDULE});
+        autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split /[, \n]+/, $bmwqemu::vars{SCHEDULE};
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
     }
     my $productdir = $bmwqemu::vars{PRODUCTDIR};

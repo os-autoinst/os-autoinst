@@ -55,7 +55,7 @@ my ($cserver, $cfd);
 ok(chdir $data_dir->child('pool'), 'change command server working directory');
 combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'command server started';
 
-my $spid = fork();
+my $spid = fork;
 if ($spid == 0) {
     # we need to fake isotovideo here
     while (1) {    # uncoverable statement
@@ -224,7 +224,7 @@ subtest 'current_script test' => sub {
 };
 
 kill TERM => $spid;
-waitpid($spid, 0);
+waitpid $spid, 0;
 combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
 
 subtest 'decode failure' => sub {
