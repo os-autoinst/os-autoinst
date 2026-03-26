@@ -46,8 +46,18 @@ path('vars.json')->spew(<<EOV);
 }
 EOV
 
-my $vnc_port = 90 + ($$ % 100);
-my $qemu_port = 15000 + ($$ % 1000);
+use Mojo::IOLoop::Server;
+
+my $vnc_port;
+for (1 .. 50) {
+    my $port = Mojo::IOLoop::Server->generate_port;
+    if ($port >= 5900 && $port <= 65535) {
+        $vnc_port = $port - 5900;
+        last;
+    }
+}
+die 'Could not find a valid free VNC port' unless defined $vnc_port;
+my $qemu_port = Mojo::IOLoop::Server->generate_port;
 # create screenshots
 path('live_log')->touch;
 system "cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d vnc=$vnc_port qemuport=$qemu_port 2>&1 | tee $pool_dir/autoinst-log.txt";
