@@ -17,7 +17,7 @@ subtest 'various inputs' => sub {
     for my $i (0 .. $#tests) {
         note "################################### $i";
         my $test = $tests[$i];
-        my ($in, $exp) = @$test;
+        my ($options, $in, $exp) = @$test;
         note $in;
         my $doc = PPI::Document->new(\$in) or die 'Could not parse code';
         my $module;
@@ -33,7 +33,7 @@ subtest 'various inputs' => sub {
             next;
         }
         if ($exp) {
-            my $changed = fix($module);
+            my $changed = fix($module, {signatures => $options->{signatures}});
             if ($changed) {
                 $changed =~ s/^\n+//;
             }
@@ -58,7 +58,7 @@ subtest 'main' => sub {
 
     $code = 'use base "x"';
     combined_like { main::main({write => 1}, \$code) } qr/Writing/, 'changing string';
-    is $code, q{use Mojo::Base 'x', -signatures;}, 'changed string like expected';
+    is $code, q{use Mojo::Base 'x';}, 'changed string like expected';
 };
 
 subtest 'script' => sub {
@@ -73,6 +73,7 @@ done_testing;
 
 __DATA__
 ---
+- { signatures: 1 }
 - |
     use Mojo::Base -strict;
     use base 'basetest';
@@ -84,12 +85,14 @@ __DATA__
     sub run { }
 
 ---
+- { signatures: 1 }
 - |
     use Mojo::Base -strict;
 
 - |
 
 ---
+- { signatures: 1 }
 - |
     # comment
     use base 'basetest';
@@ -102,6 +105,7 @@ __DATA__
     sub run { }
 
 ---
+- { signatures: 1 }
 - |
     use Mojo::Base 'basetest', -signatures;
 
@@ -110,6 +114,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     use Mojo::Base 'basetest', -strict;
     use base 'opensusebasetest';
@@ -119,6 +124,27 @@ __DATA__
 
 
 ---
+- { signatures: 0 }
+- |
+    use Mojo::Base 'basetest', -strict;
+    use base 'opensusebasetest';
+
+- |
+    use Mojo::Base qw(basetest opensusebasetest);
+
+
+---
+- { signatures: 0 }
+- |
+    use Mojo::Base 'basetest', -strict, -signatures;
+    use base 'opensusebasetest';
+
+- |
+    use Mojo::Base qw(basetest opensusebasetest), -signatures;
+
+
+---
+- { signatures: 1 }
 - |
     use Mojo::Base 'basetest', -strict;
     use base 'basetest';
@@ -128,11 +154,13 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     sub run { }
 - |
 
 ---
+- { signatures: 1 }
 - |
     use base qw(foo bar);
 
@@ -141,6 +169,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     use base 'foo', 'bar';
 
@@ -149,6 +178,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     use Mojo::Base qw(basetest basetest2), -strict;
     use base 'basetest3';
@@ -158,6 +188,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     use base 'basetest1';
     use base 'basetest2';
@@ -167,6 +198,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     use parent 'basetest1';
     use base 'basetest2';
@@ -176,6 +208,7 @@ __DATA__
 
 
 ---
+- { signatures: 1 }
 - |
     # These are barewords, but we also handle them
     use parent basetest1;
@@ -186,6 +219,7 @@ __DATA__
     use Mojo::Base qw(basetest1 basetest2), -signatures;
 
 ---
+- { signatures: 1 }
 - |
     ## no os-autoinst style
     use base 'basetest';

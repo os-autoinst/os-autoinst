@@ -31,6 +31,11 @@ Write changed file(s)
 
 Be verbose
 
+=item B<-v, --signatures>
+
+Always add signatures.
+By default it does not add C<-signatures> if it was not alraedy used.
+
 =item B<-h, -?, --help>
 
 Show this help.
@@ -51,7 +56,7 @@ sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 my $rc = 0;
 unless (caller) {
     $|++;
-    GetOptions(\my %options, 'help|h|?', 'verbose|v', 'write') or usage(1);
+    GetOptions(\my %options, 'help|h|?', 'verbose|v', 'write', 'signatures') or usage(1);
     usage(0) if $options{help};
     usage(1) unless @ARGV;
     $rc = main(\%options, @ARGV);
@@ -82,7 +87,7 @@ sub main ($options, @files) {
         next if $module->{nofix};
 
         my $old = "$doc";
-        my $changed = fix($module);
+        my $changed = fix($module, {signatures => $options->{signatures}});
         if ($changed and "$changed" ne $old) {
             if ($options->{write}) {
                 say sprintf '      Writing %-*s', $length, $file;
@@ -97,16 +102,20 @@ sub main ($options, @files) {
     return $rc;
 }
 
-sub fix ($module) {
+sub fix ($module, $args) {
     my %seen;
     my @classes = grep { not $seen{$_}++ } @{$module->{base_classes}};
-    my $new_code;
+    my $new_code = 'use Mojo::Base ';
     if (@classes > 1) {
-        $new_code = "use Mojo::Base qw(@classes), -signatures;\n\n";
+        $new_code .= "qw(@classes)";
     }
     else {
-        $new_code = "use Mojo::Base '$classes[0]', -signatures;\n\n";
+        $new_code .= "'$classes[0]'";
     }
+    if ($args->{signatures} or $module->{signatures}) {
+        $new_code .= ', -signatures';
+    }
+    $new_code .= ";\n";
     my $temp_doc = PPI::Document->new(\$new_code);
     my $new_statement = $temp_doc->child(0)->clone;
 
