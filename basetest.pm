@@ -91,6 +91,7 @@ Return a hash of flags that are either there or not
   'milestone'      - after this test succeeds, update 'lastgood'
   'no_rollback'     - don't roll back to 'lastgood' snapshot if this fails
   'always_rollback' - roll back to 'lastgood' snapshot even if this does not fail
+  'retry'           - number of times to retry a test module on failure if a milestone is available
 
 =cut
 
