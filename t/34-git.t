@@ -8,7 +8,6 @@ use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
-use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like combined_unlike);
@@ -21,11 +20,12 @@ use Test::Warnings ':report_warnings';
 
 my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $git_repo = 'tmpgitrepo';
-my $git_dir = "$dir/$git_repo";
-my $clone_dir = "$Bin/$git_repo";
-# Standardize isolation and increase timeout for parallel stability
+my $git_dir = "$dir/source/$git_repo";
+my $clone_dir = "$dir/clone/$git_repo";
 
-chdir $Bin;
+path("$dir/source")->make_path;
+path("$dir/clone")->make_path;
+chdir "$dir/clone";
 # some git variables might be set if this test is
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
@@ -45,7 +45,7 @@ subtest 'failure to clone results once' => sub {
 };
 
 subtest 'failure to clone results in repeated attempts' => sub {
-    my $chdir_guard = scope_guard sub { chdir $Bin; };
+    my $chdir_guard = scope_guard sub { chdir "$dir/clone"; };
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
     chdir $dir;
@@ -112,7 +112,7 @@ subtest 'cloning with caching' => sub {
     my ($orga, $repo, $suffix) = (qw(os-autoinst os-autoinst-wheel-launcher .git));
     my $rev = '742bd0570a5d086be12fecb3b108bff15f4cb202';
     my $url = Mojo::URL->new("https://github.com/$orga/$repo$suffix");
-    ($orga, $repo, $rev, $suffix, $url) = ($dir, $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
+    ($orga, $repo, $rev, $suffix, $url) = ("$dir/source", $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
       unless $ENV{OS_AUTOINST_TEST_GIT_ONLINE};
 
     my $orga_cache_dir = $git_cache_dir->child($orga);
