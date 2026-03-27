@@ -94,6 +94,50 @@ sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
     ok 'XML looks as expected';
 }
 
+sub _mock_svirt_vmware ($cmds_ref, $ssh_cmds_ref) {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @$cmds_ref, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @$cmds_ref, $cmd; 0 });
+    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @$cmds_ref, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @$ssh_cmds_ref, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+    return {backend => $backend_mock, console => $console_mock, tmp => $tmp_mock};
+}
+
+sub _check_vmware_cmds ($cmds, $extra_cmds = []) {
+    like shift @$cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    my @expected = (
+        $s . ' destroy openQA-SUT-1',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
+        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        @$extra_cmds,
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    );
+    is_deeply $cmds, \@expected, 'expected commands invoked' or always_explain $cmds;
+}
+
+sub _new_svirt_console ($ssh_creds) {
+    my $svirt = consoles::sshVirtsh->new('svirt');
+    $svirt->backend(backend::baseclass->new);
+    $svirt->_init_ssh($ssh_creds);
+    $svirt->_init_xml();
+    return $svirt;
+}
+
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $testapi::password = 'secret';
@@ -191,36 +235,10 @@ subtest 'XML config with UEFI loader and VMware' => sub {
 };
 
 subtest 'starting VMware console' => sub {
-    $bmwqemu::vars{VMWARE_HOST} = 'h';
-    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
-    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
-
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
-    my $backend_mock = Test::MockModule->new('backend::svirt');
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my $tmp_mock = Test::MockModule->new('File::Temp');
-    my @cmds;
-    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
-    $backend_mock->redefine(start_serial_grab => 1);
-    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
-    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
-
+    my (@cmds, @ssh_cmds);
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
     $svirt_console->define_and_start;
-    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
-    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
-    is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1',
-        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
-        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
-        $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or always_explain \@cmds;
+    _check_vmware_cmds(\@cmds);
 };
 
 subtest 'test config encoding' => sub {
@@ -241,142 +259,58 @@ subtest 'test config encoding' => sub {
 };
 
 subtest 'starting VMware console with InvalidConfig' => sub {
-    $bmwqemu::vars{VMWARE_HOST} = 'h';
-    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
-    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
     $bmwqemu::vars{GUESTINFO_COMBUSTION} = 'someTestScript';
     $bmwqemu::vars{GUESTINFO_CONFIG} = 'NotValid';
 
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
-    my $backend_mock = Test::MockModule->new('backend::svirt');
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my $tmp_mock = Test::MockModule->new('File::Temp');
     my (@cmds, @ssh_cmds);
-    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
-    $backend_mock->redefine(start_serial_grab => 1);
-    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
-    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
-
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
     dies_ok { $svirt_console->define_and_start } 'Invalid GUESTINFO_CONFIG was passed';
 };
 
 subtest 'starting VMware console with combustion' => sub {
-    $bmwqemu::vars{VMWARE_HOST} = 'h';
-    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
-    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
     $bmwqemu::vars{GUESTINFO_COMBUSTION} = 'someTestScript';
     $bmwqemu::vars{GUESTINFO_CONFIG} = 'combustion';
 
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
-    my $backend_mock = Test::MockModule->new('backend::svirt');
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my $tmp_mock = Test::MockModule->new('File::Temp');
-    my @cmds;
-    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
-    $backend_mock->redefine(start_serial_grab => 1);
-    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
-    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
-    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'testingCombustion' });
+    my (@cmds, @ssh_cmds);
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
+    $mocks->{console}->redefine(_encode_config => sub ($self, $f, $k) { 'testingCombustion' });
 
     $svirt_console->define_and_start;
-    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
-    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
-    is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1',
-        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
-        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.combustion.script = "testingCombustion"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
-        $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or always_explain \@cmds;
+    _check_vmware_cmds(\@cmds, ['echo \'guestinfo.combustion.script = "testingCombustion"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx']);
 };
 
 subtest 'starting VMware console with ignition' => sub {
-    $bmwqemu::vars{VMWARE_HOST} = 'h';
-    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
-    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
     $bmwqemu::vars{GUESTINFO_IGNITION} = 'testing/config.ign';
     $bmwqemu::vars{GUESTINFO_CONFIG} = 'ignition';
     $bmwqemu::vars{GUESTINFO_COMBUSTION} = undef;
 
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
-    my $backend_mock = Test::MockModule->new('backend::svirt');
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my $tmp_mock = Test::MockModule->new('File::Temp');
-    my @cmds;
-    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { (undef, $chan_mock) });
-    $backend_mock->redefine(start_serial_grab => 1);
-    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
-    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
-    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'ignitionTEST' });
+    my (@cmds, @ssh_cmds);
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
+    $mocks->{console}->redefine(_encode_config => sub ($self, $f, $k) { 'ignitionTEST' });
 
     $svirt_console->define_and_start;
-    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
-    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
-    is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1',
-        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
-        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.ignition.config.data.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.ignition.config.data = "ignitionTEST"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
-        $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or always_explain \@cmds;
+    _check_vmware_cmds(\@cmds, [
+            'echo \'guestinfo.ignition.config.data.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+            'echo \'guestinfo.ignition.config.data = "ignitionTEST"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx'
+    ]);
 };
 
 subtest 'starting VMware console with cloud-init' => sub {
-    $bmwqemu::vars{VMWARE_HOST} = 'h';
-    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
-    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
     $bmwqemu::vars{GUESTINFO_CLOUD_INIT} = 'someCloud_init_file1, meta_data';
     $bmwqemu::vars{GUESTINFO_CONFIG} = 'cloud-init';
     $bmwqemu::vars{GUESTINFO_COMBUSTION} = undef;
 
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
-    my $backend_mock = Test::MockModule->new('backend::svirt');
-    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
-    my $tmp_mock = Test::MockModule->new('File::Temp');
     my (@cmds, @ssh_cmds);
-    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
-    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
-    $backend_mock->redefine(start_serial_grab => 1);
-    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
-    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
-    $console_mock->redefine(_encode_config => sub ($self, $f, $k) { 'CI_test_CONF' });
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
+    $mocks->{console}->redefine(_encode_config => sub ($self, $f, $k) { 'CI_test_CONF' });
 
     $svirt_console->define_and_start;
-    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
-    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
-    is_deeply \@cmds, [
-        $s . ' destroy openQA-SUT-1',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1',
-        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
-        'echo \'nvram = "openQA-SUT-1.nvram"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.userdata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.userdata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo \'guestinfo.metadata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
-        $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or always_explain \@cmds;
+    _check_vmware_cmds(\@cmds, [
+            'echo \'guestinfo.userdata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+            'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+            'echo \'guestinfo.userdata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+            'echo \'guestinfo.metadata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx'
+    ]);
 };
 
 subtest 'SSH credentials' => sub {
@@ -629,10 +563,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
         my $vmware_openqa_datastore = '/vmfs/volumes/' . get_var('VMWARE_DATASTORE') . '/openQA/';
 
-        my $svirt = consoles::sshVirtsh->new('svirt');
-        $svirt->backend(backend::baseclass->new);
-        $svirt->_init_ssh($ssh_creds_svirt);
-        $svirt->_init_xml();
+        my $svirt = _new_svirt_console($ssh_creds_svirt);
 
         subtest 'family vmware only file=>"specified"' => sub {
             my $dev_id = 'device_id_101';
@@ -714,10 +645,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
         set_var(VIRSH_VMM_TYPE => 'hvm');
         my $basedir = '/var/lib/libvirt/images/';
 
-        my $svirt = consoles::sshVirtsh->new('svirt');
-        $svirt->backend(backend::baseclass->new);
-        $svirt->_init_ssh($ssh_creds_svirt);
-        $svirt->_init_xml();
+        my $svirt = _new_svirt_console($ssh_creds_svirt);
 
         subtest 'family xcirt-xen-hvm only file=>"specified"' => sub {
             my $dev_id = 'device_id_105';
@@ -853,10 +781,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
         set_var(VIRSH_VMM_TYPE => undef);
         my $basedir = '/var/lib/libvirt/images/';
 
-        my $svirt = consoles::sshVirtsh->new('svirt');
-        $svirt->backend(backend::baseclass->new);
-        $svirt->_init_ssh($ssh_creds_svirt);
-        $svirt->_init_xml();
+        my $svirt = _new_svirt_console($ssh_creds_svirt);
 
         subtest 'family kvm create=1' => sub {
             my $dev_id = 'dev_id_012';
@@ -998,10 +923,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
         set_var(VIRSH_VMM_TYPE => 'linux');
         my $basedir = '/var/lib/libvirt/images/';
 
-        my $svirt = consoles::sshVirtsh->new('svirt');
-        $svirt->backend(backend::baseclass->new);
-        $svirt->_init_ssh($ssh_creds_svirt);
-        $svirt->_init_xml();
+        my $svirt = _new_svirt_console($ssh_creds_svirt);
 
         subtest 'family svirt-xen-pv only file=>"specified"' => sub {
             my $dev_id = 'device_id_105';
