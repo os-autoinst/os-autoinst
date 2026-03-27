@@ -176,7 +176,7 @@ subtest 'frames parsing' => sub {
     for (1 .. 100) {
         $received_img = $console->current_screen();
         last if $received_img;
-        select(undef, undef, undef, 0.1);
+        select(undef, undef, undef, 0.1);    # uncoverable statement
     }
 
     $img = tinycv::read($data_dir . 'frame1.png');
@@ -192,7 +192,7 @@ subtest 'frames parsing' => sub {
     for (1 .. 100) {
         $received_img = $console->current_screen();
         last if $received_img;
-        select(undef, undef, undef, 0.1);
+        select(undef, undef, undef, 0.1);    # uncoverable statement
     }
     ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
