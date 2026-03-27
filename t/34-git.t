@@ -8,7 +8,6 @@ use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
-use Mojo::Util qw(scope_guard);
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like combined_unlike);
