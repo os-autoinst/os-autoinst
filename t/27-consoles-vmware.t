@@ -200,13 +200,13 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
             if ($res == 0) {
                 return ($pid, $tcp_port, $pipe);
             }
-            if ($pipe) {
-                close $pipe;
+            if ($pipe) {    # uncoverable statement
+                close $pipe;    # uncoverable statement
             }
-            $vmware_instance->dewebsockify_pid(undef) if $vmware_instance;
-            note "dewebsockify died immediately on port $tcp_port (res=$res, pid=$pid, err=$!), retrying ($attempt/10).";
+            $vmware_instance->dewebsockify_pid(undef) if $vmware_instance;    # uncoverable statement
+            note "dewebsockify died immediately on port $tcp_port (res=$res, pid=$pid, err=$!), retrying ($attempt/10).";    # uncoverable statement
         }
-        die 'Failed to start dewebsockify after 10 attempts';
+        die 'Failed to start dewebsockify after 10 attempts';    # uncoverable statement
     };
 
     # start dewebsockify
@@ -220,8 +220,8 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my ($close_immediately, $connect_attempts, $connect_to_dewebsockify, $current_tcp_port, $current_wait_pid, $stop_on_close);
     $connect_to_dewebsockify = sub ($loop) {
         if ($current_wait_pid && waitpid($current_wait_pid, WNOHANG) > 0) {
-            fail "dewebsockify process $current_wait_pid died prematurely, aborting connection attempts";
-            return $loop->stop;
+            fail "dewebsockify process $current_wait_pid died prematurely, aborting connection attempts";    # uncoverable statement
+            return $loop->stop;    # uncoverable statement
         }
         note "connecting to dewebsockify on port $current_tcp_port";
         $loop->client({port => $current_tcp_port} => sub ($loop, $err, $stream) {
@@ -245,12 +245,12 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                 });
                 $stream->on(close => sub {
                         return unless $stop_on_close;
-                        note 'dewebsockify closed connection';
-                        $loop->stop;
+                        note 'dewebsockify closed connection';    # uncoverable statement
+                        $loop->stop;    # uncoverable statement
                 });
                 $stream->on(error => sub ($stream, $err) {
-                        fail "dewebsockify connection error: $err";
-                        $loop->stop;
+                        fail "dewebsockify connection error: $err";    # uncoverable statement
+                        $loop->stop;    # uncoverable statement
                 });
         });
     };
@@ -261,9 +261,9 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
         $close_immediately = $args{close_immediately} // 0;
         $stop_on_close = $args{stop_on_close} // 0;
         my $watchdog = $t->ua->ioloop->timer(OpenQA::Test::TimeLimit::scale_timeout(15) => sub {
-                my $loop = shift;
-                fail "Subtest 'turning WebSocket into normal socket via dewebsockify' timed out (watchdog)";
-                $loop->stop;
+                my $loop = shift;    # uncoverable statement
+                fail "Subtest 'turning WebSocket into normal socket via dewebsockify' timed out (watchdog)";    # uncoverable statement
+                $loop->stop;    # uncoverable statement
         });
         $t->ua->ioloop->next_tick($connect_to_dewebsockify);
         $t->ua->ioloop->start;

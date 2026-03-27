@@ -31,7 +31,7 @@ our $VERSION;
 
 $testapi::password = 'd*97Jlk/.d';
 my $socket_path = './virtio_console';
-my $sharefile = "$Bin/fork-share.txt";
+my ($sharefile_fd, $sharefile) = tempfile('10-terminal-shareXXXXX', TMPDIR => 1, SUFFIX => '.txt');
 my $login_prompt_data = <<'FIN.';
 
 
