@@ -148,7 +148,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
             $self->send({binary => 'binary sent from WebSocket'}, sub {
                     $self->send({text => 'text message sent from WebSocket'}, sub {
                             $sent_everything = 1;
-                            $self->finish if length $self->app->received_everything;
+                            $self->finish if $self->app->received_everything;
                     });
             });
             $self->on(
