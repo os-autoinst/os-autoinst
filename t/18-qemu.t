@@ -20,7 +20,7 @@ use bmwqemu;
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
 
-use constant TMPPATH => '/tmp/18-qemu.t/';
+
 
 my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir "$dir/testresults";
@@ -246,7 +246,7 @@ $bdc->for_each_drive(sub ($drive) {
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after reverting a snapshot');
 
-$path = TMPPATH . '/reverted-snapshot.json';
+$path = $tmppath . '/reverted-snapshot.json';
 path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
