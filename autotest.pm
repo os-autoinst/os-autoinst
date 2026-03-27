@@ -537,6 +537,9 @@ sub runalltests () {
     for (my $testindex = 0; $testindex <= $#testorder; $testindex++) {
         my $t = $testorder[$testindex];
         my $flags = $t->test_flags();
+        if ($flags->{always_rollback} && !$snapshots_supported && $bmwqemu::vars{FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED}) {
+            die "always_rollback requested but snapshots are not supported by the backend\n";
+        }
         my $fullname = $t->{fullname};
 
         if (!$vmloaded && $fullname eq $firsttest) {
