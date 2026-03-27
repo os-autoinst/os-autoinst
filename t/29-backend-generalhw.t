@@ -20,6 +20,8 @@ use Mojo::File qw(tempdir tempfile);
 use Scalar::Util qw(blessed openhandle);
 use POSIX qw(waitpid WNOHANG);
 
+my ($isolation_guard, $dir) = setup_isolated_workdir();
+
 use bmwqemu;
 use backend::generalhw;
 use distribution;
@@ -225,7 +227,3 @@ subtest 'extracting assets' => sub {
 };
 
 done_testing();
-
-END {
-    unlink 'serial0';
-}
