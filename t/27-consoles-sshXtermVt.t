@@ -17,7 +17,7 @@ use OpenQA::Test::TimeLimit '10';
 
 $bmwqemu::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} = 1;
 
-plan skip_all => 'No network support found' unless getprotobyname('tcp');
+plan skip_all => 'No network support found' unless getprotobyname 'tcp';
 
 my $vnc_base_mock = Test::MockModule->new('consoles::vnc_base');
 my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');

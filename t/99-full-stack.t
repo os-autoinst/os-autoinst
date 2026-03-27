@@ -25,7 +25,7 @@ mkdir $pool_dir;
 note("data dir: $data_dir");
 note("pool dir: $pool_dir");
 
-chdir($pool_dir);
+chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $casedir = path($data_dir, 'tests');
@@ -52,7 +52,7 @@ path('vars.json')->spew(<<EOV);
 EOV
 # create screenshots
 path('live_log')->touch;
-system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt");
+system "cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt";
 my $log = path('autoinst-log.txt')->slurp;
 my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';
@@ -74,12 +74,12 @@ like $log, qr/save_tmp_file returned expected file/, 'save_tmp_file test';
 unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected termination';
 
 my $ignore_results_re = qr/fail/;
-for my $result (grep { $_ !~ $ignore_results_re } glob('testresults/result*.json')) {
+for my $result (grep { $_ !~ $ignore_results_re } glob 'testresults/result*.json') {
     my $json = decode_json(path($result)->slurp);
     is($json->{result}, 'ok', "Result in $result is ok");
 }
 
-for my $result (glob('testresults/result*fail*.json')) {
+for my $result (glob 'testresults/result*fail*.json') {
     my $json = decode_json(path($result)->slurp);
     is($json->{result}, 'fail', "Result in $result is fail");
 }

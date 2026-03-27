@@ -19,7 +19,7 @@ use Mojo::Base -base, -signatures;
 
 use Scalar::Util 'blessed';
 
-sub _push_ifdef ($self, $arr, $prefix, $val) { push(@$arr, $prefix . $val) if defined $val }
+sub _push_ifdef ($self, $arr, $prefix, $val) { push @$arr, $prefix . $val if defined $val }
 
 =head3 gen_cmdline
 

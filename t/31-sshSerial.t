@@ -45,7 +45,7 @@ $mock_backend->set_always(new_ssh_connection => $mock_ssh);
 $mock_bmwqemu->noop('diag', 'fctinfo', 'log_call');
 
 $mock_channel->mock(blocking => sub ($self, $arg = undef) {
-        $self->{blocking} = $arg if defined($arg);
+        $self->{blocking} = $arg if defined $arg;
         return $self->{blocking};
 });
 
@@ -54,7 +54,7 @@ $mock_channel->mock(read => sub {    # no:style:signatures
 
         my $data = shift @{$self->{read_queue}};
 
-        if (!defined($data)) {
+        if (!defined $data) {
             $mock_ssh->{error} = $eagain unless defined($mock_ssh->{error});
             return undef;
         }
@@ -62,15 +62,15 @@ $mock_channel->mock(read => sub {    # no:style:signatures
         if (length($data) > $size) {
             # uncoverable statement count:1
             # uncoverable statement count:2
-            unshift @{$self->{read_queue}}, substr($data, $size);
-            $data = substr($data, 0, $size);    # uncoverable statement
+            unshift @{$self->{read_queue}}, substr $data, $size;
+            $data = substr $data, 0, $size;    # uncoverable statement
         }
 
         # this is why we can't use a signature for this function,
         # assigning to @_ in a function with signature triggers a
         # warning
         $_[1] = $data;
-        return length($data);
+        return length $data;
 });
 
 $mock_channel->mock(write => sub ($self, $data) {
@@ -81,16 +81,16 @@ $mock_channel->mock(write => sub ($self, $data) {
             return undef;
         }
 
-        $data = substr($data, 0, $limit) if defined($limit);
+        $data = substr $data, 0, $limit if defined $limit;
         $self->{write_buffer} .= $data;
-        return length($data);
+        return length $data;
 });
 
 $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
-        return ${$self->{error}}[0] unless ((caller(0))[5]);
+        return ${$self->{error}}[0] unless ((caller 0)[5]);
         # uncoverable statement count:1
         # uncoverable statement count:2
         return @{$self->{error}};

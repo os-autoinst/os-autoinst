@@ -26,7 +26,7 @@ sub ipmitool ($self, $cmd, %args) {
     $args{tries} //= 1;
 
     my @cmd = $self->ipmi_cmdline();
-    push(@cmd, split(/ /, $cmd));
+    push @cmd, split / /, $cmd;
 
     my ($stdin, $stdout, $stderr, $ret);
     # Mitigate occasional failures of impitool due to self-tests/self-reboots of
@@ -63,7 +63,7 @@ sub restart_host ($self) {
     if ($stdout !~ m/is off/) {
         $self->ipmitool('chassis power off');
         for (0 .. $tries) {
-            sleep(3);
+            sleep 3;
             my $stdout = $self->ipmitool('chassis power status', tries => $tries);
             last if $stdout =~ m/is off/;
             $self->ipmitool('chassis power off');
@@ -72,7 +72,7 @@ sub restart_host ($self) {
 
     $self->ipmitool('chassis power on');
     for (0 .. $tries) {
-        sleep(3);
+        sleep 3;
         my $ret = $self->ipmitool('chassis power status', tries => $tries);
         last if $ret =~ m/is on/;
         $self->ipmitool('chassis power on');
@@ -151,7 +151,7 @@ sub do_mc_reset ($self) {
         my $ping_cmd = "ping -c$ping_count '$bmwqemu::vars{IPMI_HOSTNAME}'";
         my $ipmi_tries = $bmwqemu::vars{IPMI_MC_RESET_IPMI_TRIES} // 3;
         while ($count++ < $timeout) {
-            try { system($ping_cmd) }
+            try { system $ping_cmd }
             catch ($e) {
                 sleep 3;    # uncoverable statement
                 next;    # uncoverable statement

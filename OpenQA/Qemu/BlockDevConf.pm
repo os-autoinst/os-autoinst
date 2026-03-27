@@ -86,7 +86,7 @@ sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef, $secto
       ->model($model)
       ->num_queues($num_queues)
       ->sector_size($sector_size);
-    push(@{$self->_drives}, $dd);
+    push @{$self->_drives}, $dd;
 
     return $dd;
 }
@@ -148,7 +148,7 @@ sub add_pflash_drive ($self, $id, $file_name, $size) {
       ->id($id)
       ->drive($overlay);
 
-    push(@{$self->_drives}, $pflash);
+    push @{$self->_drives}, $pflash;
     return $pflash;
 }
 
@@ -163,7 +163,7 @@ sub add_path_to_drive ($self, $id, $drive, $controller) {
     my $dp = OpenQA::Qemu::DrivePath->new()
       ->controller($controller)
       ->id($id);
-    push(@{$drive->paths}, $dp);
+    push @{$drive->paths}, $dp;
 
     return $dp;
 }
@@ -200,7 +200,7 @@ sub revert_to_snapshot ($self, $drive, $snapshot) {
 
     my $snap = $drive->drive;
     while (defined $snap && !$snap->snapshot->equals($snapshot)) {
-        push(@del_files, $snap->file);
+        push @del_files, $snap->file;
         $snap = $snap->backing_file;
         $drive->drive($snap);
     }

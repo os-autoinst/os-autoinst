@@ -23,7 +23,7 @@ use cv;
 
 sub _cmp_similarity ($area, $expected_similarity) {
     my $similarity = delete $area->{similarity};
-    my $difference = abs($similarity - $expected_similarity);
+    my $difference = abs $similarity - $expected_similarity;
     cmp_ok $difference, '<', '0.01', 'similarity within tolerance'
       or always_explain "actual similarity: $similarity, expected similarity: $expected_similarity";
 }
@@ -466,7 +466,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
 
     subtest 'custom NEEDLES_DIR used when within working directory' => sub {
         note("using working directory $temp_working_dir");
-        chdir($temp_working_dir);
+        chdir $temp_working_dir;
         $bmwqemu::vars{NEEDLES_DIR} = $needles_dir;
         is(needle_init, $needles_dir, 'custom needle dir accepted');
 

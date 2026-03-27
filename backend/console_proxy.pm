@@ -14,7 +14,7 @@ use Mojo::Base -strict, -signatures;
 use feature 'say';
 
 sub new ($class, $console) {
-    my $self = bless({class => $class, console => $console}, $class);
+    my $self = bless {class => $class, console => $console}, $class;
     return $self;
 }
 

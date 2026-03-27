@@ -33,10 +33,10 @@ my $distri = Test::MockModule->new('distribution');
 $distri->redefine('add_console', sub ($self, $name, $type, $creds) {
         local $Test::Builder::Level = $Test::Builder::Level + 1;
 
-        if (defined($expected_console_name)) {
+        if (defined $expected_console_name) {
             die "Invalid console name '$name'. Expected '$expected_console_name'" unless $name eq $expected_console_name;
         }
-        if (defined($expected_console_type)) {
+        if (defined $expected_console_type) {
             die "Invalid console type '$type'. Expected '$expected_console_type'" unless $type eq $expected_console_type;
         }
         if (keys %expected_console_credentials) {
@@ -53,10 +53,10 @@ my $check_socket_fh_expected = undef;
 my $check_socket_write_expected = undef;
 my $mock_base = Test::MockModule->new('backend::baseclass', no_auto => 1);
 $mock_base->redefine('check_socket', sub ($self, $fh, $write) {
-        if (defined($check_socket_fh_expected)) {
+        if (defined $check_socket_fh_expected) {
             die "Invalid fh '$fh'. Expected '$fh'" unless $fh eq $check_socket_fh_expected;
         }
-        if (defined($check_socket_write_expected)) {
+        if (defined $check_socket_write_expected) {
             die "Invalid write '$write'. Expected '$check_socket_write_expected'" unless $write eq $check_socket_write_expected;
         }
         return $check_socket_ret;
@@ -71,7 +71,7 @@ my $mock_path = Test::MockObject->new();
 $mock_path->mock('make_path', sub ($self, %opts) { return $self; });
 $mock_path->mock('child', sub ($self, $child_name) { return $self; });
 $mock_path->mock('spew', sub ($self, $str) {
-        if (defined($expected_spew_str)) {
+        if (defined $expected_spew_str) {
             die "Invalid spew contents '$str', expected '$expected_spew_str'" unless $str eq $expected_spew_str;
         }
         return $self;
@@ -95,7 +95,7 @@ $mock_run->redefine('start', sub ($cmd, $stdin, $stdout, $stderr, $timeout = und
         $$stderr = (@$run_stderr_to_write > 0) ? pop(@$run_stderr_to_write) : '';
 
         if (@$run_expect_cmd > 0) {
-            my $next_expected_cmd = pop(@$run_expect_cmd);
+            my $next_expected_cmd = pop @$run_expect_cmd;
             is_deeply($cmd, $next_expected_cmd);
         }
         return $mock_handle;
@@ -235,7 +235,7 @@ END
     $backend_vars->{ASSETDIR} = undef;
     $backend_vars->{VAGRANT_BOX} = 'foobar';
 
-    unlink($box_file) or die $!;
+    unlink $box_file or die $!;
 };
 
 subtest 'dies on invalid providers' => sub {

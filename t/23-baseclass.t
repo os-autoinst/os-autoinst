@@ -140,7 +140,7 @@ subtest 'SSH utilities' => sub {
             });
             $self->mock(blocking => sub {
                     my ($self, $v) = @_;
-                    $self->{blocking} = $v if defined($v);
+                    $self->{blocking} = $v if defined $v;
                     return $self->{blocking};
             });
             $self->mock(disconnect => sub {
@@ -159,7 +159,7 @@ subtest 'SSH utilities' => sub {
             });
             $self->mock(channel => sub {
                     my $self = shift;
-                    die('Not connected') unless ($self->{connected});
+                    die 'Not connected' unless ($self->{connected});
                     return $fail_on_channel_call = undef if $fail_on_channel_call;
                     my $mock_channel = Test::MockObject->new();
                     $mock_channel->{ssh} = $self;
@@ -278,12 +278,12 @@ subtest 'SSH utilities' => sub {
     $ssh_expect->{password} = '2+3=5';
     is($baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5'), 0, 'Allow SSH credentials per run_ssh_cmd() call');
 
-    my $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
+    my $num_ssh_connect = scalar keys %{$ssh_obj_data};
     $baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5', keep_open => 0);
-    is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
+    is($num_ssh_connect + 1, scalar keys %{$ssh_obj_data}, 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
 
-    my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
-    my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
+    my @connected_ssh = grep { $_->{connected} } values %$ssh_obj_data;
+    my @disconnected_ssh = grep { !$_->{connected} } values %$ssh_obj_data;
 
     is(scalar(@connected_ssh), 8, 'Expect 8 connected SSH connections');
     is($ssh1->{connected}, 1, 'SSH connection ssh1 connected');
@@ -299,7 +299,7 @@ subtest 'SSH utilities' => sub {
     # +1 run_ssh_cmd(keep_open => 0)
 
     $baseclass->close_ssh_connections();
-    @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
+    @connected_ssh = grep { $_->{connected} } values %$ssh_obj_data;
     is scalar @connected_ssh, 5, 'Expect 5 connected SSH connections (ssh1, ssh2 and ssh9)';
     is($ssh1->{connected}, 1, 'SSH connection ssh1 connected');
     is($ssh2->{connected}, 1, 'SSH connection ssh2 connected');
@@ -312,9 +312,9 @@ subtest 'SSH utilities' => sub {
         $baseclass->{select_read} = IO::Select->new;
 
         $ssh_expect = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
-        $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
+        $num_ssh_connect = scalar keys %{$ssh_obj_data};
         my ($ssh, $chan) = $baseclass->start_ssh_serial(username => 'serial', password => 'XXX', hostname => 'serial.host');
-        is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure start_ssh_serial() uses a new SSH connection');
+        is($num_ssh_connect + 1, scalar keys %{$ssh_obj_data}, 'Ensure start_ssh_serial() uses a new SSH connection');
         is($chan->{ext_data}, 'merge', 'STDOUT and STDERR are merged');
         is($ssh->blocking(), 0, 'We run SSH in none blocking mode');
 
@@ -323,11 +323,11 @@ subtest 'SSH utilities' => sub {
         my $channel_read_string = $expect_output;
         $chan->mock(read => sub {
                 my ($self, undef, $max) = @_;
-                return unless (defined($channel_read_string));
+                return unless (defined $channel_read_string);
                 $max //= backend::baseclass::SSH_SERIAL_READ_BUFFER_SIZE;
-                $_[1] = substr($channel_read_string, 0, $max);
-                my $ret = length($_[1]);
-                $channel_read_string = substr($channel_read_string, $ret);
+                $_[1] = substr $channel_read_string, 0, $max;
+                my $ret = length $_[1];
+                $channel_read_string = substr $channel_read_string, $ret;
                 return $ret;
         });
         my $exit_value;
@@ -746,7 +746,7 @@ subtest 'adjusting pipe size for external video encoder ' => sub {
     my @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started';
     my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
-    my $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
+    my $pipe_sz = fcntl $launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0;
     subtest 'pipe size set' => sub {
         ok $pipe_sz >= 640 * 480 * 3, 'pipe size set';
     } or always_explain $pipe_sz;
@@ -761,7 +761,7 @@ subtest 'adjusting pipe size for external video encoder ' => sub {
     @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started';
     $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
-    $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
+    $pipe_sz = fcntl $launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0;
     subtest 'pipe size not set' => sub {
         ok $pipe_sz < 3840 * 2160 * 3, 'pipe size not set';
     } or always_explain $pipe_sz;

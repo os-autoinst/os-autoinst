@@ -119,7 +119,7 @@ Create a media fragment time from a given framenumber
 =cut
 
 sub _framenumber_to_timerange ($frame) {
-    return defined($frame) ? [sprintf('%.2f', $frame / 24.0), sprintf('%.2f', ($frame + 1) / 24.0)] : undef;
+    return defined($frame) ? [sprintf('%.2f', $frame / 24.0), sprintf '%.2f', ($frame + 1) / 24.0] : undef;
 }
 
 sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $frame = undef) {
@@ -160,7 +160,7 @@ sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $
     }
     $result->{needles} = $candidates if $candidates;
 
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    my $fn = join '/', bmwqemu::result_dir(), $result->{screenshot};
     $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
@@ -217,7 +217,7 @@ sub record_screenfail ($self, %args) {
     $result->{needles} = \@candidates if @candidates;
     $result->{tags} = [@$tags] if $tags;    # make a copy
 
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    my $fn = join '/', bmwqemu::result_dir(), $result->{screenshot};
     $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
@@ -270,7 +270,7 @@ sub skip_if_not_running ($self) {
 
 sub timeout_screenshot ($self) {
     my $n = ++$self->{timeoutcounter};
-    $self->take_screenshot(sprintf('timeout-%02i', $n));
+    $self->take_screenshot(sprintf 'timeout-%02i', $n);
 }
 
 sub pre_run_hook ($self) {
@@ -310,7 +310,7 @@ sub execution_time ($now) { time - $now }
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
     $self->{execution_time} = execution_time($self->{test_start_time});
-    bmwqemu::modstate(sprintf('finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time}));
+    bmwqemu::modstate(sprintf 'finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time});
 }
 
 sub runtest ($self) {
@@ -384,7 +384,7 @@ sub save_test_result ($self) {
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 
     # be aware that $name has to be unique within one job (also assumed in several other places)
-    my $fn = bmwqemu::result_dir() . sprintf('/result-%s.json', $self->{name});
+    my $fn = bmwqemu::result_dir() . sprintf '/result-%s.json', $self->{name};
     bmwqemu::save_json_file($result, $fn);
     return $result;
 }
@@ -492,7 +492,7 @@ sub record_testresult ($self, $result = undef, %args) {
     # add detail
     $self->_increment_test_count;
     my $detail = {result => $result};
-    push(@{$self->{details}}, $detail);
+    push @{$self->{details}}, $detail;
     return $detail;
 }
 
@@ -511,7 +511,7 @@ sub _result_add_screenshot ($self, $result) {
     return $result unless $img;
 
     my $file_name = $self->next_resultname('png', undef, 0);
-    $img->write_with_thumbnail(join('/', bmwqemu::result_dir(), $file_name));
+    $img->write_with_thumbnail(join '/', bmwqemu::result_dir(), $file_name);
 
     $result->{screenshot} = $file_name;
     $result->{frametime} = _framenumber_to_timerange($rsp->{frame});
@@ -537,7 +537,7 @@ sub take_screenshot ($self, $res = undef) {
 
 sub capture_filename ($self) {
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
-    my $fn = sprintf('%s-%03d-captured.wav', $self->{name}, ++$self->{recording_number});
+    my $fn = sprintf '%s-%03d-captured.wav', $self->{name}, ++$self->{recording_number};
     $self->{wav_fn} = $fn;
     return $fn;
 }
@@ -565,10 +565,10 @@ sub verify_sound_image ($self, $imgpath, $mustmatch, $check) {
         my $foundneedle = $rsp->{found};
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf('found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        bmwqemu::fctres(sprintf 'found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y});
         return $foundneedle;
     }
-    bmwqemu::fctres(sprintf('failed to find %s', $mustmatch));
+    bmwqemu::fctres(sprintf 'failed to find %s', $mustmatch);
     my @needles_params = (img => $img, needles => $rsp->{candidates}, tags => [$mustmatch]);
     if ($check) {
         $self->record_screenfail(@needles_params, result => 'unk');
@@ -600,7 +600,7 @@ sub parse_serial_output_qemu ($self) {
     my $die = 0;
     my %regexp_matched;
     # loop line by line
-    for my $line (split(/^/, $serial)) {
+    for my $line (split /^/, $serial) {
         chomp $line;
         for my $regexp_table (@{$failures}) {
             my $regexp = $regexp_table->{pattern};

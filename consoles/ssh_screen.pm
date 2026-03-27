@@ -20,7 +20,7 @@ sub new ($class, @args) {
     croak('Missing parameter ssh_channel') unless $self->ssh_channel;
 
     if ($self->{logfile}) {
-        open($self->{loghandle}, '>>', $self->{logfile})
+        open $self->{loghandle}, '>>', $self->{logfile}
           or croak('Cannot open logfile ' . $self->{logfile});
     }
 
@@ -38,7 +38,7 @@ sub do_read {    # no:style:signatures
     my $stime = consoles::serial_screen::thetime();
     while (!$args{timeout} || (consoles::serial_screen::elapsed($stime) < $args{timeout})) {
         my $read = $self->ssh_channel->read($buffer, $args{max_size});
-        if (defined($read)) {
+        if (defined $read) {
             # this is why we can't use a signature for this function,
             # assigning to @_ in a function with signature triggers a
             # warning
@@ -52,7 +52,7 @@ sub do_read {    # no:style:signatures
           unless $error_seen{$errcode}++;
 
         last if ($args{timeout} == 0);
-        select(undef, undef, undef, 0.25);
+        select undef, undef, undef, 0.25;
     }
     return undef;
 }
@@ -67,25 +67,25 @@ sub type_string ($self, $nargs) {
 
     $text .= "\cC" if ($terminate_with eq 'ETX');
 
-    while ($written < length($text)) {
+    while ($written < length $text) {
         my $elapsed = consoles::serial_screen::elapsed($stime);
 
-        croak((caller(0))[3] . ": Timed out after $elapsed seconds.")
+        croak((caller 0)[3] . ": Timed out after $elapsed seconds.")
           if ($elapsed > TYPE_STRING_TIMEOUT);
 
-        my $chunk = $self->ssh_channel->write(substr($text, $written));
+        my $chunk = $self->ssh_channel->write(substr $text, $written);
 
-        if (!defined($chunk)) {
+        if (!defined $chunk) {
             my ($errcode, $errname, $errstr) = $self->ssh_connection->error;
 
             croak "Lost SSH connection to SUT: $errcode $errstr"
               if $errcode != LIBSSH2_ERROR_EAGAIN;
-            select(undef, undef, undef, 0.1);
+            select undef, undef, undef, 0.1;
         } elsif ($chunk < 0) {
             # Old Net::SSH2 error signaling
             croak "Lost SSH connection to SUT: $chunk"
               if $chunk != LIBSSH2_ERROR_EAGAIN;
-            select(undef, undef, undef, 0.1);
+            select undef, undef, undef, 0.1;
         } else {
             $written += $chunk;
         }

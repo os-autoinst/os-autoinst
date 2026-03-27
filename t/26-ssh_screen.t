@@ -38,7 +38,7 @@ subtest 'test old net ssh2 error handling' => sub {
         'write',
         sub {
             return LIBSSH2_ERROR_EAGAIN if $mock_write_attempts++ < 3;
-            return length($_[1]);
+            return length $_[1];
         }
     );
 

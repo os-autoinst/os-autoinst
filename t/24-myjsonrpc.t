@@ -18,7 +18,7 @@ no warnings 'redefine';
 sub bmwqemu::diag ($msg) { warn $msg }
 
 my ($child, $isotovideo);
-socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC);
+socketpair $child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC;
 
 $child->autoflush(1);
 $isotovideo->autoflush(1);

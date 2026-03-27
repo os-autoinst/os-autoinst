@@ -120,18 +120,18 @@ sub gen_cmdline ($self) {
     # The first blockdev defines the data store, we only use files, but in
     # theory it could be a http address, ISCSI or a link to an object store
     # item (like Ceph).
-    push(@cmdl, ('-blockdev',
-            join(',', ('driver=file',
-                    'node-name=' . $self->node_name . FILE_POSTFIX,
-                    'filename=' . $self->file,
-                    'cache.no-flush=on'))));
+    push @cmdl, ('-blockdev',
+        join ',', ('driver=file',
+            'node-name=' . $self->node_name . FILE_POSTFIX,
+            'filename=' . $self->file,
+            'cache.no-flush=on'));
     # The second blockdev tells QEMU what format we are using i.e. qcow2.
-    push(@cmdl, ('-blockdev',
-            join(',', ('driver=' . $self->driver,
-                    'node-name=' . $self->node_name,
-                    'file=' . $self->node_name . FILE_POSTFIX,
-                    'cache.no-flush=on',
-                    'discard=unmap'))));
+    push @cmdl, ('-blockdev',
+        join ',', ('driver=' . $self->driver,
+            'node-name=' . $self->node_name,
+            'file=' . $self->node_name . FILE_POSTFIX,
+            'cache.no-flush=on',
+            'discard=unmap'));
 
     return @cmdl;
 }
@@ -151,10 +151,10 @@ sub gen_qemu_img_cmdlines ($self) {
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
-    push(@params, '-F', $backing_file->driver, '-b', $backing_file->file)
+    push @params, '-F', $backing_file->driver, '-b', $backing_file->file
       if defined $backing_file;
-    push(@params, $self->file);
-    push(@params, $self->size);
+    push @params, $self->file;
+    push @params, $self->size;
 
     return (@cmdlns, \@params);
 }

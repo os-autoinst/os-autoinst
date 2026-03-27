@@ -47,7 +47,7 @@ my @fake_extra_responses;
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail (@) { }
 
-sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
+sub fake_send_json ($to_fd, $cmd) { push @$cmds, $cmd }
 
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -438,7 +438,7 @@ subtest 'check_assert_screen' => sub {
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
-    $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless({} => __PACKAGE__); });
+    $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless {} => __PACKAGE__ });
 
     throws_ok { assert_screen('') } qr/no tags specified/, 'error if tag(s) is falsy scalar';
     throws_ok { assert_screen([]) } qr/no tags specified/, 'error if tag(s) is empty array';
@@ -713,7 +713,7 @@ subtest 'assert_and_click' => sub {
     ], 'assert_and_click succeeds and move to old mouse set') or always_explain $cmds;
 
     $cmds = [];
-    push(@areas, {x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7}});
+    push @areas, {x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7}};
     ok(assert_and_click('foo'));
     is_deeply($cmds->[1], {
             cmd => 'backend_mouse_set',
@@ -1229,7 +1229,7 @@ subtest 'send_key_until_needlematch' => sub {
     $mock_testapi->redefine(assert_screen => sub { die 'assert_screen reached' });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
-    $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless({} => __PACKAGE__); });
+    $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless {} => __PACKAGE__ });
 
     # Check immediate needle match
     $fake_needle_found = 1;

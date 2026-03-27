@@ -94,7 +94,7 @@ sub type_string ($self, $nargs) {
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
     croak "Error writing to virtio/svirt serial terminal: $ERRNO" unless defined $written;
-    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length($text);
+    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length $text;
 }
 
 sub thetime () { clock_gettime(CLOCK_MONOTONIC) }
@@ -150,8 +150,8 @@ sub do_read {    # no:style:signatures
     return undef if $nfound == 0;
 
     my $read;
-    while (!defined($read)) {
-        $read = sysread($fd, $buffer, $args{max_size});
+    while (!defined $read) {
+        $read = sysread $fd, $buffer, $args{max_size};
         croak "Failed to read from virtio/svirt serial console char device: $ERRNO" if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
     }
     # this is why we can't use a signature for this function,
@@ -217,11 +217,11 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
         # Search ring buffer for a match and exit if we find it
         if ($nargs{no_regex}) {
             for my $p (@$re) {
-                my $i = index($rbuf, $p);
+                my $i = index $rbuf, $p;
                 if ($i >= 0) {
-                    $match = substr $rbuf, $i, length($p);
+                    $match = substr $rbuf, $i, length $p;
                     $prematch = substr $rbuf, 0, $i;
-                    $self->{carry_buffer} = substr $rbuf, $i + length($p);
+                    $self->{carry_buffer} = substr $rbuf, $i + length $p;
                     last READ;
                 }
             }
@@ -240,14 +240,14 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
         }
 
         my $read = $self->do_read($buf, max_size => $buflen / 2, timeout => remaining($sttime, $timeout));
-        next READ unless (defined($read));
+        next READ unless (defined $read);
 
         # If there is not enough free space in the ring buffer; remove an amount
         # equal to the bytes just read minus the free space in $rbuf from the
         # beginning. If we are recording all output, add the removed bytes to
         # $overflow.
         if (length($rbuf) + $read > $buflen) {
-            my $remove_len = $read - ($buflen - length($rbuf));
+            my $remove_len = $read - ($buflen - length $rbuf);
             $overflow .= substr $rbuf, 0, $remove_len if defined $overflow;
             $rbuf = substr $rbuf, $remove_len;
         }
@@ -280,7 +280,7 @@ sub peak ($self, %nargs) {
 
     bmwqemu::log_call(%nargs);
   LOOP: {
-        $read = sysread($self->{fd_read}, $buf, $buflen);
+        $read = sysread $self->{fd_read}, $buf, $buflen;
         last LOOP unless defined $read;
 
         $self->{carry_buffer} .= $buf;

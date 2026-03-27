@@ -19,15 +19,15 @@ sub init () {
     # undef is substituted at install time, see CMakeLists.txt
     my $sysdir = undef;
     return if ($sysdir && $libdir eq $sysdir);
-    my @s = stat("$libdir/ppmclibs/blib/lib/tinycv.pm");
-    unless (@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat(_))[7]) {
+    my @s = stat "$libdir/ppmclibs/blib/lib/tinycv.pm";
+    unless (@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat _)[7]) {
         $| = 1;    # uncoverable statement
         print STDERR "### Please build the tinycv bindings first (see os-autoinst's README)\n";    # uncoverable statement
-        die('tinycv outdated');    # uncoverable statement
+        die 'tinycv outdated';    # uncoverable statement
     }
 
-    unshift(@INC, "$libdir/ppmclibs/blib/arch");
-    unshift(@INC, "$libdir/ppmclibs/blib/lib");
+    unshift @INC, "$libdir/ppmclibs/blib/arch";
+    unshift @INC, "$libdir/ppmclibs/blib/lib";
 }
 
 1;

@@ -89,7 +89,7 @@ sub gen_cmdline ($self) {
 
     # First create params which tell QEMU where the drive content is and what
     # format it is using
-    push(@cmdln, $self->drive->gen_cmdline());
+    push @cmdln, $self->drive->gen_cmdline();
 
     # Then tell QEMU how to emulate the drive device
     for my $path (@$paths) {
@@ -97,17 +97,17 @@ sub gen_cmdline ($self) {
             'id=' . $self->_gen_node_name($pathn, $path->id),
             'drive=' . $self->drive->node_name);
 
-        push(@params, 'share-rw=true') if $pathn > 1;
+        push @params, 'share-rw=true' if $pathn > 1;
 
         if (defined $path->controller) {
-            push(@params, 'bus=' . $path->controller->id . '.0');
+            push @params, 'bus=' . $path->controller->id . '.0';
         }
         # Configure bootindex only for first path
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
         $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if (($self->num_queues // -1) != -1);
-        push(@params, 'logical_block_size=' . $self->sector_size . ',physical_block_size=' . $self->sector_size) if $self->sector_size;
-        push(@cmdln, ('-device', join(',', @params)));
+        push @params, 'logical_block_size=' . $self->sector_size . ',physical_block_size=' . $self->sector_size if $self->sector_size;
+        push @cmdln, ('-device', join ',', @params);
     }
 
     return @cmdln;
@@ -142,7 +142,7 @@ sub _to_map ($self) {
     my @paths = map { $_->_to_map() } @{$self->paths};
 
     $self->for_each_overlay(sub ($ol) {
-            push(@overlays, $ol->_to_map());
+            push @overlays, $ol->_to_map();
     });
 
     return {drives => \@overlays,

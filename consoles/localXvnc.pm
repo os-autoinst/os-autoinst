@@ -32,15 +32,15 @@ sub callxterm ($self, $command, $window_name) {
     $command = "TERM=xterm $command";
     my $xterm_vt_cmd = which 'xterm-console';
     die q{Missing 'xterm-console'} unless $xterm_vt_cmd;
-    die('Missing "Xvnc"') unless which 'Xvnc';
-    die('Missing "icewm"') unless which 'icewm';
-    die('Missing "xterm"') unless which 'xterm';
+    die 'Missing "Xvnc"' unless which 'Xvnc';
+    die 'Missing "icewm"' unless which 'icewm';
+    die 'Missing "xterm"' unless which 'xterm';
     if ($self->{args}->{log}) {
         mkpath 'ulogs';
         $command = qq{script -af ulogs/hardware-console-log.txt -c "$command"};
     }
-    my $pid = fork();
-    exec("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command'")    # uncoverable statement
+    my $pid = fork;
+    exec "DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command'"    # uncoverable statement
       unless $pid;
     bmwqemu::diag("Xterm PID: $pid");
     return $pid;
@@ -58,8 +58,8 @@ sub fullscreen ($self, $args) {
     $window_id =~ s/\D//g;
 
     # resize and move window to fit in icewm
-    system("DISPLAY=$display $xdotool windowsize $window_id 100% 100%");
-    system("DISPLAY=$display $xdotool windowmove $window_id 0 0");
+    system "DISPLAY=$display $xdotool windowsize $window_id 100% 100%";
+    system "DISPLAY=$display $xdotool windowmove $window_id 0 0";
 }
 
 # uncoverable statement count:1
@@ -67,30 +67,30 @@ sub fullscreen ($self, $args) {
 # uncoverable statement count:3
 # uncoverable statement count:4
 sub start_xvnc ($s, $display) {
-    listen($s, 1);    # uncoverable statement
+    listen $s, 1;    # uncoverable statement
     my $peer;    # uncoverable statement
-    accept($peer, $s);    # uncoverable statement
-    close($s);    # uncoverable statement
-    open(STDIN, '<&', $peer);    # uncoverable statement
-    open(STDOUT, '>&', $peer);    # uncoverable statement
-    close($peer);    # uncoverable statement
-    exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");    # uncoverable statement
+    accept $peer, $s;    # uncoverable statement
+    close $s;    # uncoverable statement
+    open STDIN, '<&', $peer;    # uncoverable statement
+    open STDOUT, '>&', $peer;    # uncoverable statement
+    close $peer;    # uncoverable statement
+    exec "Xvnc -depth 16 -inetd -SecurityTypes None -ac $display";    # uncoverable statement
 }
 
 sub activate ($self) {
     # start Xvnc on a random high port and use that port also as $DISPLAY
 
-    my $tcpproto = getprotobyname('tcp');
+    my $tcpproto = getprotobyname 'tcp';
     my $s;
     socket($s, PF_INET, SOCK_STREAM, $tcpproto) || die "socket: $!\n";
-    bind($s, sockaddr_in(0, INADDR_ANY));
-    my ($port) = sockaddr_in(getsockname($s));
+    bind $s, sockaddr_in(0, INADDR_ANY);
+    my ($port) = sockaddr_in(getsockname $s);
 
     my $display = ":$port";
-    my $pid = fork();
+    my $pid = fork;
     die unless defined $pid;
     start_xvnc($s, $display) unless $pid;
-    close($s);
+    close $s;
 
     my $vnc = $self->connect_remote({hostname => 'localhost', port => $port, ikvm => 0, description => 'local Xvnc'});
     # disable checking VNC stalls as this setup would not survive re-connects triggered by the VNC stall
@@ -103,7 +103,7 @@ sub activate ($self) {
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    system(qq{DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo "icewm PID is \$!"});
+    system qq{DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo "icewm PID is \$!"};
     return;
 }
 
