@@ -214,8 +214,8 @@ sub stop_serial_grab ($self, @) {
         }
         if (defined $r && $r == 0) {
             # Still alive, use KILL
-            kill -KILL => $pid;
-            do { $r = CORE::waitpid($pid, 0) } while ($r == -1 && $!{EINTR});
+            kill -KILL => $pid;    # uncoverable statement
+            do { $r = CORE::waitpid($pid, 0) } while ($r == -1 && $!{EINTR});    # uncoverable statement
         }
         return $r // -1;
     }
