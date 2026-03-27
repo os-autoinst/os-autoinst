@@ -30,6 +30,8 @@ jobs:
           path: coverage.tar
           retention-days: 15
   static-check-containers:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
