@@ -9,7 +9,17 @@ use Test::Warnings;
 use Mojo::Log;
 use Mojo::IOLoop::Server;
 
+my $mock_exit = 0;
+my $exit_val;
+
 BEGIN {
+    *CORE::GLOBAL::exit = sub ($code = 0) {
+        if ($mock_exit) {
+            $exit_val = $code;
+        } else {
+            CORE::exit($code);
+        }
+    };
     require OpenQA::Isotovideo::Dewebsockify;
 }
 
@@ -27,6 +37,7 @@ my $mock_log = Test::MockModule->new('Mojo::Log');
 $mock_log->redefine(info => sub ($self, $msg) { push @log_messages, $msg });
 $mock_log->redefine(error => sub ($self, $msg) { push @log_messages, $msg });
 $mock_log->redefine(trace => sub ($self, $msg) { push @log_messages, $msg });
+$mock_log->redefine(debug => sub ($self, $msg) { push @log_messages, $msg });
 
 my $mock_server = Test::MockModule->new('Mojo::IOLoop::Server');
 $mock_server->redefine(
@@ -220,6 +231,22 @@ subtest 'Client connection error' => sub {
     $stream_error_cb->('dummy_stream', 'Something went wrong') if $stream_error_cb;
     ok + (grep { /Client error: Something went wrong/ } @log_messages),
       'Client error was logged';
+};
+
+subtest 'SIGTERM handling' => sub {
+    reset_log_messages();
+    my $mock_server_start = Test::MockModule->new('Mojo::IOLoop::Server');
+    $mock_server_start->redefine(
+        start => sub {
+            $mock_exit = 1;
+            kill 'TERM', $$;
+            $mock_exit = 0;
+        }
+    );
+    start_dewebsockify();
+    is $exit_val, 0, 'exited with 0';
+    ok + (grep { /Received SIGTERM, exiting gracefully/ } @log_messages),
+      'SIGTERM handling logged';
 };
 
 done_testing();

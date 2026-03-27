@@ -69,6 +69,11 @@ sub main ($args) {
     my $cookie = $args->{cookie} // undef;
     my $log = Mojo::Log->new(level => $args->{loglevel} // 'info');
 
+    local $SIG{TERM} = sub {
+        $log->debug('Received SIGTERM, exiting gracefully');
+        exit 0;
+    };
+
     $log->debug("websocket url: $ws_url");
     $log->debug("listen port: $port");
     $log->debug('cookie: ' . $cookie) if $cookie;
