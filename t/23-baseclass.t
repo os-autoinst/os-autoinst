@@ -3,8 +3,9 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin qw($Bin $Script);
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
@@ -15,7 +16,7 @@ use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
 use POSIX qw(tzset pause _exit);
-use Mojo::File qw(tempdir path);
+use Mojo::File qw(path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
 use bmwqemu ();
@@ -25,9 +26,7 @@ use log();
 cv::init;
 require tinycv;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir 'testresults';
 
 # make the test time-zone neutral
@@ -742,13 +741,21 @@ subtest 'adjusting pipe size for external video encoder ' => sub {
     $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
     $bmwqemu::vars{XRES} = '640';
     $bmwqemu::vars{YRES} = '480';
-    stderr_like { ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started' } qr{Launching external video encoder}, 'message logged';
+    my $out = combined_from {
+        ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    };
+    like $out, qr{Launching external video encoder}, 'message logged';
     my @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started';
     my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
     my $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
     subtest 'pipe size set' => sub {
-        ok $pipe_sz >= 640 * 480 * 3, 'pipe size set';
+        if ($out =~ /Operation not permitted/) {
+            pass 'pipe size not set because of system limit (Operation not permitted)';    # uncoverable statement
+        }
+        else {
+            ok $pipe_sz >= 640 * 480 * 3, 'pipe size set';
+        }
     } or always_explain $pipe_sz;
 
     # now a bigger size to trigger a warning

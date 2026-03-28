@@ -7,26 +7,21 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '300';
 use Test::Warnings ':report_warnings';
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
-use Mojo::File qw(path tempdir);
-use Mojo::Util qw(scope_guard);
+use Mojo::File qw(path);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data/";
 my $pool_dir = "$dir/pool/";
 mkdir $pool_dir;
-
-note("data dir: $data_dir");
-note("pool dir: $pool_dir");
-
-chdir($pool_dir);
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+chdir $pool_dir;
 
 my $casedir = path($data_dir, 'tests');
 path('vars.json')->spew(<<EOV);
@@ -47,12 +42,25 @@ path('vars.json')->spew(<<EOV);
    "VNC_CONNECT_TIMEOUT_LOCAL" : "0.001",
    "VNC_CONNECT_TIMEOUT_REMOTE" : "0.001",
    "NAME" : "00001-1-i386@32bit",
-   "TEST_NON_STRICT_MODULE": "1",
+   "TEST_NON_STRICT_MODULE": "1"
 }
 EOV
+
+use Mojo::IOLoop::Server;
+
+my $vnc_port;
+for (1 .. 50) {
+    my $port = Mojo::IOLoop::Server->generate_port;
+    if ($port >= 5900 && $port <= 65535) {
+        $vnc_port = $port - 5900;
+        last;
+    }
+}
+die 'Could not find a valid free VNC port' unless defined $vnc_port;
+my $qemu_port = Mojo::IOLoop::Server->generate_port;
 # create screenshots
 path('live_log')->touch;
-system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt");
+system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d vnc=$vnc_port qemuport=$qemu_port 2>&1 | tee $pool_dir/autoinst-log.txt");
 my $log = path('autoinst-log.txt')->slurp;
 my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';

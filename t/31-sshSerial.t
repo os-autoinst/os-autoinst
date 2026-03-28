@@ -3,7 +3,8 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '10';
 use Test::MockObject;
 use Test::MockModule;
@@ -12,6 +13,8 @@ use Test::Output;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 use consoles::sshSerial;
+
+my $isolation_guard = setup_isolated_workdir();
 
 my $eagain = [
     LIBSSH2_ERROR_EAGAIN,
