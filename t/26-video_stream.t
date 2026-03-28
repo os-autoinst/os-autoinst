@@ -173,13 +173,13 @@ subtest 'frames parsing' => sub {
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     $mock_video_source = $data_dir . 'frame1.ppm';
     $console->activate;
+    $img = tinycv::read($data_dir . 'frame1.png');
     for (1 .. 100) {
         $received_img = $console->current_screen();
-        last if $received_img;
-        select undef, undef, undef, 0.1;  # uncoverable statement
+        last if $received_img && $received_img->similarity($img) == 1_000_000;
+        select undef, undef, undef, 0.1;    # uncoverable statement
     }
 
-    $img = tinycv::read($data_dir . 'frame1.png');
     ok $received_img, 'current screen available to read for single frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
@@ -191,8 +191,8 @@ subtest 'frames parsing' => sub {
     $img = tinycv::read($data_dir . 'frame2.png');
     for (1 .. 100) {
         $received_img = $console->current_screen();
-        last if $received_img;
-        select undef, undef, undef, 0.1;  # uncoverable statement
+        last if $received_img && $received_img->similarity($img) == 1_000_000;
+        select undef, undef, undef, 0.1;    # uncoverable statement
     }
     ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
