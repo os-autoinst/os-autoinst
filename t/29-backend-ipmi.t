@@ -4,7 +4,8 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use Test::MockModule;
@@ -12,6 +13,8 @@ use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use POSIX qw(waitpid _exit);
+
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 BEGIN { *backend::ipmi::system = sub { 1 } }
 BEGIN { *consoles::localXvnc::system = sub { 0 } }
@@ -122,6 +125,3 @@ subtest 'sol reconnect' => sub {
 
 done_testing;
 
-END {
-    unlink 'serial0';
-}
