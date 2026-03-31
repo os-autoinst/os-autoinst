@@ -369,6 +369,7 @@ sub set_current_test ($test) {
           {
             name => $current_test->{name},
             full_name => $current_test->{fullname},
+            attempt => $current_test->{attempt} // 0,
           }
         : {});
 }
@@ -551,17 +552,39 @@ sub runalltests () {
         }
 
         my $name = $t->{name};
-        bmwqemu::modstate "starting $name $t->{script}";
-        $t->start();
-
-        # avoid erasing the good vm snapshot
-        if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
-            make_snapshot($t->{fullname});
-        }
-
+        my $retry_count = $flags->{retry} // 0;
+        my $attempt = 0;
         my $error;
-        try { $t->runtest }
-        catch ($e) { $error = $e }
+
+        while (1) {
+            $t->{attempt} = $attempt;
+            bmwqemu::modstate "starting $name $t->{script}" . ($attempt ? " (retry $attempt/$retry_count)" : '');
+            $t->start();
+
+            # avoid erasing the good vm snapshot
+            if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+                make_snapshot($t->{fullname});
+            }
+
+            $error = undef;
+            try { $t->runtest }
+            catch ($e) { $error = $e }
+
+            last unless $error;
+            last if $attempt >= $retry_count;
+            last if !$snapshots_supported || !$last_milestone || $flags->{no_rollback};
+            last if $bmwqemu::vars{TESTDEBUG};
+
+            $attempt++;
+            bmwqemu::diag "Retrying $name after failure (attempt $attempt/$retry_count)";
+            load_snapshot('lastgood');
+            rollback_activated_consoles();
+
+            # Reset test object state for retry
+            $t->{result} = undef;
+            $t->{fatal_failure} = 0;
+            delete $t->{_result_forced};
+        }
         $t->save_test_result();
         my $next_test = $testorder[$testindex + 1];
 
