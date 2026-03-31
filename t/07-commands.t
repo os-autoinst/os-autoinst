@@ -8,7 +8,8 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Mojo::Base -signatures;
 use File::Find;
@@ -29,11 +30,14 @@ use File::Which;
 use Data::Dumper;
 use POSIX '_exit';
 
+my $toplevel_dir = path($Bin);
+my $data_dir = $toplevel_dir->child('data');
+
+my $isolation_guard = setup_isolated_workdir();
+
 our $mojoport = Mojo::IOLoop::Server->generate_port;
 my $base_url = "http://localhost:$mojoport";
 my $job = 'Hallo';
-my $toplevel_dir = path(__FILE__)->dirname->realpath;
-my $data_dir = $toplevel_dir->child('data');
 
 my $pool_directory = tempdir('10-terminal-poolXXXXX', TMPDIR => 1);
 use File::Copy;
