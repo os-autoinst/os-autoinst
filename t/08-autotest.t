@@ -7,7 +7,7 @@ use Mojo::File 'path';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '30';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;

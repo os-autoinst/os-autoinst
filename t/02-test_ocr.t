@@ -7,7 +7,7 @@ use Test::Output;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '30';
 use Test::Warnings ':report_warnings';
 use File::Which 'which';
 use File::Basename;

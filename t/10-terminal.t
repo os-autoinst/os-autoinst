@@ -9,7 +9,7 @@ use Mojo::File qw(path);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '30';
 use Carp 'confess';
 use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);

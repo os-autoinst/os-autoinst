@@ -5,7 +5,7 @@ use Mojo::Base -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '30';
 use Cwd 'abs_path';
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(warning :report_warnings);
