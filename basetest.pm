@@ -50,6 +50,7 @@ sub new ($class, $category = undef) {
     $self->{running} = 0;
     $self->{category} = $category;
     $self->{test_count} = 0;
+    $self->{attempt} = 0;
     $self->{screen_count} = 0;
     $self->{wav_fn} = undef;
     $self->{recording_number} = 0;
@@ -289,7 +290,7 @@ sub post_run_hook ($self) {
 
 sub run_post_fail ($self, $msg) {
     my $name = $self->{name};
-    autotest::query_isotovideo(set_current_test => {name => $name, full_name => ($self->{fullname} // $name) . ' (post fail hook)'});
+    autotest::query_isotovideo(set_current_test => {name => $name, full_name => ($self->{fullname} // $name) . ' (post fail hook)', attempt => $self->{attempt} // 0});
     my $post_fail_hook_start_time = time;
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
