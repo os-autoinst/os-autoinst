@@ -3,7 +3,8 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Cwd 'abs_path';
 use Test::Output qw(combined_like stderr_like);
@@ -12,6 +13,8 @@ use File::Basename;
 use File::Path 'make_path';
 use File::Temp qw(tempdir);
 use Mojo::File qw(path);
+
+my $isolation_guard = setup_isolated_workdir();
 
 BEGIN {
     $bmwqemu::vars{DISTRI} = 'unicorn';
@@ -97,8 +100,8 @@ require tinycv;
 
 my ($res, $needle, $img1, $cand);
 
-my $data_dir = dirname(__FILE__) . '/data/';
-my $misc_needles_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
+my $data_dir = "$Bin/data/";
+my $misc_needles_dir = "$Bin/misc_needles/";
 
 $bmwqemu::vars{NEEDLES_DIR} = $data_dir;
 needle_init;
