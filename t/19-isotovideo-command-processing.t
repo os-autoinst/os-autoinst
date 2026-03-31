@@ -110,9 +110,14 @@ subtest 'set pause at test' => sub {
     is($command_handler->pause_test_name, 'some test', 'test to pause at set');
 
     stderr_unlike {
-        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'foo', full_name => 'foo'})
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'foo', full_name => 'foo', attempt => 1})
     } qr/pausing/, 'pausing not logged';
     is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 1}, 'not paused on different test module';
+    is_deeply $last_received_msg_by_fd[$cmd_srv_fd], {
+        set_current_test => 'foo',
+        current_test_full_name => 'foo',
+        attempt => 1,
+    }, 'broadcasted via command server';
     ok !$command_handler->reason_for_pause, 'reason for pause set not set';
     is $command_handler->postponed_answer_fd, undef, 'answer not postponed';
 

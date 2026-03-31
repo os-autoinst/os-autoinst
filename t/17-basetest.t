@@ -88,7 +88,7 @@ subtest run_post_fail_test => sub {
         my %pause_on_failure = (cmd => 'pause_test_execution', due_to_failure => 1);
         like delete $cmds->[0]->{reason}, qr/test died: Died at .*17-basetest\.t/, 'reason for pause passed';
         is_deeply $cmds->[0], \%pause_on_failure, 'failure reported to pause if pausing on failures enabled';
-        my %test_name_update = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)');
+        my %test_name_update = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)', attempt => 0);
         is_deeply $cmds->[1], \%test_name_update, 'test name updated (to show post fail hook in developer mode)';
     } or always_explain $cmds;
 

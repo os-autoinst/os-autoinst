@@ -288,7 +288,7 @@ sub _handle_command_set_current_test ($self, $response, @) {
     # Note: It is unclear why we call set_serial_offset here
     $bmwqemu::backend->_send_json({cmd => 'clear_serial_buffer'});
 
-    my ($test_name, $full_test_name) = ($response->{name}, $response->{full_name});
+    my ($test_name, $full_test_name, $attempt) = ($response->{name}, $response->{full_name}, $response->{attempt} // 0);
     my $pause_test_name = $self->pause_test_name;
     $self->current_test_name($test_name);
     $self->status('running');
@@ -296,6 +296,7 @@ sub _handle_command_set_current_test ($self, $response, @) {
     $self->_send_to_cmd_srv({
             set_current_test => $test_name,
             current_test_full_name => $full_test_name,
+            attempt => $attempt,
     });
 
     if ($pause_test_name
