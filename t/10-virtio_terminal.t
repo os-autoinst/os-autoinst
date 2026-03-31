@@ -4,6 +4,9 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use Test::Warnings qw(:all :report_warnings);
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler
 # internally already
@@ -15,6 +18,8 @@ use consoles::virtio_terminal;
 use testapi;
 use bmwqemu;
 use Mojo::File qw(path);
+
+my $isolation_guard = setup_isolated_workdir();
 
 my $pipe_data_written;
 my $prepare_pipes_covered = 0;
