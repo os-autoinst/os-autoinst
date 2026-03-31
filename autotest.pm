@@ -373,6 +373,7 @@ sub set_current_test ($test) {
           {
             name => $current_test->{name},
             full_name => $current_test->{fullname},
+            attempt => $current_test->{attempt} // 0,
           }
         : {});
 }
@@ -562,6 +563,7 @@ sub runalltests () {
         my $error;
 
         while (1) {
+            $t->{attempt} = $attempt;
             bmwqemu::modstate "starting $name $t->{script}" . ($attempt ? " (retry $attempt/$retry_count)" : '');
             $t->start();
 
