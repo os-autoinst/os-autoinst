@@ -10,7 +10,7 @@ set(DOC_FILES
     doc/networking.md
 )
 set(PERL_FILES
-    autotest.pm
+    lib/autotest.pm
     backend/baseclass.pm
     backend/console_proxy.pm
     backend/driver.pm
@@ -24,9 +24,9 @@ set(PERL_FILES
     backend/svirt.pm
     backend/vagrant.pm
     backend/virt.pm
-    basetest.pm
-    bmwqemu.pm
-    commands.pm
+    lib/basetest.pm
+    lib/bmwqemu.pm
+    lib/commands.pm
     consoles/console.pm
     consoles/ipmiSol.pm
     consoles/localXvnc.pm
@@ -48,39 +48,39 @@ set(PERL_FILES
     consoles/vnc_base.pm
     consoles/VNC.pm
     consoles/VMWare.pm
-    distribution.pm
-    lockapi.pm
-    log.pm
-    mmapi.pm
-    myjsonrpc.pm
-    needle.pm
-    ocr.pm
-    OpenQA/Benchmark/Stopwatch.pm
-    OpenQA/Commands.pm
-    OpenQA/Exceptions.pm
-    OpenQA/Isotovideo/Backend.pm
-    OpenQA/Isotovideo/CommandHandler.pm
-    OpenQA/Isotovideo/Dewebsockify.pm
-    OpenQA/Isotovideo/Interface.pm
-    OpenQA/Isotovideo/NeedleDownloader.pm
-    OpenQA/Isotovideo/Runner.pm
-    OpenQA/Isotovideo/Utils.pm
-    OpenQA/NamedIOSelect.pm
-    OpenQA/Qemu/BlockDevConf.pm
-    OpenQA/Qemu/BlockDev.pm
-    OpenQA/Qemu/ControllerConf.pm
-    OpenQA/Qemu/DriveController.pm
-    OpenQA/Qemu/DriveDevice.pm
-    OpenQA/Qemu/DrivePath.pm
-    OpenQA/Qemu/MutParams.pm
-    OpenQA/Qemu/PFlashDevice.pm
-    OpenQA/Qemu/Proc.pm
-    OpenQA/Qemu/SnapshotConf.pm
-    OpenQA/Qemu/Snapshot.pm
-    OpenQA/Test/RunArgs.pm
-    osutils.pm
-    signalblocker.pm
-    testapi.pm
+    lib/distribution.pm
+    lib/lockapi.pm
+    lib/log.pm
+    lib/mmapi.pm
+    lib/myjsonrpc.pm
+    lib/needle.pm
+    lib/ocr.pm
+    lib/OpenQA/Benchmark/Stopwatch.pm
+    lib/OpenQA/Commands.pm
+    lib/OpenQA/Exceptions.pm
+    lib/OpenQA/Isotovideo/Backend.pm
+    lib/OpenQA/Isotovideo/CommandHandler.pm
+    lib/OpenQA/Isotovideo/Dewebsockify.pm
+    lib/OpenQA/Isotovideo/Interface.pm
+    lib/OpenQA/Isotovideo/NeedleDownloader.pm
+    lib/OpenQA/Isotovideo/Runner.pm
+    lib/OpenQA/Isotovideo/Utils.pm
+    lib/OpenQA/NamedIOSelect.pm
+    lib/OpenQA/Qemu/BlockDevConf.pm
+    lib/OpenQA/Qemu/BlockDev.pm
+    lib/OpenQA/Qemu/ControllerConf.pm
+    lib/OpenQA/Qemu/DriveController.pm
+    lib/OpenQA/Qemu/DriveDevice.pm
+    lib/OpenQA/Qemu/DrivePath.pm
+    lib/OpenQA/Qemu/MutParams.pm
+    lib/OpenQA/Qemu/PFlashDevice.pm
+    lib/OpenQA/Qemu/Proc.pm
+    lib/OpenQA/Qemu/SnapshotConf.pm
+    lib/OpenQA/Qemu/Snapshot.pm
+    lib/OpenQA/Test/RunArgs.pm
+    lib/osutils.pm
+    lib/signalblocker.pm
+    lib/testapi.pm
 )
 set(MISC_FILES
     consoles/icewm.cfg
@@ -224,7 +224,7 @@ foreach (FILE ${PERL_FILES} ${MISC_FILES})
     get_filename_component(SUB_DIR ${FILE} DIRECTORY)
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DATA_DIR}/${SUB_DIR}")
 endforeach ()
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}/lib")
 install(FILES "schema/Wheels-01.yaml" DESTINATION "${OS_AUTOINST_DATA_DIR}/schema")
 
 install(

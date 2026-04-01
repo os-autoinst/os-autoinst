@@ -63,7 +63,7 @@ db="$build_directory/cover_db"
 [[ $SKIP_IF_COVER_DB_EXISTS ]] && [[ -d $db ]] && exit 0
 
 # set Perl module include path and coverage options
-export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
+export PERL5LIB="$source_directory/lib:$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
     ignore="external/|tools/|t/data/tests/tests/|t/data/tests/pythontests/|t/data/tests/luatests/|t/data/wheels_dir|/tmp|$prove_path|CoverageWorkaround"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
