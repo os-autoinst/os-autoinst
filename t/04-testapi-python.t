@@ -5,6 +5,7 @@ use Test::Warnings;
 use Mojo::Base -signatures;
 
 BEGIN {
+    unshift @INC, '../lib';
     unshift @INC, '..';
 }
 
