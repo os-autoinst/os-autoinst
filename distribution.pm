@@ -168,10 +168,10 @@ sub script_run ($self, $cmd, @args) {
             my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$cmd", max_interval => $args{max_interval};
-                testapi::type_string($marker, max_interval => $args{max_interval});
-                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128)
+                testapi::type_string $marker, max_interval => $args{max_interval};
+                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128)
                   or _handle_cmd_typing_error($cmd, \%args);
-                testapi::type_string("\n", max_interval => $args{max_interval});
+                testapi::type_string "\n", max_interval => $args{max_interval};
             }
             else {
                 testapi::type_string "$cmd", max_interval => $args{max_interval};
@@ -214,9 +214,9 @@ sub background_script_run ($self, $cmd, %args) {
     my $str = testapi::hashed_string('SR' . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
-        testapi::type_string($marker);
+        testapi::type_string $marker;
         testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
-        testapi::type_string("\n");
+        testapi::type_string "\n";
     }
     else {
         testapi::type_string "$marker > /dev/$testapi::serialdev\n";
@@ -282,7 +282,7 @@ sub script_output ($self, $script, @args) {
             quiet => undef,
             # 80 is approximate quantity of chars typed during 'curl' approach
             # if script length is lower there is no point to proceed with more complex solution
-            type_command => length($script) < 80,
+            type_command => length $script < 80,
         }, ['timeout'], @args);
 
     my $marker = testapi::hashed_string("SO$script");
@@ -299,21 +299,21 @@ sub script_output ($self, $script, @args) {
         my $cat = "cat > $script_path << '$heretag'; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
-        testapi::type_string($cat . "\n");
+        testapi::type_string $cat . "\n";
         testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
         # Wait for input prompt of here tag before typing $script. This avoids
         # messy output, like duplicate output of $script. We do this in a second
         # wait_serial() call, to avoid issues during new line detection.
         testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
-        testapi::type_string("$script\n$heretag\n");
+        testapi::type_string "$script\n$heretag\n";
         testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
         testapi::wait_serial("$marker-0-", quiet => $args{quiet});
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;";
-        testapi::type_string($cat);
-        testapi::type_string("\n", wait_still_screen => testapi::backend_get_wait_still_screen_on_here_doc_input());
-        testapi::type_string($script . "\n", timeout => $args{timeout});
+        testapi::type_string $cat;
+        testapi::type_string "\n", wait_still_screen => testapi::backend_get_wait_still_screen_on_here_doc_input();
+        testapi::type_string $script . "\n", timeout => $args{timeout};
         testapi::send_key('ctrl-d');
     }
     else {
@@ -333,11 +333,11 @@ sub script_output ($self, $script, @args) {
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
-        testapi::type_string("$run_script\n");
+        testapi::type_string "$run_script\n";
         testapi::wait_serial($run_script, no_regex => 1, quiet => $args{quiet});
     }
     else {
-        testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
+        testapi::type_string "($run_script) | tee /dev/$testapi::serialdev\n";
     }
     my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
       || croak "script timeout: $script";
@@ -419,9 +419,9 @@ with the SUT. Used primarily for internal testing.
 sub sut_marker ($self, $cmd) {
     my $c = $cmd;
     $c =~ s/^\s+|\s+$//g;
-    my $l = length($c);
-    my $head = substr($c, 0, 4);
-    my $tail = $l >= 4 ? substr($c, -4) : $c;
+    my $l = length $c;
+    my $head = substr $c, 0, 4;
+    my $tail = $l >= 4 ? substr $c, -4 : $c;
     return "OA:${head}${l}${tail}";
 }
 
