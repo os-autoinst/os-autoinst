@@ -615,13 +615,13 @@ __END'
     # define the new domain
     $self->run_cmd(backend::svirt::virsh() . " define $xmlfilename") && die 'virsh define failed';
     if ($self->vmm_family eq 'vmware') {
-        my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
+        my $vmx = sprintf '/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name;
 
         # set default boot delay
         $self->run_cmd(qq{echo 'bios.bootDelay = "10000"' >> $vmx}, domain => 'sshVMwareServer');
         # set default nvram
         my $nvram = $self->name . '.nvram';
-        my $nvram_path = sprintf('/vmfs/volumes/%s/openQA/%s', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $nvram);
+        my $nvram_path = sprintf '/vmfs/volumes/%s/openQA/%s', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $nvram;
         $ret = $self->run_cmd("test -e $nvram_path", domain => 'sshVMwareServer');
         $self->run_cmd(qq{echo 'nvram = "$nvram"' >> $vmx}, domain => 'sshVMwareServer') unless ($ret);
 
@@ -642,7 +642,7 @@ __END'
             } elsif ($fb_tool eq 'cloud-init') {
                 croak 'GUESTINFO_CLOUD_INIT is unset, or does not contain user-data and meta-data configs' unless ($bmwqemu::vars{GUESTINFO_CLOUD_INIT});
 
-                my ($conf, $meta) = split(',', $bmwqemu::vars{GUESTINFO_CLOUD_INIT});
+                my ($conf, $meta) = split ',', $bmwqemu::vars{GUESTINFO_CLOUD_INIT};
                 $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
                 $self->run_cmd(qq{echo 'guestinfo.metadata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
                 $conf = $self->_encode_config($conf, 'GUESTINFO_CLOUD_INIT');

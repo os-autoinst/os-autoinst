@@ -9,7 +9,7 @@ use FindBin;
 use lib "$FindBin::Bin/.."; # Ensure OpenQA namespace is in @INC
 use OpenQA::Isotovideo::Dewebsockify;
 
-OpenQA::Isotovideo::Dewebsockify::main(parse_args()) unless caller();
+OpenQA::Isotovideo::Dewebsockify::main(parse_args()) unless caller;
 
 sub usage () {
     print <<"END_USAGE";

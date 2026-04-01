@@ -16,7 +16,7 @@ subtest 'SSH credentials in spvm' => sub {
     my $mock_spvm = Test::MockModule->new('backend::spvm');
     $mock_spvm->mock(run_ssh_cmd => sub {
             my ($self, $cmd, %args) = @_;
-            for my $k (keys(%{$expected_credentials})) {
+            for my $k (keys %{$expected_credentials}) {
                 is($args{$k}, $expected_credentials->{$k}, "Correct $k parameter");
             }
             return $cmd =~ m/true/ ? 0 : 1;

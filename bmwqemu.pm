@@ -101,15 +101,15 @@ sub load_vars () {
 sub save_vars (%args) {
     my $f = path('vars.json');
     my $fd = $f->open('>');
-    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
+    flock $fd, LOCK_EX or die "cannot lock vars.json: $!\n";
+    truncate $fd, 0 or die "cannot truncate vars.json: $!\n";
 
     my $write_vars = \%vars;
     if ($args{no_secret}) {
         $write_vars = {};
         my $hide_re = '^_SECRET_|_PASSWORD';
         $hide_re .= "|$vars{_HIDE_SECRETS_REGEX}" if $vars{_HIDE_SECRETS_REGEX};
-        $write_vars->{$_} = $vars{$_} for (grep !/($hide_re)/, keys(%vars));
+        $write_vars->{$_} = $vars{$_} for (grep !/($hide_re)/, keys %vars);
     }
 
     # make sure the JSON is sorted
@@ -132,7 +132,7 @@ sub init () {
 
     remove_tree(result_dir);
     mkdir result_dir;
-    mkdir join('/', result_dir, 'ulogs');
+    mkdir join '/', result_dir, 'ulogs';
 
     log::init_logger;
 }
@@ -188,12 +188,12 @@ sub update_line_number () {
     my @out;
     my $casedir = $vars{CASEDIR} // '';
     for (my $i = 10; $i > 0; $i--) {
-        my ($package, $filename, $line, $subroutine) = caller($i);
+        my ($package, $filename, $line, $subroutine) = caller $i;
         next unless $filename && $filename =~ /\Q$casedir/;
         $filename =~ s@$casedir/?@@;
         push @out, "$filename:$line called $subroutine";
     }
-    log::logger->debug(join(' -> ', @out));
+    log::logger->debug(join ' -> ', @out);
     return;
 }
 
@@ -201,7 +201,7 @@ sub update_line_number () {
 sub pp (@args) {
     # FTR, I actually hate Data::Dumper.
     my $value_with_trailing_newline = Data::Dumper->new(\@args)->Terse(1)->Useqq(1)->Dump();
-    chomp($value_with_trailing_newline);
+    chomp $value_with_trailing_newline;
     return $value_with_trailing_newline;
 }
 
@@ -209,7 +209,7 @@ sub pp (@args) {
 # It can be specified multiple times and or the value can be a ARRAY_REF or
 # scalar.
 sub log_call (@args) {
-    my $fname = (caller(1))[3];
+    my $fname = (caller 1)[3];
     update_line_number();
 
     # extract -masked parameter out of argument list
@@ -232,14 +232,14 @@ sub log_call (@args) {
     else {
         # key/value pairs
         my @result;
-        while (my ($key, $value) = splice(@effective_args, 0, 2)) {
+        while (my ($key, $value) = splice @effective_args, 0, 2) {
             if ($key =~ tr/0-9a-zA-Z_//c) {
                 # only quote if needed
                 $key = pp($key);
             }
-            push @result, join('=', $key, pp($value));
+            push @result, join '=', $key, pp($value);
         }
-        $params = join(', ', @result);
+        $params = join ', ', @result;
     }
 
     foreach (@masked) {
@@ -272,7 +272,7 @@ sub mydie ($cause_of_death) {
 
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
-    open(my $fd, '>', "$fn.new");
+    open my $fd, '>', "$fn.new";
     my $json;
     try { $json = Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) }
     catch ($e) {
@@ -280,8 +280,8 @@ sub save_json_file ($result, $fn) {
         croak "Cannot encode input: $e\n$dump";
     }
     print $fd $json;
-    close($fd);
-    return rename("$fn.new", $fn);
+    close $fd;
+    return rename "$fn.new", $fn;
 }
 
 sub scale_timeout ($timeout) {

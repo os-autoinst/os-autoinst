@@ -188,7 +188,7 @@ sub write_with_thumbnail ($self, $filename) {
     my $dir = File::Basename::dirname($filename) . '/.thumbs';
     my $base = File::Basename::basename($filename);
 
-    mkdir($dir);
+    mkdir $dir;
     $thumb->write("$dir/$base") or die "Unable to write '$dir/$base'\n";
 }
 

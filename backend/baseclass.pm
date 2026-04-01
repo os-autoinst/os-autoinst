@@ -53,7 +53,7 @@ has [qw(
 )];
 
 sub new ($class) {
-    my $self = bless({class => $class}, $class);
+    my $self = bless {class => $class}, $class;
     $self->{started} = 0;
     $self->{serialfile} = 'serial0';
     $self->{serial_offset} = 0;
@@ -76,8 +76,8 @@ sub new ($class) {
 }
 
 sub truncate_serial_file ($self) {
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
+    open my $sf, '>', $self->{serialfile};
+    close $sf;
 }
 
 # runs in the backend process to deserialize VNC commands
@@ -88,7 +88,7 @@ sub handle_command ($self, $cmd) {
 }
 
 sub die_handler ($msg) {
-    chomp($msg);
+    chomp $msg;
     bmwqemu::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
     bmwqemu::serialize_state(component => 'backend', msg => $msg);
     $backend->stop_vm();
@@ -117,7 +117,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
     $io->autoflush(1);
     $self->{rsppipe} = $io;
 
-    bmwqemu::diag "$$: cmdpipe " . fileno($self->{cmdpipe}) . ', rsppipe ' . fileno($self->{rsppipe});
+    bmwqemu::diag "$$: cmdpipe " . fileno($self->{cmdpipe}) . ', rsppipe ' . fileno $self->{rsppipe};
 
     bmwqemu::diag "started mgmt loop with pid $$";
 
@@ -150,7 +150,7 @@ sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers
     die "$program_name not accepting data: $!" unless defined $data_written;
 
     # put remaining data it back into the queue
-    unshift @$array_of_buffers, substr($data, $data_written) unless $data_written == length($data);
+    unshift @$array_of_buffers, substr $data, $data_written unless $data_written == length $data;
 
     # remove file handle from selects if there's no more data to write
     if (!@$array_of_buffers) {
@@ -272,7 +272,7 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
         if (fileno $fh && fileno $fh != -1) {
             # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
             # The maximum hits per 10 seconds saw on a half open socket was >100k
-            if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh, time())) {
+            if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh, time)) {
                 my $console = $self->{current_console}->{testapi_console};
                 my $fd_nr = fileno $fh;
                 my $cnt = $buckets->{BUCKET}{$fd_nr};
@@ -343,7 +343,7 @@ sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id, $time) {
 }
 
 sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
-    my $pid = open($self->{$pipe_name}, '|-', @cmd);
+    my $pid = open $self->{$pipe_name}, '|-', @cmd;
     my $pipe = $self->{$pipe_name};
     # Try to make pipe big enough to fit full frame at once, instead of sending
     # it in several chunks. Limit it to custom resolutions, as with the default
@@ -353,7 +353,7 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     if ($bmwqemu::vars{XRES} && $bmwqemu::vars{YRES}) {
         my $pipe_size = $bmwqemu::vars{XRES} * $bmwqemu::vars{YRES} * 3;
         no autodie;
-        fcntl($pipe, Fcntl::F_SETPIPE_SZ, $pipe_size) or bmwqemu::fctwarn("Can't increase video encoder pipe size to $pipe_size: $!. Consider increasing /proc/sys/fs/pipe-max-size and/or /proc/sys/fs/pipe-user-pages-soft");
+        fcntl $pipe, Fcntl::F_SETPIPE_SZ, $pipe_size or bmwqemu::fctwarn("Can't increase video encoder pipe size to $pipe_size: $!. Consider increasing /proc/sys/fs/pipe-max-size and/or /proc/sys/fs/pipe-user-pages-soft");
     }
     $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe, cmd => join ' ', @cmd};
     $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
@@ -387,12 +387,12 @@ sub start_encoder ($self) {
     # start internal video encoder; only start it to generate PNGs if an external video encoder is used or NOVIDEO set
     my $cwd = Cwd::getcwd;
     my @cmd = (qw(nice -n 19), "$bmwqemu::topdir/videoencoder", "$cwd/video.ogv");
-    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
+    push @cmd, '-n' if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
     push @cmd, '-x', $self->{xres}, '-y', $self->{yres};
     $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);
 
     # open file for recording real time clock timestamps as subtitle
-    open($self->{vtt_caption_file}, '>', "$cwd/video_time.vtt");
+    open $self->{vtt_caption_file}, '>', "$cwd/video_time.vtt";
     $self->{vtt_caption_file}->print("WEBVTT\n");
 
     return;
@@ -413,7 +413,7 @@ sub _stop_video_encoder ($self) {
     try {
         while ($select->count) {
             $! = 0;
-            die($! ? "$!\n" : 'timeout exceeded') unless my @ready = $select->can_write($timeout);
+            die $! ? "$!\n" : 'timeout exceeded' unless my @ready = $select->can_write($timeout);
             for my $fh (@ready) {
                 if (defined $internal_pipe && $fh == $internal_pipe) {
                     $self->_write_buffered_data_to_file_handle('Encoder', $video_data_for_internal_encoder, $fh);
@@ -436,7 +436,7 @@ sub _stop_video_encoder ($self) {
     bmwqemu::diag 'Waiting for video encoder to finalize the video';
     for (my $interval = 0.25; $timeout > 0; sleep($interval), $timeout -= $interval) {
         for my $pid (keys %$video_encoders) {
-            my $ret = waitpid($pid, WNOHANG);
+            my $ret = waitpid $pid, WNOHANG;
             if ($ret == $pid || $ret == -1) {
                 bmwqemu::diag "The $video_encoders->{$pid}->{name} (pid $pid) terminated";
                 delete $video_encoders->{$pid};
@@ -461,7 +461,7 @@ sub stop_vm ($self, @) {
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
-        unlink('backend.run');
+        unlink 'backend.run';
         $self->do_stop_vm();
         $self->{started} = 0;
     }
@@ -475,7 +475,7 @@ sub stop_vm ($self, @) {
 
 # virtual methods
 sub notimplemented ($self) {
-    my $method = (caller(1))[3];
+    my $method = (caller 1)[3];
     $method =~ s/^backend::baseclass:://;
     confess sprintf q{backend method '%s' not implemented for class '%s'},
       $method, ref $self;
@@ -515,12 +515,12 @@ sub format_vtt_timestamp ($self, $walltime) {
     my $frametime_ms = 1000 * $self->{video_frame_number} / 24;
     my $caption = "\n$self->{video_frame_number}\n";
     # presentation time span (one frame)
-    $caption .= sprintf(POSIX::strftime('%T.%%03d', gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
+    $caption .= sprintf POSIX::strftime('%T.%%03d', gmtime($frametime_ms / 1000)), $frametime_ms % 1000;
     $frametime_ms += 1000 / 24;
     $caption .= ' --> ';
-    $caption .= sprintf(POSIX::strftime("%T.%%03d\n", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
+    $caption .= sprintf POSIX::strftime("%T.%%03d\n", gmtime($frametime_ms / 1000)), $frametime_ms % 1000;
     # clock value as caption text
-    $caption .= sprintf(POSIX::strftime("[%FT%T.%%03d]\n", localtime($walltime)), 1000 * ($walltime - int($walltime)));
+    $caption .= sprintf POSIX::strftime("[%FT%T.%%03d]\n", localtime $walltime), 1000 * ($walltime - int $walltime);
 
     return $caption;
 }
@@ -559,17 +559,17 @@ sub enqueue_screenshot ($self, $image) {
 
     my $external_video_encoder_cmd_pipe = $self->{external_video_encoder_cmd_pipe};
     if ($self->{min_video_similarity} > 50) {    # we ignore smaller differences
-        push(@{$self->{video_frame_data}}, "R\n");
-        push(@{$self->{external_video_encoder_image_data}}, $self->{last_image_data})
+        push @{$self->{video_frame_data}}, "R\n";
+        push @{$self->{external_video_encoder_image_data}}, $self->{last_image_data}
           if defined $external_video_encoder_cmd_pipe && defined $self->{last_image_data};
     }
     else {
         my $imgdata = $self->{last_image_data} = $image->ppm_data;
         $watch->lap('convert ppm data');
-        push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
-        push(@{$self->{video_frame_data}}, $imgdata);
+        push @{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n";
+        push @{$self->{video_frame_data}}, $imgdata;
         $self->{min_video_similarity} = 10_000;
-        push(@{$self->{external_video_encoder_image_data}}, $imgdata)
+        push @{$self->{external_video_encoder_image_data}}, $imgdata
           if defined $external_video_encoder_cmd_pipe;
     }
     my $encoder_pipe = $self->{encoder_pipe};
@@ -583,7 +583,7 @@ sub enqueue_screenshot ($self, $image) {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
-        bmwqemu::fctwarn sprintf('enqueue_screenshot took %.2f seconds', $watch->as_data()->{total_time});
+        bmwqemu::fctwarn sprintf 'enqueue_screenshot took %.2f seconds', $watch->as_data()->{total_time};
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
 
@@ -673,7 +673,7 @@ sub select_console ($self, $args) {
         $activated = $selected_console->select;
     }
     catch ($e) { return {error => $e} }
-    return $activated if ref($activated);
+    return $activated if ref $activated;
     $self->{current_console} = $selected_console;
     $self->{current_screen} = $selected_console->screen;
     $self->capture_screenshot();
@@ -831,7 +831,7 @@ sub proxy_console_call ($self, $wrapped_call) {
         local $SIG{__DIE__} = 'DEFAULT';
         $wrapped_result->{result} = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
     }
-    catch ($e) { $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $e) }
+    catch ($e) { $wrapped_result->{exception} = join "\n", bmwqemu::pp($wrapped_call), $e }
     return $wrapped_result;
 }
 
@@ -865,12 +865,12 @@ Returns the output and the offset after reading on the serial device from positi
 =cut
 
 sub read_serial ($self, $position, $whence = 0) {
-    open(my $SERIAL, '<', $self->{serialfile});
-    seek($SERIAL, $position, $whence);
+    open my $SERIAL, '<', $self->{serialfile};
+    seek $SERIAL, $position, $whence;
     local $/;
     my $data = <$SERIAL>;
     my $offset = tell $SERIAL;
-    close($SERIAL);
+    close $SERIAL;
 
     return ($data, $offset);
 }
@@ -893,12 +893,12 @@ sub wait_serial ($self, $args) {
         for my $r (@$regexp) {
             if (!$args->{no_regex} && $str =~ m/$r/) {
                 $current_offset += $LAST_MATCH_END[0];
-                $str = substr($str, 0, $LAST_MATCH_END[0]);
+                $str = substr $str, 0, $LAST_MATCH_END[0];
                 $matched = 1;
                 last;
-            } elsif ($args->{no_regex} && (my $i = index($str, $r)) >= 0) {
+            } elsif ($args->{no_regex} && (my $i = index $str, $r) >= 0) {
                 $current_offset += length($r) + $i;
-                $str = substr($str, 0, $i + length($r));
+                $str = substr $str, 0, $i + length $r;
                 $matched = 1;
                 last;
             }
@@ -930,7 +930,7 @@ sub find_needles_with_tags ($mustmatch) {
         my @a = @$mustmatch;
         while (my $n = shift @a) {
             if (ref($n) eq '') {
-                push @tags, split(/ /, $n);
+                push @tags, split / /, $n;
                 $n = needle::tags($n);
                 push @a, @$n if $n;
                 next;
@@ -961,7 +961,7 @@ sub set_tags_to_assert ($self, $args) {
         my %h = map { $_ => 1 } @$tags;
         @$tags = sort keys %h;
     }
-    $mustmatch = join(',', @$tags);
+    $mustmatch = join ',', @$tags;
     bmwqemu::fctinfo "NO matching needles for $mustmatch" unless @$needles;
 
     $self->set_assert_screen_timeout($timeout);
@@ -994,7 +994,7 @@ sub _failed_screens_to_json ($self) {
         my $new_final = $failed_screens->[-1];
         if ($new_final != $final_mismatch) {
             my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
-            push(@$failed_screens, $final_mismatch) if ($sim < 50);
+            push @$failed_screens, $final_mismatch if ($sim < 50);
         }
     }
     my @json_fails = map {
@@ -1009,7 +1009,7 @@ sub _failed_screens_to_json ($self) {
 
 sub time_remaining_str ($time) {
     # compensate rounding to be consistent with truncation in $search_ratio calculation
-    return sprintf('%.1fs', $time - 0.05);
+    return sprintf '%.1fs', $time - 0.05;
 }
 
 sub _reset_asserted_screen_check_variables ($self) {
@@ -1048,20 +1048,20 @@ sub check_asserted_screen ($self, $args) {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval * $self->{needle_check_factor}) {
-        bmwqemu::fctwarn sprintf(
-            'check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific',
-            $watch->as_data()->{total_time},
-            scalar(@registered_needles));
+        bmwqemu::fctwarn sprintf
+          'check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific',
+          $watch->as_data()->{total_time},
+          scalar @registered_needles;
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
     }
 
     my $no_match_diag = 'no match: ' . time_remaining_str($n);
     if (my $best_candidate = $failed_candidates->[0]) {
-        $no_match_diag .= sprintf(
-            ', best candidate: %s (%.2f)',
-            $best_candidate->{needle}->{name},
-            1 - sqrt($best_candidate->{error})
-        );
+        $no_match_diag .= sprintf
+          ', best candidate: %s (%.2f)',
+          $best_candidate->{needle}->{name},
+          1 - sqrt($best_candidate->{error})
+          ;
     }
     bmwqemu::diag($no_match_diag);
 
@@ -1072,12 +1072,12 @@ sub check_asserted_screen ($self, $args) {
             my @unregistered_needles = grep { $_->{unregistered} } @{$self->assert_screen_needles};
             my ($foundneedle, $candidates) = $img->search(\@unregistered_needles, 0, 1, undef);
             # the best here is still a failure, as unregistered
-            push(@$failed_candidates, $foundneedle) if $foundneedle;
-            push(@$failed_candidates, @$candidates);
+            push @$failed_candidates, $foundneedle if $foundneedle;
+            push @$failed_candidates, @$candidates;
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
-        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $frame]);
+        push @$failed_screens, [$img, $failed_candidates, 0, 1000, $frame];
         my $hash = $self->_failed_screens_to_json;
         $hash->{image} = encode_base64($img->ppm_data);
         # store stall status
@@ -1108,7 +1108,7 @@ sub check_asserted_screen ($self, $args) {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
         }
         if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $frame]);
+            push @$failed_screens, [$img, $failed_candidates, $n, $sim, $frame];
         }
         # clean up every once in a while to avoid excessive memory consumption.
         # The value here is an arbitrary limit.
@@ -1185,7 +1185,7 @@ sub retry_assert_screen ($self, $args) {
 sub new_ssh_connection ($self, %args) {
     bmwqemu::log_call(%{$self->hide_password(%args)});
     my %credentials = $self->get_ssh_credentials;
-    $args{$_} //= $credentials{$_} foreach (keys(%credentials));
+    $args{$_} //= $credentials{$_} foreach (keys %credentials);
     $args{username} ||= 'root';
     $args{port} ||= 22;
     $args{keep_open} //= 0;
@@ -1194,9 +1194,9 @@ sub new_ssh_connection ($self, %args) {
     # e.g. using hyperv_intermediate host which is running Windows need to keep the connection.
     # Otherwise a mount point doesn't exists within the next command.
     if ($args{keep_open}) {
-        $connection_key = join(',', map { $_ . '=' . $args{$_} } qw(hostname username port));
+        $connection_key = join ',', map { $_ . '=' . $args{$_} } qw(hostname username port);
         my $con = $self->{ssh_connections}->{$connection_key};
-        if (defined($con)) {
+        if (defined $con) {
             # Check if we still can create channels on that connection
             if (my $tmp_chan = $con->channel()) {
                 $tmp_chan->close();
@@ -1222,11 +1222,11 @@ sub new_ssh_connection ($self, %args) {
         if (!$ssh->connect($args{hostname}, $args{port})) {
             my @e = $ssh->error;
             bmwqemu::diag "Could not connect to $con_pretty: $e[2]. Retrying up to $counter more times after sleeping ${interval}s";
-            sleep($interval);
+            sleep $interval;
             $counter--;
             next;
         }
-        if (!$args{use_ssh_agent} && defined($args{password})) {
+        if (!$args{use_ssh_agent} && defined $args{password}) {
             $ssh->auth(username => $args{username}, password => $args{password});
         }
         else {
@@ -1356,7 +1356,7 @@ sub run_ssh ($self, $cmd, %args) {
 
 sub close_ssh_connections ($self) {
     my $cons = $self->{ssh_connections} // {};
-    for my $key (keys(%{$cons})) {
+    for my $key (keys %{$cons}) {
         bmwqemu::diag("SSH disconnect $key");
         $cons->{$key}->disconnect();
         delete($cons->{$key});
@@ -1396,9 +1396,9 @@ sub _stop_children_processes ($self) {
     my $ret;
     for my $pid (@{$self->{children}}) {
         bmwqemu::diag("terminating child $pid");
-        kill('TERM', $pid);
+        kill 'TERM', $pid;
         for my $i (1 .. 5) {
-            $ret = waitpid($pid, WNOHANG);
+            $ret = waitpid $pid, WNOHANG;
             bmwqemu::diag "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;    # uncoverable statement
@@ -1409,8 +1409,8 @@ sub _stop_children_processes ($self) {
 sub _child_process ($self, $code) {
     die q{Can't spawn child without code} unless ref($code) eq 'CODE';
 
-    my $pid = fork();
-    die 'fork failed' unless defined($pid);    # uncoverable statement
+    my $pid = fork;
+    die 'fork failed' unless defined $pid;    # uncoverable statement
 
     if ($pid == 0) {
         $code->();    # uncoverable statement

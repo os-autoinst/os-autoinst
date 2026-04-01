@@ -63,11 +63,11 @@ sub to_map ($self) {
     my $snap = $self->_head;
 
     while ($snap->sequence > -1) {
-        push(@snapshots, $snap->_to_map());
+        push @snapshots, $snap->_to_map();
         $snap = $snap->previous;
     }
 
-    @snapshots = reverse(@snapshots);
+    @snapshots = reverse @snapshots;
     return {snapshots => \@snapshots};
 }
 

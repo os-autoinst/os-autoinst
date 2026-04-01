@@ -14,7 +14,7 @@ use bmwqemu ();
 use constant VNC_TYPING_LIMIT_DEFAULT => consoles::video_base::TYPING_LIMIT_DEFAULT;
 
 sub disable ($self) {
-    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
+    close $self->{vnc}->socket if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
 }
 

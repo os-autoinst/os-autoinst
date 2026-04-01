@@ -28,16 +28,16 @@ my $pid = fork || do {
     my $msg = Socket::MsgHdr->new(buflen => 1024, controllen => 64);
 
     recvmsg($ask, $msg);
-    shutdown($ask, 2);
+    shutdown $ask, 2;
 
     my @cmsg = $msg->cmsghdr();
-    my $fd = unpack('i', $cmsg[2]);
+    my $fd = unpack 'i', $cmsg[2];
 
     POSIX::write($fd, $msg->buf(), 4)
       || die "Failed to write echo to pipe: $!";
     POSIX::close($fd);
 
-    exit(0);
+    exit 0;
 };
 
 my ($afd, $bfd) = POSIX::pipe();
@@ -45,7 +45,7 @@ die "Could not create pipe: $!" unless (defined $afd && defined $bfd);
 
 ok(0 < tinycv::send_with_fd($bsk, 'echo', $bfd), 'Send file handle');
 POSIX::close($bfd);
-shutdown($bsk, 2);
+shutdown $bsk, 2;
 
 my $buf = '';
 POSIX::read($afd, $buf, 4)

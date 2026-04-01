@@ -49,7 +49,7 @@ has _process => sub (@) { process(
 has _static_params => sub ($) { [] };
 has _mut_params => sub ($) { [] };
 
-sub _push_mut ($key, $value) { push(@{$key->_mut_params}, $value) }
+sub _push_mut ($key, $value) { push @{$key->_mut_params}, $value }
 
 has controller_conf => sub ($) { OpenQA::Qemu::ControllerConf->new() };
 has blockdev_conf => sub ($) { return OpenQA::Qemu::BlockDevConf->new() };
@@ -73,7 +73,7 @@ in the array will have '-' prepended to it.
 
 sub static_param ($self, @args) {
     if (@args < 2) {
-        push(@{$self->_static_params}, '-' . $args[0]);
+        push @{$self->_static_params}, '-' . $args[0];
     }
     else {
         gen_params($self->_static_params, shift @args, shift @args, @args);
@@ -92,7 +92,7 @@ sub configure_controllers ($self, $vars) {
     # deprecated for a long time.
     for my $var (qw(HDDMODEL CDMODEL)) {
         if ($vars->{$var} =~ /virtio-scsi.*/) {
-            die "Set $var to scsi-" . lc(substr($var, 0, 1)) . 'd and SCSICONTROLLER to '
+            die "Set $var to scsi-" . lc(substr $var, 0, 1) . 'd and SCSICONTROLLER to '
               . $vars->{$var};
         }
     }
@@ -170,7 +170,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         my $sector_size = $vars->{"HDDSECTORSIZE_$i"};
         my $drive;
 
-        $size .= 'G' if defined($size);
+        $size .= 'G' if defined $size;
 
         if (defined $backing_file) {
             $backing_file = path($backing_file)->to_abs;
@@ -310,7 +310,7 @@ This should only be called when QEMU is not running.
 sub init_blockdev_images ($self) {
     for my $file ($self->blockdev_conf->gen_unlink_list()) {
         no autodie 'unlink';
-        unlink($file) if -e $file;
+        unlink $file if -e $file;
     }
     $self->_run_img_cmd($_) for $self->blockdev_conf->gen_qemu_img_cmdlines();
     bmwqemu::diag('init_blockdev_images: Finished creating block devices');
@@ -351,7 +351,7 @@ sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow
 sub exec_qemu ($self) {
     my @params = $self->gen_cmdline();
     session->enable;
-    bmwqemu::diag('starting: ' . join(' ', @params));
+    bmwqemu::diag('starting: ' . join ' ', @params);
     session->enable_subreaper;
 
     my $process = $self->_process;
@@ -370,11 +370,11 @@ sub exec_qemu ($self) {
             system $self->qemu_bin, '-version';
             # don't try to talk to the host's PA
             $ENV{QEMU_AUDIO_DRV} = 'none';
-            exec(@params);
+            exec @params;
     });
     $process->separate_err(0)->start();
 
-    fcntl($process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+    fcntl $process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK or die "can't setfl(): $!\n";
     return $process->read_stream;
 }
 
@@ -385,7 +385,7 @@ sub stop_qemu ($self) {
 
 sub qemu_pid ($process) { $process->_process->process_id }
 
-sub check_qemu_oom ($process) { system("$bmwqemu::topdir/script/check_qemu_oom " . $process->qemu_pid) }    # uncoverable statement
+sub check_qemu_oom ($process) { system "$bmwqemu::topdir/script/check_qemu_oom " . $process->qemu_pid }    # uncoverable statement
 
 =head3 connect_qmp
 
@@ -412,8 +412,8 @@ sub connect_qmp ($self) {
 
     $sk->autoflush(1);
     binmode $sk;
-    my $flags = fcntl($sk, Fcntl::F_GETFL, 0) or die "Can't get file status flags of QMP socket: $!\n";
-    $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "Can't set file status flags of QMP socket: $!\n";
+    my $flags = fcntl $sk, Fcntl::F_GETFL, 0 or die "Can't get file status flags of QMP socket: $!\n";
+    $flags = fcntl $sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK or die "Can't set file status flags of QMP socket: $!\n";
     return $sk;
 }
 
@@ -431,7 +431,7 @@ sub revert_to_snapshot ($self, $name) {
     $bdc->for_each_drive(sub ($drive) {
             my $del_files = $bdc->revert_to_snapshot($drive, $snapshot);
 
-            die "Snapshot $name not found for " . $drive->id unless defined($del_files);
+            die "Snapshot $name not found for " . $drive->id unless defined $del_files;
 
             for my $file (@$del_files) {
                 bmwqemu::diag("Unlinking $file");

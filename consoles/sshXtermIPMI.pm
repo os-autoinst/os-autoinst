@@ -16,9 +16,9 @@ sub start_sol ($self) {
     my $testapi_console = $self->{testapi_console};
 
     my @command = $self->backend->ipmi_cmdline;
-    push(@command, qw(sol activate));
+    push @command, qw(sol activate);
     my $serial = $self->{args}->{serial};
-    my $cstr = join(' ', @command);
+    my $cstr = join ' ', @command;
 
     # Try to deactivate IPMI SOL before activate
     # IPMI response like SOL payload already de-activated is expected

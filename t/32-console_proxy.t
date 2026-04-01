@@ -32,7 +32,7 @@ $console->mock('ret_scalar', sub { 'a' });
 $console->mock('ret_undef', sub { return undef; });
 $console->mock('ret_list', sub { qw(a b c d); });
 $console->mock('ret_list_empty', sub { return; });
-$console->mock('ret_die', sub { die('!!Urgs!!'); });
+$console->mock('ret_die', sub { die '!!Urgs!!'; });
 $console->mock('check_args', sub {
         my ($self, @args) = @_;
         is_deeply(\@args, $console_check_args, 'Got expected (' . join(',', @args) . ') arguments');
@@ -50,7 +50,7 @@ $autotest::isotovideo = 1;
 my $jsonrpc_cmds = [];
 my $jsonrpc_results = [];
 $mock_jsonrpc->redefine(
-    send_json => sub { push(@$jsonrpc_cmds, $_[1]); },
+    send_json => sub { push @$jsonrpc_cmds, $_[1]; },
     read_json => sub {
         my $cmd = $jsonrpc_cmds->[-1]->{cmd};
         if ($cmd eq 'backend_proxy_console_call') {
@@ -61,7 +61,7 @@ $mock_jsonrpc->redefine(
             return {ret => {activated => 0}};
         }
 
-        die("$cmd not handled in this test");    # uncoverable statement
+        die "$cmd not handled in this test";    # uncoverable statement
     });
 
 subtest 'Verify fake console return values in scalar context' => sub {

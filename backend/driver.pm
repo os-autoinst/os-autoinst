@@ -39,8 +39,8 @@ sub new ($class, $name) {
 }
 
 sub start ($self) {
-    open(my $STDOUTPARENT, '>&', *STDOUT);
-    open(my $STDERRPARENT, '>&', *STDERR);
+    open my $STDOUTPARENT, '>&', *STDOUT;
+    open my $STDERRPARENT, '>&', *STDERR;
 
     my $backend_process = process(
         sleeptime_during_kill => .1,
@@ -65,13 +65,13 @@ sub start ($self) {
             tinycv::create_threads();
             undef $signal_blocker;
 
-            $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
+            $self->{backend}->run(fileno($process->channel_in), fileno $process->channel_out);
         });
 
     $backend_process->on(collected => sub { diag('backend process exited: ' . shift->exit_status) });
     $backend_process->start;
 
-    diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
+    diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno $backend_process->channel_in);
     $self->{backend_pid} = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
@@ -82,8 +82,8 @@ sub stop ($self) {
     return unless $self->{backend_process}->is_running;
 
     $self->stop_backend() if $self->{backend_process}->channel_out;
-    close($self->{backend_process}->channel_out) if $self->{backend_process}->channel_out;
-    close($self->{backend_process}->channel_in) if $self->{backend_process}->channel_in;
+    close $self->{backend_process}->channel_out if $self->{backend_process}->channel_out;
+    close $self->{backend_process}->channel_in if $self->{backend_process}->channel_in;
     $self->{backend_process}->channel_in(undef);
     $self->{backend_process}->channel_out(undef);
     $self->{backend_process}->stop;
@@ -93,7 +93,7 @@ sub stop ($self) {
 
 sub start_vm ($self) {
     my $json = to_json({backend => $self->{backend_name}});
-    open(my $runf, '>', 'backend.run');
+    open my $runf, '>', 'backend.run';
     print $runf "$json\n";
     close $runf;
 
@@ -108,7 +108,7 @@ sub start_vm ($self) {
 sub stop_backend ($self) {
     $self->_send_json({cmd => 'stop_vm'});
     # remove if still existent
-    unlink('backend.run') if -e 'backend.run';
+    unlink 'backend.run' if -e 'backend.run';
     return;
 }
 
@@ -126,7 +126,7 @@ sub _send_json ($self, $cmd) {
     return $rsp->{rsp} if defined $rsp;
     # this might have been closed by signal handler
     no autodie 'close';
-    close($self->{backend_process}->channel_out);
+    close $self->{backend_process}->channel_out;
     $self->{backend_process}->channel_out(undef);
     $self->{backend_process}->stop;
     return;

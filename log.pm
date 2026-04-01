@@ -22,7 +22,7 @@ sub logger () { $logger //= Mojo::Log->new(level => 'debug', format => \&log_for
 sub init_logger () { logger->path(path('testresults', 'autoinst-log.txt')) unless $direct_output }
 
 sub log_format_callback ($time, $level, @items) {
-    my $lines = join("\n", @items, '');
+    my $lines = join "\n", @items, '';
 
     # ensure indentation for multi-line output
     $lines =~ s/(?<!\A)^/  /gm;
@@ -38,19 +38,19 @@ sub diag (@args) {
 }
 
 sub fctres ($text, $fname = undef) {
-    $fname //= (caller(1))[3];
+    $fname //= (caller 1)[3];
     logger->debug(color('green') . ">>> $fname: $text" . color('reset'));
     return;
 }
 
 sub fctinfo ($text, $fname = undef) {
-    $fname //= (caller(1))[3];
+    $fname //= (caller 1)[3];
     logger->info(color('yellow') . "::: $fname: $text" . color('reset'));
     return;
 }
 
 sub fctwarn ($text, $fname = undef) {
-    $fname //= (caller(1))[3];
+    $fname //= (caller 1)[3];
     logger->warn(color('red') . "!!! $fname: $text" . color('reset'));
     return;
 }

@@ -47,7 +47,7 @@ sub new ($classname, $jsonfile) {
     # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
     # - The needle must be within the needle directory.
     if (index($jsonfile, $needles_dir) == 0) {
-        $self->{file} = substr($jsonfile, length($needles_dir) + 1);
+        $self->{file} = substr $jsonfile, length($needles_dir) + 1;
     }
     elsif (-f path($needles_dir, $jsonfile)) {
         # json file path already relative
@@ -138,7 +138,7 @@ sub register ($self) {
         }
         $check_dups{$g} = 1;
         $tags{$g} ||= [];
-        push(@{$tags{$g}}, $self);
+        push @{$tags{$g}}, $self;
     }
 }
 
@@ -149,7 +149,7 @@ sub _load_image ($self, $image_path) {
     my $image = tinycv::read($image_path);
     $watch->stop();
 
-    bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time})) if ($watch->as_data()->{total_time} > 0.1);
+    bmwqemu::diag(sprintf "load of $image_path took %.2f seconds", $watch->as_data()->{total_time}) if ($watch->as_data()->{total_time} > 0.1);
 
     return undef unless $image;
 
@@ -271,7 +271,7 @@ sub init ($init_needles_dir = $bmwqemu::vars{NEEDLES_DIR} // default_needles_dir
     %tags = ();
     bmwqemu::diag("init needles from $needles_dir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
-    bmwqemu::diag(sprintf('loaded %d needles', scalar keys %needles));
+    bmwqemu::diag(sprintf 'loaded %d needles', scalar keys %needles);
 
     $cleanuphandler->() if $cleanuphandler;
     return $needles_dir;
@@ -282,7 +282,7 @@ sub needles_dir () { $needles_dir }
 sub set_needles_dir ($_needles_dir) { $needles_dir = $_needles_dir }
 
 sub tags ($wanted) {
-    my @wanted = split(/ /, $wanted);
+    my @wanted = split / /, $wanted;
     my $first_tag = shift @wanted;
     my $goods = $tags{$first_tag};
 
@@ -296,7 +296,7 @@ sub tags ($wanted) {
             next NEEDLE if !$n->has_tag($_);
         }
         print 'adding ', $n->{name}, "\n";
-        push(@results, $n);
+        push @results, $n;
     }
     return \@results;
 }

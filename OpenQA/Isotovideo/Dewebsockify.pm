@@ -42,7 +42,7 @@ sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection,
                     $log->trace("WebSocket text message: $text");
             });
             $tx->on(binary => sub ($tx, $bytes) {
-                    $log->trace("WebSocket binary message:\n" . sprintf('%v02X', $bytes));
+                    $log->trace("WebSocket binary message:\n" . sprintf '%v02X', $bytes);
                     $stream->write($bytes) if $stream;
             });
 
@@ -94,10 +94,10 @@ sub main ($args) {
             # pass data from raw socket to websocket
             $stream->on(read => sub ($s, $bytes) {
                     if ($ws_connection) {
-                        $log->debug("Raw socket message:\n" . sprintf('%v02X', $bytes));
+                        $log->debug("Raw socket message:\n" . sprintf '%v02X', $bytes);
                         $ws_connection->send({binary => $bytes});
                     } else {
-                        $log->debug("Raw socket message (forwarding later):\n" . sprintf('%v02X', $bytes));
+                        $log->debug("Raw socket message (forwarding later):\n" . sprintf '%v02X', $bytes);
                         push @tosend, $bytes;
                     }
             });

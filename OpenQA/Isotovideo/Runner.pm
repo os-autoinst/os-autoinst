@@ -64,7 +64,7 @@ sub run ($self) {
 
 sub _read_response ($self, $rsp, $fd) {
     if (!defined $rsp) {
-        fctwarn sprintf('THERE IS NOTHING TO READ %d %d %d', fileno($fd), fileno($self->testfd), fileno($self->cmd_srv_fd));
+        fctwarn sprintf 'THERE IS NOTHING TO READ %d %d %d', fileno($fd), fileno($self->testfd), fileno $self->cmd_srv_fd;
         $self->loop(0);
     } elsif ($fd == $self->command_handler->backend_out_fd) {
         $self->command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
@@ -228,9 +228,9 @@ sub checkout_code ($self) {
 }
 
 sub _flush_std ($) {
-    select(STDERR);
+    select STDERR;
     $| = 1;
-    select(STDOUT);    # default
+    select STDOUT;    # default
     $| = 1;
 }
 
@@ -260,7 +260,7 @@ sub exit_code_from_test_results ($self) {
     for my $result_file_path (@results) {
         my $result_file = path($result_file_path);
         my $test_result = decode_json($result_file->slurp)->{result};
-        diag sprintf('Test result [%s] %s', $result_file->to_string, $test_result);
+        diag sprintf 'Test result [%s] %s', $result_file->to_string, $test_result;
         # If a failure (anything different from ok & softfail) is found, keep it.
         next if $did_fail;
 

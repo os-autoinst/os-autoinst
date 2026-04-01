@@ -26,7 +26,7 @@ sub new ($class) {
         my $asset_dir = $vars->{VAGRANT_ASSETDIR} // die 'Need variable \'VAGRANT_ASSETDIR\' when using local vagrant boxes';
         my $box_abs_path = undef;
 
-        opendir(my $dh, $asset_dir) or die "Could not opendir $asset_dir: $!";
+        opendir my $dh, $asset_dir or die "Could not opendir $asset_dir: $!";
 
         my $box_path = abs_path("$asset_dir$self->{box_name}");
         die "File $box_path does not exist" unless (-e $box_path);
@@ -63,7 +63,7 @@ END
     } elsif ($self->{provider} eq 'libvirt') {
         $self->{libvirt_storage_pool_path} = "$self->{vagrant_cwd}/pool";
         mkdir $self->{libvirt_storage_pool_path};
-        $self->{libvirt_pool_name} = 'vagrant' . int(rand(100_000));
+        $self->{libvirt_pool_name} = 'vagrant' . int rand 100_000;
 
         $vagrant_file_contents .= <<END;
   config.vm.provider :libvirt do |libvirt|
@@ -89,7 +89,7 @@ sub run_vagrant_command ($self, $args) {
     my ($retval, $stdin, $stdout, $stderr);
 
     my @vagrant_cmd = ('vagrant', $args->{cmd});
-    push(@vagrant_cmd, ('--machine-readable')) unless $args->{not_machine_readable};
+    push @vagrant_cmd, ('--machine-readable') unless $args->{not_machine_readable};
     push @vagrant_cmd, @{$args->{extra_args}} if defined $args->{extra_args};
     my $timeout = $args->{timeout} // ONE_MINUTE;
 
@@ -190,7 +190,7 @@ sub do_stop_vm ($self, @) {
 }
 
 sub run_cmd ($self, $cmd) {
-    my @args = ('--', split(/ /, $cmd));
+    my @args = ('--', split / /, $cmd);
     my $res = $self->run_vagrant_command({cmd => 'ssh', not_machine_readable => 1, extra_args => \@args});
 
     chomp $res->{stdout};
@@ -201,7 +201,7 @@ sub can_handle ($self, @) { }
 
 sub is_shutdown ($self, @) {
     my $res = $self->run_vagrant_command({cmd => 'status', timeout => 5});
-    chomp($res->{stdout});
+    chomp $res->{stdout};
     return $res->{stdout} =~ /default,state,(shutoff|not_created|poweroff)/;
 }
 

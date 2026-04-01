@@ -14,9 +14,9 @@ sub names ($self) { $self->{names_hash} //= {} }
 
 sub add ($self, $fd, $name = undef) {
     my $fd_nr = fileno $fd // $fd;
-    if (!defined($name)) {
+    if (!defined $name) {
         my ($package, $filename, $line) = caller;
-        $name = sprintf('NamedIOSelect::add(%d) called at %s:%d', $fd_nr, $filename, $line);
+        $name = sprintf 'NamedIOSelect::add(%d) called at %s:%d', $fd_nr, $filename, $line;
     }
 
     $self->names->{$fd_nr} = $name;

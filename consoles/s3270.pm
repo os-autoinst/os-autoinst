@@ -59,7 +59,7 @@ sub send_3270 ($self, $command = '', %arg) {
 
     # split output in three pieces: command status, terminal status
     # and command output, if any.
-    my @out_array = split(/\n/, $out_string);
+    my @out_array = split /\n/, $out_string;
 
     my $out = {
         command_status => pop @out_array,
@@ -104,7 +104,7 @@ sub _handle_expect_3270_cycle ($self, $result, $start_time, %arg) {
             $self->{raw_expect_queue}->enqueue(@output_area);
             $we_had_new_output = 1;
         }
-        say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
+        say "expect_3270 queue content:\n\t" . join "\n\t", @{$self->{raw_expect_queue}->{queue}};
 
         # if there is MORE..., go and grab it.
         if ($status_line =~ /$arg{buffer_full}/) {
@@ -246,7 +246,7 @@ sub sequence_3270 ($self, @commands) { $self->send_3270($_) for @commands }
 
 # map the terminal status of x3270 to a hash
 sub nice_3270_status ($self, $status_string) {
-    my (@raw_status) = split(' ', $status_string);
+    my (@raw_status) = split ' ', $status_string;
     my @status_names = (
         'keyboard_state',
         ## If the keyboard is unlocked, the letter U. If the

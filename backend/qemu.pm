@@ -108,7 +108,7 @@ sub execute_qmp_command ($self, $args) { $self->handle_qmp_command($args->{query
 
 sub cpu_stat ($self) {
     my $stat = path('/proc/' . $self->{proc}->_process->pid . '/stat')->slurp;
-    my @a = split(' ', $stat);
+    my @a = split ' ', $stat;
     return [@a[13, 14]];
 }
 
@@ -213,7 +213,7 @@ sub _wait_while_status_is ($self, $status, $timeout, $fail_msg) {
     while (($rsp->{return}->{status} // '') =~ $status) {
         $i += 1;
         die "$fail_msg; QEMU status is $rsp->{return}->{status}" if $i > $timeout;
-        sleep(1);
+        sleep 1;
         $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     }
 }
@@ -381,7 +381,7 @@ sub inflate_balloon ($self) {
     my $timeout = $vars->{QEMU_BALLOON_TIMEOUT} // 5;
     while ($i < $timeout) {
         $i += 1;
-        sleep(1);
+        sleep 1;
         $rsp = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
         last if $prev_actual <= $rsp->{return}->{actual};
     }
@@ -697,7 +697,7 @@ sub start_qemu ($self) {
             (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
             my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64 qemu-system-s390x);
             my %allowed = map { $_ => 1 } @execs;
-            for (split(/\s*,\s*/, $class)) {
+            for (split /\s*,\s*/, $class) {
                 if ($allowed{$_}) {
                     $qemubin = find_bin('/usr/bin/', $_);
                     last;
@@ -818,7 +818,7 @@ sub start_qemu ($self) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 16384)
         my $workerid = $vars->{WORKER_ID};
-        $nicmac[$i] //= sprintf('52:54:00:12:%02x:%02x', int($workerid / 256) + $i * 64, $workerid % 256);
+        $nicmac[$i] //= sprintf '52:54:00:12:%02x:%02x', int($workerid / 256) + $i * 64, $workerid % 256;
 
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
@@ -979,7 +979,7 @@ sub start_qemu ($self) {
                 push @boot_args, 'once=d';
             }
         }
-        sp('boot', join(',', @boot_args)) if @boot_args;
+        sp('boot', join ',', @boot_args) if @boot_args;
 
         foreach my $attribute (qw(KERNEL INITRD APPEND)) {
             sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
@@ -1045,8 +1045,8 @@ sub start_qemu ($self) {
     # The first item will have '-' prepended to it.
     if ($vars->{QEMU_APPEND}) {
         # Split multiple options, if needed
-        my @spl = split(' -', $vars->{QEMU_APPEND});
-        sp(split(' ', $_)) for @spl;
+        my @spl = split ' -', $vars->{QEMU_APPEND};
+        sp(split ' ', $_) for @spl;
     }
 
     create_virtio_console_fifo();
@@ -1132,7 +1132,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
         # die explicitly to workaround bug resulting in a warning when a function fails that got undef as an argument:
         # "Use of uninitialized value $args[0] in join or string at /usr/lib/perl5/5.40.1/autodie/exception.pm line 507"
         die q{Can't syswrite(<UNDEF>, <BUFFER>): Bad file descriptor} unless $sk;
-        $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
+        $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite $sk, $line;
     }
     catch ($e) {
         if ($line =~ qr/query-status/ && $self->{expected_shutdown} && $e =~ qr/(Broken pipe|Bad file descriptor)/) {
@@ -1142,7 +1142,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
         bmwqemu::fctwarn("The following qmp_command failed because qemu was explicitly stopped from test code via power('off'):\n$line") if $self->{expected_shutdown}; # uncoverable statement
         die "handle_qmp_command: Unexpected error: $e";    # uncoverable statement
     }
-    die "handle_qmp_command: syswrite failed $!" unless $wb && $wb == length($line);
+    die "handle_qmp_command: syswrite failed $!" unless $wb && $wb == length $line;
 
     my $hash;
     do {
@@ -1159,7 +1159,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
 }
 
 sub process_qemu_output ($buffer) {
-    for my $line (split(/\n/, $buffer)) {
+    for my $line (split /\n/, $buffer) {
         die 'QEMU: Shutting down the job' if $line =~ m/key event queue full/;
         if ($line =~ /^\s*qemu-system-[^:]+: (?!terminating on signal)/) {
             bmwqemu::fctwarn $line, '';
@@ -1172,7 +1172,7 @@ sub process_qemu_output ($buffer) {
 
 sub read_qemupipe ($self) {
     my $buffer;
-    my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
+    my $bytes = sysread $self->{qemupipe}, $buffer, 1000;
     chomp $buffer;
     process_qemu_output($buffer);
     return $bytes;
@@ -1184,11 +1184,11 @@ sub close_pipes ($self, $closeall = 0) {
 
     if (my $qemu_pipe = $self->{qemupipe}) {
         # one last word?
-        fcntl($qemu_pipe, Fcntl::F_SETFL, Fcntl::O_NONBLOCK);
+        fcntl $qemu_pipe, Fcntl::F_SETFL, Fcntl::O_NONBLOCK;
         $self->read_qemupipe();
         $self->{select_read}->remove($qemu_pipe);
         $self->{select_write}->remove($qemu_pipe);
-        close($qemu_pipe);
+        close $qemu_pipe;
         $self->{qemupipe} = undef;
     }
 

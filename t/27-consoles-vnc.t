@@ -31,7 +31,7 @@ $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data
 my $c = consoles::VNC->new(_bpp => 32);    # create VNC console with bit-depth of 32 bit
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
-sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
+sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack 'N', 1) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; length $_[1] });
 $vnc_mock->redefine(_read_socket => sub { substr(${$_[1]}, $_[3], $_[2]) = $s->mocked_read; length ${$_[1]} });
@@ -40,16 +40,16 @@ $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
 combined_like { is $c->login, undef, 'can call login' } qr/socket timeout/, 'would have set socket timeout';
 is $c->_receive_bell, 1, 'can call _receive_bell';
-is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or always_explain \@printed;
+is_deeply \@printed, ['RFB 003.006', pack 'C', 1], 'protocol version and security type replied' or always_explain \@printed;
 @printed = ();
 
 # ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
-my $machine_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
+my $machine_is_big_endian = (unpack 'h*', pack 's', 1) =~ /01/ ? 1 : 0;
 my %normal_update_request = (x => 0, y => 0, width => 1024, height => 512, incremental => 0);
 
 subtest 'mocked read' => sub {
     my $data = 'A' x 15;
-    open(my $s, '<:raw', dirname(__FILE__) . '/data/frame1.ppm');
+    open my $s, '<:raw', dirname(__FILE__) . '/data/frame1.ppm';
     is $vnc_mock->original('_read_socket')->($s, \$data, 7, 6), 7, 'correct result of _read_socket';
     is $data, "AAAAAAP6\n1024", '_read_socket modified data array';
 };
@@ -69,7 +69,7 @@ subtest 'send forced update request' => sub {
 subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
     @sent = ();
     $c->check_vnc_stalls(1)->_framebuffer(1)->_vnc_stalled(1)->_last_update_received(-1000);
-    $s->set_series('mocked_read', 'REB 003.006', pack('N', 1));
+    $s->set_series('mocked_read', 'REB 003.006', pack 'N', 1);
     combined_like {
         throws_ok {
             $c->send_update_request;
@@ -83,7 +83,7 @@ subtest 'repeating handshake with max. version' => sub {
     $c->socket($s);
     $c->_handshake_protocol_version;
     is $c->_rfb_version, '003.008', 'RFB version set to max. supported version';
-    is_deeply \@printed, ['RFB 003.008' . chr(0x0a)], 'replied max. RFB version' or always_explain \@printed;
+    is_deeply \@printed, ['RFB 003.008' . chr 0x0a], 'replied max. RFB version' or always_explain \@printed;
     @printed = ();
 };
 
@@ -163,9 +163,9 @@ subtest 'update framebuffer' => sub {
     throws_ok { $c->update_framebuffer } qr/unsupported message type received/, 'dies on unsupported message';
 
     # test with truncated data
-    my $update_message = pack('C', 0);
-    my $one_rectangle = pack(xn => 1);
-    my $of_type_zrle_with_coordinates_17_19_23_29 = pack(nnnnN => 17, 19, 23, 29, 16);
+    my $update_message = pack 'C', 0;
+    my $one_rectangle = pack xn => 1;
+    my $of_type_zrle_with_coordinates_17_19_23_29 = pack nnnnN => 17, 19, 23, 29, 16;
     my $expected_error = qr/Error in VNC protocol - relogin: short read for length/;
     my $logged_in = 0;
     $vnc_mock->redefine(login => sub { $logged_in = 1 });
@@ -176,8 +176,8 @@ subtest 'update framebuffer' => sub {
     # test with full data (just one pixel, though) and vncinfo present (defines endianness and chroma subsampling)
     $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
     my $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
-    my $gray_pixel = pack(CCCC => 31, 37, 41, 0);    # dark prime grey
-    my $of_type_raw_with_coordinates_43_47_1_1 = pack(nnnnN => 43, 47, 1, 1, 0);
+    my $gray_pixel = pack CCCC => 31, 37, 41, 0;    # dark prime grey
+    my $of_type_raw_with_coordinates_43_47_1_1 = pack nnnnN => 43, 47, 1, 1, 0;
     $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_raw_with_coordinates_43_47_1_1, $gray_pixel);
     $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
     ok $c->update_framebuffer, 'truthy return value for successful pixel update';
@@ -186,11 +186,11 @@ subtest 'update framebuffer' => sub {
     is $green, 37, 'pixel data updated in framebuffer (green)';
     is $red, 31, 'pixel data updated in framebuffer (red)';
 
-    my $last_rectangle = pack(nnnnN => 0, 0, 0, 0, -224);
+    my $last_rectangle = pack nnnnN => 0, 0, 0, 0, -224;
     $s->set_series(mocked_read => $update_message, $one_rectangle, $last_rectangle);
     ok $c->update_framebuffer, 'truthy return value last rectangle';
 
-    my $unknown_encoding = pack(nnnnN => 0, 0, 0, 0, -225);
+    my $unknown_encoding = pack nnnnN => 0, 0, 0, 0, -225;
     $s->set_series(mocked_read => $update_message, $one_rectangle, $unknown_encoding);
     throws_ok { $c->update_framebuffer } qr/unsupported update encoding -225/, 'dies on unsupported encoding';
     is $s->mocked_read, undef, 'no more messages left to read after reading unknown encoding';
@@ -198,7 +198,7 @@ subtest 'update framebuffer' => sub {
     # test with full data again, assuming the server is big-endian
     $c->_do_endian_conversion(!$machine_is_big_endian);    # assume server is big-endian
     $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
-    $gray_pixel = pack(CCCC => 0, 41, 37, 31);    # dark prime grey
+    $gray_pixel = pack CCCC => 0, 41, 37, 31;    # dark prime grey
     $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_raw_with_coordinates_43_47_1_1, $gray_pixel);
     $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
     ok $c->update_framebuffer, 'truthy return value for successful pixel update of big-endian server';
@@ -208,14 +208,14 @@ subtest 'update framebuffer' => sub {
     is $red, 31, 'pixel data updated in framebuffer (red, big-endian server)';
 
     $c->ikvm(1);
-    my $unsupported_ikvm_encoding = pack(nnnnN => 0, 0, 1, 1, 88);
-    my $ikvm_specific_data = pack(NN => 0, 9);    # some "prefix" and data length
+    my $unsupported_ikvm_encoding = pack nnnnN => 0, 0, 1, 1, 88;
+    my $ikvm_specific_data = pack NN => 0, 9;    # some "prefix" and data length
     $s->set_series(mocked_read => $update_message, $one_rectangle, $unsupported_ikvm_encoding, $ikvm_specific_data);
     throws_ok { $c->update_framebuffer } qr/unsupported encoding 88/, 'dies on unsupported ikvm encoding';
 
-    my $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 89);    # 2x2 pixels at 0,0
-    my $surplus_byte = pack(CC => 1);    # will be ignored
-    my $actual_image_data = pack(NN => 0xFFFFFFE0, 0xFFFFFFE0);    # white pixels
+    my $ikvm_encoding = pack nnnnN => 0, 0, 2, 2, 89;    # 2x2 pixels at 0,0
+    my $surplus_byte = pack CC => 1;    # will be ignored
+    my $actual_image_data = pack NN => 0xFFFFFFE0, 0xFFFFFFE0;    # white pixels
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $surplus_byte, $actual_image_data);
     combined_like { $c->update_framebuffer } qr/Additional Bytes: 01/, 'additional bytes skipped';
     ($blue, $green, $red) = $c->_framebuffer->get_pixel(0, 0);
@@ -225,40 +225,40 @@ subtest 'update framebuffer' => sub {
     is $green, 248, 'pixel data updated in framebuffer via ikvm encoding (green)';
     is $red, 248, 'pixel data updated in framebuffer via ikvm encoding (red)';
 
-    my $raw_ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 0);    # 2x2 pixels at 0,0
-    my $raw_ikvm_segment = pack(CxNN => 0, 1, 1);    # one segment of length 1 and type 0
-    my $raw_ikvm_data = pack(nnCC => 0, 0, 0, 0);    # coordinates are 0,0
-    my $raw_ikvm_data2 = pack('C[512]' => 0);    # just provide zeros for the image data
+    my $raw_ikvm_encoding = pack nnnnN => 0, 0, 2, 2, 0;    # 2x2 pixels at 0,0
+    my $raw_ikvm_segment = pack CxNN => 0, 1, 1;    # one segment of length 1 and type 0
+    my $raw_ikvm_data = pack nnCC => 0, 0, 0, 0;    # coordinates are 0,0
+    my $raw_ikvm_data2 = pack 'C[512]' => 0;    # just provide zeros for the image data
     $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
     $c->update_framebuffer;
 
-    $raw_ikvm_encoding = pack(nnnnN => 0, 0, -1, 0, 0);    # negative width, supposed to turn screen off
+    $raw_ikvm_encoding = pack nnnnN => 0, 0, -1, 0, 0;    # negative width, supposed to turn screen off
     $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
     $c->update_framebuffer;
     is $c->_framebuffer, undef, 'framebuffer removed';
     ok !$c->screen_on, 'screen turned off by negative with';
 
     @printed = ();
-    $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 87);    # 2x2 pixels at 0,0, ast2100 encoded
-    $actual_image_data = pack(CCn => 10, 11, 444);    # anything but high quality
+    $ikvm_encoding = pack nnnnN => 0, 0, 2, 2, 87;    # 2x2 pixels at 0,0, ast2100 encoded
+    $actual_image_data = pack CCn => 10, 11, 444;    # anything but high quality
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
     combined_like { $c->update_framebuffer } qr/fixing quality/, 'enforcing high quality';
-    is_deeply \@printed, [pack(CCCn => 0x32, 0, 11, 444)], 'high quality requested' or always_explain \@printed;
+    is_deeply \@printed, [pack CCCn => 0x32, 0, 11, 444], 'high quality requested' or always_explain \@printed;
     ok $c->_framebuffer, 'framebuffer present again';
     ok $c->screen_on, 'screen on again';
 
-    $actual_image_data = pack(CCnN => 11, 11, 444, 0x90);    # high quality, ctrl 9 for stopping ast2100 decoding early
-    $ikvm_specific_data = pack(NN => 0, length($actual_image_data));    # some "prefix" and data length
+    $actual_image_data = pack CCnN => 11, 11, 444, 0x90;    # high quality, ctrl 9 for stopping ast2100 decoding early
+    $ikvm_specific_data = pack NN => 0, length $actual_image_data;    # some "prefix" and data length
     $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
     $c->update_framebuffer;
     is scalar @printed, 1, 'no further image requested' or always_explain \@printed;
 
-    my $of_type_tight_with_coordinates_12_42_4_4 = pack(nnnnNC => 12, 42, 4, 4, 7);
-    my $fill_compression = pack('C', 0x80);
+    my $of_type_tight_with_coordinates_12_42_4_4 = pack nnnnNC => 12, 42, 4, 4, 7;
+    my $fill_compression = pack 'C', 0x80;
     subtest 'Tight encoding, FillCompression' => sub {
         $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
         $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
-        $gray_pixel = pack(CCCC => 31, 37, 41, 0);    # dark prime grey
+        $gray_pixel = pack CCCC => 31, 37, 41, 0;    # dark prime grey
         $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_12_42_4_4, $fill_compression, $gray_pixel);
         $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
         ok $c->update_framebuffer, 'truthy return value for successful pixel update';
@@ -273,7 +273,7 @@ subtest 'update framebuffer' => sub {
         $c->depth(24);
         $c->_true_colour(1);
         $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
-        $gray_pixel = pack(CCCC => 31, 37, 41);    # dark prime grey
+        $gray_pixel = pack CCCC => 31, 37, 41;    # dark prime grey
         $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_12_42_4_4, $fill_compression, $gray_pixel);
         $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
         ok $c->update_framebuffer, 'truthy return value for successful pixel update';
@@ -285,12 +285,12 @@ subtest 'update framebuffer' => sub {
 
     subtest 'Tight encoding, JpegCompression' => sub {
         my $jpeg_data = path(dirname(__FILE__) . '/data/frame1.jpeg')->slurp;
-        my $of_type_tight_with_coordinates_0_0_1024_768 = pack(nnnnNC => 0, 0, 1024, 768, 7);
-        my $jpeg_compression = pack('C', 0x90);
-        my $data_len = length($jpeg_data);
-        my $data_len1 = pack('C', ($data_len & 0x7f) | 0x80);
-        my $data_len2 = pack('C', (($data_len >> 7) & 0x7f) | 0x80);
-        my $data_len3 = pack('C', ($data_len >> 14));
+        my $of_type_tight_with_coordinates_0_0_1024_768 = pack nnnnNC => 0, 0, 1024, 768, 7;
+        my $jpeg_compression = pack 'C', 0x90;
+        my $data_len = length $jpeg_data;
+        my $data_len1 = pack 'C', ($data_len & 0x7f) | 0x80;
+        my $data_len2 = pack 'C', (($data_len >> 7) & 0x7f) | 0x80;
+        my $data_len3 = pack 'C', ($data_len >> 14);
 
         $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_tight_with_coordinates_0_0_1024_768, $jpeg_compression, $data_len1, $data_len2, $data_len3, $jpeg_data);
         $c->_framebuffer(undef)->width(1024)->height(768);
@@ -303,23 +303,23 @@ subtest 'update framebuffer' => sub {
 };
 
 subtest 'read special messages/encodings' => sub {
-    $s->set_series(mocked_read => pack(C => 51), pack(N => 0));
+    $s->set_series(mocked_read => (pack C => 51), (pack N => 0));
     combined_like { $c->update_framebuffer } qr/discarding 4 bytes for message 51/, 'ikvm message discarded';
     is $s->mocked_read, undef, 'no more messages left to read after discarding';
 
-    $s->set_series(mocked_read => pack(C => 0x39), pack(NNZ256 => 1, 2, 3));
+    $s->set_series(mocked_read => (pack C => 0x39), (pack NNZ256 => 1, 2, 3));
     combined_like { $c->update_framebuffer } qr/IKVM Session Message: 1 2 3/, 'ikvm session logged';
     is $s->mocked_read, undef, 'no more messages left to read after discarding';
 };
 
 subtest 'cutting text' => sub {
-    $s->set_series(mocked_read => pack(xxxN => 1), pack(C => 0));
+    $s->set_series(mocked_read => (pack xxxN => 1), (pack C => 0));
     ok $c->_receive_cut_text, 'text is merely discarded';
     is $s->mocked_read, undef, 'no more messages left to read';
 };
 
 subtest 'receiving color map' => sub {
-    $s->set_series(mocked_read => pack(Cnn => 0, 0, 1), pack(nnn => 51 * 256, 53 * 256, 57 * 256));
+    $s->set_series(mocked_read => (pack Cnn => 0, 0, 1), (pack nnn => 51 * 256, 53 * 256, 57 * 256));
     $c->ikvm(0);
     ok $c->_receive_colour_map, 'color map received';
     is $s->mocked_read, undef, 'no more messages left to read';
@@ -332,7 +332,7 @@ subtest 'receiving color map' => sub {
 subtest 'security handshake: DES' => sub {
     # assume server propose DES as only option with just zero-bytes as challenge
     $c->_rfb_version('003.007');
-    $s->set_series(mocked_read => pack(C => 1), pack(C => 2), pack(NNNN => 0, 0, 0, 0), pack(N => 0));
+    $s->set_series(mocked_read => (pack C => 1), (pack C => 2), (pack NNNN => 0, 0, 0, 0), (pack N => 0));
 
     # let our client respond assuming some password
     @printed = ();
@@ -348,7 +348,7 @@ subtest 'security handshake: DES' => sub {
 subtest 'security handshake: ikvm' => sub {
     # assume server propose ikvm as only option with 0 tunnels and '?' as session info
     $c->_rfb_version('003.007');
-    $s->set_series(mocked_read => pack(C => 1), pack(C => 16), pack(N => 0), pack(C20 => 0), pack(NNNN => 0, 0, 0, 0));
+    $s->set_series(mocked_read => (pack C => 1), (pack C => 16), (pack N => 0), (pack C20 => 0), (pack NNNN => 0, 0, 0, 0));
 
     # let our client respond assuming some username and password
     @printed = ();
@@ -357,9 +357,9 @@ subtest 'security handshake: ikvm' => sub {
     $c->password('supersecret');    # only the first 8 characters will be considered
     combined_like { $c->_handshake_security } qr/Session info: 00/, 'session info logged';
     my @expected = (
-        pack(C => 16),    # client confirms to use ikvm
-        pack(Z24 => $c->username),    # client sends username …
-        pack(Z24 => $c->password)    # … and password
+        (pack C => 16),    # client confirms to use ikvm
+        (pack Z24 => $c->username),    # client sends username …
+        (pack Z24 => $c->password)    # … and password
     );
     is $c->old_ikvm, 0, 'not considered old ikvm';
     is_deeply \@printed, \@expected, 'expected response' or always_explain \@printed;
@@ -367,10 +367,10 @@ subtest 'security handshake: ikvm' => sub {
 
 subtest 'security handshake: failue' => sub {
     $c->_rfb_version('003.006');
-    $s->set_series(mocked_read => pack(N => 42));
+    $s->set_series(mocked_read => pack N => 42);
     throws_ok { $c->_handshake_security } qr/security/, 'dies on unknown security type';
 
-    $s->set_series(mocked_read => pack(N => 1));
+    $s->set_series(mocked_read => pack N => 1);
     $s->set_false('connected');
     throws_ok { $c->_handshake_security } qr/login failed/, 'dies when socket closed';
 };
@@ -392,10 +392,10 @@ subtest 'server initialization' => sub {
     my $red_shift = 0;
     my $green_shift = 8;
     my $blue_shift = 16;
-    my $server_init = pack(nnCCCCnnnCCCxxxN => $framebuffer_width, $framebuffer_height,
-        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
-        $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift, $name_length);
-    my $ikvm_init = pack(x4NCCCC => 1, 2, 3, 4, 5);
+    my $server_init = pack nnCCCCnnnCCCxxxN => $framebuffer_width, $framebuffer_height,
+      $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+      $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift, $name_length;
+    my $ikvm_init = pack x4NCCCC => 1, 2, 3, 4, 5;
 
     # test as ikvm taking setpixelformat from server
     $s->set_series(mocked_read => $server_init, $ikvm_init);
@@ -454,8 +454,8 @@ subtest 'login on real VNC server via vnctest, request and receive frame buffer'
     my $port = 5900 + $display;
 
     note "running Xvnc for display $display (port $port) and connect via $bmwqemu::topdir/script/vnctest";
-    my $xvnc_pid = open(my $xvnc_pipe, "Xvnc -depth 16 -SecurityTypes None -ac :$display 2>&1 |");
-    my $vnc_test_pid = open(my $vnc_test_pipe, "$bmwqemu::topdir/script/vnctest --port $port --verbose 2>&1 |");
+    my $xvnc_pid = open my $xvnc_pipe, "Xvnc -depth 16 -SecurityTypes None -ac :$display 2>&1 |";
+    my $vnc_test_pid = open my $vnc_test_pipe, "$bmwqemu::topdir/script/vnctest --port $port --verbose 2>&1 |";
     my ($sent_update_request, $has_framebuffer) = (0, 0);
     while (my $line = <$vnc_test_pipe>) {
         ++$sent_update_request if $line =~ qr/Send update request/;

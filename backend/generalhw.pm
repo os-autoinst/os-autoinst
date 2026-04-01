@@ -59,7 +59,7 @@ sub run_cmd ($self, $cmd, @extra_args) {
 }
 
 # wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
-sub _system (@cmd) { system(@cmd) }    # uncoverable statement
+sub _system (@cmd) { system @cmd }    # uncoverable statement
 
 sub is_shutdown ($self, @) {
     return -1 unless defined $bmwqemu::vars{GENERAL_HW_IS_SHUTDOWN_CMD};
@@ -73,7 +73,7 @@ sub poweroff_host ($self) {
 
 sub restart_host ($self) {
     $self->poweroff_host;
-    sleep(3);
+    sleep 3;
     $self->run_cmd('GENERAL_HW_POWERON_CMD');
     return;
 }
@@ -97,8 +97,8 @@ sub eject_cd ($self, $args = {}) {
 
 sub relogin_vnc ($self) {
     if ($self->{vnc}) {
-        close($self->{vnc}->socket);
-        sleep(1);
+        close $self->{vnc}->socket;
+        sleep 1;
     }
 
     my $vnc = $testapi::distri->add_console(
@@ -187,13 +187,13 @@ sub check_socket ($self, $fh, $write = undef) {
 # serial grab
 
 sub start_serial_grab ($self) {
-    $self->{serialpid} = fork();
+    $self->{serialpid} = fork;
     return unless $self->{serialpid} == 0;
     setpgrp 0, 0;    # uncoverable statement
-    open(my $serial, '>', $self->{serialfile});    # uncoverable statement
-    open(STDOUT, '>&', $serial);    # uncoverable statement
-    open(STDERR, '>&', $serial);    # uncoverable statement
-    exec($self->get_cmd('GENERAL_HW_SOL_CMD'));    # uncoverable statement
+    open my $serial, '>', $self->{serialfile};    # uncoverable statement
+    open STDOUT, '>&', $serial;    # uncoverable statement
+    open STDERR, '>&', $serial;    # uncoverable statement
+    exec $self->get_cmd('GENERAL_HW_SOL_CMD');    # uncoverable statement
     die "exec failed $!";    # uncoverable statement
 }
 
@@ -204,7 +204,7 @@ sub stop_serial_grab ($self, @) {
         return -1 if $e =~ qr/No such process/i;
         die "$e\n";    # uncoverable statement
     }
-    return waitpid($self->{serialpid}, 0);
+    return waitpid $self->{serialpid}, 0;
 }
 
 # serial grab end

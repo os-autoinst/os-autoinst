@@ -26,7 +26,7 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
 
     for (($pipe_in, $pipe_out)) {
         unlink $_ if (-e $_);
-        mkfifo($_, 0666) or die("Cannot create fifo pipe $_");
+        mkfifo($_, 0666) or die "Cannot create fifo pipe $_";
     }
 
     $pipe_data_written = 0;
@@ -36,21 +36,21 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
         my $running = 1;
         $SIG{USR1} = sub { $running = 0; };
         $SIG{ALRM} = sub {
-            die('Timeout for pipe other side helper');    # uncoverable statement
+            die 'Timeout for pipe other side helper';    # uncoverable statement
         };
         alarm ONE_MINUTE;
         my $fd_r = IO::Handle->new();
         my $fd_w = IO::Handle->new();
-        open($fd_r, '<', $pipe_in)
+        open $fd_r, '<', $pipe_in
           or die "Can't open in pipe for writing $!";
-        open($fd_w, '>', $pipe_out)
+        open $fd_w, '>', $pipe_out
           or die "Can't open out pipe for reading $!";
 
-        syswrite($fd_w, $write_buffer) if ($write_buffer);
+        syswrite $fd_w, $write_buffer if $write_buffer;
         $fd_w->flush();
 
         kill 'USR2', getppid;
-        sysread($fd_r, my $buf, 1024) while ($running);
+        sysread $fd_r, my $buf, 1024 while $running;
         _exit 0 if $prepare_pipes_covered;
         exit 0;
     };
@@ -60,7 +60,7 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
 
 sub cleanup_pipes ($obj) {
     kill 'USR1', $obj->{pid};
-    waitpid(-1, 0);
+    waitpid -1, 0;
     unlink for (@{$obj->{files}});
 }
 

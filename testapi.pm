@@ -265,7 +265,7 @@ sub _handle_found_needle ($foundneedle, $rsp, $tags) {
     $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates}, $frame);
     my $lastarea = $foundneedle->{area}->[-1];
     bmwqemu::fctres(
-        sprintf('found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0));
+        sprintf 'found %s, similarity %.2f @ %d/%d', $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0);
     $last_matched_needle = $foundneedle;
     return $foundneedle;
 }
@@ -772,8 +772,8 @@ Return the given variable as array reference (split variable value by , | or ; )
 =cut
 
 sub get_var_array ($var, $default = undef) {
-    my @vars = split(/,|;/, $bmwqemu::vars{$var} || '');
-    my @default = split(/,|;/, $default || '');
+    my @vars = split /,|;/, $bmwqemu::vars{$var} || '';
+    my @default = split /,|;/, $default || '';
     return \@default if !@vars;
     return \@vars;
 }
@@ -999,7 +999,7 @@ sub script_run {    # no:style:signatures
 
     bmwqemu::log_call(cmd => $cmd, %args);
     my $ret = $distri->script_run($cmd, %args);
-    croak("command '$cmd' timed out") if $args{timeout} > 0 && !defined($ret);
+    croak("command '$cmd' timed out") if $args{timeout} > 0 && !defined $ret;
     return $ret;
 }
 
@@ -1278,7 +1278,7 @@ sub hashed_string ($string, $count = undef) {
     # + and / are problematic in regexps and shell commands
     $hash =~ s,\+,_,g;
     $hash =~ s,/,~,g;
-    return substr($hash, 0, $count);
+    return substr $hash, 0, $count;
 }
 
 =head1 keyboard support
@@ -1418,7 +1418,7 @@ sub type_string {    # no:style:signatures
     if ($wait) {
         # split string into an array of pieces of specified size
         # https://stackoverflow.com/questions/372370
-        @pieces = unpack("(a${wait})*", $string);
+        @pieces = unpack "(a${wait})*", $string;
     }
     else {
         push @pieces, $string;
@@ -1700,7 +1700,7 @@ sub select_console ($testapi_console, @args) {
 
     $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
-        push(@$autotest::activated_consoles, $testapi_console);
+        push @$autotest::activated_consoles, $testapi_console;
         $testapi::distri->activate_console($testapi_console, @args);
     }
     $testapi::distri->console_selected($testapi_console, @args);
@@ -1778,16 +1778,16 @@ I<Only supported by qemu backend.>
 
 sub start_audiocapture () {
     my $fn = $autotest::current_test->capture_filename;
-    my $filename = join('/', bmwqemu::result_dir(), $fn);
+    my $filename = join '/', bmwqemu::result_dir(), $fn;
     bmwqemu::log_call(filename => $filename);
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
-sub _snd2png ($wavfile, $imgpath) { system("snd2png $wavfile $imgpath") }    # uncoverable statement
+sub _snd2png ($wavfile, $imgpath) { system "snd2png $wavfile $imgpath" }    # uncoverable statement
 
 sub _check_or_assert_sound ($mustmatch, $check = undef) {
     my $result = $autotest::current_test->stop_audiocapture();
-    my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
+    my $wavfile = join '/', bmwqemu::result_dir(), $result->{audio};
     my $imgpath = "$result->{audio}.png";
     _snd2png($wavfile, $imgpath);
     return $autotest::current_test->verify_sound_image($imgpath, $mustmatch, $check);
@@ -1856,7 +1856,7 @@ sub check_shutdown ($timeout = undef) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
             bmwqemu::diag('Backend does not implement is_shutdown - just sleeping');
-            sleep($timeout);
+            sleep $timeout;
         }
         # -1 counts too
         return 1 if $is_shutdown;
@@ -1988,7 +1988,7 @@ sub freeze_vm () {
     # we're not encouraging them to do that outside a post_fail_hook or at any point
     # in the test code.
     bmwqemu::diag 'Call freeze_vm within a post_fail_hook or very early in your test'
-      unless ((caller(1))[3]) =~ /post_fail_hook/;
+      unless ((caller 1)[3]) =~ /post_fail_hook/;
     bmwqemu::log_call();
     query_isotovideo('backend_freeze_vm');
 }
@@ -2052,7 +2052,7 @@ sub parse_extra_log ($format, $file, %args) {
 
         $parser->tests->each(
             sub {
-                push(@tests, $_->to_openqa);
+                push @tests, $_->to_openqa;
             });
     }
     catch ($e) { croak $e }    # uncoverable statement
@@ -2123,7 +2123,7 @@ sub autoinst_url ($path = undef, $query = undef, $args = {}) {
     my $workerport = get_required_var('QEMUPORT') + 1;
 
     my $token = get_required_var('JOBTOKEN');
-    my $querystring = join('&', map { "$_=$query->{$_}" } sort keys %$query);
+    my $querystring = join '&', map { "$_=$query->{$_}" } sort keys %$query;
     my $url = "http://$hostname:$workerport/$token$path";
     $url .= "?$querystring" if $querystring;
 
@@ -2255,7 +2255,7 @@ sub compat_args ($def_args, $fix_keys, @args) {
     }
     carp('Odd number of arguments') unless ((@args % 2) == 0);
     %ret = (%{$def_args}, %ret, @args);
-    map { $ret{$_} //= $def_args->{$_} } keys(%{$def_args});
+    map { $ret{$_} //= $def_args->{$_} } keys %{$def_args};
     return %ret;
 }
 
@@ -2287,7 +2287,7 @@ starting to write the script into the here document.
 
 sub backend_get_wait_still_screen_on_here_doc_input () {
     state $ret;
-    $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
+    $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined $ret;
     return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);
 }
 

@@ -17,7 +17,7 @@ use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 # hash for keeping state
 our $sockets;
 
-sub _syswrite ($to_fd, $json, $length = undef, $offset = undef) { syswrite($to_fd, $json, $length, $offset) }
+sub _syswrite ($to_fd, $json, $length = undef, $offset = undef) { syswrite $to_fd, $json, $length, $offset }
 
 sub is_debug () { DEBUG_JSON || $bmwqemu::vars{DEBUG_JSON_RPC} }
 
@@ -43,16 +43,16 @@ sub send_json ($to_fd, $cmd) {
     $cmdcopy{json_cmd_token} ||= bmwqemu::random_string(8);
 
     my $json = $cjx->encode(\%cmdcopy);
-    bmwqemu::diag(sprintf('send_json(%d) JSON=%s', fileno($to_fd), $json =~ s/"([^"]{30})[^"]+"/"$1"/gr)) if is_debug();
+    bmwqemu::diag(sprintf 'send_json(%d) JSON=%s', fileno($to_fd), $json =~ s/"([^"]{30})[^"]+"/"$1"/gr) if is_debug();
     $json .= "\n";
 
     confess 'myjsonrpc: called on undefined file descriptor' unless defined $to_fd;
     my $written_bytes = 0;
-    my $bytes_to_write = length($json);
+    my $bytes_to_write = length $json;
     while ($written_bytes < $bytes_to_write) {
         $written_bytes += _syswrite($to_fd, $json, $bytes_to_write - $written_bytes, $written_bytes) // 0;
         if ($!) {
-            die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
+            die 'myjsonrpc: remote end terminated connection, stopping' if !DEBUG_JSON && $! =~ qr/Broken pipe/;
             confess sprintf "syswrite failed: err: '%s'; written_bytes: %d/%d; JSON: '%s'", $!, $written_bytes, $bytes_to_write, $json;
         }
     }
@@ -63,7 +63,7 @@ sub send_json ($to_fd, $cmd) {
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     my $cjx = Cpanel::JSON::XS->new->utf8;
 
-    my $fd = fileno($socket);
+    my $fd = fileno $socket;
     bmwqemu::diag("read_json($fd)") if is_debug();
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
@@ -84,7 +84,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
         # remember the trailing text
         if ($hash) {
             $sockets->{$fd} = $cjx->incr_text();
-            bmwqemu::diag(sprintf('read_json(%d) json_cmd_token=%s', $fd, $hash->{json_cmd_token} // 'no-token')) if is_debug();
+            bmwqemu::diag(sprintf 'read_json(%d) json_cmd_token=%s', $fd, $hash->{json_cmd_token} // 'no-token') if is_debug();
             if ($hash->{QUIT}) {
                 bmwqemu::diag('received magic close');
                 push @results, undef;
@@ -106,7 +106,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
         handle_read_error($fd) until (my @res = $s->can_read);
 
         my $qbuffer;
-        if (!sysread($socket, $qbuffer, READ_BUFFER)) { bmwqemu::fctwarn("sysread failed: $!") if is_debug(); return }
+        if (!sysread $socket, $qbuffer, READ_BUFFER) { bmwqemu::fctwarn("sysread failed: $!") if is_debug(); return }
         $cjx->incr_parse($qbuffer);
     }
 

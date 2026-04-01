@@ -25,10 +25,10 @@ has [qw(description hostname port username password socket name width height dep
 our $VERSION = '0.40';
 
 my $MAX_PROTOCOL_VERSION = '003.008';
-my $MAX_PROTOCOL_HANDSHAKE = 'RFB ' . $MAX_PROTOCOL_VERSION . chr(0x0a);    # Max version supported
+my $MAX_PROTOCOL_HANDSHAKE = 'RFB ' . $MAX_PROTOCOL_VERSION . chr 0x0a;    # Max version supported
 
 # This line comes from perlport.pod
-my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
+my $client_is_big_endian = unpack('h*', pack 's', 1) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
@@ -222,14 +222,14 @@ sub _handshake_security ($self) {
     if ($self->_rfb_version ge '003.007') {
         my $number_of_security_types = 0;
         my $r = $socket->read($number_of_security_types, 1);
-        $number_of_security_types = unpack('C', $number_of_security_types) if $r;
+        $number_of_security_types = unpack 'C', $number_of_security_types if $r;
         die 'Error authenticating' if $number_of_security_types == 0;
 
         my @security_types;
         foreach (1 .. $number_of_security_types) {
             $socket->read(my $security_type, 1)
               || die 'unexpected end of data';
-            $security_type = unpack('C', $security_type);
+            $security_type = unpack 'C', $security_type;
 
             push @security_types, $security_type;
         }
@@ -249,17 +249,17 @@ sub _handshake_security ($self) {
 
         # In RFB 3.3, the server dictates the security type
         $socket->read($security_type, 4) || die 'unexpected end of data';
-        $security_type = unpack('N', $security_type);
+        $security_type = unpack 'N', $security_type;
     }
 
     if ($security_type == 1) {
         # No authorization needed!
-        $socket->print(pack('C', 1)) if $self->_rfb_version ge '003.007';
+        $socket->print(pack 'C', 1) if $self->_rfb_version ge '003.007';
     }
     elsif ($security_type == 2) {
         # DES-encrypted challenge/response
 
-        $socket->print(pack('C', 2)) if $self->_rfb_version ge '003.007';
+        $socket->print(pack 'C', 2) if $self->_rfb_version ge '003.007';
 
         # # VNC authentication is to be used and protocol data is to be
         # # sent unencrypted. The server sends a random 16-byte
@@ -271,14 +271,14 @@ sub _handshake_security ($self) {
         $socket->read(my $challenge, 16) || die 'unexpected end of data';
 
         # the RFB protocol only uses the first 8 characters of a password
-        my $key = substr($self->password, 0, 8);
+        my $key = substr $self->password, 0, 8;
         $key = '' unless defined $key;
-        $key .= pack('C', 0) until (length($key) % 8) == 0;
+        $key .= pack 'C', 0 until (length($key) % 8) == 0;
 
         my $realkey;
 
         foreach my $byte (split //, $key) {
-            $realkey .= pack('b8', scalar reverse unpack('b8', $byte));
+            $realkey .= pack 'b8', scalar reverse unpack 'b8', $byte;
         }
 
         # # The client encrypts the challenge with DES, using a password
@@ -292,7 +292,7 @@ sub _handshake_security ($self) {
         my $i = 0;
 
         while ($i < 16) {
-            my $word = substr($challenge, $i, 8);
+            my $word = substr $challenge, $i, 8;
 
             $response .= $cipher->encrypt($word);
             $i += 8;
@@ -302,16 +302,16 @@ sub _handshake_security ($self) {
     }
     elsif ($security_type == 16) {    # ikvm
 
-        $socket->print(pack('C', 16));    # accept
-        $socket->write(pack('Z24', $self->username));
-        $socket->write(pack('Z24', $self->password));
+        $socket->print(pack 'C', 16);    # accept
+        $socket->write(pack 'Z24', $self->username);
+        $socket->write(pack 'Z24', $self->password);
         $socket->read(my $num_tunnels, 4);
 
-        $num_tunnels = unpack('N', $num_tunnels);
+        $num_tunnels = unpack 'N', $num_tunnels;
         # found in https://github.com/kanaka/noVNC
         $self->old_ikvm($num_tunnels > 0x1000000 ? 1 : 0);
         $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
-        my @bytes = unpack('C20', $ikvm_session);
+        my @bytes = unpack 'C20', $ikvm_session;
         print 'Session info: ';
         for my $byte (@bytes) {
             printf '%02x ', $byte;
@@ -324,7 +324,7 @@ sub _handshake_security ($self) {
         # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
         # ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
         $socket->read(my $security_result, 4) || die 'Failed to login';
-        $security_result = unpack('C', $security_result);
+        $security_result = unpack 'C', $security_result;
         print "Security Result: $security_result\n";
         die 'Failed to login' unless $security_result == 0;
     }
@@ -339,7 +339,7 @@ sub _handshake_security ($self) {
     {
         $socket->read(my $security_result, 4)
           || die 'unexpected end of data';
-        $security_result = unpack('N', $security_result);
+        $security_result = unpack 'N', $security_result;
 
         die 'login failed' if $security_result;
     }
@@ -350,7 +350,7 @@ sub _handshake_security ($self) {
 
 sub _client_initialization ($self) {
     my $socket = $self->socket;
-    $socket->print(pack('C', !$self->ikvm));    # share
+    $socket->print(pack 'C', !$self->ikvm);    # share
 }
 
 sub _server_initialization ($self) {
@@ -415,26 +415,26 @@ sub _server_initialization ($self) {
 
     # setpixelformat
     $socket->print(
-        pack(
-            'CCCCCCCCnnnCCCCCC',
-            0,    # message_type
-            0,    # padding
-            0,    # padding
-            0,    # padding
-            $self->_bpp,
-            $self->depth,
-            $self->_do_endian_conversion,
-            $self->_true_colour,
-            $pixinfo{red_max},
-            $pixinfo{green_max},
-            $pixinfo{blue_max},
-            $pixinfo{red_shift},
-            $pixinfo{green_shift},
-            $pixinfo{blue_shift},
-            0,    # padding
-            0,    # padding
-            0,    # padding
-        ));
+        pack
+          'CCCCCCCCnnnCCCCCC',
+        0,    # message_type
+        0,    # padding
+        0,    # padding
+        0,    # padding
+        $self->_bpp,
+        $self->depth,
+        $self->_do_endian_conversion,
+        $self->_true_colour,
+        $pixinfo{red_max},
+        $pixinfo{green_max},
+        $pixinfo{blue_max},
+        $pixinfo{red_shift},
+        $pixinfo{green_shift},
+        $pixinfo{blue_shift},
+        0,    # padding
+        0,    # padding
+        0,    # padding
+    );
 
     # set encodings
 
@@ -451,12 +451,12 @@ sub _server_initialization ($self) {
         @encs = grep { $_->{name} ne 'Tight' and $_->{name} ne 'JPEG quality' } @encs;
     }
     $socket->print(
-        pack(
-            'CCn',
-            2,    # message_type
-            0,    # padding
-            scalar @encs,    # number_of_encodings
-        ));
+        pack
+          'CCn',
+        2,    # message_type
+        0,    # padding
+        scalar @encs,    # number_of_encodings
+    );
     for my $enc (@encs) {
 
         # Make a big-endian, signed 32-bit value
@@ -479,13 +479,13 @@ sub _send_key_event ($self, $down_flag, $key) {
     # for a strange reason ikvm has a lot more padding
     $template = 'CxCnNx9' if $self->ikvm;
     $socket->print(
-        pack(
-            $template,
-            4,    # message_type
-            $down_flag,    # down-flag
-            0,    # padding
-            $key,    # key
-        ));
+        pack
+          $template,
+        4,    # message_type
+        $down_flag,    # down-flag
+        0,    # padding
+        $key,    # key
+    );
 }
 
 sub send_key_event_down ($self, $key) { $self->_send_key_event(1, $key) }
@@ -613,15 +613,15 @@ sub init_x11_keymap ($self) {
     my %keymap = %$keymap_x11;
 
     for my $key (30 .. 255) {
-        $keymap{chr($key)} ||= $key;
+        $keymap{chr $key} ||= $key;
     }
     for my $key (1 .. 12) {
         $keymap{"f$key"} = 0xffbd + $key;
     }
     for my $key ('a' .. 'z') {
-        $keymap{$key} = ord($key);
+        $keymap{$key} = ord $key;
         # shift-H looks strange, but that's how VNC works
-        $keymap{uc $key} = [$keymap{shift}, ord(uc $key)];
+        $keymap{uc $key} = [$keymap{shift}, ord uc $key];
     }
     # VNC doesn't use the unshifted values, only prepends a shift key
     for my $key (keys %{shift_keys()}) {
@@ -635,12 +635,12 @@ sub init_ikvm_keymap ($self) {
     return if $self->keymap;
     my %keymap = %$keymap_ikvm;
     for my $key ('a' .. 'z') {
-        my $code = 0x4 + ord($key) - ord('a');
+        my $code = 0x4 + ord($key) - ord 'a';
         $keymap{$key} = $code;
         $keymap{uc $key} = [$keymap{shift}, $code];
     }
     for my $key ('1' .. '9') {
-        $keymap{$key} = 0x1e + ord($key) - ord('1');
+        $keymap{$key} = 0x1e + ord($key) - ord '1';
     }
     for my $key (1 .. 12) {
         $keymap{"f$key"} = 0x3a + $key - 1,;
@@ -671,13 +671,13 @@ sub map_and_send_key ($self, $keys, $down_flag, $delay) {
 
     my @events;
 
-    for my $key (split('-', $keys)) {
+    for my $key (split '-', $keys) {
         if (defined($self->keymap->{$key})) {
             if (ref($self->keymap->{$key}) eq 'ARRAY') {
-                push(@events, @{$self->keymap->{$key}});
+                push @events, @{$self->keymap->{$key}};
             }
             else {
-                push(@events, $self->keymap->{$key});
+                push @events, $self->keymap->{$key};
             }
             next;
         }
@@ -694,13 +694,13 @@ sub map_and_send_key ($self, $keys, $down_flag, $delay) {
     if (!defined $down_flag || $down_flag == 1) {
         for my $key (@events) {
             $self->send_key_event_down($key);
-            sleep($down_delay);
+            sleep $down_delay;
         }
     }
     if (!defined $down_flag || $down_flag == 0) {
         for my $key (reverse @events) {
             $self->send_key_event_up($key);
-            sleep($up_delay);
+            sleep $up_delay;
         }
     }
 }
@@ -712,13 +712,13 @@ sub send_pointer_event ($self, $button_mask, $x, $y) {
     $template = 'CxCnnx11' if ($self->ikvm);
 
     $self->socket->print(
-        pack(
-            $template,
-            5,    # message type
-            $button_mask,    # button-mask
-            $x,    # x-position
-            $y,    # y-position
-        ));
+        pack
+          $template,
+        5,    # message type
+        $button_mask,    # button-mask
+        $x,    # x-position
+        $y,    # y-position
+    );
 }
 
 # drain the VNC socket from all pending incoming messages
@@ -743,14 +743,14 @@ use POSIX ':errno_h';
 
 sub _send_frame_buffer ($self, $args) {
     return $self->socket->print(
-        pack(
-            'CCnnnn',
-            3,    # message_type: frame buffer update request
-            $args->{incremental},
-            $args->{x},
-            $args->{y},
-            $args->{width},
-            $args->{height}));
+        pack
+          'CCnnnn',
+        3,    # message_type: frame buffer update request
+        $args->{incremental},
+        $args->{x},
+        $args->{y},
+        $args->{width},
+        $args->{height});
 }
 
 # frame buffer update request
@@ -766,7 +766,7 @@ sub send_update_request ($self, $incremental = undef) {
         if ($self->_vnc_stalled && $time_since_last_update > $time_after_vnc_is_considered_stalled) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag sprintf('considering VNC stalled, no update for %.2f seconds', $time_since_last_update);
+            bmwqemu::diag sprintf 'considering VNC stalled, no update for %.2f seconds', $time_since_last_update;
             $self->socket->close;
             $self->socket(undef);
             return $self->login;
@@ -815,7 +815,7 @@ sub _receive_message ($self) {
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
-    $message_type = unpack('C', $message_type);
+    $message_type = unpack 'C', $message_type;
 
     # This result is unused.  It's meaning is different for the different methods
     my $result
@@ -845,7 +845,7 @@ sub _receive_update ($self) {
     my $socket = $self->socket;
     $socket->read(my $header, 3) || die 'unexpected end of data';
 
-    my $number_of_rectangles = unpack('xn', $header);
+    my $number_of_rectangles = unpack 'xn', $header;
     foreach (my $i = 0; $i < $number_of_rectangles; ++$i) {
         $socket->read(my $data, 12) || die 'unexpected end of data';
         my ($x, $y, $w, $h, $encoding_type) = unpack 'nnnnN', $data;
@@ -879,7 +879,7 @@ sub _receive_update ($self) {
         elsif ($encoding_type == -261) {
             my $led_data;
             $socket->read($led_data, 1) || die 'unexpected end of data';
-            my @bytes = unpack('C', $led_data);
+            my @bytes = unpack 'C', $led_data;
             # 100     CapsLock is on, NumLock and ScrollLock are off
             # 010     NumLock is on, CapsLock and ScrollLock are off
             # 111     CapsLock, NumLock and ScrollLock are on
@@ -925,14 +925,14 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $stime = time;
     $socket->read(my $data, 4)
       or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for length');
-    my ($data_len) = unpack('N', $data);
+    my ($data_len) = unpack 'N', $data;
     my $read_len = 0;
     while ($read_len < $data_len) {
-        my $len = read($socket, $data, $data_len - $read_len, $read_len);
+        my $len = read $socket, $data, $data_len - $read_len, $read_len;
         OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len") unless $len;
         $read_len += $len;
     }
-    diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
+    diag sprintf "read $data_len in %fs\n", time - $stime if (time - $stime > 0.1);
     # the zlib header is only sent once per session
     $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;
@@ -945,7 +945,7 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
 }
 
 # wrapper to make testing easier
-sub _read_socket ($socket, $data, $data_len, $offset) { return read($socket, $$data, $data_len, $offset); }
+sub _read_socket ($socket, $data, $data_len, $offset) { return read $socket, $$data, $data_len, $offset; }
 
 sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
     my $socket = $self->socket;
@@ -953,7 +953,7 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
 
     $socket->read(my $data, 1)
       or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
-    my ($compression_control) = unpack('C', $data);
+    my ($compression_control) = unpack 'C', $data;
     # FillCompression
     if (($compression_control & 0xF0) == 0x80) {
         my $data;
@@ -961,7 +961,7 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
         if ($self->_true_colour and $self->_bpp == 32 and $self->depth == 24) {
             $socket->read($data, 3)
               or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
-            $data = pack('CCCx', unpack('CCC', $data));
+            $data = pack 'CCCx', unpack 'CCC', $data;
         } else {
             $socket->read($data, $self->_bpp / 8)
               or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for compression control');
@@ -974,16 +974,16 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
 
     $socket->read($data, 1)
       or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-    my ($data_len) = unpack('C', $data);
+    my ($data_len) = unpack 'C', $data;
     if ($data_len & 0x80) {
         $socket->read($data, 1)
           or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-        my ($data_len2) = unpack('C', $data);
+        my ($data_len2) = unpack 'C', $data;
         $data_len = ($data_len & 0x7f) | ($data_len2 & 0x7f) << 7;
         if ($data_len2 & 0x80) {
             $socket->read($data, 1)
               or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for data len');
-            my ($data_len2) = unpack('C', $data);
+            my ($data_len2) = unpack 'C', $data;
             $data_len |= $data_len2 << 14;
         }
     }
@@ -1007,7 +1007,7 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
 
     # ikvm specific
     $socket->read(my $aten_data, 8);
-    my ($data_prefix, $data_len) = unpack('NN', $aten_data);
+    my ($data_prefix, $data_len) = unpack 'NN', $aten_data;
 
     $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
@@ -1028,7 +1028,7 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
             $self->_framebuffer(undef);
         }
         # resync mouse (magic)
-        $self->socket->print(pack('Cn', 7, 1920));
+        $self->socket->print(pack 'Cn', 7, 1920);
     }
 
     if ($encoding_type == 89) {
@@ -1039,7 +1039,7 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
         while ($data_len > $required_data) {
             $socket->read($data, 1) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
             $data_len--;
-            my @bytes = unpack('C', $data);
+            my @bytes = unpack 'C', $data;
             printf '%02x ', $bytes[0];
         }
         print "\n";
@@ -1052,10 +1052,10 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     elsif ($encoding_type == 0) {
         # ikvm manages to redeclare raw to be something completely different ;(
         $socket->read(my $data, 10) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
-        my ($type, $segments, $length) = unpack('CxNN', $data);
+        my ($type, $segments, $length) = unpack 'CxNN', $data;
         while ($segments--) {
             $socket->read(my $data, 6) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
-            my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
+            my ($dummy_a, $dummy_b, $y, $x) = unpack 'nnCC', $data;
             $socket->read($data, 512) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
@@ -1079,17 +1079,17 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
         die 'we guessed wrong - this is a new board!' if $self->old_ikvm;
         $socket->read(my $data, $data_len);
         # enforce high quality to simplify our decoder
-        if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
+        if (substr($data, 0, 4) ne pack 'CCn', 11, 11, 444) {
             print "fixing quality\n";
             my $template = 'CCCn';
             $self->socket->print(
-                pack(
-                    $template,
-                    0x32,    # message type
-                    0,    # magic number
-                    11,    # highest possible quality
-                    444,    # no sub sampling
-                ));
+                pack
+                  $template,
+                0x32,    # message type
+                0,    # magic number
+                11,    # highest possible quality
+                444,    # no sub sampling
+            );
         }
         else {
             $image->map_raw_data_ast2100($data, $data_len);
@@ -1102,11 +1102,11 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
 
 sub _receive_colour_map ($self) {
     $self->socket->read(my $map_infos, 5);
-    my ($padding, $first_colour, $number_of_colours) = unpack('Cnn', $map_infos);
+    my ($padding, $first_colour, $number_of_colours) = unpack 'Cnn', $map_infos;
 
     for (0 .. $number_of_colours - 1) {
         $self->socket->read(my $colour, 6);
-        my ($red, $green, $blue) = unpack('nnn', $colour);
+        my ($red, $green, $blue) = unpack 'nnn', $colour;
         tinycv::set_colour($self->vncinfo, $first_colour + $_, $red / 256, $green / 256, $blue / 256);
     }
     return 1;
@@ -1118,7 +1118,7 @@ sub _receive_bell ($self) { 1 }
 sub _receive_ikvm_session ($self) {
     $self->socket->read(my $ikvm_session_infos, 264);
 
-    my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
+    my ($msg1, $msg2, $str) = unpack 'NNZ256', $ikvm_session_infos;
     print "IKVM Session Message: $msg1 $msg2 $str\n";
     return 1;
 }

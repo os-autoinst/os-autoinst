@@ -35,7 +35,7 @@ my $sudo_user = $ENV{OS_AUTOINST_TEST_SECOND_USER} // 'nobody';
 qx{command -v sudo >/dev/null && sudo --non-interactive -u $sudo_user true 2>/dev/null};
 like git_rev_parse($toplevel_dir, "sudo -u $sudo_user"), $version, 'can parse git version as different user' if $? == 0;    # uncoverable statement
 
-chdir($dir);
+chdir $dir;
 
 subtest 'error handling when loading test schedule' => sub {
     my $base_state = path(bmwqemu::STATE_FILE);
