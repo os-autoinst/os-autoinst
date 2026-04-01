@@ -54,6 +54,9 @@ sub fake_read_json ($fd) {
     my $cmd = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
+        $str =~ s/\(\?\^.*?://;
+        $str =~ s/\)$//;
+        $str =~ s/\((.*?)\)/$1/g;
         $str =~ s,\\d\+(\\s\+\\S\+)?,$fake_exit,;
         return {ret => {matched => $fake_matched, string => $str}};
     }

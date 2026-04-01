@@ -70,6 +70,80 @@ subtest 'script_run' => sub {
     qr/typing command 'foo' timed out/, 'timeout while typing command just logged when opted-out';
 };
 
+subtest 'pretty_serial_marker' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    my $typed_string = '';
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    $mock_testapi->redefine(type_string => sub { $typed_string .= $_[0] });
+    $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $testapi::serialdev = 'ttyS0';
+
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
+            return undef if ref($regexp) eq 'Regexp' && $regexp =~ /FC/;
+            return 'SRfoo-0-';
+    });
+
+    $typed_string = '';
+    $d->script_run('foo');
+    like $typed_string, qr/export __OA_MARK=.*; foo\n/, 'Level 2 uses export marker';
+
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            return 'OA:foo3foo-0-';
+    });
+
+    $d->{_serial_marker_level} = {};
+    $typed_string = '';
+    $d->script_run('foo');
+    like $typed_string, qr/foo\n$/, 'Level 3 ends with command + newline';
+    is substr($typed_string, -4), "foo\n", 'Level 3 uses clean command line';
+
+    $mock_testapi->redefine(wait_serial => sub { undef });
+    $d->{_serial_marker_level} = {};
+    $typed_string = '';
+    is $d->_detect_serial_marker_capability(), 1, 'Fallback to Level 1 if BASH detection fails';
+
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+    $mock_testapi->redefine(wait_serial => sub { undef });
+    is $d->script_run('foo'), undef, 'script_run returns undef if wait_serial fails (Level 2)';
+
+    $d->{_serial_marker_level}->{'test-console'} = 1;
+    $mock_testapi->redefine(wait_serial => sub { 'SRfoo-0-' });
+
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $typed_string = '';
+    $d->script_run('foo');
+    like $typed_string, qr/foo; echo SR.*-.*- > \/dev\/ttyS0\n/, 'Level 1 uses classic marker with redirection';
+
+    $mock_testapi->redefine(is_serial_terminal => sub { 1 });
+    $typed_string = '';
+    $d->script_run('foo');
+    like $typed_string, qr/foo; echo SR.*-.*-\n/, 'Level 1 uses classic marker on serial terminal';
+
+    $mock_testapi->redefine(wait_serial => sub ($pat, %args) {
+            return 0 if $pat =~ /foo; echo SR.*-\$\?-/;
+            return 'SRfoo-0-';
+    });
+    throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'typing error handled in Level 1';
+};
+
+subtest 'sut_marker' => sub {
+    my $d = distribution->new;
+    is $d->sut_marker('ls -la /tmp'), 'OA:ls -11/tmp', 'sut_marker for normal command';
+    is $d->sut_marker('  ls  '), 'OA:ls2ls', 'sut_marker trims and handles short command';
+    is $d->sut_marker('a'), 'OA:a1a', 'sut_marker for very short command';
+};
+
 subtest 'set expected serial and autoinst failures' => sub {
     my $d = distribution->new;
     # Define the expected failures data
