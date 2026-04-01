@@ -105,6 +105,7 @@ BEGIN {
 
     my $topdir = "$RealBin/.." || '..';
     $installprefix ||= $topdir;
+    unshift @INC, "$installprefix/lib";
     unshift @INC, $installprefix;
 }
 
