@@ -445,6 +445,11 @@ sub install_serial_marker_hook ($self, $level) {
         $pc = "PROMPT_COMMAND='if [ -n \"\$__OA_MARK\" ]; then echo \"\${__OA_MARK}-\$?-\" > $dev; unset __OA_MARK; fi'";
     }
     testapi::type_string "$pc\n";
+    my $marker_match = $level == 3 ? 'OA:DONE' : '__OA_MARK';
+    my $hook_cmd = "for f in ~/.bashrc ~/.profile; do grep -q '$marker_match' \"\$f\" 2>/dev/null || cat <<'EOF' >> \"\$f\"\n$pc\nEOF\ndone\n";
+    testapi::type_string $hook_cmd;
+    my $console = testapi::current_console() // 'sut';
+    $self->{_serial_marker_hook_installed}->{$console} = 1;
 }
 
 =head2 _detect_serial_marker_capability
@@ -461,7 +466,13 @@ Returns:
 
 sub _detect_serial_marker_capability ($self) {
     my $console = testapi::current_console() // 'sut';
-    return $self->{_serial_marker_level}->{$console} if $self->{_serial_marker_level}->{$console};
+    if ($self->{_serial_marker_level}->{$console}) {
+        my $level = $self->{_serial_marker_level}->{$console};
+        return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
+
+        $self->install_serial_marker_hook($level);
+        return $level;
+    }
 
     my $level = 1;
     my $pretty = testapi::get_var('PRETTY_SERIAL_MARKER');
