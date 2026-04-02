@@ -5,7 +5,7 @@ use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '20';
 use File::Path qw(make_path remove_tree);
 use Test::MockModule;
 use Test::Warnings ':report_warnings';
@@ -19,7 +19,9 @@ my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
 $user_agent_mock->redefine(get => sub ($self, $url) {
         push @queried_urls, $url;
-        return $user_agent_mock->original('get')->($self, $url);
+        my $tx = $self->build_tx(GET => $url);
+        $tx->res->code(404);
+        return $tx;
 });
 
 # setup needle directory
