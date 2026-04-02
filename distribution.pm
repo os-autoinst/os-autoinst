@@ -14,6 +14,7 @@ sub new ($class, @) {
     $self->{consoles} = {};
     $self->{serial_failures} = [];
     $self->{autoinst_failures} = [];
+    $self->{_serial_marker_level} = {};
 
 =head2 serial_term_prompt
 
@@ -144,26 +145,45 @@ sub script_run ($self, $cmd, @args) {
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
-    testapi::type_string "$cmd", max_interval => $args{max_interval};
+
     if ($args{timeout} > 0) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
-        my $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
-        my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-        if (testapi::is_serial_terminal) {
-            testapi::type_string($marker, max_interval => $args{max_interval});
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128)
-              or _handle_cmd_typing_error($cmd, \%args);
-            testapi::type_string("\n", max_interval => $args{max_interval});
+
+        my $level = $self->_detect_serial_marker_capability();
+        my ($str, $wait_pattern);
+        if ($level == 3) {
+            testapi::query_isotovideo('backend_clear_serial_buffer', {});
+            testapi::type_string "$cmd\n", max_interval => $args{max_interval};
+            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet});
+            return unless $res;
+            return ($res =~ /OA:DONE-(\d+)-/)[0];
+        }
+        $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
+        $wait_pattern = qr/$str-(\d+)-/;
+        if ($level == 2) {
+            testapi::type_string "export __OA_MARK=$str; $cmd\n", max_interval => $args{max_interval};
         }
         else {
-            testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
+            my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+            if (testapi::is_serial_terminal) {
+                testapi::type_string "$cmd", max_interval => $args{max_interval};
+                testapi::type_string $marker, max_interval => $args{max_interval};
+                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128)
+                  or _handle_cmd_typing_error($cmd, \%args);
+                testapi::type_string "\n", max_interval => $args{max_interval};
+            }
+            else {
+                testapi::type_string "$cmd", max_interval => $args{max_interval};
+                testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
+            }
         }
-        my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
+        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
-        return ($res =~ /$str-(\d+)-/)[0];
+        return ($res =~ $wait_pattern)[0];
     }
     else {
+        testapi::type_string "$cmd", max_interval => $args{max_interval};
         testapi::send_key 'ret';
         return;
     }
@@ -194,9 +214,9 @@ sub background_script_run ($self, $cmd, %args) {
     my $str = testapi::hashed_string('SR' . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
-        testapi::type_string($marker);
+        testapi::type_string $marker;
         testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
-        testapi::type_string("\n");
+        testapi::type_string "\n";
     }
     else {
         testapi::type_string "$marker > /dev/$testapi::serialdev\n";
@@ -262,7 +282,7 @@ sub script_output ($self, $script, @args) {
             quiet => undef,
             # 80 is approximate quantity of chars typed during 'curl' approach
             # if script length is lower there is no point to proceed with more complex solution
-            type_command => length($script) < 80,
+            type_command => length $script < 80,
         }, ['timeout'], @args);
 
     my $marker = testapi::hashed_string("SO$script");
@@ -279,21 +299,21 @@ sub script_output ($self, $script, @args) {
         my $cat = "cat > $script_path << '$heretag'; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
-        testapi::type_string($cat . "\n");
+        testapi::type_string $cat . "\n";
         testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
         # Wait for input prompt of here tag before typing $script. This avoids
         # messy output, like duplicate output of $script. We do this in a second
         # wait_serial() call, to avoid issues during new line detection.
         testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
-        testapi::type_string("$script\n$heretag\n");
+        testapi::type_string "$script\n$heretag\n";
         testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
         testapi::wait_serial("$marker-0-", quiet => $args{quiet});
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;";
-        testapi::type_string($cat);
-        testapi::type_string("\n", wait_still_screen => testapi::backend_get_wait_still_screen_on_here_doc_input());
-        testapi::type_string($script . "\n", timeout => $args{timeout});
+        testapi::type_string $cat;
+        testapi::type_string "\n", wait_still_screen => testapi::backend_get_wait_still_screen_on_here_doc_input();
+        testapi::type_string $script . "\n", timeout => $args{timeout};
         testapi::send_key('ctrl-d');
     }
     else {
@@ -313,11 +333,11 @@ sub script_output ($self, $script, @args) {
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
-        testapi::type_string("$run_script\n");
+        testapi::type_string "$run_script\n";
         testapi::wait_serial($run_script, no_regex => 1, quiet => $args{quiet});
     }
     else {
-        testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
+        testapi::type_string "($run_script) | tee /dev/$testapi::serialdev\n";
     }
     my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
       || croak "script timeout: $script";
@@ -386,5 +406,86 @@ sub activate_console ($self, $console) { }
 
 # override
 sub console_selected ($self, $console) { }
+
+=head2 sut_marker
+
+    sut_marker($cmd)
+
+Generate a unique marker string for a command to be used for synchronization
+with the SUT. Used primarily for internal testing.
+
+=cut
+
+sub sut_marker ($self, $cmd) {
+    my $c = $cmd;
+    $c =~ s/^\s+|\s+$//g;
+    my $l = length $c;
+    my $head = substr $c, 0, 4;
+    my $tail = $l >= 4 ? substr $c, -4 : $c;
+    return "OA:${head}${l}${tail}";
+}
+
+=head2 install_serial_marker_hook
+
+    install_serial_marker_hook($level)
+
+Install shell hooks (like PROMPT_COMMAND) into the SUT to emit synchronization
+markers to serial.
+
+=cut
+
+sub install_serial_marker_hook ($self, $level) {
+    return if $level < 2;
+    my $pc;
+    my $dev = "/dev/$testapi::serialdev";
+    if ($level == 3) {
+        $pc = "PROMPT_COMMAND='printf \"OA:DONE-%d-\\n\" \$? > $dev'";
+    }
+    else {
+        $pc = "PROMPT_COMMAND='if [ -n \"\$__OA_MARK\" ]; then echo \"\${__OA_MARK}-\$?-\" > $dev; unset __OA_MARK; fi'";
+    }
+    testapi::type_string "$pc\n";
+}
+
+=head2 _detect_serial_marker_capability
+
+    _detect_serial_marker_capability()
+
+Detect the SUT's shell capabilities for pretty serial markers.
+Returns:
+- 1: Fallback (classic markers)
+- 2: Basic bash (PROMPT_COMMAND support)
+- 3: Advanced bash (PROMPT_COMMAND + history/fc support)
+
+=cut
+
+sub _detect_serial_marker_capability ($self) {
+    my $console = testapi::current_console() // 'sut';
+    return $self->{_serial_marker_level}->{$console} if $self->{_serial_marker_level}->{$console};
+
+    my $level = 1;
+    my $pretty = testapi::get_var('PRETTY_SERIAL_MARKER');
+    my $serial_term = testapi::is_serial_terminal();
+    if ($pretty && !$serial_term) {
+        testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
+        my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
+        if ($out && $out =~ /BASH:([3-9]|\d{2,})/) {
+            $level = 2;
+            # Check if bash and history features are available to use pretty serial markers
+            testapi::type_string "type fc && set -o | grep -q 'history.*on' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
+            if (testapi::wait_serial(qr/FC:OK:/, 10)) {
+                $level = 3;
+            }
+            $self->install_serial_marker_hook($level);
+            bmwqemu::log_call("serial_marker: console '$console' Level $level detected");
+        }
+        else {
+            bmwqemu::log_call("serial_marker: console '$console' Level 1 detected (fallback)");
+            return 1;
+        }
+    }
+    $self->{_serial_marker_level}->{$console} = $level;
+    return $level;
+}
 
 1;

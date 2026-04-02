@@ -47,7 +47,7 @@ path('vars.json')->spew(<<EOV);
    "VNC_CONNECT_TIMEOUT_LOCAL" : "0.001",
    "VNC_CONNECT_TIMEOUT_REMOTE" : "0.001",
    "NAME" : "00001-1-i386@32bit",
-   "TEST_NON_STRICT_MODULE": "1",
+   "TEST_NON_STRICT_MODULE": "1"
 }
 EOV
 # create screenshots
