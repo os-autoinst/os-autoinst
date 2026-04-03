@@ -103,9 +103,9 @@ sub query_llm_cmd ($prompt, $cmd) {
     my $out;
     my $err;
     try {
-        IPC::Run::run(\@cmd_array, \$prompt, \$out, \$err, IPC::Run::timeout(300));
+        my $success = IPC::Run::run(\@cmd_array, \$prompt, \$out, \$err, IPC::Run::timeout(300));
+        return "Error: Command exited with $? - " . ($err || $out || '') unless $success;
     } catch ($e) { return "Error: Command failed - $e" }
-    return "Error: Command exited with $? - " . ($err || $out || '') if $?;
     return $out || $err || 'Error: Command produced no output.';
 }
 
