@@ -62,6 +62,7 @@ set(PERL_FILES
     OpenQA/Isotovideo/CommandHandler.pm
     OpenQA/Isotovideo/Dewebsockify.pm
     OpenQA/Isotovideo/Interface.pm
+    OpenQA/Isotovideo/LLMAnalysis.pm
     OpenQA/Isotovideo/NeedleDownloader.pm
     OpenQA/Isotovideo/Runner.pm
     OpenQA/Isotovideo/Utils.pm

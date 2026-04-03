@@ -48,6 +48,10 @@ Supported variables per backend
 | UPLOAD_MAX_MESSAGE_SIZE_GB | integer | 0 | Specifies the max. upload size in GiB for the test API functions `upload_logs()` and `upload_assets()` and the underlying command server API. Zero denotes infinity. |
 | UPLOAD_INACTIVITY_TIMEOUT | integer | 300 | Specifies the inactivity timeout in seconds for the test API functions `upload_logs()` and `upload_assets()` and underlying the command server API. |
 | NO_DEPRECATE_BACKEND_$backend | boolean | 0 | Only warn about deprecated backends instead of aborting |
+| LLM_FAILURE_ANALYSIS | boolean | 0 | Enable LLM failure analysis |
+| LLM_FAILURE_ANALYSIS_URL | string | http://localhost:8080/v1/chat/completions | OpenAI-compatible API endpoint |
+| LLM_FAILURE_ANALYSIS_MODEL | string | gemma-4-26B-A4B-it | Model name sent in the API request |
+| LLM_FAILURE_ANALYSIS_CMD | string |  | If set, run this CLI command instead of the HTTP API (prompt piped via stdin). For demo/one-off use. |
 | XRES | integer | 1024 | Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | YRES | integer | 768 | Resolution of display on y axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | VIDEO_ENCODER_BLOCKING_PIPE | boolean | 0 | Whether the pipe for writing data to the video encoder should be blocking or not. Making it blocking might allow following the live view in realtime despite large screenshot file sizes but it is not a well tested configuration |
