@@ -466,23 +466,26 @@ sub _detect_serial_marker_capability ($self) {
     my $level = 1;
     my $pretty = testapi::get_var('PRETTY_SERIAL_MARKER');
     my $serial_term = testapi::is_serial_terminal();
-    if ($pretty && !$serial_term) {
-        testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
-        my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
-        if ($out && $out =~ /BASH:([3-9]|\d{2,})/) {
-            $level = 2;
-            # Check if bash and history features are available to use pretty serial markers
-            testapi::type_string "type fc && set -o | grep -q 'history.*on' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
-            if (testapi::wait_serial(qr/FC:OK:/, 10)) {
-                $level = 3;
-            }
-            $self->install_serial_marker_hook($level);
-            bmwqemu::log_call("serial_marker: console '$console' Level $level detected");
+    if (!$pretty || $serial_term) {
+        $self->{_serial_marker_level}->{$console} = $level;
+        return $level;
+    }
+
+    testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
+    my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
+    if ($out && $out =~ /BASH:([3-9]|\d{2,})/) {
+        $level = 2;
+        # Check if bash and history features are available to use pretty serial markers
+        testapi::type_string "type fc && set -o | grep -q 'history.*on' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
+        if (testapi::wait_serial(qr/FC:OK:/, 10)) {
+            $level = 3;
         }
-        else {
-            bmwqemu::log_call("serial_marker: console '$console' Level 1 detected (fallback)");
-            return 1;
-        }
+        $self->install_serial_marker_hook($level);
+        bmwqemu::log_call("serial_marker: console '$console' Level $level detected");
+    }
+    else {
+        bmwqemu::log_call("serial_marker: console '$console' Level 1 detected (fallback)");
+        return 1;
     }
     $self->{_serial_marker_level}->{$console} = $level;
     return $level;
