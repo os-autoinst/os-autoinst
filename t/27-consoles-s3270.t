@@ -148,6 +148,14 @@ subtest 'expect_3270 tests' => sub {
 
 subtest 'wait_output test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => {'command_status' => 'ok'});
+    is $s3270_console->wait_output(), 1;
+
+    for my $errormsg (('Wait: Timed out', 'Wait(): Timed out', 'Wait(Output): Timed out')) {
+        $s3270_console_mock->redefine(send_3270 => {'command_output' => [$errormsg], 'command_status' => 'any'});
+        is $s3270_console->wait_output(), 0;
+    }
+
     $s3270_console_mock->redefine(send_3270 => {'command_output' => ['None'], 'command_status' => 'any'});
     warnings { throws_ok { $s3270_console->wait_output() } qr/has the s3270 wait timeout.*\n.*/, 'wait timeout failure expected' };
 };
