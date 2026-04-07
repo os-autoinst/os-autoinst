@@ -14,7 +14,11 @@ test scripts.
 
 - Code style: Run `tools/tidyall --all` (or `tools/tidyall --git` for changed
   files only).
-- Testing: Always add tests for new features or bug fixes in `t/`.
+- Linter: Always run `make test-perl-testsuite TESTS="xt/01-style.t xt/02-perlcritic.t"`
+  for Perl changes before claiming completion.
+- Testing: Always add tests for new features or bug fixes in `t/`. Prefer
+  reusing existing failing test modules (e.g. from `t/data/tests`) for
+  integration tests.
 - Dependencies: Update `dependencies.yaml` and run `make update-deps`.
 
 ## Constraints
