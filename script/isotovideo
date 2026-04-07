@@ -113,6 +113,7 @@ Getopt::Long::Configure('no_ignore_case');
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
+use OpenQA::Isotovideo::LLMAnalysis;
 
 my %options;
 
@@ -152,6 +153,7 @@ sub handle_shutdown () {
     my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
     bmwqemu::load_vars();    # read calculated variables from backend and tests
     $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
+    OpenQA::Isotovideo::LLMAnalysis::run(bmwqemu::result_dir()) if $bmwqemu::vars{LLM_FAILURE_ANALYSIS};
     diag 'isotovideo completed handle_shutdown: ' . ($RETURN_CODE ? 'failed' : 'done');
 }
 

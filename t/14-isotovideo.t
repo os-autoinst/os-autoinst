@@ -336,6 +336,27 @@ subtest 'publish assets' => sub {
         delete $bmwqemu::vars{FORCE_PUBLISH_HDD_1};
     };
 
+    subtest 'LLM failure analysis' => sub {
+        chdir $pool_dir;
+        path('vars.json')->remove if -e 'vars.json';
+        path('testresults/')->remove_tree;
+        path('testresults/')->make_path;
+        # Create a dummy failed test result to trigger gathering context
+        path('testresults/result-failing_module.json')->spurt('{"result": "fail", "name": "failing_module"}');
+        path('autoinst-log.txt')->spurt("Something went wrong in the log\n");
+        path('serial0')->spurt("Kernel panic in serial output\n");
+        my $log = combined_from {
+            isotovideo(
+                opts => "casedir=$data_dir/tests schedule=module1 LLM_FAILURE_ANALYSIS=1 LLM_FAILURE_ANALYSIS_CMD=cat",
+                exit_code => 0)
+        };
+        like $log, qr/Starting LLM Analysis/, 'LLM analysis started';
+        like $log, qr/LLM Analysis complete/, 'LLM analysis finished';
+        my $analysis_file = path($pool_dir, 'testresults', 'llm-failure-analysis.txt');
+        ok -e $analysis_file, 'LLM analysis output file exists';
+        like $analysis_file->slurp, qr/analyzing an automated test run/, 'LLM analysis output contains expected content';
+    };
+
     subtest 'unclean shutdown' => sub {
         $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
         $command_handler->test_completed(1);
