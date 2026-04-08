@@ -326,6 +326,13 @@ subtest s390x_options => sub {
     like $cmdline, qr/-device virtio-tablet/, '-device virtio-tablet option added';
 };
 
+subtest x86_64_opengl_options => sub {
+    my $cmdline = qemu_cmdline(ARCH => 'x86_64', QEMU_VIDEO_DEVICE => 'virtio-vga-gl');
+    like $cmdline, qr/-device virtio-vga-gl,edid=on/, '-device virtio-vga-gl,edid=on option added';
+    like $cmdline, qr/-display egl-headless,gl=on/, '-device virtio-vga-gl,enabled openGL';
+    unlike $cmdline, qr/-only-migratable/, 'virgl is not yet migratable';
+};
+
 subtest 'capturing audio' => sub {
     $called{handle_qmp_command} = undef;
     $backend->start_audiocapture({filename => 'foo'});
