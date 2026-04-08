@@ -60,6 +60,7 @@ Supported variables per backend
 | GIT_CACHE_DIR | string |  | If set enables locally caching Git repositories in the specified directory when handling Git URLs in variables like `CASEDIR` and wheels |
 | ENABLE_MODERN_PERL_FEATURES | boolean | 0 | Enables use of modern Perl features in test modules avoiding the need to use e.g. `use Mojo::Base 'basetest', -signatures;` in all test modules. This variable must be set before invoking `autotest::loadtest`. It only applies to the test modules themselves. It does *not* apply to e.g. `main.pm` and other Perl modules used via e.g. `use some::module`. |
 | _HIDE_SECRETS_REGEX | string |  | If set, any test variables whose **NAME** (key) matches the specified regular expression, in addition to the default '^_SECRET_' and '_PASSWORD', are excluded from being saved into vars.json or further processing. For example, to hide all variables starting with 'SCC_REGCODE', use '^SCC_REGCODE'. |
+| FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED | boolean | 0 | Fail explicitly if a test module is scheduled with the `always_rollback` flag but snapshots are not supported by the backend. |
 |  |
 
 ## ZVM backend

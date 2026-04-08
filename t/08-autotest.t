@@ -7,7 +7,7 @@ use Mojo::File 'path';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Test::Output qw(stderr_like combined_from output_like combined_like);
+use Test::Output qw(stderr_like combined_from output_like combined_like stdout_like);
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
 use Test::MockObject;
@@ -231,6 +231,15 @@ subtest 'test always_rollback flag' => sub {
         ok $vm_stopped, 'VM was stopped eventually';
         is $reverts_done, 0, 'no snapshots loaded after fatal failure';
         is $snapshots_made, 0, 'no snapshots made after fatal failure';
+    };
+    snapshot_subtest 'fails if snapshots are not supported and FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED is set' => sub {
+        $mock_basetest->redefine(test_flags => {always_rollback => 1});
+        $mock_autotest->redefine(query_isotovideo => sub { 0 });
+        $bmwqemu::vars{FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED} = 1;
+        my $w;
+        stderr_like { $w = warning { autotest::run_all } } qr/Snapshots are not supported/, 'run_all outputs on stderr';
+        like $w, qr/always_rollback requested but snapshots are not supported by the backend/, 'fails with explicit error message';
+        delete $bmwqemu::vars{FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED};
     };
     $mock_basetest->unmock($_) for qw(runtest test_flags);
     $mock_autotest->unmock($_) for qw(load_snapshot make_snapshot query_isotovideo);
@@ -580,10 +589,10 @@ subtest 'lua_use' => sub {
     is ref($lua_vars->{assert_script_run}), 'CODE', 'Check importing functions';
 
     autotest::_lua_use('testlib');
-    is $lua_vars->{testfunc1}(), 42, 'Exported function is imported';
+    stdout_like { is $lua_vars->{testfunc1}(), 42, 'Exported function is imported' } qr/testfunc1/, 'testfunc1 outputs to stdout';
     is $lua_vars->{testfunc2}, undef;
     autotest::_lua_use('testlib', ['testfunc2']);
-    is $lua_vars->{testfunc2}(), 43, 'Explicit imports of non-exported functions';
+    stdout_like { is $lua_vars->{testfunc2}(), 43, 'Explicit imports of non-exported functions' } qr/testfunc2/, 'testfunc2 outputs to stdout';
     is_deeply $lua_vars->{testarray}, [1, 2, 3], 'Import Array';
     is_deeply $lua_vars->{testhash}, {foo => 'bar'}, 'Import Hash';
 };
