@@ -4,13 +4,13 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::Warnings qw(warnings :report_warnings);
 use Test::Output qw(stderr_from);
-use Mojo::File qw(tempfile tempdir path);
+use Mojo::File qw(tempfile path);
 use Carp 'cluck';
-use Mojo::Util qw(scope_guard);
 use Mojo::JSON 'decode_json';
 use Test::MockModule;
 use Test::MockObject;
@@ -20,12 +20,13 @@ use bmwqemu;
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
 
-use constant TMPPATH => '/tmp/18-qemu.t/';
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 mkdir "$dir/testresults";
+my $tmppath = "$dir/tmp/";
+mkdir $tmppath;
+# use the local $tmppath instead of the shared constant
 
 $SIG{__DIE__} = sub { cluck(shift); };
 
@@ -169,8 +170,8 @@ $proc = qemu_proc('-foo', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drives on multipath');
 
-path(TMPPATH)->make_path();
-my $path = TMPPATH . '/multipath.json';
+path($tmppath)->make_path();
+my $path = $tmppath . '/multipath.json';
 path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-foo'])
@@ -208,7 +209,7 @@ $proc = qemu_proc('-static-args', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drive and cdrom using vars');
 
-path('/tmp/18-qemu.t/new-drive-and-cdrom.json')->spew($proc->serialise_state);
+path("$tmppath/new-drive-and-cdrom.json")->spew($proc->serialise_state);
 
 my $ssc;
 my $ss;
@@ -245,7 +246,7 @@ $bdc->for_each_drive(sub ($drive) {
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after reverting a snapshot');
 
-$path = TMPPATH . '/reverted-snapshot.json';
+$path = $tmppath . '/reverted-snapshot.json';
 path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
@@ -292,7 +293,7 @@ for my $i (1 .. 10) {
 }
 $bdc->mark_all_created();
 
-$path = TMPPATH . '/many-snapshots.json';
+$path = $tmppath . '/many-snapshots.json';
 path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])
@@ -347,7 +348,7 @@ for my $i (1 .. 11) {
 }
 $bdc->mark_all_created();
 
-$path = TMPPATH . '/many-snapshots-pflash.json';
+$path = $tmppath . '/many-snapshots-pflash.json';
 path($path)->spew($proc->serialise_state());
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-static-args'])

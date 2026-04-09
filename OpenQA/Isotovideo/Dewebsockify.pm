@@ -115,7 +115,10 @@ sub main ($args) {
             $log->info('Client accepted');
     });
     $server->listen(port => $port);
+    $port = $server->port if $port == 0;
+    $log->info("Listening on port $port");
     $server->start;
+
     Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 }
 

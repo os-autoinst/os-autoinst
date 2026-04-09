@@ -13,16 +13,19 @@ use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like combined_unlike);
 use Test::Mock::Time;
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url limit_git_cache_dir);
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::Warnings ':report_warnings';
 
-my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $git_repo = 'tmpgitrepo';
-my $git_dir = "$tmpdir/$git_repo";
-my $clone_dir = "$Bin/$git_repo";
+my $git_dir = "$dir/source/$git_repo";
+my $clone_dir = "$dir/clone/$git_repo";
 
-chdir $Bin;
+path("$dir/source")->make_path;
+path("$dir/clone")->make_path;
+chdir "$dir/clone";
 # some git variables might be set if this test is
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
@@ -42,10 +45,10 @@ subtest 'failure to clone results once' => sub {
 };
 
 subtest 'failure to clone results in repeated attempts' => sub {
-    my $chdir_guard = scope_guard sub { chdir $Bin; };
+    my $chdir_guard = scope_guard sub { chdir "$dir/clone"; };
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
-    chdir $tmpdir;
+    chdir $dir;
     $utils_mock->redefine(clone_git => sub ($dir, @) {
             ok !-e $dir, "$dir cleaned up" or return 1;
             path($dir)->make_path;
@@ -100,7 +103,7 @@ subtest 'cloning with caching' => sub {
     # setup temp dir for cache and configure using it
     my $start_time = time;
     my $git_cache_dir_from_env = $ENV{OS_AUTOINST_TEST_GIT_CACHE_DIR};
-    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : tempdir('temp-git-caching-XXXXX');
+    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : Mojo::File::tempdir('temp-git-caching-XXXXX');
     $git_cache_dir = $git_cache_dir->make_path->realpath;
     note "temp dir for cache: $git_cache_dir";
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
@@ -109,7 +112,7 @@ subtest 'cloning with caching' => sub {
     my ($orga, $repo, $suffix) = (qw(os-autoinst os-autoinst-wheel-launcher .git));
     my $rev = '742bd0570a5d086be12fecb3b108bff15f4cb202';
     my $url = Mojo::URL->new("https://github.com/$orga/$repo$suffix");
-    ($orga, $repo, $rev, $suffix, $url) = ($tmpdir, $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
+    ($orga, $repo, $rev, $suffix, $url) = ("$dir/source", $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
       unless $ENV{OS_AUTOINST_TEST_GIT_ONLINE};
 
     my $orga_cache_dir = $git_cache_dir->child($orga);
@@ -120,7 +123,8 @@ subtest 'cloning with caching' => sub {
     };
 
     # setup temp dir for the working tree
-    my $pwd = tempdir('temp-git-working-tree-XXXXX')->make_path;
+    my $pwd = Mojo::File::tempdir('temp-git-working-tree-XXXXX')->make_path;
+
     note "temp dir for working trees: $pwd";
     my $working_tree_dir = path($repo);
     chdir $pwd;
