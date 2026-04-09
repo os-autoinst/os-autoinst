@@ -137,6 +137,50 @@ subtest 'pretty_serial_marker' => sub {
     throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'typing error handled in Level 1';
 };
 
+subtest 'reboot_safety' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    my $typed_string = '';
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    $mock_testapi->redefine(type_string => sub { $typed_string .= $_[0] });
+    $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $testapi::serialdev = 'ttyS0';
+
+    # Initial detection (Level 3)
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            return 'OA:DONE-0-';
+    });
+
+    $d->script_run('foo');
+    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Initial install';
+    like $typed_string, qr/\.bashrc/, 'Persistence added';
+    $typed_string = '';
+
+    # Simulate console selection (e.g. after reboot/login)
+    $d->console_selected('test-console');
+
+    # Case 1: still there (e.g. persistent)
+    $typed_string = '';
+    $d->script_run('bar');
+    unlike $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'No re-install if still there';
+    like $typed_string, qr/bar\n/, 'Command typed';
+
+    # Case 2: manual clear (e.g. if we know it was lost)
+    delete $d->{_serial_marker_hook_installed}->{'test-console'};
+    $typed_string = '';
+    $d->script_run('baz');
+    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-install if missing';
+    like $typed_string, qr/baz\n/, 'Command typed after re-install';
+};
+
 subtest 'sut_marker' => sub {
     my $d = distribution->new;
     is $d->sut_marker('ls -la /tmp'), 'OA:ls -11/tmp', 'sut_marker for normal command';
