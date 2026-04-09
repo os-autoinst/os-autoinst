@@ -58,22 +58,22 @@ sub build_prompt ($context) {
     $log_tail = substr $log_tail, -MAX_PAYLOAD_SIZE if length($log_tail) > MAX_PAYLOAD_SIZE;
     $serial_tail = substr $serial_tail, -MAX_PAYLOAD_SIZE if length($serial_tail) > MAX_PAYLOAD_SIZE;
 
-    my $prompt = <<"EOF";
-You are analyzing an automated test run of $distri $version $arch.
-The following tests failed: $failed_tests.
+    my $prompt = <<~"EOF";
+        You are analyzing an automated test run of $distri $version $arch.
+        The following tests failed: $failed_tests.
 
-Relevant log tail:
-$log_tail
+        Relevant log tail:
+        $log_tail
 
-Serial output tail:
-$serial_tail
+        Serial output tail:
+        $serial_tail
 
-Provide exactly 2-3 sentences answering:
-1. Why did the tests fail?
-2. What should be done to prevent these failures?
-3. Is this likely a product regression or a test infrastructure problem
-   (false positive)?
-EOF
+        Provide exactly 2-3 sentences answering:
+        1. Why did the tests fail?
+        2. What should be done to prevent these failures?
+        3. Is this likely a product regression or a test infrastructure problem
+           (false positive)?
+        EOF
 
     return $prompt;
 }
