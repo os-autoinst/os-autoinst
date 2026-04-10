@@ -24,7 +24,7 @@ sub setup_results (@results) {
 
     my $i = 1;
     for my $res (@results) {
-        $testresults->child("result-$i.json")->spurt(qq({"name":"test$i", "result":"$res"}));
+        $testresults->child("result-$i.json")->spew(qq({"name":"test$i", "result":"$res"}));
         $i++;
     }
 }
@@ -38,20 +38,20 @@ subtest 'Context gathering and truncation' => sub {
 
     # Missing names
     setup_results('fail');
-    path($bmwqemu::result_dir)->child('result-1.json')->spurt('{"result":"fail"}');
+    path($bmwqemu::result_dir)->child('result-1.json')->spew('{"result":"fail"}');
     my $ctx = OpenQA::Isotovideo::LLMAnalysis::gather_context($bmwqemu::result_dir);
     is $ctx->{failed_tests}, '1', 'Fallback to filename for test name';
 
     # Truncation logic
-    path($bmwqemu::result_dir)->child('autoinst-log.txt')->spurt(join "\n", map { "L$_" } 1 .. 300);
-    path($bmwqemu::result_dir)->child('serial0')->spurt(join "\n", map { "S$_" } 1 .. 150);
+    path($bmwqemu::result_dir)->child('autoinst-log.txt')->spew(join "\n", map { "L$_" } 1 .. 300);
+    path($bmwqemu::result_dir)->child('serial0')->spew(join "\n", map { "S$_" } 1 .. 150);
     $ctx = OpenQA::Isotovideo::LLMAnalysis::gather_context($bmwqemu::result_dir);
     is scalar(split "\n", $ctx->{log_tail}), 200, 'Log tail truncated';
     is scalar(split "\n", $ctx->{serial_tail}), 100, 'Serial tail truncated';
 
     # Empty files
-    path($bmwqemu::result_dir)->child('autoinst-log.txt')->spurt('');
-    path($bmwqemu::result_dir)->child('serial0')->spurt('');
+    path($bmwqemu::result_dir)->child('autoinst-log.txt')->spew('');
+    path($bmwqemu::result_dir)->child('serial0')->spew('');
     $ctx = OpenQA::Isotovideo::LLMAnalysis::gather_context($bmwqemu::result_dir);
     is $ctx->{log_tail}, '', 'Handles empty log';
 };

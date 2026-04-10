@@ -342,9 +342,9 @@ subtest 'publish assets' => sub {
         path('testresults/')->remove_tree;
         path('testresults/')->make_path;
         # Create a dummy failed test result to trigger gathering context
-        path('testresults/result-failing_module.json')->spurt('{"result": "fail", "name": "failing_module"}');
-        path('autoinst-log.txt')->spurt("Something went wrong in the log\n");
-        path('serial0')->spurt("Kernel panic in serial output\n");
+        path('testresults/result-failing_module.json')->spew('{"result": "fail", "name": "failing_module"}');
+        path('autoinst-log.txt')->spew("Something went wrong in the log\n");
+        path('serial0')->spew("Kernel panic in serial output\n");
         my $log = combined_from {
             isotovideo(
                 opts => "casedir=$data_dir/tests schedule=module1 LLM_FAILURE_ANALYSIS=1 LLM_FAILURE_ANALYSIS_CMD=cat",
