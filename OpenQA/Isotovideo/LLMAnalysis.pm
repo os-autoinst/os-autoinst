@@ -124,7 +124,17 @@ sub run ($result_dir) {
         $output = query_llm_api($prompt, $url, $model);
     }
     path("$result_dir/llm-failure-analysis.txt")->spew($output);
-    bmwqemu::diag("LLM Analysis complete. Saved to $result_dir/llm-failure-analysis.txt");
+    bmwqemu::diag("LLM Analysis:\n$output\nSaved to $result_dir/llm-failure-analysis.txt");
+    my $analysis_result = {
+        name => 'llm_failure_analysis',
+        result => 'ok',
+        details => [{
+                title => 'LLM Failure Analysis',
+                result => 'none',
+                text => 'llm-failure-analysis.txt',
+        }],
+    };
+    bmwqemu::save_json_file($analysis_result, "$result_dir/result-llm_failure_analysis.json");
 }
 
 1;
