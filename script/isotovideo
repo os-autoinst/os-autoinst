@@ -155,9 +155,7 @@ sub handle_shutdown () {
         $runner->stop_autotest();    # uncoverable statement
     }
     my $clean_shutdown = $runner->handle_shutdown(\$RETURN_CODE);
-    bmwqemu::load_vars();    # read calculated variables from backend and tests
     $RETURN_CODE = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $RETURN_CODE;
-    OpenQA::Isotovideo::LLMAnalysis::run(bmwqemu::result_dir()) if $bmwqemu::vars{LLM_FAILURE_ANALYSIS};
     diag 'isotovideo completed handle_shutdown: ' . ($RETURN_CODE ? 'failed' : 'done');
 }
 
@@ -193,6 +191,8 @@ try {
     $RETURN_CODE = EXIT_STATUS_OK;
     $runner->run;    # enter the main loop: process messages from autotest, command server and backend
     $RETURN_CODE = $runner->exit_code_from_test_results if $options{'exit-status-from-test-results'};
+    bmwqemu::load_vars();    # read calculated variables from backend and tests
+    OpenQA::Isotovideo::LLMAnalysis::run(bmwqemu::result_dir()) if $bmwqemu::vars{LLM_FAILURE_ANALYSIS};
     handle_shutdown;
 }
 catch ($e) {
