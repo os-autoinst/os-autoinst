@@ -23,6 +23,7 @@ develop_requires:
   perl(Perl::Critic::Community):
   perl(Test::Perl::Critic):
   python3-gitlint:
+  expect:  # for unbuffer
 
 cover_requires:
   perl(Devel::Cover):

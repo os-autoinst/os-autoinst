@@ -7,6 +7,8 @@ jobs:
   base-check-commit-message:
     name: Check commit message
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:

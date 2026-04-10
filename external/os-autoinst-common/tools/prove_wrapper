@@ -8,7 +8,11 @@ OUTPUT=$(mktemp)
 
 echo "Running prove with TAP output check ..."
 
-prove -I . "$@" 2>&1 | tee "$OUTPUT"
+# use unbuffer if available and stdout is a terminal for immediate output
+[[ -t 1 ]] && unbuffer_cmd=("$(which unbuffer 2>/dev/null)") || unbuffer_cmd=()
+
+"${unbuffer_cmd[@]}" prove -I . "$@" 2>&1 | tee "$OUTPUT"
+
 STATUS=${PIPESTATUS[0]}
 
 if [ "$STATUS" -ne 0 ]; then
@@ -16,16 +20,21 @@ if [ "$STATUS" -ne 0 ]; then
     exit "$STATUS"
 fi
 
-sed -E '
-  s/^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\][[:space:]]*//
-  /^All tests successful\./,$d
-' "$OUTPUT" > "$OUTPUT.processed"
-
-UNHANDLED=$(grep -vE '^(x?t|t/compile)/.*([0-9]{2}-|)([[:alnum:]]|_|-)+\.t \.+' "$OUTPUT.processed" || true)
+UNHANDLED=$(sed --regexp-extended \
+  -e 's/^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\][[:space:]]*//' \
+  -e '/^(x?t|t)\/.*\.t \.+/d' \
+  -e '/\s*(not )?ok/d' \
+  -e '/^# /d' \
+  -e '/^\s*[0-9]+\.\.[0-9]+.*/d' \
+  -e '/Files=.*Tests=/d' \
+  -e '/Result: /d' \
+  -e '/All tests successful\./d' \
+ "$OUTPUT")
 
 if [ -n "$UNHANDLED" ]; then
-    echo "not ok - unhandled output found"
-    echo "Run with PROVE_COMMAND=tools/prove_wrapper to reproduce locally"
+    echo "not ok - unhandled output found:"
+    echo "$UNHANDLED"
+    echo "Run with PROVE=tools/prove_wrapper to reproduce locally"
     exit 1
 else
     echo "ok - no unhandled output found"

@@ -5,6 +5,8 @@ on: [push, pull_request]
 
 jobs:
   perl-lint-checks:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     name: "Perltidy"
     container:
