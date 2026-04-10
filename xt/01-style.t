@@ -17,6 +17,7 @@ is qx{git grep -I -l '^\\(throws\\|dies\\|lives\\)_ok.*\<sub\>' t/**.t}, '', 'On
 is qx{git grep -I -l 'like.*\$\@' t/**.t}, '', 'Use throws_ok instead of manual checks of exceptions';
 is qx{git grep -I -l ' if \$\@'}, '', 'Use try/catch instead of manual \$\@ checks';
 is qx{git grep -I -l '^use \\(Try::Tiny\\|TryCatch\\)'}, '', 'No Try::Tiny or TryCatch necessary, use Feature::Compat::Try and later native Perl';
+is qx{git grep -I -l '\<spurt\>'}, '', 'No deprecated "Mojo::File::spurt", use "spew" instead';
 is qx{git grep -I -l '^use testapi' backend/ consoles/}, '', 'No backend or console files use external facing testapi';
 is qx{git grep -l -e '^sub \\S\\+ [^(]\\+' --and --not -e 'sub [(\{]' --and --not -e 'sub \\S\\+(' --and --not -e 'sub \\S\\+;' --and --not -e '# no:style:signatures' ':!external/'}, '', 'All files use sub signatures everywhere (nameless and in-place definitions still allowed)';
 is qx{git grep -L '^#!.*perl' t/**.t}, '', 'All test files have shebang';

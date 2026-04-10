@@ -123,7 +123,7 @@ sub run ($result_dir) {
         my $model = $bmwqemu::vars{LLM_FAILURE_ANALYSIS_MODEL} || 'gemma-4-26B-A4B-it';
         $output = query_llm_api($prompt, $url, $model);
     }
-    path("$result_dir/llm-failure-analysis.txt")->spurt($output);
+    path("$result_dir/llm-failure-analysis.txt")->spew($output);
     bmwqemu::diag("LLM Analysis complete. Saved to $result_dir/llm-failure-analysis.txt");
 }
 
