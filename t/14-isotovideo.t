@@ -352,7 +352,7 @@ subtest 'publish assets' => sub {
         like $log, qr/LLM Analysis:/, 'LLM analysis finished';
         my $analysis_file = path($pool_dir, 'testresults', 'llm-failure-analysis.txt');
         ok -e $analysis_file, 'LLM analysis output file exists';
-        ok -e path($pool_dir, 'testresults', 'result-llm_failure_analysis.json'), 'LLM analysis result JSON exists';
+        ok -e path($pool_dir, 'testresults', 'result-00-llm_failure_analysis.json'), 'LLM analysis result JSON exists';
         like $analysis_file->slurp, qr/analyzing an automated test run/, 'LLM analysis output contains expected content';
         like $analysis_file->slurp, qr/fail_fast/, 'LLM analysis output contains failing test name';
     };

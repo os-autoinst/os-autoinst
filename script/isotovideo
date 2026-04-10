@@ -184,11 +184,13 @@ try {
     $runner->init(@ARGV);
     spawn_debuggers;
     $runner->handle_commands;
+    $runner->command_handler->on(tests_done => sub {
+        bmwqemu::load_vars();
+        OpenQA::Isotovideo::LLMAnalysis::run(bmwqemu::result_dir()) if $bmwqemu::vars{LLM_FAILURE_ANALYSIS};
+    });
     $RETURN_CODE = EXIT_STATUS_OK;
     $runner->run;    # enter the main loop: process messages from autotest, command server and backend
     $RETURN_CODE = $runner->exit_code_from_test_results if $options{'exit-status-from-test-results'};
-    bmwqemu::load_vars();    # read calculated variables from backend and tests
-    OpenQA::Isotovideo::LLMAnalysis::run(bmwqemu::result_dir()) if $bmwqemu::vars{LLM_FAILURE_ANALYSIS};
     handle_shutdown;
 }
 catch ($e) {

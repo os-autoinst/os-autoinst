@@ -128,8 +128,8 @@ subtest 'Execution routing' => sub {
     OpenQA::Isotovideo::LLMAnalysis::run($bmwqemu::result_dir);
     is path($bmwqemu::result_dir)->child('llm-failure-analysis.txt')->slurp, 'api', 'Default to API';
     like $diags[1], qr/LLM Analysis:\napi/, 'Includes LLM output in diag';
-    my $json = Mojo::JSON::decode_json(path($bmwqemu::result_dir)->child('result-llm_failure_analysis.json')->slurp);
-    is $json->{name}, 'llm_failure_analysis', 'Standalone module name correct';
+    my $json = Mojo::JSON::decode_json(path($bmwqemu::result_dir)->child('result-00-llm_failure_analysis.json')->slurp);
+    is $json->{name}, '00-llm_failure_analysis', 'Standalone module name correct';
     is $json->{details}[0]{text}, 'llm-failure-analysis.txt', 'Refers to correct text file';
 
     @diags = ();
