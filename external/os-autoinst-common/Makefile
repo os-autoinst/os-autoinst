@@ -1,3 +1,8 @@
+# PROVE: Test application for Perl tests
+PROVE ?= tools/prove_wrapper
+PROVE_JOBS ?= $(shell nproc 2>/dev/null || echo 1)
+PROVE_JOBS_ARGS ?= -j$(PROVE_JOBS)
+
 all: help
 
 .PHONY: help
@@ -35,8 +40,8 @@ test-gitlint: ## Run gitlint checks
 
 .PHONY: test-author
 test-author: ## Run author tests
-	prove -l -r xt/
+	"${PROVE}" $(PROVE_JOBS_ARGS) -l -r xt/
 
 .PHONY: test-t
 test-t: ## Run unit tests
-	prove -l -r t/
+	"${PROVE}" $(PROVE_JOBS_ARGS) -l -r t/
