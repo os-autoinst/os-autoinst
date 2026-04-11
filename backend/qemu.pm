@@ -659,7 +659,7 @@ sub _set_graphics_backend ($self) {
         $device = 'virtio-gpu';
     }
     $device //= 'VGA';
-    my @edids = ('VGA', 'virtio-vga', 'virtio-gpu-pci', 'bochs-display', 'virtio-gpu');
+    my @edids = ('VGA', 'virtio-vga', 'virtio-vga-gl', 'virtio-gpu-pci', 'bochs-display', 'virtio-gpu');
     if (grep { $device eq $_ } @edids) {
         # these devices support EDID
         $options = ",edid=on,xres=$self->{xres},yres=$self->{yres}";
@@ -668,6 +668,10 @@ sub _set_graphics_backend ($self) {
         $options .= ',' . $vars->{QEMU_VIDEO_DEVICE_OPTIONS};
     }
     sp('device', "${device}${options}");
+    # enable openGL support
+    if ($device eq 'virtio-vga-gl') {
+        sp('display', 'egl-headless,gl=on');
+    }
 }
 
 sub determine_qemu_version ($self, $qemubin) {
@@ -882,7 +886,7 @@ sub start_qemu ($self) {
     bmwqemu::diag('Initializing block device images');
     $self->{proc}->init_blockdev_images();
 
-    sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
+    sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1}) and (($vars->{QEMU_VIDEO_DEVICE} // '') ne 'virtio-vga-gl');
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial', 'chardev:serial0');
 
