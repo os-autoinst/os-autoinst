@@ -12,7 +12,7 @@ jobs:
     container:
       image: registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: make test-local
         run: |
           git config --global --add safe.directory '*'

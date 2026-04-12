@@ -26,7 +26,7 @@ jobs:
       # See https://docs.github.com/en/actions/creating-actions/dockerfile-support-for-github-actions#user
       options: --user root
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Make project folder user-writable
         run: chown -R $NORMAL_USER ../../os-autoinst
       - name: Clone openQA
