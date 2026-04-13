@@ -124,7 +124,7 @@ sub run ($result_dir) {
         $output = query_llm_api($prompt, $url, $model);
     }
     path("$result_dir/llm-failure-analysis.txt")->spew($output);
-    bmwqemu::diag("LLM Analysis complete. Saved to $result_dir/llm-failure-analysis.txt");
+    bmwqemu::diag("LLM Analysis:\n$output\nSaved to $result_dir/llm-failure-analysis.txt");
 }
 
 1;

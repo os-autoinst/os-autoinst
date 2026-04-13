@@ -351,7 +351,7 @@ subtest 'publish assets' => sub {
                 exit_code => 0)
         };
         like $log, qr/Starting LLM Analysis/, 'LLM analysis started';
-        like $log, qr/LLM Analysis complete/, 'LLM analysis finished';
+        like $log, qr/LLM Analysis:/, 'LLM analysis finished';
         my $analysis_file = path($pool_dir, 'testresults', 'llm-failure-analysis.txt');
         ok -e $analysis_file, 'LLM analysis output file exists';
         like $analysis_file->slurp, qr/analyzing an automated test run/, 'LLM analysis output contains expected content';
