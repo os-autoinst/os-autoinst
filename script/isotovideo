@@ -4,9 +4,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 
+=head1 NAME
+
+isotovideo - test the given assets/ISOs
+
 =head1 SYNOPSIS
 
-isotovideo [OPTIONS] [TEST PARAMETER]
+isotovideo [OPTIONS] [TEST PARAMETERS]
 
 Parses command line parameters, vars.json and tests the given assets/ISOs.
 

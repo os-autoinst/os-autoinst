@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 
-=head1 os-autoinst-generate-needle-preview
+
+=head1 NAME
 
 os-autoinst-generate-needle-preview - generate an .svg file with the needle information as an overlay
 
