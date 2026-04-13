@@ -430,7 +430,9 @@ subtest python => sub {
     is $bmwqemu::vars{HELP}, 'I am a python script trapped in a perl script!', 'set_var() works';
 
     stderr_like {
-        throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
+        warning {
+            throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
+        }
     } qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 };
 
