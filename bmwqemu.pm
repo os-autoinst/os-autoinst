@@ -73,7 +73,12 @@ sub result_dir () { 'testresults' }
     *init_logger = \&log::init_logger;
 }
 
-use constant STATE_FILE => 'base_state.json';
+use constant {
+    STATE_FILE => 'base_state.json',
+    MIB => 1024 * 1024,
+    GIB => 1024 * 1024 * 1024,
+    STORAGE_KEEP_FREE_RATIO => $ENV{OS_AUTOINST_STORAGE_KEEP_FREE_RATIO} // .2,
+};
 
 # Write a JSON representation of the process termination to disk
 sub serialize_state (%state) {
@@ -150,6 +155,39 @@ sub _check_publish_vars () {
     return 1;
 }
 
+sub _get_storage_stats ($path) {
+    my $df_output = qx{df -B1 --output=size,avail "$path"};
+    return undef unless defined $df_output;
+    my ($total, $available) = $df_output =~ /\s+(\d+)\s+(\d+)\s*$/;
+    return ($total, $available);
+}
+
+sub default_hdd_size_gb () { 10 }
+
+sub default_numdisks ($v = \%vars) {
+    return defined $v->{RAIDLEVEL} ? 4 : 1;
+}
+
+sub _abort_if_storage_limit_exceeded () {
+    my $keep_free = $vars{STORAGE_KEEP_FREE_RATIO} // STORAGE_KEEP_FREE_RATIO;
+    my $numdisks = $vars{NUMDISKS} // default_numdisks();
+    my $total_hdd_size_gb = 0;
+    for my $i (1 .. $numdisks) {
+        my $size = $vars{"HDDSIZEGB_$i"} // $vars{HDDSIZEGB} // default_hdd_size_gb();
+        $total_hdd_size_gb += $size;
+    }
+    return undef unless $total_hdd_size_gb > 0;
+    my ($total_storage, $available) = _get_storage_stats('.');
+    return warn "Could not determine available storage space\n" unless defined $total_storage;
+    my $requested_bytes = $total_hdd_size_gb * GIB;
+    my $min_free_bytes = $total_storage * $keep_free;
+    return undef unless $requested_bytes > $available - $min_free_bytes;
+    my $msg = sprintf 'Not enough storage for requested HDDSIZEGB (requested %d GiB, available %d GiB, total %d GiB, keep-free %d%%)',
+      $total_hdd_size_gb, int($available / GIB), int($total_storage / GIB), int($keep_free * 100);
+    serialize_state(result => 'incomplete', msg => $msg);
+    die "$msg\n";
+}
+
 sub ensure_valid_vars () {
     # defaults
     $vars{QEMUPORT} ||= 15222;
@@ -160,6 +198,7 @@ sub ensure_valid_vars () {
     die 'CASEDIR variable not set, unknown test case directory' if !defined $vars{CASEDIR};
     die "No scripts in CASEDIR '$vars{CASEDIR}'\n" unless -e $vars{CASEDIR};
     die "WHEELS_DIR '$vars{WHEELS_DIR}' does not exist" if defined $vars{WHEELS_DIR} && !-d $vars{WHEELS_DIR};
+    _abort_if_storage_limit_exceeded();
     _check_publish_vars();
     save_vars();
 }

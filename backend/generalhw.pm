@@ -129,7 +129,7 @@ sub compute_hdd_args ($self) {
             push @hdd_args, $bmwqemu::vars{"HDD_$i"} or die 'Need variable HDD_$i';
             # Pass size of HDD
             my $size = $bmwqemu::vars{"HDDSIZEGB_$i"};
-            $size //= $bmwqemu::vars{HDDSIZEGB} // 10;
+            $size //= $bmwqemu::vars{HDDSIZEGB} // bmwqemu::default_hdd_size_gb();
             push @hdd_args, $size . 'G';
         }
     }

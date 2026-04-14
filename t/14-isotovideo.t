@@ -33,6 +33,8 @@ mkdir $pool_dir;
 # avoid spending time on git clone retries
 $ENV{OS_AUTOINST_GIT_RETRY_COUNT} = 0;
 
+$ENV{OS_AUTOINST_STORAGE_KEEP_FREE_RATIO} = 0;
+
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';

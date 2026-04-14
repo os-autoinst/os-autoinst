@@ -37,6 +37,7 @@ my @common_options = (
     CASEDIR => "$data_dir/tests",
     WORKER_INSTANCE => 3,
     SCHEDULE => 'tests/noop',
+    STORAGE_KEEP_FREE_RATIO => 0,
 );
 my $vars_json = path('vars.json');
 my $log_file = path('autoinst-log.txt');
