@@ -19,7 +19,6 @@ chomp(my @external_files = qx{find external -type f});
 # Skip test modules as they rely on ENABLE_MODERN_PERL_FEATURES
 chomp(my @test_modules = qx{find t/data/tests t/data/wheels_dir t/data/assets t/fake/tests -name '*.pm' -not -name 'main.pm' -type f,l});
 my $TEST_SKIP = [
-    'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
     't/data/tests/main.pm',    # fails with "Can't locate testdistribution.pm" as this check does not automatically add the required lib dir
     @test_modules, @external_files
 ];
