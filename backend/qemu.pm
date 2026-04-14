@@ -772,8 +772,8 @@ sub start_qemu ($self) {
         $vars->{HDDMODEL} ||= 'scsi-hd';
         $vars->{PATHCNT} ||= 2;
     }
-    $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : 1;
-    $vars->{HDDSIZEGB} ||= 10;
+    $vars->{NUMDISKS} //= bmwqemu::default_numdisks($vars);
+    $vars->{HDDSIZEGB} ||= bmwqemu::default_hdd_size_gb();
     $vars->{CDMODEL} ||= 'scsi-cd';
     $vars->{HDDMODEL} ||= 'virtio-blk';
 

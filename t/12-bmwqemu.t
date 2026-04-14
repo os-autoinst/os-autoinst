@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
+use Test::MockModule;
 use Mojo::Base -signatures;
 use Test::Mock::Time;
 use Feature::Compat::Try;
@@ -181,6 +182,37 @@ subtest 'serializing state' => sub {
     ok !-e bmwqemu::STATE_FILE, 'no statefile created for shutdown-related message';
     bmwqemu::serialize_state(msg => 'foo');
     is_deeply decode_json(path(bmwqemu::STATE_FILE)->slurp), {msg => 'foo'}, 'state serialized';
+};
+
+subtest 'abort on low disk space' => sub {
+    my $bmw_mock = Test::MockModule->new('bmwqemu', no_auto => 1);
+    $bmw_mock->mock(_get_storage_stats => sub { return (1024**3, 1024**3) });
+
+    my $dir = "$data_dir/tests";
+    unlink bmwqemu::STATE_FILE;
+    create_vars({CASEDIR => $dir, HDDSIZEGB => 1});
+
+    throws_ok {
+        bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
+    } qr/Not enough storage for requested HDDSIZEGB/, 'abort if requested HDDSIZEGB exceeds default threshold';
+
+    is decode_json(path(bmwqemu::STATE_FILE)->slurp)->{result}, 'incomplete', 'serialized result is incomplete';
+
+    $bmw_mock->mock(_get_storage_stats => sub { return (100 * 1024**3, 100 * 1024**3) });
+    unlink bmwqemu::STATE_FILE;
+    lives_ok {
+        bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
+    } 'succeed if requested HDDSIZEGB is well within available space';
+
+    unlink bmwqemu::STATE_FILE;
+    create_vars({CASEDIR => $dir, HDDSIZEGB => 1, STORAGE_KEEP_FREE_RATIO => 0.9});
+    $bmw_mock->mock(_get_storage_stats => sub { return (5 * 1024**3, 5 * 1024**3) });
+    throws_ok {
+        bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
+    } qr/keep-free 90%/, 'abort if requested HDDSIZEGB exceeds custom threshold';
 };
 
 done_testing;

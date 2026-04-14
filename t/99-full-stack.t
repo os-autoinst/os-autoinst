@@ -25,6 +25,8 @@ mkdir $pool_dir;
 note("data dir: $data_dir");
 note("pool dir: $pool_dir");
 
+$ENV{OS_AUTOINST_STORAGE_KEEP_FREE_RATIO} = 0;
+
 chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
