@@ -139,6 +139,7 @@ else ()
 endif ()
 
 # add targets for invoking Perl test suite
+find_program(PROVE_PATH prove_wrapper PATHS tools NO_DEFAULT_PATH)
 find_program(PROVE_PATH prove)
 find_program(UNBUFFER_PATH unbuffer)
 if (PROVE_PATH)
