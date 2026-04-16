@@ -23,7 +23,7 @@ subtest 'various inputs' => sub {
         my $module;
         my $err;
         try {
-            $module = main::analyze($doc);
+            $module = main::analyze($doc, {});
         }
         catch ($e) {
             $err = $e;
@@ -46,7 +46,7 @@ subtest 'various inputs' => sub {
     }
 };
 
-subtest 'main' => sub {
+subtest main => sub {
     my @args = qw(t/data/tests/bar/module2.pm);
     combined_like { main::main({}, @args) } qr/Would change @args/, 'checking file';
 
@@ -61,12 +61,24 @@ subtest 'main' => sub {
     is $code, q{use Mojo::Base 'x';}, 'changed string like expected';
 };
 
-subtest 'script' => sub {
+subtest script => sub {
     my $out = qx{$^X $script};
     is $? >> 8, 1, 'script exits with 1 in case of usage errors';
 
     $out = qx{$^X $script t/data/tests/bar/module2.pm};
     is $? >> 8, 2, 'script exits with 2 in case of changes';
+};
+
+subtest force => sub {
+    my $code = <<~'EOM';
+    ## no os-autoinst style
+    use base 'foo';
+    EOM
+    my $doc = PPI::Document->new(\$code) or die 'Could not parse code';
+    my $module = main::analyze($doc, {});
+    is $module->{nofix}, 1, 'requested to skip by comment';
+    $module = main::analyze($doc, {force => 1});
+    !exists $module->{nofix}, 'requested to skip by comment';
 };
 
 done_testing;
