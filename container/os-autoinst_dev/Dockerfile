@@ -29,6 +29,7 @@ RUN zypper in -y -C \
        aspell-spell \
        cmake \
        cpio \
+       diffutils \
        ffmpeg \
        file \
        gcc-c++ \
