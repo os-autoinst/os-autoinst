@@ -518,4 +518,15 @@ subtest search_for_expected_serial_failures => sub {
     is($basetest->{result}, 'successfully called function', 'search for expected serial failures is working');
 };
 
+subtest record_serialresult_with_command => sub {
+    my $basetest = basetest->new();
+    $basetest->{name} = 'test';
+    my $recorded_output;
+    my $mock_basetest_local = Test::MockModule->new('basetest');
+    $mock_basetest_local->redefine(record_resultfile => sub ($self, $title, $output, %nargs) { $recorded_output = $output });
+    $basetest->record_serialresult('regex', 'ok', 'output', command => 'my_command');
+    like($recorded_output, qr/# Command: my_command/, 'command is in output');
+    like($recorded_output, qr/# wait_serial expected: regex/, 'expected regex is in output');
+};
+
 done_testing;
