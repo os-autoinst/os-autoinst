@@ -25,6 +25,10 @@ $sudo zypper --no-refresh install -y -C "${DEPS[@]}"
 listdeps > $NEWDEPS
 
 echo "Checking updated packages"
+command -v diff &> /dev/null || {
+    echo "ERROR: diff is not installed"
+    exit 1
+}
 if diff $OLDDEPS $NEWDEPS > $DIFFDEPS; then
     echo "NO DIFF"
 else
