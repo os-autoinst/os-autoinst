@@ -188,10 +188,10 @@ sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
         $module_code = "# line 1 $script_path\n";
         $module_code .= path($script_path)->slurp;
     }
-    $code .= "use lib '.';" unless path($casedir)->is_abs;
-    $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
-    $code .= "use lib '$basename';\n";
+    $code .= "use lib '$basename';";
+    $code .= "use lib '.';" unless path($casedir)->is_abs;
+    $code .= "use lib '$casedir/lib';\n";
     die "Unsupported file extension for '$script'" unless $script =~ /\.(p[my]|lua)/;
     if ($script =~ m/\.pm$/) {
         $code .= $module_code // "require '$script_path';";
