@@ -6,7 +6,7 @@ use Mojo::Base -signatures;
 use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '30';
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
 use Test::Mock::Time;

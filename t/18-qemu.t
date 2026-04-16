@@ -6,7 +6,7 @@ use Mojo::Base -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '30';
+use OpenQA::Test::TimeLimit '5';
 use Test::Warnings qw(warnings :report_warnings);
 use Test::Output qw(stderr_from);
 use Mojo::File qw(tempfile path);

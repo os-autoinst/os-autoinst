@@ -6,7 +6,7 @@ use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
 use OpenQA::Test::Isolation qw(setup_isolated_workdir);
-use OpenQA::Test::TimeLimit '30';
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Output qw(combined_like combined_from);
 use File::Basename;
