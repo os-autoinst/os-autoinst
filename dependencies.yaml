@@ -93,6 +93,9 @@ devel_requires:
   '%test_requires':
   '%python_style_requires':
   '%devel_non_s390_requires':
+  '%spellcheck_requires':
+  '%yamllint_requires':
+  python3-gitlint:
   file:
   sed:
   perl(Code::TidyAll):
@@ -179,8 +182,6 @@ yamllint_requires:
 test_requires:
   '%build_requires':
   '%test_base_requires':
-  '%spellcheck_requires':
-  '%yamllint_requires':
   '%ocr_requires':
   '%test_non_s390_requires':
   '%python_support_requires':
