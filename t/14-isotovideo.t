@@ -343,20 +343,20 @@ subtest 'publish assets' => sub {
         path('vars.json')->remove if -e 'vars.json';
         path('testresults/')->remove_tree;
         path('testresults/')->make_path;
-        # Create a dummy failed test result to trigger gathering context
-        path('testresults/result-failing_module.json')->spew('{"result": "fail", "name": "failing_module"}');
         path('autoinst-log.txt')->spew("Something went wrong in the log\n");
         path('serial0')->spew("Kernel panic in serial output\n");
         my $log = combined_from {
             isotovideo(
-                opts => "casedir=$data_dir/tests schedule=module1 LLM_FAILURE_ANALYSIS=1 LLM_FAILURE_ANALYSIS_CMD=cat",
+                opts => "casedir=$data_dir/tests schedule=tests/fail_fast.pm LLM_FAILURE_ANALYSIS=1 LLM_FAILURE_ANALYSIS_CMD=cat",
                 exit_code => 0)
         };
         like $log, qr/Starting LLM Analysis/, 'LLM analysis started';
         like $log, qr/LLM Analysis:/, 'LLM analysis finished';
         my $analysis_file = path($pool_dir, 'testresults', 'llm-failure-analysis.txt');
         ok -e $analysis_file, 'LLM analysis output file exists';
+        ok -e path($pool_dir, 'testresults', 'result-llm_failure_analysis.json'), 'LLM analysis result JSON exists';
         like $analysis_file->slurp, qr/analyzing an automated test run/, 'LLM analysis output contains expected content';
+        like $analysis_file->slurp, qr/fail_fast/, 'LLM analysis output contains failing test name';
     };
 
     subtest 'unclean shutdown' => sub {
