@@ -397,6 +397,9 @@ very suitable for checking performance expectations. Under the normal
 circumstance of the screen being shown this does not imply a longer waiting
 time as the method returns as soon as a successful needle match occurred.
 
+Note when using multiple tags the method returns on the first match and an
+additional C<assert_screen> may be needed for consecutive screens.
+
 Specify C<$no_wait> to run the screen check as fast as possible that is
 possibly more than once per second which is default. Select this to check a
 screen which can change in a range faster than 1-2 seconds not to miss the
