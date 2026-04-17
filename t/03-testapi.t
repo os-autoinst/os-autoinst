@@ -1334,6 +1334,16 @@ subtest 'retrieve and change various global variables' => sub {
     }
 };
 
+subtest 'wait_serial record_command' => sub {
+    my $mock_test = Test::MockModule->new('basetest');
+    my $recorded_cmd;
+    $mock_test->redefine(record_serialresult => sub ($self, $ref, $res, $string, %args) {
+            $recorded_cmd = $args{command};
+    });
+    wait_serial('regex', record_command => 'my_command');
+    is($recorded_cmd, 'my_command', 'command passed to record_serialresult');
+};
+
 done_testing;
 
 END {
