@@ -16,6 +16,8 @@ sub init () {
     use Config;
     my $vendorlib = $Config{installvendorlib};
     my $libdir = realpath(dirname(__FILE__));
+    # if we are in lib/, the project root is one level up
+    $libdir = dirname($libdir) if !-d "$libdir/ppmclibs" && -d "$libdir/../ppmclibs";
     # undef is substituted at install time, see CMakeLists.txt
     my $sysdir = undef;
     return if ($sysdir && $libdir eq $sysdir);
