@@ -34,31 +34,30 @@ sub read_vars () {
 subtest 'log_call' => sub {
     require bmwqemu;
 
-    sub log_call_test {
+    sub log_call_test () {
         bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
     }
     stderr_like(\&log_call_test, qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
 
-    sub log_call_test_escape_key {
+    sub log_call_test_escape_key () {
         bmwqemu::log_call("foo\nbar" => "bar\tbaz\rboo\n");
     }
     stderr_like(\&log_call_test_escape_key, qr{\Q<<< main::log_call_test_escape_key("foo\nbar"="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
 
-    sub log_call_test_single {
+    sub log_call_test_single () {
         bmwqemu::log_call("bar\tbaz\rboo\n");
     }
     stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
 
-    sub log_call_indent {
+    sub log_call_indent () {
         my $lines = ['a', ['b']];
         bmwqemu::log_call(test => $lines);
     }
     stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
 
-    sub log_call_test_secret {
-        my (%args) = @_;
-        # Use @_ instead of %args to keep the order
-        bmwqemu::log_call(@_, ($args{secret} ? (-masked => $args{text}) : ()));
+    sub log_call_test_secret (@args) {
+        my %args = @args;
+        bmwqemu::log_call(@args, ($args{secret} ? (-masked => $args{text}) : ()));
         return;
     }
     stderr_like { log_call_test_secret(text => "password\n", secret => 1) } qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)}, 'log_call hides sensitive info';

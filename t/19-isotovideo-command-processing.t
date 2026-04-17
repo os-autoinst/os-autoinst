@@ -48,7 +48,7 @@ package FakeBackend {
         push @{$self->{messages}}, $cmd;
         return $cmd->{cmd} eq 'is_shutdown' ? 'down' : {tags => [qw(some fake tags)]};
     }
-    sub stop { die "faking stop\n" }
+    sub stop ($self) { die "faking stop\n" }
 }    # uncoverable statement
 
 package bmwqemu {
