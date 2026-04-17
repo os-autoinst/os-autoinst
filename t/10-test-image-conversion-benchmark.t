@@ -2,7 +2,8 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
@@ -10,6 +11,7 @@ use File::Basename;
 use File::Path qw(make_path remove_tree);
 use File::Temp 'tempfile';
 use Cwd;
+use Mojo::File qw(path);
 use OpenQA::Benchmark::Stopwatch;
 use needle;
 use cv;
@@ -21,9 +23,7 @@ require tinycv;
 my ($res, $needle, $image, $cand, $img_src);
 
 my $data_dir = "$Bin/data";
-my $result_dir = "$data_dir/results";
-
-make_path($result_dir);
+my ($isolation_guard, $result_dir) = setup_isolated_workdir();
 
 opendir my $dir, $data_dir or die "Cannot read directories: $data_dir";
 
@@ -41,8 +41,6 @@ foreach my $img_src (@all_images) {
     ok(-e $filename, "Passed $filename");
     $watch->lap("$img_src");
 }
-
-remove_tree($result_dir, {verbose => 1});
 
 $watch->stop();
 print $watch->summary();

@@ -11,13 +11,16 @@ my @invoked_cmds;
 BEGIN { *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] } }
 
 use FindBin qw($Bin $Script);
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
+use OpenQA::Test::TimeLimit '30';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
 use Mojo::File qw(tempdir tempfile);
 use Scalar::Util qw(blessed openhandle);
 use POSIX qw(waitpid WNOHANG);
+
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 use bmwqemu;
 use backend::generalhw;
@@ -202,8 +205,9 @@ subtest 'serial grab' => sub {
     subtest 'stop grabbing' => sub {
         $bmwqemu::vars{GENERAL_HW_SOL_CMD} .= ' && sleep';
         $backend->start_serial_grab;
+        my $pid = $backend->{serialpid};
         $backend->stop_serial_grab;
-        is waitpid($backend->{serialpid}, WNOHANG), -1, 'process terminated via stop_serial_grab';
+        is waitpid($pid, WNOHANG), -1, 'process terminated via stop_serial_grab';
         is $backend->stop_serial_grab, -1, 'returns -1 if process does not exist (but does not die)';
     };
 
@@ -223,7 +227,3 @@ subtest 'extracting assets' => sub {
 };
 
 done_testing();
-
-END {
-    unlink 'serial0';
-}

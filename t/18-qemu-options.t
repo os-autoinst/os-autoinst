@@ -6,22 +6,21 @@ use Test::Most;
 use Mojo::Base -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '10';
 use File::Basename;
 use Cwd 'abs_path';
-use Mojo::File qw(path tempdir);
+use Mojo::File qw(path);
 use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
-use Mojo::Util qw(scope_guard);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data";
 my $pool_dir = "$dir/pool";
 mkdir $pool_dir;
 chdir $pool_dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # just save ourselves some time during testing
 # note: The factor for coverage has been determined by comparing runtimes locally and was rounded up to the next integer.
