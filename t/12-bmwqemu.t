@@ -213,6 +213,42 @@ subtest 'abort on low disk space' => sub {
         bmwqemu::init;
         bmwqemu::ensure_valid_vars();
     } qr/keep-free 90%/, 'abort if requested HDDSIZEGB exceeds custom threshold';
+
+    unlink bmwqemu::STATE_FILE;
+    create_vars({CASEDIR => $dir, HDDSIZEGB => 1, STORAGE_KEEP_FREE_RATIO => 0});
+    $bmw_mock->mock(_get_storage_stats => sub { return (1024**3, 100 * 1024**2) });
+    lives_ok {
+        bmwqemu::init();
+        bmwqemu::ensure_valid_vars();
+    } 'succeed if requested HDDSIZEGB exceeds available space but ratio is 0';
+
+    unlink bmwqemu::STATE_FILE;
+    create_vars({CASEDIR => $dir});    # No HDDSIZEGB, uses default 10GB
+    $bmw_mock->mock(_get_storage_stats => sub { return (100 * 1024**3, 100 * 1024**3) });
+    lives_ok {
+        bmwqemu::init();
+        bmwqemu::ensure_valid_vars();
+    } 'succeed with default HDDSIZEGB';
+};
+
+subtest '_get_storage_stats' => sub {
+    my $tmp = tempdir(CLEANUP => 1);
+    my $dummy_df = "$tmp/df";
+    for my $case (
+        {output => ' 1000 500', total => 1000, avail => 500, msg => 'matches dummy df'},
+        {output => 'malformed', total => undef, avail => undef, msg => 'is undef on malformed df output'},
+    ) {
+        path($dummy_df)->spew("#!/bin/sh\necho '$case->{output}'");
+        chmod 0755, $dummy_df;
+        local $ENV{PATH} = "$tmp:$ENV{PATH}";
+        my ($total, $available) = bmwqemu::_get_storage_stats('.');
+        is $total, $case->{total}, "total $case->{msg}";
+        is $available, $case->{avail}, "available $case->{msg}";
+    }
+
+    my ($total, $available) = bmwqemu::_get_storage_stats('.');
+    like $total, qr/^\d+$/, 'returns numeric total storage';
+    like $available, qr/^\d+$/, 'returns numeric available storage';
 };
 
 done_testing;
