@@ -326,6 +326,7 @@ fi
 %defattr(-,root,root)
 %{_docdir}/os-autoinst
 %dir %{_prefix}/lib/os-autoinst
+%{_prefix}/lib/os-autoinst/debugviewer
 %{_prefix}/lib/os-autoinst/videoencoder
 %{_prefix}/lib/os-autoinst/basetest.pm
 #
