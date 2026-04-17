@@ -429,7 +429,7 @@ sub record_resultfile ($self, $title, $output, %nargs) {
     $self->write_resultfile($filename, $output);
 }
 
-sub record_serialresult ($self, $ref, $res, $string = undef) {
+sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $string //= '';
     # take screenshot for documentation (screenshot does not represent fail itself)
     $self->take_screenshot() unless (testapi::is_serial_terminal);

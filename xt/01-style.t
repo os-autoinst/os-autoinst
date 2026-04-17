@@ -19,7 +19,8 @@ is qx{git grep -I -l ' if \$\@'}, '', 'Use try/catch instead of manual \$\@ chec
 is qx{git grep -I -l '^use \\(Try::Tiny\\|TryCatch\\)'}, '', 'No Try::Tiny or TryCatch necessary, use Feature::Compat::Try and later native Perl';
 is qx{git grep -I -l '\<spurt\>'}, '', 'No deprecated "Mojo::File::spurt", use "spew" instead';
 is qx{git grep -I -l '^use testapi' backend/ consoles/}, '', 'No backend or console files use external facing testapi';
-is qx{git grep -l -e '^sub \\S\\+ [^(]\\+' --and --not -e 'sub [(\{]' --and --not -e 'sub \\S\\+(' --and --not -e 'sub \\S\\+;' --and --not -e '# no:style:signatures' ':!external/'}, '', 'All files use sub signatures everywhere (nameless and in-place definitions still allowed)';
+is qx[git grep -l -e '^\\s*sub \\S\\+ [^(]\\+' --and --not -e 'sub [(\{]' --and --not -e 'sub \\S\\+\\s*[:(]' --and --not -e 'sub \\S\\+;' --and --not -e '# no:style:signatures' ':!external/' ':!t/48-testmodules-style.t'], '', 'All files use sub signatures everywhere (nameless and in-place definitions still allowed)';
+is qx[git grep -l -P 'sub\\s*\\{\\s*my\\s*\\(?\\\$' t/], '', 'Anonymous subs in tests should use signatures instead of manual unpacking of @_';
 is qx{git grep -L '^#!.*perl' t/**.t}, '', 'All test files have shebang';
 is qx{git ls-files -s t/**.t | grep -v ^1007}, '', 'All test modules are executable';
 is qx{git grep -l '^use POSIX;'}, '', 'Use of bare POSIX import is discouraged, see https://perldoc.perl.org/POSIX';
