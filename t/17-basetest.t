@@ -496,7 +496,7 @@ subtest verify_sound_image => sub {
     $suppress_match = 'yes';
     my $details;
     my $mock_test = Test::MockModule->new('basetest');
-    $mock_test->mock(record_screenfail => sub { my ($self, %args) = @_; $details = \%args; });
+    $mock_test->mock(record_screenfail => sub ($self, %args) { $details = \%args; });
     $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", "$FindBin::Bin/data/frame2.ppm", 1);
     is($res, undef, 'res is undef as expected') or always_explain $res;
     is($details->{result}, 'unk', 'no needle match: unknown status correct') or always_explain $details;

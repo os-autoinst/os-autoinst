@@ -59,60 +59,60 @@ $mock_ua->mock(start => sub ($ua, $tx, $cb) {
     use Test::Most;
     use Mojo::Base -signatures;
 
-    sub is_websocket { 1 }
-    sub max_websocket_size { }
-    sub error { }
-    sub req { bless {}, 'MockTxGenericReq' }
+    sub is_websocket ($self, @args) { 1 }
+    sub max_websocket_size ($self, @args) { }
+    sub error ($self, @args) { }
+    sub req ($self, @args) { bless {}, 'MockTxGenericReq' }
 
     sub on ($self, $event, $cb) {
         if ($event eq 'text') { $main::ws_on_text = $cb }
         elsif ($event eq 'binary') { $main::ws_on_binary = $cb }
         elsif ($event eq 'finish') { $main::ws_on_finish = $cb }
     }
-    sub send { }
-    sub finish { }
+    sub send ($self, @args) { }
+    sub finish ($self) { }
 
     package MockTxGenericReq;
-    sub cookies { }
-    sub headers { bless {}, 'MockTxGenericHeaders' }
+    sub cookies ($self, @args) { }
+    sub headers ($self, @args) { bless {}, 'MockTxGenericHeaders' }
 
     package MockTxGenericHeaders;
-    sub add { }
+    sub add ($self, @args) { }
 
     package MockTxFailNoCode;
-    sub is_websocket { 0 }
-    sub error { undef }    # No code, no message
-    sub req { bless {}, 'MockTxFailNoCodeReq' }
-    sub res { bless {}, 'MockTxFailNoCodeRes' }
+    sub is_websocket ($self, @args) { 0 }
+    sub error ($self, @args) { undef }    # No code, no message
+    sub req ($self, @args) { bless {}, 'MockTxFailNoCodeReq' }
+    sub res ($self, @args) { bless {}, 'MockTxFailNoCodeRes' }
 
     package MockTxFailNoCodeReq;
-    sub cookies { }
-    sub headers { bless {}, 'MockTxFailNoCodeHeaders' }
+    sub cookies ($self, @args) { }
+    sub headers ($self, @args) { bless {}, 'MockTxFailNoCodeHeaders' }
 
     package MockTxFailNoCodeHeaders;
-    sub add { }
+    sub add ($self, @args) { }
 
     package MockTxFailNoCodeRes;
-    sub body { 'dummy body' }
+    sub body ($self, @args) { 'dummy body' }
 
     package MockTxFailWithCode;
-    sub is_websocket { 0 }
+    sub is_websocket ($self, @args) { 0 }
 
-    sub error {
+    sub error ($self, @args) {
         return {code => 403, message => 'Forbidden'};
     }
-    sub req { bless {}, 'MockTxFailWithCodeReq' }
-    sub res { bless {}, 'MockTxFailWithCodeRes' }
+    sub req ($self, @args) { bless {}, 'MockTxFailWithCodeReq' }
+    sub res ($self, @args) { bless {}, 'MockTxFailWithCodeRes' }
 
     package MockTxFailWithCodeReq;
-    sub cookies { }
-    sub headers { bless {}, 'MockTxFailWithCodeHeaders' }
+    sub cookies ($self, @args) { }
+    sub headers ($self, @args) { bless {}, 'MockTxFailWithCodeHeaders' }
 
     package MockTxFailWithCodeHeaders;
-    sub add { }
+    sub add ($self, @args) { }
 
     package MockTxFailWithCodeRes;
-    sub body { 'dummy body' }
+    sub body ($self, @args) { 'dummy body' }
 }
 
 sub mock_build_ws_tx ($mock_ua, $tx_class) {
