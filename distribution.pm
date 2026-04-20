@@ -155,7 +155,7 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet});
+            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
             return unless $res;
             return ($res =~ /OA:DONE-(\d+)-/)[0];
         }
@@ -178,7 +178,7 @@ sub script_run ($self, $cmd, @args) {
                 testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
             }
         }
-        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet});
+        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
         return unless $res;
         return ($res =~ $wait_pattern)[0];
     }
@@ -439,13 +439,13 @@ sub install_serial_marker_hook ($self, $level) {
     my $pc;
     my $dev = "/dev/$testapi::serialdev";
     if ($level == 3) {
-        $pc = "PROMPT_COMMAND='printf \"OA:DONE-%d-\\n\" \$? > $dev'";
+        $pc = "PROMPT_COMMAND='ret=\$?; cmd=\$(fc -ln -1 2>/dev/null); printf \"OA:DONE-%d-%s\\nOA:START\\n\" \$ret \"\${cmd#\${cmd%%[![:space:]]*}}\" > $dev'";
     }
     else {
-        $pc = "PROMPT_COMMAND='if [ -n \"\$__OA_MARK\" ]; then echo \"\${__OA_MARK}-\$?-\" > $dev; unset __OA_MARK; fi'";
+        $pc = "PROMPT_COMMAND='if [ -n \"\$__OA_MARK\" ]; then echo \"\${__OA_MARK}-\$?-\" > $dev; unset __OA_MARK; fi; echo \"OA:START\" > $dev'";
     }
     testapi::type_string "$pc\n";
-    my $marker_match = $level == 3 ? 'OA:DONE' : '__OA_MARK';
+    my $marker_match = 'OA:START';
     my $hook_cmd = "for f in ~/.bashrc ~/.profile; do grep -q '$marker_match' \"\$f\" 2>/dev/null || cat <<'EOF' >> \"\$f\"\n$pc\nEOF\ndone\n";
     testapi::type_string $hook_cmd;
     my $console = testapi::current_console() // 'sut';
