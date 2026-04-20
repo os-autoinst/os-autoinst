@@ -439,7 +439,7 @@ sub _store_asset ($index, $name, $dir) {
 sub spawn_debuggers () {
     my %debugging_tools;
     $debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
-    $debugging_tools{debugviewer} = ["$bmwqemu::topdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
+    $debugging_tools{debugviewer} = ["$bmwqemu::topdir/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
     for my $tool (keys %debugging_tools) {
         my ($stdin, $stdout, $stderr, $ret);
         IPC::Run::run(\@{$debugging_tools{$tool}}, \$stdin, \$stdout, \$stderr);

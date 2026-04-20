@@ -1786,7 +1786,7 @@ sub start_audiocapture () {
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
-sub _snd2png ($wavfile, $imgpath) { system "snd2png $wavfile $imgpath" }    # uncoverable statement
+sub _snd2png ($wavfile, $imgpath) { system "$bmwqemu::topdir/snd2png $wavfile $imgpath" }    # uncoverable statement
 
 sub _check_or_assert_sound ($mustmatch, $check = undef) {
     my $result = $autotest::current_test->stop_audiocapture();
