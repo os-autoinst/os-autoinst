@@ -440,18 +440,16 @@ sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     my $pretty = testapi::get_var('PRETTY_SERIAL_MARKER') || testapi::get_var('HIDE_MARKER_EVALUATION');
     my $internal = $args{internal_marker};
     my $output_string = $string;
+    my $captured_val;
 
-    if ($internal && $pretty) {
+    if ($internal && $args{marker_pattern}) {
         my $pattern = $args{marker_pattern};
-        if ($pattern) {
-            # Strip the marker from the end of the string
-            if (ref $pattern eq 'Regexp') {
-                $output_string =~ s/$pattern\s*\z//m;
-            }
-            else {
-                # literal match
-                $output_string =~ s/\Q$pattern\E\s*\z//m;
-            }
+        my $is_regex = ref $pattern eq 'Regexp';
+        $captured_val = $1 if $is_regex && $string =~ /$pattern/;
+
+        if ($pretty) {
+            my $search = $is_regex ? $pattern : qr/\Q$pattern\E/;
+            $output_string =~ s/$search\s*\z//m;
         }
     }
 
@@ -460,6 +458,9 @@ sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $output .= "# wait_serial expected: $ref\n" unless $internal && $pretty;
     $output .= "# Result:\n";
     $output .= "$output_string\n";
+    if (defined $captured_val && $args{capture_name}) {
+        $output .= "# $args{capture_name}: $captured_val\n";
+    }
     $self->record_resultfile('wait_serial', $output, result => $res);
     return undef;
 }

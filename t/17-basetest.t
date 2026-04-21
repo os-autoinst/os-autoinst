@@ -551,7 +551,6 @@ subtest record_serialresult_with_command => sub {
     like($recorded_output, qr/# wait_serial expected: regex/, 'expected regex is in output');
 };
 
-
 subtest record_serialresult_hiding => sub {
     my $basetest = basetest->new();
     $basetest->{name} = 'test_hiding';
@@ -583,11 +582,32 @@ subtest record_serialresult_hiding => sub {
             not_expected => [qr/# wait_serial expected: regex/, qr/OA:DONE-1234-0-/],
         },
         {
+            name => 'Exit code is displayed when capture_name is provided',
+            vars => {PRETTY_SERIAL_MARKER => 1},
+            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
+            expected => [qr/# Exit code: 0/, qr/command output\n\s*\n/],
+            not_expected => [qr/# wait_serial expected: regex/],
+        },
+        {
+            name => 'PID is displayed for background commands',
+            vars => {HIDE_MARKER_EVALUATION => 1},
+            params => ['regex', 'ok', "background output\nMARKER-1234-\n", internal_marker => 1, marker_pattern => qr/MARKER-(\d+)-/, capture_name => 'PID'],
+            expected => [qr/# PID: 1234/, qr/background output\n\s*\n/],
+            not_expected => [qr/MARKER-1234-/],
+        },
+        {
             name => 'no hiding occurs if it is not an internal marker even if pretty vars are set',
             vars => {PRETTY_SERIAL_MARKER => 1, HIDE_MARKER_EVALUATION => 1},
             params => ['regex', 'ok', 'some output marker', internal_marker => 0, marker_pattern => 'marker'],
             expected => [qr/# wait_serial expected: regex/],
             not_expected => [],
+        },
+        {
+            name => 'regex marker is provided but string does not match (e.g. on timeout)',
+            vars => {PRETTY_SERIAL_MARKER => 1},
+            params => ['regex', 'fail', "some output that did not hit the marker\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
+            expected => [qr/some output that did not hit the marker\n/],
+            not_expected => [qr/# Exit code:/],
         },
     );
 

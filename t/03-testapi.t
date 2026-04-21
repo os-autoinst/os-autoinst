@@ -827,8 +827,8 @@ sub script_output_test ($is_serial_terminal) {
         @wait_serial_args = ();
         is script_output('echo foo', $t->{args}->@*), 'foo', "$t->{msg}: returns expected output";
         is $wait_serial_args[-1]->{timeout}, $t->{timeout}, "$t->{msg}: correct timeout passed to final wait_serial call";
-        my $inconsistent_quiet = grep { ($_->{quiet} // 0) != ($t->{quiet} // 0) } @wait_serial_args;
-        ok !$inconsistent_quiet, "$t->{msg}: quiet argument is consistent across all calls";
+        my @inconsistent_quiet = grep { ($_->{quiet} // 0) != ($t->{quiet} // 0) } @wait_serial_args;
+        is_deeply \@inconsistent_quiet, [], "$t->{msg}: quiet argument is consistent across all calls";
     }
     $mock_testapi->redefine(wait_serial => "This is a simulated output on the serial dev\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
     is script_output('echo foo', type_command => 0), 'foo', 'script_output with type_command => 0 output in a file';

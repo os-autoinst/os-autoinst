@@ -155,7 +155,7 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1);
+            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return unless $res;
             return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
         }
@@ -178,7 +178,7 @@ sub script_run ($self, $cmd, @args) {
                 testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
             }
         }
-        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1);
+        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
         return unless $res;
         return ($res =~ $wait_pattern)[0];
     }
@@ -307,7 +307,7 @@ sub script_output ($self, $script, @args) {
         testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
         testapi::type_string "$script\n$heretag\n";
         testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
-        testapi::wait_serial("$marker-0-", quiet => $args{quiet}, internal_marker => 1);
+        testapi::wait_serial(qr/$marker-(0)-/, capture_name => 'Exit code', quiet => $args{quiet}, internal_marker => 1);
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;";
