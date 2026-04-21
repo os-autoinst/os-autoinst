@@ -155,9 +155,9 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
+            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
             return unless $res;
-            return ($res =~ /OA:DONE-(\d+)-/)[0];
+            return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -439,7 +439,7 @@ sub install_serial_marker_hook ($self, $level) {
     my $pc;
     my $dev = "/dev/$testapi::serialdev";
     if ($level == 3) {
-        $pc = "PROMPT_COMMAND='ret=\$?; cmd=\$(fc -ln -1 2>/dev/null); printf \"OA:DONE-%d-%s\\nOA:START\\n\" \$ret \"\${cmd#\${cmd%%[![:space:]]*}}\" > $dev'";
+        $pc = "PROMPT_COMMAND='ret=\$?; cmd=\$(fc -ln -1 2>/dev/null); printf \"OA:DONE-%04x-%d-%s\\nOA:START\\n\" \$RANDOM \$ret \"\${cmd#\${cmd%%[![:space:]]*}}\" > $dev'";
     }
     else {
         $pc = "PROMPT_COMMAND='if [ -n \"\$__OA_MARK\" ]; then echo \"\${__OA_MARK}-\$?-\" > $dev; unset __OA_MARK; fi; echo \"OA:START\" > $dev'";

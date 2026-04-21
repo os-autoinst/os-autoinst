@@ -99,12 +99,12 @@ subtest 'pretty_serial_marker' => sub {
             my ($regexp) = @_;
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:foo3foo-0-';
+            return 'OA:DONE-abcd-0-foo';
     });
 
     $d->{_serial_marker_level} = {};
     $typed_string = '';
-    $d->script_run('foo');
+    is $d->script_run('foo'), 0, 'Level 3 returns exit code';
     like $typed_string, qr/foo\n$/, 'Level 3 ends with command + newline';
     is substr($typed_string, -4), "foo\n", 'Level 3 uses clean command line';
 
@@ -156,7 +156,7 @@ subtest 'reboot_safety' => sub {
             my ($regexp) = @_;
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-0-';
+            return 'OA:DONE-abcd-0-';
     });
 
     $d->script_run('foo');
