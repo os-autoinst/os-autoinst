@@ -805,7 +805,7 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-1-");
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
-    $mock_testapi->redefine(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
+    $mock_testapi->redefine(wait_serial => sub { return 'none' unless $_[0] =~ /SCRIPT_FINISHEDXXX/; return; });
     throws_ok { script_output('timeout'); } qr/timeout/, 'die expected with timeout';
 
     subtest 'script_output check error codes' => sub {

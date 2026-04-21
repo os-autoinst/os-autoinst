@@ -870,6 +870,7 @@ sub wait_serial {    # no:style:signatures
             buffer_size => undef,
             record_output => undef,
             record_command => undef,
+            internal_marker => 0,
         }, ['timeout', 'expect_not_found'], @_);
 
     bmwqemu::log_call(%args);
@@ -886,7 +887,7 @@ sub wait_serial {    # no:style:signatures
     # hyperv and vmware (backend/svirt.pm) connect serial line over TCP/IP (socat)
     # convert CRLF to LF only
     $ret->{string} =~ s,\r\n,\n,g;
-    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string}, command => $args{record_command}) unless ($args{quiet});
+    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string}, command => $args{record_command}, internal_marker => $args{internal_marker}, marker_pattern => $regexp) unless ($args{quiet});
     bmwqemu::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq 'ok');
     return;    # false

@@ -551,4 +551,51 @@ subtest record_serialresult_with_command => sub {
     like($recorded_output, qr/# wait_serial expected: regex/, 'expected regex is in output');
 };
 
+
+subtest record_serialresult_hiding => sub {
+    my $basetest = basetest->new();
+    $basetest->{name} = 'test_hiding';
+    my $recorded_output;
+    my $mock_basetest_local = Test::MockModule->new('basetest');
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_basetest_local->redefine(record_resultfile => sub ($self, $title, $output, %nargs) { $recorded_output = $output });
+
+    my @test_cases = (
+        {
+            name => 'expected regex is visible by default (no pretty vars set)',
+            vars => {},
+            params => ['regex', 'ok', 'some output marker', internal_marker => 1, marker_pattern => 'marker'],
+            expected => [qr/# wait_serial expected: regex/],
+            not_expected => [],
+        },
+        {
+            name => 'expected regex is hidden and literal marker is stripped when PRETTY_SERIAL_MARKER is set',
+            vars => {PRETTY_SERIAL_MARKER => 1},
+            params => ['regex', 'ok', "some output\nmarker\n", internal_marker => 1, marker_pattern => 'marker'],
+            expected => [qr/some output\n\s*\n/],
+            not_expected => [qr/# wait_serial expected: regex/],
+        },
+        {
+            name => 'expected regex is hidden and regex marker is stripped when HIDE_MARKER_EVALUATION is set',
+            vars => {HIDE_MARKER_EVALUATION => 1},
+            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/],
+            expected => [qr/command output\n\s*\n/],
+            not_expected => [qr/# wait_serial expected: regex/, qr/OA:DONE-1234-0-/],
+        },
+        {
+            name => 'no hiding occurs if it is not an internal marker even if pretty vars are set',
+            vars => {PRETTY_SERIAL_MARKER => 1, HIDE_MARKER_EVALUATION => 1},
+            params => ['regex', 'ok', 'some output marker', internal_marker => 0, marker_pattern => 'marker'],
+            expected => [qr/# wait_serial expected: regex/],
+            not_expected => [],
+        },
+    );
+
+    foreach my $case (@test_cases) {
+        $mock_testapi->mock(get_var => sub ($var) { return $case->{vars}->{$var} });
+        $basetest->record_serialresult(@{$case->{params}});
+        like($recorded_output, $_, "$case->{name} (contains expected)") for @{$case->{expected}};
+        unlike($recorded_output, $_, "$case->{name} (does not contain unexpected)") for @{$case->{not_expected}};
+    }
+};
 done_testing;

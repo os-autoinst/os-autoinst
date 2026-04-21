@@ -155,7 +155,7 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
+            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1);
             return unless $res;
             return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
         }
@@ -169,7 +169,7 @@ sub script_run ($self, $cmd, @args) {
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$cmd", max_interval => $args{max_interval};
                 testapi::type_string $marker, max_interval => $args{max_interval};
-                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128)
+                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128, internal_marker => 1)
                   or _handle_cmd_typing_error($cmd, \%args);
                 testapi::type_string "\n", max_interval => $args{max_interval};
             }
@@ -178,7 +178,7 @@ sub script_run ($self, $cmd, @args) {
                 testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
             }
         }
-        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd);
+        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1);
         return unless $res;
         return ($res =~ $wait_pattern)[0];
     }
@@ -215,13 +215,13 @@ sub background_script_run ($self, $cmd, %args) {
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string $marker;
-        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, internal_marker => 1) or _handle_cmd_typing_error($cmd, \%args);
         testapi::type_string "\n";
     }
     else {
         testapi::type_string "$marker > /dev/$testapi::serialdev\n";
     }
-    my $res = testapi::wait_serial(qr/$str-\d+-/, quiet => $args{quiet});
+    my $res = testapi::wait_serial(qr/$str-\d+-/, quiet => $args{quiet}, internal_marker => 1);
     die 'PID marker not found' unless ($res =~ m/$str-(\d+)-/);
     return $1;
 }
@@ -248,7 +248,7 @@ sub script_sudo ($self, $prog, $wait = 10) {
         testapi::send_key 'ret';
     }
     if ($str) {
-        return testapi::wait_serial($str, $wait);
+        return testapi::wait_serial($str, $wait, internal_marker => 1);
     }
     return;
 }
@@ -307,7 +307,7 @@ sub script_output ($self, $script, @args) {
         testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
         testapi::type_string "$script\n$heretag\n";
         testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
-        testapi::wait_serial("$marker-0-", quiet => $args{quiet});
+        testapi::wait_serial("$marker-0-", quiet => $args{quiet}, internal_marker => 1);
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;";
@@ -339,7 +339,7 @@ sub script_output ($self, $script, @args) {
     else {
         testapi::type_string "($run_script) | tee /dev/$testapi::serialdev\n";
     }
-    my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
+    my $output = testapi::wait_serial(qr/SCRIPT_FINISHED$marker-(\d+)-/, capture_name => 'Exit code', timeout => $args{timeout}, record_output => 1, quiet => $args{quiet}, internal_marker => 1)
       || croak "script timeout: $script";
 
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {
