@@ -301,7 +301,11 @@ sub loadtest ($script, %args) {
         }
         my $msg = "error on $script: $err";
         bmwqemu::fctwarn($msg);
-        bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
+        my ($is_missing_module) = $err =~ /(Can't locate .+ in \@INC)/;
+        my ($state_msg) = $is_missing_module
+          ? "Missing Perl module while loading $script: $is_missing_module"
+          : "unable to load $script, check the log for the cause (e.g. syntax error)";
+        bmwqemu::serialize_state(component => 'tests', msg => $state_msg, result => 'incomplete');
         die $msg;
     }
     $test = $name->new($category);

@@ -282,6 +282,28 @@ subtest 'number of test results is limited' => sub {
     ok $basetest->{fatal_failure}, 'failure considered fatal';
     $basetest->remove_last_result;
     is_deeply $basetest->record_testresult('ok'), {result => 'ok'}, 'can add one test result again';
+    path(bmwqemu::STATE_FILE)->remove;
+};
+
+subtest 'missing Perl module triggers incomplete' => sub {
+    Test::MockModule->new('autotest')->noop('set_current_test');
+    my $mock = Test::MockModule->new('basetest');
+    $mock->noop('take_screenshot');
+    $mock->mock(run => sub {
+            die "Can't locate HTTP/Request/Common.pm in \@INC (you may need to install the HTTP::Request::Common module)\n";
+    });
+    local $bmwqemu::vars{MAX_TEST_STEPS} = 100;
+    my $basetest = bless {details => [], name => 'foo', fullname => 'foo', category => 'category1'}, 'basetest';
+    my $logs = combined_from { dies_ok { $basetest->runtest } 'runtest dies due to missing module' };
+    like $logs, qr/Can't locate.*\@INC/, 'catch expected error message';
+
+    # Verify state file has incomplete result
+    ok -e bmwqemu::STATE_FILE, 'state file was written';
+    my $state = decode_json(path(bmwqemu::STATE_FILE)->slurp);
+    is $state->{result}, 'incomplete', 'result is incomplete for missing Perl module';
+    # like $state->{msg}, qr/Can't locate/, 'message mentions the missing module';
+    ok $basetest->{fatal_failure}, 'failure is fatal';
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
 };
 
 delete $bmwqemu::vars{MAX_TEST_STEPS};
