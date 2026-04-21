@@ -61,6 +61,7 @@ Supported variables per backend
 | ENABLE_MODERN_PERL_FEATURES | boolean | 0 | Enables use of modern Perl features in test modules avoiding the need to use e.g. `use Mojo::Base 'basetest', -signatures;` in all test modules. This variable must be set before invoking `autotest::loadtest`. It only applies to the test modules themselves. It does *not* apply to e.g. `main.pm` and other Perl modules used via e.g. `use some::module`. |
 | _HIDE_SECRETS_REGEX | string |  | If set, any test variables whose **NAME** (key) matches the specified regular expression, in addition to the default '^_SECRET_' and '_PASSWORD', are excluded from being saved into vars.json or further processing. For example, to hide all variables starting with 'SCC_REGCODE', use '^SCC_REGCODE'. |
 | STORAGE_KEEP_FREE_RATIO | float | 0.2 | Ratio of total storage space to keep free (e.g. 0.2 for 20%). If the total requested HDD size exceeds the available space while keeping this ratio of total storage size free, the job is aborted early with "incomplete" status. Set to 0 to disable this check. |
+| STORAGE_KEEP_FREE_GB | integer | 50 | Absolute free space threshold in GiB. If the total requested HDD size leaves less than this amount of free space, the job can only run if the relative check (`STORAGE_KEEP_FREE_RATIO`) is also satisfied. Set to 0 to disable the absolute threshold. |
 | FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED | boolean | 0 | Fail explicitly if a test module is scheduled with the `always_rollback` flag but snapshots are not supported by the backend. |
 |  |
 
