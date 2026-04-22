@@ -177,12 +177,12 @@ sub _abort_if_storage_limit_exceeded () {
         my $size = $vars{"HDDSIZEGB_$i"} // $vars{HDDSIZEGB} // default_hdd_size_gb();
         $total_hdd_size_gb += $size;
     }
-    return undef unless $total_hdd_size_gb > 0;
+    return undef if $total_hdd_size_gb <= 0;
     my ($total_storage, $available) = _get_storage_stats('.');
     return warn "Could not determine available storage space\n" unless defined $total_storage;
     my $requested_bytes = $total_hdd_size_gb * GIB;
     my $min_free_bytes = $total_storage * $keep_free;
-    return undef unless $requested_bytes > $available - $min_free_bytes;
+    return undef if $requested_bytes <= $available - $min_free_bytes;
     my $msg = sprintf 'Not enough storage for requested HDDSIZEGB (requested %d GiB, available %d GiB, total %d GiB, keep-free %d%%)',
       $total_hdd_size_gb, int($available / GIB), int($total_storage / GIB), int($keep_free * 100);
     serialize_state(result => 'incomplete', msg => $msg);

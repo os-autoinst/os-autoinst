@@ -831,8 +831,8 @@ sub start_qemu ($self) {
         my $vlan = (@nicvlan) ? $nicvlan[-1] : 0;
         $nicvlan[$i] //= $vlan;
     }
-    push @tapscript, 'no' until @tapscript >= $num_networks;    #no TAPSCRIPT by default
-    push @tapdownscript, 'no' until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
+    push @tapscript, 'no' while @tapscript < $num_networks;    #no TAPSCRIPT by default
+    push @tapdownscript, 'no' while @tapdownscript < $num_networks;    #no TAPDOWNSCRIPT by default
 
     # put it back to the vars for saving
     $vars->{NICMAC} = join ',', @nicmac;

@@ -16,5 +16,5 @@ my $summary_line = $summary[0];
 my @matches = $summary_line =~ /(?<=>)[0-9.]+(?=<)/g;
 # for now just compare the last number, i.e. the total coverage against a
 # threshold
-die 'No coverage found' unless scalar @matches > 0;
+die 'No coverage found' unless @matches;
 die "Coverage is below threshold: $matches[-1] < $ARGV[0]" if ($matches[-1] < $ARGV[0]);

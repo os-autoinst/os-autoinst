@@ -189,7 +189,7 @@ sub clean_image_cache ($limit = 30) {
     my @cache_items = values %image_cache;
     my $cache_size = scalar @cache_items;
     my $to_delete = $cache_size - $limit;
-    return unless $to_delete > 0 && $to_delete <= $cache_size;
+    return if $to_delete <= 0 || $to_delete > $cache_size;
 
     # sort the cache items by their last use (ascending)
     my @sorted_cache_items = sort { $a->{last_use} <=> $b->{last_use} } @cache_items;

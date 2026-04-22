@@ -1277,7 +1277,7 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
     my $chan = $self->{serial_chan};
     my $buffer;
     while (defined(my $bytes_read = $chan->read($buffer, SSH_SERIAL_READ_BUFFER_SIZE))) {
-        return 1 unless $bytes_read > 0;
+        return 1 if $bytes_read <= 0;
         print $buffer;
         my $serial = path($self->{serialfile})->open('>>')->print($buffer);
     }
