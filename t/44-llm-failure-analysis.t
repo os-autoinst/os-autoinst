@@ -46,8 +46,8 @@ subtest 'Context gathering and truncation' => sub {
     path($bmwqemu::result_dir)->child('autoinst-log.txt')->spew(join "\n", map { "L$_" } 1 .. 300);
     path($bmwqemu::result_dir)->child('serial0')->spew(join "\n", map { "S$_" } 1 .. 150);
     $ctx = OpenQA::Isotovideo::LLMAnalysis::gather_context($bmwqemu::result_dir);
-    is scalar(split "\n", $ctx->{log_tail}), 200, 'Log tail truncated';
-    is scalar(split "\n", $ctx->{serial_tail}), 100, 'Serial tail truncated';
+    is scalar(split /\n/, $ctx->{log_tail}), 200, 'Log tail truncated';
+    is scalar(split /\n/, $ctx->{serial_tail}), 100, 'Serial tail truncated';
 
     # Empty files
     path($bmwqemu::result_dir)->child('autoinst-log.txt')->spew('');

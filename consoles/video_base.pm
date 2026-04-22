@@ -50,7 +50,7 @@ sub type_string ($self, $args) {
         $seconds_per_keypress += 1 / sqrt($args->{max_interval});
     }
 
-    for my $letter (split '', $args->{text}) {
+    for my $letter (split //, $args->{text}) {
         next if ($letter eq "\r");
         $letter = $CHARMAP->{$letter} || $letter;
         # 50% of the delay used on key press, 50% searching the next key
