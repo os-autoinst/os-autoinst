@@ -67,7 +67,7 @@ my $pid = $$;
 my $timeout = 5;
 exec bash => '-e', '-c', "for i in {1..100}; do echo \"# sending SIGTERM \$i\" && kill $pid; done" unless my $fork = fork;
 waitpid $fork, 0;
-note 'waiting for at least one signal to be handled' and sleep .2 until $received_sigterm >= 1 || ($timeout -= .2) < 0;
+note 'waiting for at least one signal to be handled' and sleep .2 while $received_sigterm < 1 && ($timeout -= .2) >= 0;
 note "handled $received_sigterm TERM signals";
 ok($received_sigterm > 0, "received SIGTERM $received_sigterm times; no crashes after at least 200 ms idling time");
 

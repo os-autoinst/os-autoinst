@@ -813,7 +813,7 @@ sub _receive_message ($self) {
     return unless $ret;
     $self->_vnc_stalled(0);
 
-    die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
+    die "socket closed: $ret\n${\Dumper $self}" if $ret <= 0;
 
     $message_type = unpack 'C', $message_type;
 

@@ -54,7 +54,7 @@ sub wait_for_ssh_port ($self, $hostname, %args) {
 
     bmwqemu::diag("Wait for SSH on host $hostname (timeout: $args{timeout})");
 
-    $args{timeout} = 1 unless $args{timeout} > 0;
+    $args{timeout} = 1 if $args{timeout} <= 0;
     my $endtime = time() + $args{timeout};
     while (time() < $endtime) {
         my $sock = IO::Socket::INET->new(PeerAddr => $hostname, PeerPort => $args{port}, Proto => 'tcp', Timeout => 1);

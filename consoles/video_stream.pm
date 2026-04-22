@@ -221,7 +221,7 @@ sub _receive_frame_ffmpeg ($self) {
 
     return undef unless $ret;
 
-    die "ffmpeg closed: $ret\n${\Dumper $self}" unless $ret > 0;
+    die "ffmpeg closed: $ret\n${\Dumper $self}" if $ret <= 0;
 
     # support P6 only
     if (!($header =~ m/^(P6\n(\d+) (\d+)\n(\d+)\n)/)) {

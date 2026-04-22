@@ -60,7 +60,7 @@ sub new ($class, $testapi_console, $args) {
 sub screen ($self) { $self->{screen} }
 
 sub disable ($self) {
-    return undef unless $self->{fd_read} > 0;
+    return undef if $self->{fd_read} <= 0;
     close $self->{fd_read};
     close $self->{fd_write};
     $self->{fd_read} = 0;
