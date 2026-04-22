@@ -76,7 +76,7 @@ sub init_switch ($self) {
     my $netmask_ipv6 = $ENV{OS_AUTOINST_BRIDGE_NETMASK_IPV6} // 63;
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
-    my $rewrite_target_hex = unpack 'H*', pack 'C*', split '\.', $rewrite_target;
+    my $rewrite_target_hex = unpack 'H*', pack 'C*', split /\./, $rewrite_target;
     my $rewrite_target_hex_ipv6 = 'fec0:0000:0000:0001:0000:0000:0000:0000';
     $rewrite_target_hex_ipv6 =~ s/://g;
 

@@ -642,7 +642,7 @@ __END'
             } elsif ($fb_tool eq 'cloud-init') {
                 croak 'GUESTINFO_CLOUD_INIT is unset, or does not contain user-data and meta-data configs' unless ($bmwqemu::vars{GUESTINFO_CLOUD_INIT});
 
-                my ($conf, $meta) = split ',', $bmwqemu::vars{GUESTINFO_CLOUD_INIT};
+                my ($conf, $meta) = split /,/, $bmwqemu::vars{GUESTINFO_CLOUD_INIT};
                 $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
                 $self->run_cmd(qq{echo 'guestinfo.metadata.encoding = "$encoding"' >> $vmx}, domain => 'sshVMwareServer');
                 $conf = $self->_encode_config($conf, 'GUESTINFO_CLOUD_INIT');

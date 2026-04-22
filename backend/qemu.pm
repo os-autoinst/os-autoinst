@@ -1049,7 +1049,7 @@ sub start_qemu ($self) {
     # The first item will have '-' prepended to it.
     if ($vars->{QEMU_APPEND}) {
         # Split multiple options, if needed
-        my @spl = split ' -', $vars->{QEMU_APPEND};
+        my @spl = split / -/, $vars->{QEMU_APPEND};
         sp(split ' ', $_) for @spl;
     }
 

@@ -671,7 +671,7 @@ sub map_and_send_key ($self, $keys, $down_flag, $delay) {
 
     my @events;
 
-    for my $key (split '-', $keys) {
+    for my $key (split /-/, $keys) {
         if (defined($self->keymap->{$key})) {
             if (ref($self->keymap->{$key}) eq 'ARRAY') {
                 push @events, @{$self->keymap->{$key}};
