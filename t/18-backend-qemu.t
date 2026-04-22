@@ -814,6 +814,41 @@ subtest 'special cases when starting QEMU' => sub {
     };
 };
 
+subtest 'extract hostfwd ports from NICTYPE_USER_OPTIONS' => sub {
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=tcp::39100-:39100')], [39100], 'single tcp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=tcp::39100-:39100,hostfwd=tcp::5555-:22')],
+      [39100, 5555], 'multiple tcp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=udp::1234-:1234')], [1234], 'udp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('restrict=on')], [], 'no hostfwd options';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('')], [], 'empty string';
+};
+
+subtest 'port availability checks' => sub {
+    my %initial_vars = %bmwqemu::vars;
+    my $sock_mock = Test::MockModule->new('IO::Socket::IP');
+    subtest VNC => sub {
+        combined_like { lives_ok { backend::qemu::_assert_port_available(5991, 'test') } 'free port passes' }
+        qr/checking 5991 port availability/, 'logs port post-qemu check for VNC';
+        $backend_mock->redefine(select_console => sub { {error => 'VNC connection failed'} });
+        combined_like {
+            throws_ok { $backend->start_qemu } qr/VNC connection failed/, 'dies on VNC error'
+        } qr/VNC port details/, 'logs port details on VNC failure';
+        $backend_mock->redefine(select_console => undef);
+    };
+    subtest hostfwd => sub {
+        $bmwqemu::vars{NICTYPE} = 'user';
+        $bmwqemu::vars{NICTYPE_USER_OPTIONS} = 'hostfwd=tcp::39100-:39100';
+        combined_like { lives_ok { backend::qemu::_assert_port_available(39100, 'test') } 'free port passes' }
+        qr/checking 39100 port availability/, 'logs port pre-qemu check with hostfwd';
+        $sock_mock->redefine(new => sub { Test::MockObject->new->set_true('close') });
+        combined_like { throws_ok { $backend->start_qemu } qr/Port 39100 \(hostfwd\) is already in use/, 'dies on hostfwd port conflict' }
+          qr/qemu version/si, 'expected logs before hostfwd port check';
+    };
+    %bmwqemu::vars = %initial_vars;
+
+
+};
+
 subtest 'special cases when handling QMP command' => sub {
     my $create_virtio_console_fifo_called;
     # uncoverable statement count:2
