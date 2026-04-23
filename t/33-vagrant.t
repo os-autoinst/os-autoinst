@@ -216,7 +216,7 @@ subtest 'Vagrantfile with a box file existing in VAGRANT_ASSETDIR' => sub {
     $backend_vars->{QEMUCPUS} = 1;
     $backend_vars->{QEMURAM} = 1024;
 
-    $expected_spew_str = <<END;
+    $expected_spew_str = <<"END";
 Vagrant.configure("2") do |config|
   config.vm.box = "$box_file"
   config.vm.synced_folder ".", "/vagrant", disabled: true

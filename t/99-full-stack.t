@@ -31,7 +31,7 @@ chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $casedir = path($data_dir, 'tests');
-path('vars.json')->spew(<<EOV);
+path('vars.json')->spew(<<"EOV");
 {
    "ARCH" : "i386",
    "BACKEND" : "qemu",

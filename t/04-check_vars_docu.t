@@ -63,7 +63,7 @@ sub read_doc () {
 }
 
 sub write_doc () {
-    my $data = <<EO_HEADER;
+    my $data = <<'EO_HEADER';
 Supported variables per backend
 ===============================
 

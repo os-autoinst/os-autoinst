@@ -433,7 +433,7 @@ subtest 'wait_serial' => sub {
     $baseclass->{current_console} = $current_console;
 
     #mock content of serial0.txt
-    path($baseclass->{serialfile})->spew(<<EOT);
+    path($baseclass->{serialfile})->spew(<<'EOT');
 Just a simple text
 Just a simple another text that will disappear
 Welcome to GRUB2

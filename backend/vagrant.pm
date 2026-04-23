@@ -39,22 +39,22 @@ sub new ($class) {
     $self->{vagrantfile} = $path->child('Vagrantfile');
     bmwqemu::diag("Writing Vagrantfile to $self->{vagrantfile}");
 
-    my $vagrant_file_contents = <<END;
+    my $vagrant_file_contents = <<"END";
 Vagrant.configure("2") do |config|
   config.vm.box = "$self->{box_name}"
 END
     if (defined($self->{box_url})) {
-        $vagrant_file_contents .= <<END;
+        $vagrant_file_contents .= <<"END";
   config.vm.box_url = "$self->{box_url}"
 END
     }
-    $vagrant_file_contents .= <<END;
+    $vagrant_file_contents .= <<'END';
   config.vm.synced_folder ".", "/vagrant", disabled: true
 END
 
 
     if ($self->{provider} eq 'virtualbox') {
-        $vagrant_file_contents .= <<END;
+        $vagrant_file_contents .= <<"END";
   config.vm.provider "virtualbox" do |v|
     v.memory = $vars->{QEMURAM}
     v.cpus = $vars->{QEMUCPUS}
@@ -65,7 +65,7 @@ END
         mkdir $self->{libvirt_storage_pool_path};
         $self->{libvirt_pool_name} = 'vagrant' . int rand 100_000;
 
-        $vagrant_file_contents .= <<END;
+        $vagrant_file_contents .= <<"END";
   config.vm.provider :libvirt do |libvirt|
     libvirt.cpus = $vars->{QEMUCPUS}
     libvirt.memory = $vars->{QEMURAM}
@@ -76,7 +76,7 @@ END
         die "got an unknown vagrant provider $self->{provider}";
     }
 
-    $vagrant_file_contents .= <<END;
+    $vagrant_file_contents .= <<'END';
 end
 END
 
