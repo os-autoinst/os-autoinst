@@ -186,49 +186,42 @@ subtest 'serializing state' => sub {
 
 subtest 'abort on low disk space' => sub {
     my $bmw_mock = Test::MockModule->new('bmwqemu', no_auto => 1);
-    $bmw_mock->mock(_get_storage_stats => sub { return (1024**3, 1024**3) });
-
-    my $dir = "$data_dir/tests";
-    unlink bmwqemu::STATE_FILE;
-    create_vars({CASEDIR => $dir, HDDSIZEGB => 1});
-
-    throws_ok {
-        bmwqemu::init;
-        bmwqemu::ensure_valid_vars();
-    } qr/Not enough storage for requested HDDSIZEGB/, 'abort if requested HDDSIZEGB exceeds default threshold';
-
-    is decode_json(path(bmwqemu::STATE_FILE)->slurp)->{result}, 'incomplete', 'serialized result is incomplete';
-
-    $bmw_mock->mock(_get_storage_stats => sub { return (100 * 1024**3, 100 * 1024**3) });
-    unlink bmwqemu::STATE_FILE;
-    lives_ok {
-        bmwqemu::init;
-        bmwqemu::ensure_valid_vars();
-    } 'succeed if requested HDDSIZEGB is well within available space';
-
-    unlink bmwqemu::STATE_FILE;
-    create_vars({CASEDIR => $dir, HDDSIZEGB => 1, STORAGE_KEEP_FREE_RATIO => 0.9});
-    $bmw_mock->mock(_get_storage_stats => sub { return (5 * 1024**3, 5 * 1024**3) });
-    throws_ok {
-        bmwqemu::init;
-        bmwqemu::ensure_valid_vars();
-    } qr/keep-free 90%/, 'abort if requested HDDSIZEGB exceeds custom threshold';
-
-    unlink bmwqemu::STATE_FILE;
-    create_vars({CASEDIR => $dir, HDDSIZEGB => 1, STORAGE_KEEP_FREE_RATIO => 0});
-    $bmw_mock->mock(_get_storage_stats => sub { return (1024**3, 100 * 1024**2) });
-    lives_ok {
-        bmwqemu::init();
-        bmwqemu::ensure_valid_vars();
-    } 'succeed if requested HDDSIZEGB exceeds available space but ratio is 0';
-
-    unlink bmwqemu::STATE_FILE;
-    create_vars({CASEDIR => $dir});    # No HDDSIZEGB, uses default 10GB
-    $bmw_mock->mock(_get_storage_stats => sub { return (100 * 1024**3, 100 * 1024**3) });
-    lives_ok {
-        bmwqemu::init();
-        bmwqemu::ensure_valid_vars();
-    } 'succeed with default HDDSIZEGB';
+    my @cases = (
+        {hdd_size_gb => 1, total_storage => 100, avail_storage => 10, expect => 'fail',
+            desc => 'abort if requested HDDSIZEGB exceeds default threshold (1GB requested with 10GB avail on 100GB disk)'},
+        {hdd_size_gb => 10, total_storage => 100, avail_storage => 100, expect => 'pass',
+            desc => 'succeed if requested HDDSIZEGB is well within available space'},
+        {hdd_size_gb => 60, total_storage => 5, avail_storage => 5, expect => 'fail', extra_vars => {STORAGE_KEEP_FREE_RATIO => 0.9},
+            desc => 'abort if requested HDDSIZEGB exceeds custom threshold'},
+        {hdd_size_gb => 1, total_storage => 1, avail_storage => 0.1, expect => 'pass', extra_vars => {STORAGE_KEEP_FREE_RATIO => 0},
+            desc => 'succeed if requested HDDSIZEGB exceeds available space but ratio is 0'},
+        {total_storage => 100, avail_storage => 100, expect => 'pass',
+            desc => 'succeed with default HDDSIZEGB'},
+        {hdd_size_gb => 20, total_storage => 1000, avail_storage => 200, expect => 'pass',
+            desc => 'passes if only relative threshold exceeded but leaves > 50GB free (e.g. 20GB requested on 1000GB disk with 200GB avail)'},
+        {hdd_size_gb => 160, total_storage => 1000, avail_storage => 200, expect => 'fail',
+            desc => 'large job fails when both relative and default 50GB absolute thresholds exceeded'},
+        {hdd_size_gb => 160, total_storage => 1000, avail_storage => 500, expect => 'pass',
+            desc => 'large job passes when sufficient absolute storage available'},
+        {hdd_size_gb => 50, total_storage => 100, avail_storage => 60, expect => 'fail',
+            desc => 'fails if both relative and absolute thresholds exceeded (e.g. 50GB requested on 100GB disk with 60GB avail leaves 10GB free)'},
+        {hdd_size_gb => 50, total_storage => 100, avail_storage => 60, expect => 'pass', extra_vars => {STORAGE_KEEP_FREE_GB => 0},
+            desc => 'passes if both thresholds would be exceeded but absolute threshold is disabled via 0'},
+    );
+    for my $case (@cases) {
+        unlink bmwqemu::STATE_FILE;
+        my %vars = (CASEDIR => "$data_dir/tests", %{$case->{extra_vars} // {}});
+        $vars{HDDSIZEGB} = $case->{hdd_size_gb} if defined $case->{hdd_size_gb};
+        create_vars(\%vars);
+        $bmw_mock->mock(_get_storage_stats => sub (@) { ($case->{total_storage} * 1024**3, $case->{avail_storage} * 1024**3) });
+        if ($case->{expect} eq 'pass') {
+            lives_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } $case->{desc};
+        }
+        else {
+            throws_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } qr/Not enough storage for requested HDDSIZEGB/, $case->{desc};
+            is decode_json(path(bmwqemu::STATE_FILE)->slurp)->{result}, 'incomplete', "serialized result is incomplete for: $case->{desc}";
+        }
+    }
 };
 
 subtest '_get_storage_stats' => sub {

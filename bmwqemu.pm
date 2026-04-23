@@ -78,6 +78,7 @@ use constant {
     MIB => 1024 * 1024,
     GIB => 1024 * 1024 * 1024,
     STORAGE_KEEP_FREE_RATIO => $ENV{OS_AUTOINST_STORAGE_KEEP_FREE_RATIO} // .2,
+    STORAGE_KEEP_FREE_GB => $ENV{OS_AUTOINST_STORAGE_KEEP_FREE_GB} // 50,
 };
 
 # Write a JSON representation of the process termination to disk
@@ -182,7 +183,10 @@ sub _abort_if_storage_limit_exceeded () {
     return warn "Could not determine available storage space\n" unless defined $total_storage;
     my $requested_bytes = $total_hdd_size_gb * GIB;
     my $min_free_bytes = $total_storage * $keep_free;
-    return undef if $requested_bytes <= $available - $min_free_bytes;
+    my $keep_free_gb = $vars{STORAGE_KEEP_FREE_GB} // STORAGE_KEEP_FREE_GB;
+    my $relative_exceeded = $requested_bytes > $available - $min_free_bytes;
+    my $absolute_exceeded = $keep_free_gb > 0 && $requested_bytes > $available - ($keep_free_gb * GIB);
+    return undef unless $relative_exceeded && $absolute_exceeded;
     my $msg = sprintf 'Not enough storage for requested HDDSIZEGB (requested %d GiB, available %d GiB, total %d GiB, keep-free %d%%)',
       $total_hdd_size_gb, int($available / GIB), int($total_storage / GIB), int($keep_free * 100);
     serialize_state(result => 'incomplete', msg => $msg);
