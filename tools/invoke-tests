@@ -1,9 +1,16 @@
 #!/bin/bash -e
 
 PROVE_ARGS="${PROVE_ARGS:-"--timer"}"
-# Add parallelism if not already specified in PROVE_ARGS
-if [[ ! $PROVE_ARGS =~ "-j" ]]; then
-    PROVE_ARGS="$PROVE_ARGS -j$(nproc 2> /dev/null || echo 1)"
+# Add parallelism if not already specified in PROVE_ARGS, and scale timeout
+if [[ $PROVE_ARGS =~ (-j|--jobs)([[:space:]=]*([0-9]+))? ]]; then
+    jobs="${BASH_REMATCH[3]}"
+else
+    jobs="$(nproc 2> /dev/null || echo 1)"
+    PROVE_ARGS="$PROVE_ARGS -j$jobs"
+fi
+
+if [[ -z "$jobs" || "$jobs" -gt 1 ]]; then
+    export HARNESS_IS_PARALLEL=1
 fi
 
 source_directory=$(dirname "$0")/..
