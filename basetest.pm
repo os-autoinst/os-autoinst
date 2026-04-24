@@ -334,6 +334,14 @@ sub runtest ($self) {
         if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
             $self->take_screenshot();
         }
+        if (!$internal && $e =~ /Can't locate .+ in \@INC/) {
+            my $msg = "# Test died with missing dependency: $e";
+            bmwqemu::fctinfo($msg);
+            $self->record_resultfile('Failed', $msg, result => 'fail');
+            $self->{fatal_failure} = 1;
+            bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
+            $died = 1;
+        }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died: $e";
