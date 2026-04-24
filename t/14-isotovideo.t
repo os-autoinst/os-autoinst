@@ -84,7 +84,7 @@ subtest 'standalone isotovideo without vars.json file and only command line para
 subtest 'standard tests based on simple vars.json file' => sub {
     chdir $pool_dir;
     open my $var, '>', 'vars.json';
-    print $var <<EOV;
+    print $var <<"EOV";
 {
    "CASEDIR" : "$data_dir/tests",
    "_EXIT_AFTER_SCHEDULE" : 1,
