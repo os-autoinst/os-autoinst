@@ -44,6 +44,7 @@ install_packages() {
     pkgs=(openvswitch os-autoinst-openvswitch firewalld libcap-progs)
     [[ $network == NetworkManager ]] && pkgs+=(NetworkManager-ovs)
     rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
+    systemctl enable --now openvswitch os-autoinst-openvswitch
 }
 
 configure_firewalld() {
@@ -155,10 +156,13 @@ EOF
 }
 
 setup_multi_machine_with_networkmanager() {
-    # Restart NM to load ovs plugin
-    systemctl restart NetworkManager
     # Delete any previous connections
     nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs -r nmcli con del || true
+    # Clear NM state and timestamps
+    systemctl stop NetworkManager
+    [[ -d /var/lib/NetworkManager ]] && rm -vf /var/lib/NetworkManager/{timestamps,NetworkManager.state}
+    # Restart NM to load ovs plugin
+    systemctl start NetworkManager
     # Create bridge, port and interface connection
     nmcli con add type ovs-bridge con.int "$bridge"
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
@@ -211,6 +215,19 @@ EOF
     wicked ifup "$ethernet" "$bridge"
 }
 
+delete_tap_ifaces() {
+    ifaces=($(ls /sys/class/net/ | xargs -I {} sh -c 'if [ -f /sys/class/net/{}/tun_flags ]; then echo {}; fi' | sort -V))
+    for iface in "${ifaces[@]}"; do ip link delete $iface; done
+}
+
+cleanup_openvswitch_db() {
+    # Delete existing ovs db and its lock but do not delete any ovs db backup
+    systemctl stop openvswitch os-autoinst-openvswitch
+    [[ -d /var/lib/openvswitch/ ]] && rm -f /var/lib/openvswitch/{conf.db,.conf.db.~lock~}
+    systemctl is-enabled openvswitch && systemctl start openvswitch
+    systemctl is-enabled os-autoinst-openvswitch && systemctl start os-autoinst-openvswitch
+}
+
 configure_openvswitch() {
     echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
     systemctl enable os-autoinst-openvswitch
@@ -239,7 +256,8 @@ main() {
     else
         configure_nftables
     fi
-    systemctl enable --now openvswitch
+    cleanup_openvswitch_db
+    delete_tap_ifaces
     case "$network" in
         wicked)
             setup_multi_machine_with_wicked
