@@ -162,7 +162,7 @@ setup_multi_machine_with_networkmanager() {
     # Create bridge, port and interface connection
     nmcli con add type ovs-bridge con.int "$bridge"
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.dad-timeout 0 ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
+    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
     for i in 0 $(
         seq 1 "$instances"
