@@ -65,9 +65,9 @@ db="$build_directory/cover_db"
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    ignore="external/|tools/|t/data/tests/tests/|t/data/tests/pythontests/|t/data/tests/luatests/|t/data/wheels_dir|/tmp|$prove_path|CoverageWorkaround"
+    ignore="external/|tools/|t/data/tests/tests/|t/data/tests/pythontests/|t/data/tests/luatests/|t/data/wheels_dir|/tmp|$prove_path"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
-    export PERL5OPT="$PERL5OPT -I$source_directory/external/os-autoinst-common/lib -MTest::CheckGitStatus -It/lib -MCoverageWorkaround -MDevel::Cover=-db,$db,-ignore,$ignore,-coverage,statement"
+    export PERL5OPT="$PERL5OPT -I$source_directory/external/os-autoinst-common/lib -MTest::CheckGitStatus -It/lib -MDevel::Cover=-db,$db,-ignore,$ignore,-coverage,statement"
     echo "$PERL5OPT"
 fi
 # set variables for tests which need to invoke the make tool

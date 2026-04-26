@@ -24,6 +24,7 @@ subtest 'various inputs' => sub {
         my $err;
         try {
             $module = main::analyze($doc, {});
+            my $x =$tests[$i];
         }
         catch ($e) {
             $err = $e;
