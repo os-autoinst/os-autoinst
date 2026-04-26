@@ -4,6 +4,9 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use Test::Warnings qw(:all :report_warnings);
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler
 # internally already
@@ -15,6 +18,8 @@ use consoles::virtio_terminal;
 use testapi;
 use bmwqemu;
 use Mojo::File qw(path);
+
+my $isolation_guard = setup_isolated_workdir();
 
 my $pipe_data_written;
 my $prepare_pipes_covered = 0;
@@ -41,16 +46,32 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
         alarm ONE_MINUTE;
         my $fd_r = IO::Handle->new();
         my $fd_w = IO::Handle->new();
-        open $fd_r, '<', $pipe_in
+        require Fcntl;
+        sysopen $fd_r, $pipe_in, Fcntl::O_RDONLY() | Fcntl::O_NONBLOCK()
           or die "Can't open in pipe for writing $!";
-        open $fd_w, '>', $pipe_out
-          or die "Can't open out pipe for reading $!";
+        until (sysopen $fd_w, $pipe_out, Fcntl::O_WRONLY() | Fcntl::O_NONBLOCK()) {
+            exit 0 if !$running;
+            select undef, undef, undef, 0.1;
+        }
+
+        # Remove O_NONBLOCK from both handles now that they are open
+        my $flags;
+        $flags = fcntl $fd_r, Fcntl::F_GETFL(), 0 or die "fcntl F_GETFL failed: $!";
+        fcntl $fd_r, Fcntl::F_SETFL(), $flags & ~Fcntl::O_NONBLOCK() or die "fcntl F_SETFL failed: $!";
+        $flags = fcntl $fd_w, Fcntl::F_GETFL(), 0 or die "fcntl F_GETFL failed: $!";
+        fcntl $fd_w, Fcntl::F_SETFL(), $flags & ~Fcntl::O_NONBLOCK() or die "fcntl F_SETFL failed: $!";
 
         syswrite $fd_w, $write_buffer if $write_buffer;
         $fd_w->flush();
 
         kill 'USR2', getppid;
-        sysread $fd_r, my $buf, 1024 while $running;
+        require IO::Select;
+        my $sel = IO::Select->new($fd_r);
+        while ($running) {
+            if ($sel->can_read(0.1)) {
+                sysread $fd_r, my $buf, 1024 or last;
+            }
+        }
         _exit 0 if $prepare_pipes_covered;
         exit 0;
     };
@@ -189,4 +210,3 @@ subtest 'Test snapshot handling' => sub {
 };
 
 done_testing;
-

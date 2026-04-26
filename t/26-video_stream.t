@@ -13,7 +13,8 @@ use Test::Warnings qw(:all :report_warnings);
 use File::Basename;
 use File::Copy;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
@@ -21,7 +22,8 @@ use Test::MockObject;
 use consoles::video_stream;
 use tinycv;
 
-my $data_dir = dirname(__FILE__) . '/data/';
+my ($isolation_guard, $dir) = setup_isolated_workdir();
+my $data_dir = "$Bin/data/";
 
 my $mock_console = Test::MockModule->new('consoles::video_stream');
 my %v4l2_ctl_results = ();
@@ -171,9 +173,13 @@ subtest 'frames parsing' => sub {
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     $mock_video_source = $data_dir . 'frame1.ppm';
     $console->activate;
-
     $img = tinycv::read($data_dir . 'frame1.png');
-    $received_img = $console->current_screen();
+    for (1 .. 100) {
+        $received_img = $console->current_screen();
+        last if $received_img && $received_img->similarity($img) == 1_000_000;
+        select undef, undef, undef, 0.1;    # uncoverable statement
+    }
+
     ok $received_img, 'current screen available to read for single frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
@@ -183,7 +189,11 @@ subtest 'frames parsing' => sub {
     $console->connect_remote({url => 'udp://@:5004'});
 
     $img = tinycv::read($data_dir . 'frame2.png');
-    $received_img = $console->current_screen();
+    for (1 .. 100) {
+        $received_img = $console->current_screen();
+        last if $received_img && $received_img->similarity($img) == 1_000_000;
+        select undef, undef, undef, 0.1;    # uncoverable statement
+    }
     ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;

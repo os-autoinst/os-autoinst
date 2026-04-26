@@ -9,7 +9,8 @@ use Mojo::File qw(tempdir);
 use Mojo::IOLoop::ReadWriteProcess qw(process);
 use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(combined_from);
 use Test::Warnings qw(:all :report_warnings);
@@ -18,9 +19,7 @@ use log qw(logger);
 
 use backend::driver;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 my (@diag, @fctinfo);
 my $mocklog = Test::MockModule->new('backend::driver');
