@@ -814,6 +814,35 @@ subtest 'special cases when starting QEMU' => sub {
     };
 };
 
+subtest 'extract hostfwd ports from NICTYPE_USER_OPTIONS' => sub {
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=tcp::39100-:39100')], [39100], 'single tcp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=tcp::39100-:39100,hostfwd=tcp::5555-:22')],
+      [39100, 5555], 'multiple tcp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('hostfwd=udp::1234-:1234')], [1234], 'udp hostfwd';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('restrict=on')], [], 'no hostfwd options';
+    is_deeply [backend::qemu::_extract_hostfwd_ports('')], [], 'empty string';
+};
+
+subtest 'port availability checks' => sub {
+    my %initial_vars = %bmwqemu::vars;
+    my $inet_mock = Test::MockModule->new('IO::Socket::INET');
+    $inet_mock->redefine(new => sub { undef });
+    $bmwqemu::vars{NICTYPE} = 'user';
+    $bmwqemu::vars{NICTYPE_USER_OPTIONS} = 'hostfwd=tcp::39100-:39100';
+    combined_like { throws_ok { $backend->start_qemu } qr/Port 39100 \(hostfwd port\) is already in use/, 'dies on hostfwd port conflict' }
+      qr/qemu version/si, 'expected logs before hostfwd port check';
+    my $mock_socket = Test::MockObject->new;
+    $mock_socket->set_true('close');
+    $bmwqemu::vars{VNC} = '1';
+    $inet_mock->redefine(new => sub ($self, %args) {
+            return $mock_socket if ($args{LocalPort}) == 39100;
+            return undef;
+    });
+    combined_like { throws_ok { $backend->start_qemu } qr/Port 5901 \(VNC display :1\) is already in use/, 'dies on VNC port conflict' }
+      qr/qemu version/si, 'expected logs before VPN port check';
+    %bmwqemu::vars = %initial_vars;
+};
+
 subtest 'special cases when handling QMP command' => sub {
     my $create_virtio_console_fifo_called;
     # uncoverable statement count:2

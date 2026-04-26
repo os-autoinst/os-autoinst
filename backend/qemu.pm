@@ -11,6 +11,7 @@ use File::Path 'mkpath';
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use Time::Seconds;
+use IO::Socket::INET;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
@@ -923,6 +924,7 @@ sub start_qemu ($self) {
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq 'user') {
+                _assert_port_available($_, 'hostfwd port') for _extract_hostfwd_ports($vars->{NICTYPE_USER_OPTIONS} // '');
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
                 $nictype_user_options .= ",smb=${\(dirname($basedir))}" if ($vars->{QEMU_ENABLE_SMBD});
                 sp('netdev', [qv "user id=qanet$i$nictype_user_options"]);
@@ -1024,6 +1026,8 @@ sub start_qemu ($self) {
 
         if ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
+            my ($display) = $vncport =~ /:(\d+)/;
+            _assert_port_available(5900 + $display, "VNC display $vncport") if defined $display;
             my $extravars = $vars->{VNC_EXTRA_VARS};
             $extravars = defined $extravars ? " $extravars" : '';
             sp('vnc', [qv "$vncport share=force-shared$extravars"]);
@@ -1222,6 +1226,30 @@ sub check_socket ($self, $fh, $write = undef) {
         return 1;
     }
     return $self->SUPER::check_socket($fh);
+}
+
+sub _extract_hostfwd_ports ($args) {
+    my @ports;
+    push @ports, $1 while $args =~ /hostfwd=(?:tcp|udp)::(\d+)-/g;
+    return @ports;
+}
+
+sub _assert_port_available ($port, $service) {
+    my $sock = IO::Socket::INET->new(
+        LocalAddr => '0.0.0.0',
+        LocalPort => $port,
+        Proto => 'tcp',
+        Listen => 1,
+        ReuseAddr => 1,
+    );
+    if ($sock) {
+        $sock->close;
+        return;
+    }
+    my $ss_output = qx{ss -tlnp 2>/dev/null};
+    my @port_other = grep { /\b$port\b/ } split /\n/, $ss_output;
+    my $details = @port_other ? join("\n", @port_other) : 'no other port found';
+    die "Port $port ($service) is already in use:\n$details\n";
 }
 
 sub freeze_vm ($self, @) {
