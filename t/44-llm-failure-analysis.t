@@ -116,7 +116,8 @@ subtest 'CLI command mode' => sub {
 subtest 'Execution routing' => sub {
     my $mock_llm = Test::MockModule->new('OpenQA::Isotovideo::LLMAnalysis');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    $mock_bmwqemu->noop('diag');
+    my @diags;
+    $mock_bmwqemu->redefine(diag => sub { push @diags, $_[0] });
 
     $mock_llm->redefine(gather_context => sub { return {distri => 'D'} });
     $mock_llm->redefine(build_prompt => sub { return 'P' });
@@ -126,10 +127,16 @@ subtest 'Execution routing' => sub {
     delete $bmwqemu::vars{LLM_FAILURE_ANALYSIS_CMD};
     OpenQA::Isotovideo::LLMAnalysis::run($bmwqemu::result_dir);
     is path($bmwqemu::result_dir)->child('llm-failure-analysis.txt')->slurp, 'api', 'Default to API';
+    like $diags[1], qr/LLM Analysis:\napi/, 'Includes LLM output in diag';
+    my $json = Mojo::JSON::decode_json(path($bmwqemu::result_dir)->child('result-llm_failure_analysis.json')->slurp);
+    is $json->{name}, 'llm_failure_analysis', 'Standalone module name correct';
+    is $json->{details}[0]{text}, 'llm-failure-analysis.txt', 'Refers to correct text file';
 
+    @diags = ();
     $bmwqemu::vars{LLM_FAILURE_ANALYSIS_CMD} = 'c';
     OpenQA::Isotovideo::LLMAnalysis::run($bmwqemu::result_dir);
     is path($bmwqemu::result_dir)->child('llm-failure-analysis.txt')->slurp, 'cmd', 'Route to CMD';
+    like $diags[1], qr/LLM Analysis:\ncmd/, 'Includes LLM output in diag';
 
     $mock_llm->redefine(gather_context => sub { return undef });
     $mock_bmwqemu->redefine(diag => sub { die 'No context should return' });
