@@ -199,7 +199,7 @@ subtest 'isotovideo with wheels' => sub {
             package Copy::Writer::Content$i;
             use Mojo::Base 'Exporter';
             our \@EXPORT_OK = qw(write);
-            sub write { "val$i"};
+            sub write () { "val$i"};
             1;
             EOM
             path($wheels_dir, 'writer', 'tests', 'pen')->make_path->child("ink$i.pm")->spew("use Mojo::Base 'basetest'; use Copy::Writer::Content$i 'write'; sub run {}; 1");

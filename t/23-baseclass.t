@@ -185,7 +185,7 @@ subtest 'SSH utilities' => sub {
                     $mock_channel->mock(pty => sub { return 1; });
                     $mock_channel->mock(send_eof => sub { return 1; });
                     $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
-                    $mock_channel->mock(ext_data => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
+                    $mock_channel->mock(ext_data => sub ($self, $v) { $self->{ext_data} = $v; });
                     $mock_channel->mock(close => sub { return 1; });
                     return $mock_channel;
             });

@@ -185,7 +185,7 @@ Saves screenshot of current SUT screen.
 
 =cut
 
-sub save_screenshot () { $autotest::current_test->take_screenshot unless is_serial_terminal }
+sub save_screenshot () { $autotest::current_test->take_screenshot unless is_serial_terminal() }
 
 =head2 record_soft_failure
 
@@ -858,8 +858,7 @@ Examples:
 
 =cut
 
-sub wait_serial {    # no:style:signatures
-    my $regexp = shift;
+sub wait_serial ($regexp, @args) {
     my %args = compat_args(
         {
             regexp => $regexp,
@@ -872,7 +871,7 @@ sub wait_serial {    # no:style:signatures
             record_command => undef,
             internal_marker => 0,
             capture_name => undef,
-        }, ['timeout', 'expect_not_found'], @_);
+        }, ['timeout', 'expect_not_found'], @args);
 
     bmwqemu::log_call(%args);
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
