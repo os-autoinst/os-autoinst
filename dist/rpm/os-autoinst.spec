@@ -325,6 +325,7 @@ fi
 
 %files -f %{name}.files
 %defattr(-,root,root)
+%doc README.md doc/architecture.md doc/backend_vars.md doc/backends.md doc/memorydumps.md doc/networking.md
 %{_docdir}/os-autoinst
 %dir %{_prefix}/lib/os-autoinst
 %{_prefix}/lib/os-autoinst/debugviewer
