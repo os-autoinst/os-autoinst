@@ -177,6 +177,7 @@ setup_multi_machine_with_networkmanager() {
         nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
     done
     create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
+    systemctl restart NetworkManager
 }
 
 setup_multi_machine_with_wicked() {
