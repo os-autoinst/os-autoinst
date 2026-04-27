@@ -259,6 +259,13 @@ sub configure_pflash ($self, $vars) {
 
         $fw = path($vars->{UEFI_PFLASH_VARS})->to_abs;
         die 'Need UEFI_PFLASH_VARS with UEFI_PFLASH_CODE' unless $fw;
+        if ($fw =~ /\.json$/) {
+            my $json_vars = $fw;
+            my $template = $vars->{UEFI_PFLASH_CODE} =~ s/code/$&=~tr,CcOoDdEe,VvAaRrSs,r/eir;
+            $fw = path($bdc->basedir, 'vars-generated.fd')->to_abs;
+            $bdc->basedir->make_path unless -d $bdc->basedir;
+            runcmd('virt-fw-vars', '-i', $template, '--set-json', $json_vars, '-o', $fw);
+        }
         $bdc->add_pflash_drive('pflash-vars', $fw, $self->get_img_size($fw))
           ->unit(1);
     }

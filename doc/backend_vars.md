@@ -201,7 +201,7 @@ Supported variables per backend
 | UEFI | boolean | 0 | Enable UEFI |
 | UEFI_SECURE_BOOT | boolean | 1 | Whether the auto-selection of `UEFI_PFLASH_CODE` and `UEFI_PFLASH_VARS` should use firmware with SecureBoot enabled |
 | UEFI_PFLASH_CODE | string |  | Specify the file name of the UEFI firmware code which will be loaded onto a read-only PFLASH drive |
-| UEFI_PFLASH_VARS | string |  | Specify the file name which contains the UEFI firmware variables which will be loaded onto a mutable PFLASH drive |
+| UEFI_PFLASH_VARS | string |  | Specify the file name which contains the UEFI firmware variables which will be loaded onto a mutable PFLASH drive. If the file extension is `.json`, it is used to generate a customized variables image from the template corresponding to `UEFI_PFLASH_CODE` using `virt-fw-vars`. |
 | PUBLISH_PFLASH_VARS | string |  | Specify the file name to publish the UEFI vars file as |
 | UEFI_BIOS |  |  | Deprecated, use UEFI_PFLASH_CODE |
 | USBBOOT | boolean | 0 | Mount ISO as USB disk and boot VM from it |
