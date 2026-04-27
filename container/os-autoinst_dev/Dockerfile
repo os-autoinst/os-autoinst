@@ -68,6 +68,7 @@ RUN zypper in -y -C \
        sudo \
        tesseract-ocr \
        tesseract-ocr-traineddata-english \
+       virt-firmware \
        which \
        xorg-x11-Xvnc \
        xterm \

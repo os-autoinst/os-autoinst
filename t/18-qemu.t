@@ -540,6 +540,23 @@ subtest configure_pflash => sub {
     my $res = $proc->configure_pflash(\%vars);
     my $expected_vars_path = path($vars_file)->to_abs->to_string;
     is_deeply \@flash, [['pflash-code', $code_file->to_string, 3], ['pflash-vars', $expected_vars_path, 3]], 'add_pflash_drive correctly called';
+
+    subtest 'json vars' => sub {
+        my @commands;
+        $mock_proc->redefine(runcmd => sub { push @commands, [@_]; return 0; });
+        my $json_file = tempfile(SUFFIX => '.json');
+        $json_file->spew('{}');
+        my $code_file = tempfile->spew('code');
+        %vars = (UEFI => 1, UEFI_PFLASH_CODE => $code_file->to_string, UEFI_PFLASH_VARS => $json_file->to_string);
+        @flash = ();
+        $proc->configure_pflash(\%vars);
+        is @commands, 1, 'virt-fw-vars called';
+        like $commands[0][0], qr/virt-fw-vars/, 'correct command called';
+        is $flash[1][0], 'pflash-vars', 'pflash-vars drive added';
+        like $flash[1][1], qr/vars-generated\.fd/, 'generated file used';
+        $mock_proc->unmock('runcmd');
+    };
+
     %vars = (UEFI => 1, UEFI_PFLASH_VARS => 'vars');
     throws_ok { $proc->configure_pflash(\%vars) } qr{Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS}, 'Fatal UEFI_PFLASH_VARS without UEFI_PFLASH_CODE';
 };

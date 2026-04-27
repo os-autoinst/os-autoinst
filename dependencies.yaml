@@ -196,6 +196,7 @@ test_requires:
 main_requires:
   git-core:
   openssh-clients:
+  virt-firmware:
   perl(Cwd):
   perl(B::Deparse):
   perl(Carp):
