@@ -177,7 +177,6 @@ setup_multi_machine_with_networkmanager() {
         nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
     done
     create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
-    systemctl restart NetworkManager
 }
 
 setup_multi_machine_with_wicked() {
@@ -232,7 +231,7 @@ cleanup_openvswitch_db() {
 configure_openvswitch() {
     echo "OS_AUTOINST_USE_BRIDGE=$bridge" > /etc/sysconfig/os-autoinst-openvswitch
     systemctl enable os-autoinst-openvswitch
-    systemctl restart openvswitch os-autoinst-openvswitch
+    systemctl restart os-autoinst-openvswitch
 }
 
 determine_ethernet_interface() {
