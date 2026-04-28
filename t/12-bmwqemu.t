@@ -206,6 +206,10 @@ subtest 'abort on low disk space' => sub {
             desc => 'fails if both relative and absolute thresholds exceeded (e.g. 50GB requested on 100GB disk with 60GB avail leaves 10GB free)'},
         {hdd_size_gb => 50, total_storage => 100, avail_storage => 60, expect => 'pass', extra_vars => {STORAGE_KEEP_FREE_GB => 0},
             desc => 'passes if both thresholds would be exceeded but absolute threshold is disabled via 0'},
+        {hdd_size_gb => 1, total_storage => 100, avail_storage => 1, expect => 'pass', ci => 1,
+            desc => 'succeed if requested HDDSIZEGB exceeds available space but CI environment variable is set'},
+        {hdd_size_gb => 1, total_storage => 100, avail_storage => 1, expect => 'pass', github_actions => 1,
+            desc => 'succeed if requested HDDSIZEGB exceeds available space but GITHUB_ACTIONS environment variable is set'},
     );
     for my $case (@cases) {
         unlink bmwqemu::STATE_FILE;
@@ -213,6 +217,8 @@ subtest 'abort on low disk space' => sub {
         $vars{HDDSIZEGB} = $case->{hdd_size_gb} if defined $case->{hdd_size_gb};
         create_vars(\%vars);
         $bmw_mock->mock(_get_storage_stats => sub (@) { ($case->{total_storage} * 1024**3, $case->{avail_storage} * 1024**3) });
+        local $ENV{CI} = $case->{ci} // 0;
+        local $ENV{GITHUB_ACTIONS} = $case->{github_actions} // 0;
         if ($case->{expect} eq 'pass') {
             lives_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } $case->{desc};
         }
