@@ -11,7 +11,6 @@ use File::Path 'mkpath';
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use Time::Seconds;
-use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
 use Mojo::File 'path';
