@@ -27,6 +27,7 @@ use File::Basename;
 use File::Which;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File 'path';
+use IO::Socket::UNIX;
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::ControllerConf;
 use OpenQA::Qemu::DriveDevice 'QEMU_IMAGE_FORMAT';
