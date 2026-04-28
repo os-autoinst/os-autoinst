@@ -14,6 +14,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+use POSIX qw(WNOHANG);
 
 sub new ($class) {
     # required for the tests to access our HTTP port
@@ -198,13 +199,26 @@ sub start_serial_grab ($self) {
 }
 
 sub stop_serial_grab ($self, @) {
-    return 0 unless $self->{serialpid};
-    try { kill -TERM => $self->{serialpid} }
-    catch ($e) {
-        return -1 if $e =~ qr/No such process/i;
-        die "$e\n";    # uncoverable statement
+    my $pid = delete $self->{serialpid};
+    return -1 unless $pid;
+    {
+        no autodie 'kill', 'waitpid';
+        kill -TERM => $pid;
+        # Wait a bit for TERM to work
+        my $r;
+        for (1 .. 50) {    # up to 5 seconds
+            $r = CORE::waitpid($pid, WNOHANG);
+            last if $r != 0;
+            # use select instead of sleep to avoid interference with mocks
+            select undef, undef, undef, 0.1;
+        }
+        if (defined $r && $r == 0) {
+            # Still alive, use KILL
+            kill -KILL => $pid;    # uncoverable statement
+            do { $r = CORE::waitpid($pid, 0) } while ($r == -1 && $!{EINTR});    # uncoverable statement
+        }
+        return $r // -1;
     }
-    return waitpid $self->{serialpid}, 0;
 }
 
 # serial grab end

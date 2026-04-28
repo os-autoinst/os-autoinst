@@ -13,14 +13,13 @@ use Test::Output qw(stderr_like);
 use Mojo::File qw(tempdir);
 use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use backend::svirt;
 use distribution;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 
 my $ssh_object = Test::MockObject->new();
 $ssh_object->set_true(qw/disconnect scp_get blocking/);

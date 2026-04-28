@@ -7,7 +7,8 @@ use Mojo::Base -signatures;
 use Feature::Compat::Try;
 use Mojo::File qw(path);
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Carp 'confess';
 use English -no_match_vars;
@@ -20,6 +21,8 @@ use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
 
 use Test::Warnings ':report_warnings';
+my $isolation_guard = setup_isolated_workdir();
+
 my $main_pid = $$;
 
 use consoles::virtio_terminal;
@@ -31,7 +34,7 @@ our $VERSION;
 
 $testapi::password = 'd*97Jlk/.d';
 my $socket_path = './virtio_console';
-my $sharefile = "$Bin/fork-share.txt";
+my ($sharefile_fd, $sharefile) = tempfile('10-terminal-shareXXXXX', TMPDIR => 1, SUFFIX => '.txt');
 my $login_prompt_data = <<'FIN.';
 
 

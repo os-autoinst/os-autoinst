@@ -4,7 +4,8 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use Test::MockObject;
@@ -25,6 +26,8 @@ use needle;
 
 require bmwqemu;
 require tinycv;
+
+my $isolation_guard = setup_isolated_workdir();
 
 ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
 
@@ -1273,9 +1276,9 @@ subtest 'mouse click' => sub {
     is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or always_explain $cmds;
 };
 
-$bmwqemu::vars{CASEDIR} = 'foo';
+$bmwqemu::vars{CASEDIR} = '/foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
-$bmwqemu::vars{CASEDIR} = 't';
+$bmwqemu::vars{CASEDIR} = $Bin;
 like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 lives_ok { become_root } 'become_root can be called';
 lives_ok { hold_key('ret') } 'hold_key can be called';
