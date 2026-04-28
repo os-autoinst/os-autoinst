@@ -329,8 +329,9 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
         my $cmd =
           "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
           'if [ $vmid ]; then ' .
-          'vim-cmd vmsvc/power.off $vmid;' .
+          'vim-cmd vmsvc/power.off $vmid; sleep 3;' .
           'vim-cmd vmsvc/destroy $vmid;' .
+          "else rm -f $name*;" .
           'fi;' .
           "vmkfstools -v1 -U $vmware_disk_path;" .
           "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
