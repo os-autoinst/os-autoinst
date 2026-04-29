@@ -73,6 +73,7 @@ set(PERL_FILES
     OpenQA/Qemu/DriveController.pm
     OpenQA/Qemu/DriveDevice.pm
     OpenQA/Qemu/DrivePath.pm
+    OpenQA/Qemu/HWProfiles.pm
     OpenQA/Qemu/MutParams.pm
     OpenQA/Qemu/PFlashDevice.pm
     OpenQA/Qemu/Proc.pm
