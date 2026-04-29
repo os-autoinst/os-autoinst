@@ -21,6 +21,7 @@ use Fcntl;
 use Net::DBus;
 use bmwqemu qw(diag);
 require IPC::System::Simple;
+use OpenQA::Qemu::HWProfiles;
 use osutils qw(find_bin qv run_diag runcmd port_details);
 use List::Util qw(first max);
 use Data::Dumper;
@@ -682,6 +683,33 @@ sub determine_qemu_version ($self, $qemubin) {
     $self->{qemu_version} = $qemu_version;
 }
 
+sub apply_hwprofile ($self) {
+    my $vars = \%bmwqemu::vars;
+    my $name = $vars->{QEMU_HWPROFILE} // 'default';
+    if ($name =~ /\/|\.txt$/) {
+        my $path = $name =~ /^\// ? $name : "$vars->{CASEDIR}/$name";
+        bmwqemu::diag("Loading custom QEMU hardware profile from $path");
+        my @commands = map { [$_->[0] =~ s/^-+//r, @$_[1 .. $#$_]] }
+          map { [split ' '] }
+          grep { /\S/ }
+          map { s/#.*//r }
+          split /\n/, path($path)->slurp('UTF-8');
+        $self->{proc}->static_param(@$_) for @commands;
+        $self->{hwprofile} = {provides => []};
+    }
+    else {
+        my $arch = $vars->{ARCH} // '';
+        $self->{hwprofile} = OpenQA::Qemu::HWProfiles::get_profile($name, $arch);
+        die "QEMU hardware profile '$name' not found for architecture '$arch'" unless $self->{hwprofile};
+        bmwqemu::diag("Applying QEMU hardware profile: $name");
+        $self->{proc}->static_param(@$_) for @{$self->{hwprofile}->{args}};
+    }
+}
+
+sub _profile_has ($self, $cap) {
+    return grep { $_ eq $cap } @{$self->{hwprofile}->{provides} // []};
+}
+
 sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 
@@ -788,7 +816,6 @@ sub start_qemu ($self) {
         # of ports is 32 so enough for 14 workers per host.
         $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
     }
-    $self->_set_graphics_backend;
 
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
@@ -887,8 +914,12 @@ sub start_qemu ($self) {
     $self->{proc}->init_blockdev_images();
 
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1}) and (($vars->{QEMU_VIDEO_DEVICE} // '') ne 'virtio-vga-gl');
-    sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
-    sp('serial', 'chardev:serial0');
+
+    $self->apply_hwprofile();
+
+    unless ($self->_profile_has('graphics')) {
+        $self->_set_graphics_backend;
+    }
 
     if (!is_s390x($arch)) {
         if ($self->requires_audiodev) {
@@ -943,7 +974,7 @@ sub start_qemu ($self) {
         }
 
         # Keep additional virtio _after_ Ethernet setup to keep virtio-net as eth0
-        if ($vars->{QEMU_VIRTIO_RNG} // 1) {
+        if (($vars->{QEMU_VIRTIO_RNG} // 1) && !$self->_profile_has('rng')) {
             my $rngdev = is_s390x($arch) ? 'virtio-rng' : 'virtio-rng-pci';
             sp('object', 'rng-random,filename=/dev/urandom,id=rng0');
             sp('device', "$rngdev,rng=rng0");
@@ -990,7 +1021,7 @@ sub start_qemu ($self) {
             sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
         }
 
-        unless ($vars->{QEMU_NO_TABLET}) {
+        unless ($vars->{QEMU_NO_TABLET} || $self->_profile_has('usb')) {
             sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : is_s390x($arch) ? 'virtio-tablet' : 'qemu-xhci');
             sp('device', 'usb-tablet') unless is_s390x($arch);
         }
@@ -998,7 +1029,7 @@ sub start_qemu ($self) {
         sp('device', 'usb-kbd') if $use_usb_kbd;
         # Enable virtio-keyboard by default on s390x qemu but not on others
         # See https://progress.opensuse.org/issues/193258
-        sp('device', 'virtio-keyboard') if $vars->{QEMU_VIRTIO_KEYBOARD} // is_s390x($arch);
+        sp('device', 'virtio-keyboard') if ($vars->{QEMU_VIRTIO_KEYBOARD} // is_s390x($arch)) && !$self->_profile_has('input');
 
         sp('device', 'canokey,file=canokey') if $vars->{FIDO2};
 
@@ -1033,7 +1064,7 @@ sub start_qemu ($self) {
 
         my @virtio_consoles = virtio_console_names;
         if (@virtio_consoles) {
-            sp('device', 'virtio-serial');
+            sp('device', 'virtio-serial') unless $self->_profile_has('serial');
             for my $name (@virtio_consoles) {
                 sp('chardev', [qv "pipe id=$name path=$name logfile=$name.log logappend=on"]);
                 sp('device', [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
