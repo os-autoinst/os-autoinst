@@ -1172,6 +1172,6 @@ Copyright 2006, Leon Brocard
 Copyright 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
 
-Copyright 2017-2021 SUSE LLC
+Copyright SUSE LLC
 
 SPDX-License-Identifier: Artistic-1.0 OR GPL-1.0-or-later

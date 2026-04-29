@@ -1,4 +1,4 @@
-# Copyright 2018 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 =head3 OpenQA::Qemu::SnapshotConf

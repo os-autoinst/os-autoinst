@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright 2021 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
@@ -27,4 +27,6 @@ is qx{git grep -l '^use POSIX;'}, '', 'Use of bare POSIX import is discouraged, 
 is qx{git grep --all-match -P -e '^use Mojo::Base' -e '^use base (?!.*# no:style)'}, '', 'No redundant Mojo::Base+base';
 is qx{git grep -I -l -P '^use (warnings|strict)' ':!external/'}, '', 'No files using "warning|strict", should use Mojo::Base instead';
 is qx{git grep -I -l 'sub [a-z_A-Z0-9]\\+()'}, '', 'Consistent space before function signatures (this is not ensured by perltidy)';
+is qx{git grep -I -l -E 'Copyright [0-9]{4}(-?[0-9]{4})? SUSE LLC' ':!external/'}, '', "No files using 'Copyright <year> SUSE LLC'";
+
 done_testing;

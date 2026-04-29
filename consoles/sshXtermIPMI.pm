@@ -1,5 +1,5 @@
 # Copyright 2009-2013 Bernhard M. Wiedemann
-# Copyright 2012-2015 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package consoles::sshXtermIPMI;
