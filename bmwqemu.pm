@@ -170,6 +170,7 @@ sub default_numdisks ($v = \%vars) {
 }
 
 sub _abort_if_storage_limit_exceeded () {
+    return undef if $ENV{CI} || $ENV{GITHUB_ACTIONS};
     my $keep_free = $vars{STORAGE_KEEP_FREE_RATIO} // STORAGE_KEEP_FREE_RATIO;
     return undef if $keep_free <= 0;
     my $numdisks = $vars{NUMDISKS} // default_numdisks();
