@@ -137,6 +137,21 @@ subtest 'pretty_serial_marker' => sub {
     throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'typing error handled in Level 1';
 };
 
+subtest 'serial_marker_reinstall_cached_level' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+
+    $d->{_serial_marker_level}->{'test-console'} = 2;
+    delete $d->{_serial_marker_hook_installed}->{'test-console'};
+
+    is $d->_detect_serial_marker_capability(), 2, 'Returns cached level 2';
+    like $typed, qr/PROMPT_COMMAND=/, 'Calls install_serial_marker_hook (types PROMPT_COMMAND)';
+    ok $d->{_serial_marker_hook_installed}->{'test-console'}, 'Hook marked as installed';
+};
+
 subtest 'reboot_safety' => sub {
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
@@ -174,11 +189,21 @@ subtest 'reboot_safety' => sub {
     like $typed_string, qr/bar\n/, 'Command typed';
 
     # Case 2: manual clear (e.g. if we know it was lost)
-    delete $d->{_serial_marker_hook_installed}->{'test-console'};
+    $d->reset_console_cache('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-install if missing';
-    like $typed_string, qr/baz\n/, 'Command typed after re-install';
+    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-detect and re-install after resetting the console cache';
+    like $typed_string, qr/baz\n/, 'Command typed after re-installation';
+
+    # Case 3: select_console triggers reset
+    $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
+    $typed_string = '';
+    $mock_testapi->redefine(query_isotovideo => sub { return {activated => 1} });
+    $testapi::distri = $d;
+
+    testapi::select_console('test-console');
+    $d->script_run('qux');
+    like $typed_string, qr/BASH:/, 'Re-detect after select_console re-activates the console';
 };
 
 subtest 'sut_marker' => sub {
