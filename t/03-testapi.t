@@ -805,6 +805,9 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(wait_serial => "XXX\nfoo\nSCRIPT_FINISHEDXXX-1-");
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
+    $mock_testapi->redefine(wait_serial => "login: XXX\nfoo\nSCRIPT_FINISHEDXXX-0-");
+    is(script_output('echo foo'), 'foo', 'script_output handles pre-marker pending text correctly');
+
     $mock_testapi->redefine(wait_serial => sub { return 'none' unless $_[0] =~ /SCRIPT_FINISHEDXXX/; return; });
     throws_ok { script_output('timeout'); } qr/timeout/, 'die expected with timeout';
 
