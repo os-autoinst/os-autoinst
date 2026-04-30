@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright 2020 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 # This test covers the signalblocker module and tinycv's helper to create

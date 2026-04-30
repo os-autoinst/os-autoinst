@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright 2020-2021 SUSE LLC
+# Copyright SUSE LLC
 
 use Test::Most;
 use Mojo::Base -signatures;

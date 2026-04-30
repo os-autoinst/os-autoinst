@@ -1,5 +1,5 @@
 # Copyright 2021 Marek Marczykowski-Górecki
-# Copyright 2021 SUSE LLC
+# Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package consoles::video_stream;
