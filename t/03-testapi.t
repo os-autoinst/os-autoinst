@@ -791,18 +791,18 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(hashed_string => 'XXX');
     $mock_testapi->redefine(is_serial_terminal => sub { return $is_serial_terminal });
 
-    $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-0-");
+    $mock_testapi->redefine(wait_serial => "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-");
     $bmwqemu::vars{OFFLINE_SUT} = 1;
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
     $bmwqemu::vars{OFFLINE_SUT} = 0;
 
-    $mock_testapi->redefine(wait_serial => 'SCRIPT_FINISHEDXXX-0-');
+    $mock_testapi->redefine(wait_serial => "XXX\nSCRIPT_FINISHEDXXX-0-");
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
 
-    $mock_testapi->redefine(wait_serial => "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
+    $mock_testapi->redefine(wait_serial => "This is simulated output on the serial device\nXXX\nfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
     is(script_output('echo foo'), 'foo', 'script_output return only the actual output of the script');
 
-    $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-1-");
+    $mock_testapi->redefine(wait_serial => "XXX\nfoo\nSCRIPT_FINISHEDXXX-1-");
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
     $mock_testapi->redefine(wait_serial => sub { return 'none' unless $_[0] =~ /SCRIPT_FINISHEDXXX/; return; });
@@ -810,7 +810,7 @@ sub script_output_test ($is_serial_terminal) {
 
     subtest 'script_output check error codes' => sub {
         for my $ret ((1, 10, 100, 255)) {
-            $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-");
+            $mock_testapi->redefine(wait_serial => "XXX\nfoo\nSCRIPT_FINISHEDXXX-$ret-");
             throws_ok { script_output('false'); } qr/script failed/, "script_output die expected on exitcode $ret";
         }
     };
@@ -818,7 +818,7 @@ sub script_output_test ($is_serial_terminal) {
     my @wait_serial_args;
     $mock_testapi->redefine(wait_serial => sub ($regex, %args) {
             push @wait_serial_args, \%args;
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     for my $t (
         {args => [30], timeout => 30, quiet => undef, msg => 'positional wait'},
@@ -830,7 +830,7 @@ sub script_output_test ($is_serial_terminal) {
         my @inconsistent_quiet = grep { ($_->{quiet} // 0) != ($t->{quiet} // 0) } @wait_serial_args;
         is_deeply \@inconsistent_quiet, [], "$t->{msg}: quiet argument is consistent across all calls";
     }
-    $mock_testapi->redefine(wait_serial => "This is a simulated output on the serial dev\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
+    $mock_testapi->redefine(wait_serial => "This is a simulated output on the serial dev\nXXX\nfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
     is script_output('echo foo', type_command => 0), 'foo', 'script_output with type_command => 0 output in a file';
 }
 
@@ -990,7 +990,7 @@ subtest 'check quiet option on script runs' => sub {
     $mock_testapi->redefine(script_output => 'output');
     $mock_testapi->redefine(wait_serial => sub ($regex, %args) {
             is($args{quiet}, 1, 'Check default quiet argument');
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
     is(script_run('true'), '0', 'script_run with _QUIET_SCRIPT_CALLS=1');
@@ -999,7 +999,7 @@ subtest 'check quiet option on script runs' => sub {
 
     $mock_testapi->redefine(wait_serial => sub ($regex, %args) {
             is($args{quiet}, 0, 'Check default quiet argument');
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');

@@ -353,7 +353,7 @@ sub script_output ($self, $script, @args) {
     }
 
     # and the markers including internal exit catcher
-    my $out = $output =~ /$marker(?<expected_output>.+)SCRIPT_FINISHED$marker-\d+-/s ? $+ : '';
+    my $out = $output =~ /(?:^|\r?\n)$marker\r?\n(?<expected_output>.*?)SCRIPT_FINISHED$marker-\d+-/s ? $+ : '';
     # trim whitespaces
     $out =~ s/^\s+|\s+$//g;
     return $out;
