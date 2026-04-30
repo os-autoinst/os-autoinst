@@ -1706,7 +1706,7 @@ sub select_console ($testapi_console, @args) {
     $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
         push @$autotest::activated_consoles, $testapi_console;
-        $testapi::distri->reset_console_cache($testapi_console);
+        $testapi::distri->reset_serial_marker($testapi_console);
         $testapi::distri->activate_console($testapi_console, @args);
     }
     $testapi::distri->console_selected($testapi_console, @args);
