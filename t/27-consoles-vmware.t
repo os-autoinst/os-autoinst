@@ -128,51 +128,42 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
 };
 
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
-    # define simple WebSocket server for testing
+    my $msg_ws = 'binary sent from WebSocket';
+    my $msg_raw = 'message sent from raw socket';
+
     package TestWebSocketApp {
         use Mojo::Base 'Mojolicious', -signatures;
-        has received_data => '';
+        has [qw(msg_ws msg_raw received_data)] => '';
 
         sub startup ($self) {
-            $self->routes->websocket('/test')->to('test#start_ws');
-            $self->routes->any('*')->to('test#fallback');
-        }
-        sub received_everything ($self) { length $self->received_data >= length 'message sent from raw socket' }
-    }    # uncoverable statement
-
-    package TestWebSocketApp::Controller::Test {
-        use Mojo::Base 'Mojolicious::Controller', -signatures;
-
-        sub start_ws ($self) {
-            my $sent_everything;
-            $self->send({binary => 'binary sent from WebSocket'}, sub {
-                    $self->send({text => 'text message sent from WebSocket'}, sub {
-                            $sent_everything = 1;
-                            $self->finish if $self->app->received_everything;
+            $self->routes->websocket('/test')->to(cb => sub ($c) {
+                    my $sent_everything;
+                    $c->send({binary => $c->app->msg_ws}, sub {
+                            $c->send({text => 'text message sent from WebSocket'}, sub {
+                                    $sent_everything = 1;
+                                    $c->finish if $c->app->received_data eq $c->app->msg_raw;
+                            });
+                    });
+                    $c->on(message => sub ($c, $msg) {
+                            $c->app->received_data($c->app->received_data . $msg);
+                            $c->finish if $sent_everything && $c->app->received_data eq $c->app->msg_raw;
+                    });
+                    $c->on(finish => sub { $c->ua->ioloop->stop });
+            });
+            $self->routes->any('*')->to(cb => sub ($c) {
+                    Test::Most::note 'start replying HTTP response';
+                    $c->render(text => 'fallback', status => 404);
+                    $c->tx->on(finish => sub {
+                            Test::Most::note 'finished replying HTTP response';
+                            $c->ua->ioloop->stop;
                     });
             });
-            $self->on(
-                message => sub ($self, $msg) {
-                    $self->app->received_data($self->app->received_data . $msg);
-                    $self->finish if $sent_everything && $self->app->received_everything;
-                });
-            $self->on(finish => sub ($ws, $code, $reason) { $self->ua->ioloop->stop });
         }
-
-        sub fallback ($self) {
-            Test::Most::note 'start replying HTTP response';
-            $self->render(text => 'fallback', status => 404);
-            $self->tx->on(finish => sub ($ws, $code, $reason) {
-                    Test::Most::note 'finished replying HTTP response';
-                    $self->ua->ioloop->stop;
-            });
-        }
-    }    # uncoverable statement
-
-    # start test WebSocket server
+        1;
+    }
     my $log_level = $ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_VERBOSE} ? 'trace' : 'error';
-    my $t = Test::Mojo->new('TestWebSocketApp');
-    my $app = $t->app;
+    my $app = TestWebSocketApp->new(msg_ws => $msg_ws, msg_raw => $msg_raw);
+    my $t = Test::Mojo->new($app);
     $app->log->level($log_level);
     $app->ua->ioloop($t->ua->ioloop); # ensure the app providing the HTTP/websocket server and its transactions use the same event loop we use in subsequent code
     note 'Using reactor ' . blessed $t->ua->ioloop->reactor;
@@ -209,7 +200,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                 }
                 $stream->on(read => sub ($stream, $bytes) {
                         $data_received_via_raw_socket .= $bytes;
-                        $stream->write('message sent from raw socket') if length $data_received_via_raw_socket >= length 'binary sent from WebSocket';
+                        $stream->write($msg_raw) if length $data_received_via_raw_socket >= length $msg_ws;
                 });
         });
     };
@@ -225,9 +216,8 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     };
     $connect_to_dewebsockify_with_multiple_attempts->();
 
-    # check whether all messages have been passed as expected
-    is $data_received_via_raw_socket, 'binary sent from WebSocket', 'expected data received via raw socket';
-    is $app->received_data, 'message sent from raw socket', 'expected data received via WebSocket';
+    is $data_received_via_raw_socket, $msg_ws, 'expected data received via raw socket';
+    is $app->received_data, $msg_raw, 'expected data received via WebSocket';
     note 'waiting for dewebsockify process to terminate, pid: ' . ($vmware->dewebsockify_pid // '?');
     $vmware->_cleanup_previous_dewebsockify_process;
 
