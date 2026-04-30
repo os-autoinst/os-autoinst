@@ -11,6 +11,7 @@ use File::Path 'mkpath';
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use Time::Seconds;
+use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
 use Mojo::File 'path';
@@ -922,6 +923,7 @@ sub start_qemu ($self) {
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq 'user') {
+                _assert_port_available($_, 'hostfwd') for _extract_hostfwd_ports($vars->{NICTYPE_USER_OPTIONS} // '');
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
                 $nictype_user_options .= ",smb=${\(dirname($basedir))}" if ($vars->{QEMU_ENABLE_SMBD});
                 sp('netdev', [qv "user id=qanet$i$nictype_user_options"]);
@@ -1058,20 +1060,23 @@ sub start_qemu ($self) {
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-
+    my $vncport = 5900 + $bmwqemu::vars{VNC};
     my $vnc = $testapi::distri->add_console(
         'sut',
         'vnc-base',
         {
             hostname => 'localhost',
             connect_timeout => 3,
-            port => 5900 + $bmwqemu::vars{VNC},
+            port => $vncport,
             description => q{QEMU's VNC}});
 
     $vnc->backend($self);
     my $ret = $self->select_console({testapi_console => 'sut'});
-    die $ret->{error} if $ret->{error};
 
+    if ($ret->{error}) {
+        bmwqemu::fctinfo('VNC port details [' . _port_details($vncport) . ']');
+        die $ret->{error};
+    }
     if ($vars->{NICTYPE} eq 'tap') {
         $self->{allocated_networks} = $num_networks;
         $self->{allocated_tap_devices} = \@tapdev;
@@ -1221,6 +1226,29 @@ sub check_socket ($self, $fh, $write = undef) {
         return 1;
     }
     return $self->SUPER::check_socket($fh);
+}
+
+sub _extract_hostfwd_ports ($args) { return $args =~ /hostfwd=(?:tcp|udp)::(\d+)-/g; }
+
+sub _port_details ($port) {
+    my $ss_output = qx{ss -tlnp 2>/dev/null};
+    my @port_info = grep { /\b$port\b/ } split /\n/, $ss_output;
+    return @port_info ? join("\n", @port_info) : 'no details found';
+}
+
+sub _assert_port_available ($port, $service) {
+    bmwqemu::fctinfo("checking $port port availability");
+    my $sock = IO::Socket::IP->new(
+        PeerAddr => 'localhost',
+        PeerPort => $port,
+        Type => SOCK_STREAM,
+        Timeout => 1,
+    );
+    if ($sock) {
+        $sock->close;
+        die "Port $port ($service) is already in use\n" . _port_details($port);
+    }
+    return 0;
 }
 
 sub freeze_vm ($self, @) {
