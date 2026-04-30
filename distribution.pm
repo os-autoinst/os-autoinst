@@ -15,6 +15,7 @@ sub new ($class, @) {
     $self->{serial_failures} = [];
     $self->{autoinst_failures} = [];
     $self->{_serial_marker_level} = {};
+    $self->{_serial_marker_hook_installed} = {};
 
 =head2 serial_term_prompt
 
@@ -450,6 +451,11 @@ sub install_serial_marker_hook ($self, $level) {
     testapi::type_string $hook_cmd;
     my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;
+}
+
+sub reset_console_cache ($self, $console) {
+    delete $self->{_serial_marker_level}->{$console};
+    delete $self->{_serial_marker_hook_installed}->{$console};
 }
 
 =head2 _detect_serial_marker_capability
