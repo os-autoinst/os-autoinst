@@ -185,11 +185,12 @@ sub _abort_if_storage_limit_exceeded () {
     my $requested_bytes = $total_hdd_size_gb * GIB;
     my $min_free_bytes = $total_storage * $keep_free;
     my $keep_free_gb = $vars{STORAGE_KEEP_FREE_GB} // STORAGE_KEEP_FREE_GB;
-    my $relative_exceeded = $requested_bytes > $available - $min_free_bytes;
+    my $relative_available = $available - $min_free_bytes;
+    my $relative_exceeded = $requested_bytes > $relative_available;
     my $absolute_exceeded = $keep_free_gb > 0 && $requested_bytes > $available - ($keep_free_gb * GIB);
     return undef unless $relative_exceeded && $absolute_exceeded;
-    my $msg = sprintf 'Not enough storage for requested HDDSIZEGB (requested %d GiB, available %d GiB, total %d GiB, keep-free %d%%)',
-      $total_hdd_size_gb, int($available / GIB), int($total_storage / GIB), int($keep_free * 100);
+    my $msg = sprintf 'Not enough storage for requested HDDSIZEGB (requested %d GiB, available keeping %d%% free: %d GiB, generally available %d GiB, total %d GiB)',
+      $total_hdd_size_gb, int($keep_free * 100), $relative_available > 0 ? int($relative_available / GIB) : 0, int($available / GIB), int($total_storage / GIB);
     serialize_state(result => 'incomplete', msg => $msg);
     die "$msg\n";
 }

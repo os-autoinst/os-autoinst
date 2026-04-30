@@ -191,7 +191,11 @@ subtest 'abort on low disk space' => sub {
         {hdd_size_gb => 10, total_storage => 100, avail_storage => 100, expect => 'pass',
             desc => 'succeed if requested HDDSIZEGB is well within available space'},
         {hdd_size_gb => 60, total_storage => 5, avail_storage => 5, expect => 'fail', extra_vars => {STORAGE_KEEP_FREE_RATIO => 0.9},
-            desc => 'abort if requested HDDSIZEGB exceeds custom threshold'},
+            desc => 'abort if requested HDDSIZEGB exceeds available storage (keeping certain ratio free) which is already negative anyway',
+            expected_stats => 'requested 60 GiB, available keeping 90% free: 0 GiB, generally available 5 GiB, total 5 GiB'},
+        {hdd_size_gb => 30, total_storage => 36, avail_storage => 30, expect => 'fail', extra_vars => {STORAGE_KEEP_FREE_RATIO => 0.2},
+            desc => 'abort if requested HDDSIZEGB exceeds available storage (keeping certain ratio free)',
+            expected_stats => 'requested 30 GiB, available keeping 20% free: 22 GiB, generally available 30 GiB, total 36 GiB'},
         {hdd_size_gb => 1, total_storage => 1, avail_storage => 0.1, expect => 'pass', extra_vars => {STORAGE_KEEP_FREE_RATIO => 0},
             desc => 'succeed if requested HDDSIZEGB exceeds available space but ratio is 0'},
         {total_storage => 100, avail_storage => 100, expect => 'pass',
@@ -223,7 +227,8 @@ subtest 'abort on low disk space' => sub {
             lives_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } $case->{desc};
         }
         else {
-            throws_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } qr/Not enough storage for requested HDDSIZEGB/, $case->{desc};
+            my $stats = $case->{expected_stats} // '';
+            throws_ok { bmwqemu::init(); bmwqemu::ensure_valid_vars(); } qr/Not enough storage for requested HDDSIZEGB.*$stats/, $case->{desc};
             is decode_json(path(bmwqemu::STATE_FILE)->slurp)->{result}, 'incomplete', "serialized result is incomplete for: $case->{desc}";
         }
     }
