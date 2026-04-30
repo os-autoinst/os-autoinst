@@ -17,6 +17,7 @@ use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 # io handles for sending data to command server and backend
 has [qw(test_fd cmd_srv_fd backend_fd backend_out_fd answer_fd)] => undef;
+has [qw(current_command_token backend_requester_token postponed_token)];
 
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
@@ -76,6 +77,7 @@ sub clear_tags_and_timeout ($self) {
 sub process_command ($self, $answer_fd, $command_to_process) {
     my $cmd = $command_to_process->{cmd} or die 'isotovideo: no command specified';
     $self->answer_fd($answer_fd);
+    local $self->{current_command_token} = $command_to_process->{json_cmd_token};
 
     # invoke handler for the command
     if (my $handler = $self->can('_handle_command_' . $cmd)) {
@@ -108,6 +110,7 @@ sub _postpone_backend_command_until_resumed ($self, $response) {
 
     # postpone execution of command
     $self->postponed_answer_fd($self->answer_fd);
+    $self->postponed_token($self->current_command_token);
     $self->postponed_command($response);
 
     # send no reply to autotest, just let it wait
@@ -119,18 +122,30 @@ sub _send_to_cmd_srv ($self, $data) { myjsonrpc::send_json($self->cmd_srv_fd, $d
 sub _send_to_backend ($self, $data) { myjsonrpc::send_json($self->backend_fd, $data) }
 
 sub send_to_backend_requester ($self, $data) {
-    myjsonrpc::send_json($self->backend_requester, $data);
+    local $self->{current_command_token} = $self->backend_requester_token;
+    $self->_send_response($self->backend_requester, $data);
     $self->backend_requester(undef);
+    $self->backend_requester_token(undef);
 }
 
-sub _respond ($self, $data) { myjsonrpc::send_json($self->answer_fd, $data) }
+sub _add_token ($self, $data) {
+    my $token = $self->current_command_token or return $data;
+    return $data if exists $data->{json_cmd_token};
+    return {%$data, json_cmd_token => $token};
+}
+
+sub _send_response ($self, $fd, $data) {
+    myjsonrpc::send_json($fd, $self->_add_token($data));
+}
+
+sub _respond ($self, $data) { $self->_send_response($self->answer_fd, $data) }
 
 sub _respond_ok ($self) { $self->_respond({ret => 1}) }
 
 sub _respond_ok_or_postpone_if_paused ($self) {
     return $self->_respond_ok unless my $reason_for_pause = $self->reason_for_pause;
     $self->_send_to_cmd_srv({paused => 1, reason => $reason_for_pause});
-    $self->postponed_answer_fd($self->answer_fd)->postponed_command(undef);
+    $self->postponed_answer_fd($self->answer_fd)->postponed_token($self->current_command_token)->postponed_command(undef);
 }
 
 sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
@@ -138,12 +153,13 @@ sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
 
     die 'isotovideo: we need to implement a backend queue' if $self->backend_requester;
     $self->backend_requester($self->answer_fd);
+    $self->backend_requester_token($self->current_command_token);
 
     $self->_send_to_cmd_srv({
             $backend_cmd => $response,
             current_api_function => $backend_cmd,
     });
-    $self->_send_to_backend({cmd => $backend_cmd, arguments => $response});
+    $self->_send_to_backend($self->_add_token({cmd => $backend_cmd, arguments => $response}));
     $self->current_api_function($backend_cmd);
 }
 
@@ -169,6 +185,7 @@ sub _handle_command_report_timeout ($self, $response, @) {
 
     # postpone sending the reply
     $self->postponed_answer_fd($self->answer_fd);
+    $self->postponed_token($self->current_command_token);
     $self->postponed_command(undef);
 }
 
@@ -213,12 +230,12 @@ sub _handle_command_set_pause_on_failure ($self, $response, @) {
 }
 
 sub _handle_command_pause_test_execution ($self, $response, @) {
-    return $self->_respond_ok if $self->reason_for_pause;    # do nothing if already paused
-    return $self->_respond_ok if $response->{due_to_failure} && !$self->pause_on_failure;
+    return $self->_respond_ok() if $self->reason_for_pause;    # do nothing if already paused
+    return $self->_respond_ok() if $response->{due_to_failure} && !$self->pause_on_failure;
     my $reason_for_pause = $response->{reason} // 'manually paused';
     $self->reason_for_pause($reason_for_pause);
     $self->_send_to_cmd_srv({paused => 1, reason => $reason_for_pause});
-    $self->postponed_answer_fd($self->answer_fd)->postponed_command(undef);
+    $self->postponed_answer_fd($self->answer_fd)->postponed_token($self->current_command_token)->postponed_command(undef);
 }
 
 sub _handle_command_resume_test_execution ($self, $response, @) {
@@ -238,6 +255,8 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     my $downloader = OpenQA::Isotovideo::NeedleDownloader->new();
     $downloader->download_missing_needles($response->{new_needles} // []);
 
+    $self->_respond_ok();
+
     # skip resuming last command if receiving a resume command without having previously postponed an answer
     # note: This should normally not be the case. However, the JavaScript client can technically send the command
     #       to resume at any time and that apparently also happens sometimes in the fullstack test (see poo#101734).
@@ -245,11 +264,13 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
 
     # if no command has been postponed (because paused due to timeout or on set_current_test) just return 1
     if (!$postponed_command) {
-        myjsonrpc::send_json($postponed_answer_fd, {
+        local $self->{current_command_token} = $self->postponed_token;
+        $self->_send_response($postponed_answer_fd, {
                 ret => ($response->{options} // 1),
                 new_needles => $response->{new_needles},
         });
         $self->postponed_answer_fd(undef);
+        $self->postponed_token(undef);
         return;
     }
 
@@ -259,6 +280,7 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
 
     $self->postponed_command(undef);
     $self->postponed_answer_fd(undef);
+    $self->postponed_token(undef);
     $self->process_command($postponed_answer_fd, $postponed_command);
 }
 
@@ -285,13 +307,13 @@ sub _handle_command_set_current_test ($self, $response, @) {
         $self->reason_for_pause('reached module ' . $pause_test_name);
     }
     $self->update_status_file;
-    $self->_respond_ok_or_postpone_if_paused;
+    $self->_respond_ok_or_postpone_if_paused();
 }
 
 sub _handle_command_tests_done ($self, $response, @) {
     $self->test_died($response->{died});
     $self->test_completed($response->{completed});
-    $self->_respond_ok;
+    $self->_respond_ok();
     $self->emit(tests_done => $response);
     $self->current_test_name('');
     $self->status('finished');
@@ -312,7 +334,7 @@ sub _handle_command_check_screen ($self, $response, @) {
             check_screen => \%arguments,
             current_api_function => $current_api_function,
     });
-    my $tags_resp = $bmwqemu::backend->_send_json({cmd => 'set_tags_to_assert', arguments => \%arguments});
+    my $tags_resp = $bmwqemu::backend->_send_json($self->_add_token({cmd => 'set_tags_to_assert', arguments => \%arguments}));
     $self->tags(($tags_resp // {})->{tags} // []);
     $self->current_api_function($current_api_function);
 }
@@ -320,10 +342,10 @@ sub _handle_command_check_screen ($self, $response, @) {
 sub _handle_command_set_assert_screen_timeout ($self, $response, @) {
     my $timeout = $response->{timeout};
     $self->_send_to_cmd_srv({set_assert_screen_timeout => $timeout});
-    $bmwqemu::backend->_send_json({
-            cmd => 'set_assert_screen_timeout',
-            arguments => $timeout,
-    });
+    $bmwqemu::backend->_send_json($self->_add_token({
+                cmd => 'set_assert_screen_timeout',
+                arguments => $timeout,
+    }));
     $self->_respond_ok();
 }
 

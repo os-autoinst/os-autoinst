@@ -399,6 +399,31 @@ subtest signalhandler => sub {
     } qr/isotovideo received signal INT/, 'Signal logged';
     is($last_signal, 'INT', 'Event emitted');
 };
+subtest token_echo => sub {
+    reset_state();
+    my $token = 'echo-test-token';
+    $command_handler->process_command($answer_fd, {cmd => 'status', json_cmd_token => $token});
+    is($last_received_msg_by_fd[$answer_fd]->{json_cmd_token}, $token, 'json_cmd_token echoed back in status response');
+
+    reset_state();
+    $token = 'backend-token';
+    $command_handler->process_command($answer_fd, {cmd => 'backend_some_cmd', json_cmd_token => $token});
+    $command_handler->send_to_backend_requester({ret => 1});
+    is($last_received_msg_by_fd[$answer_fd]->{json_cmd_token}, $token, 'json_cmd_token echoed back in backend response (auto-injected)');
+
+    subtest 'interleaved commands' => sub {
+        reset_state();
+        my $token1 = 'token-1';
+        my $token2 = 'token-2';
+        $command_handler->process_command($answer_fd, {cmd => 'backend_cmd1', json_cmd_token => $token1});
+        $command_handler->process_command($answer_fd, {cmd => 'status', json_cmd_token => $token2});
+        is($last_received_msg_by_fd[$answer_fd]->{json_cmd_token}, $token2, 'interleaved command gets correct token');
+
+        $command_handler->send_to_backend_requester({ret => 1});
+        is($last_received_msg_by_fd[$answer_fd]->{json_cmd_token}, $token1, 'deferred backend response gets correct token');
+    };
+};
+
 subtest 'Check exit_code_from_test_results' => sub {
     my $mock_runner = Test::MockModule->new('OpenQA::Isotovideo::Runner');
     my @diags;
