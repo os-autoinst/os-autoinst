@@ -145,7 +145,7 @@ subtest 'serial_marker_reinstall_cached_level' => sub {
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
 
     $d->{_serial_marker_level}->{'test-console'} = 2;
-    delete $d->{_serial_marker_hook_installed}->{'test-console'};
+    $d->invalidate_serial_marker_hook('test-console');
 
     is $d->_detect_serial_marker_capability(), 2, 'Returns cached level 2';
     like $typed, qr/PROMPT_COMMAND=/, 'Calls install_serial_marker_hook (types PROMPT_COMMAND)';
@@ -189,10 +189,10 @@ subtest 'reboot_safety' => sub {
     like $typed_string, qr/bar\n/, 'Command typed';
 
     # Case 2: manual clear (e.g. if we know it was lost)
-    $d->reset_console_cache('test-console');
+    $d->reset_serial_marker('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-detect and re-install after resetting the console cache';
+    like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-detect and re-install after resetting the serial marker';
     like $typed_string, qr/baz\n/, 'Command typed after re-installation';
 
     # Case 3: select_console triggers reset
