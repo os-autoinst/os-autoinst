@@ -569,7 +569,6 @@ sub pretty_serial_marker_guard ($self, $value) {
             $self->set_pretty_serial_marker($old_value);
     });
 }
-
 =head2 _detect_serial_marker_capability
 
     _detect_serial_marker_capability()
