@@ -300,7 +300,7 @@ static void idctqtab(unsigned char* qin, PREC* qout, double scale)
 
     for (i = 0; i < 8; i++)
         for (j = 0; j < 8; j++)
-            qout[zig[i * 8 + j]] = qin[i * 8 + j] * aaidct[i] * aaidct[j] * scale;
+            qout[zig[i * 8 + j]] = static_cast<double>(qin[i * 8 + j]) * aaidct[i] * aaidct[j] * scale;
 }
 
 static void setpalette(int* co, int cy, int cb, int cr)
