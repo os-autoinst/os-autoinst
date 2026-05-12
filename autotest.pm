@@ -179,9 +179,11 @@ sub _load_lua () {
     lua_set('use', \&_lua_use);
 }
 
-sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
+sub _esc_py ($str) { $str =~ s/(["\\])/\\$1/gr }
+
+sub _make_test_code_to_eval ($script_path, $script, $package, $is_python) {
     my $casedir = $bmwqemu::vars{CASEDIR};
-    my $code = "package $name;";
+    my $code = "package $package;";
     my $module_code;
     if ($bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES}) {
         $code .= 'use Mojo::Base -strict, -signatures;';
@@ -201,19 +203,31 @@ sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
         # Adding the include path of os-autoinst into python context
         my $inc = File::Basename::dirname(__FILE__);
         my $script_dir = path(File::Basename::dirname($script_path))->to_abs;
+        my $py_module = $package;
+        $py_module =~ s/::/_/g;
+
+        my $esc_inc = _esc_py($inc);
+        my $esc_script_dir = _esc_py($script_dir);
+        my $esc_py_module = _esc_py($py_module);
+        my $esc_script_path = _esc_py($script_path);
+
         $code .= <<~"EOM";
             use base 'basetest';
             use Inline::Python qw(py_eval py_bind_func py_study_package);
             py_eval(<<'END_OF_PYTHON_CODE');
             import sys
-            sys.path.append("$inc")
-            sys.path.append("$script_dir")
-            import $name
+            import importlib.util
+            sys.path.append("$esc_inc")
+            sys.path.append("$esc_script_dir")
+            spec = importlib.util.spec_from_file_location("$esc_py_module", "$esc_script_path")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules["$esc_py_module"] = module
+            spec.loader.exec_module(module)
             END_OF_PYTHON_CODE
-            # Bind the python functions to the perl $name package
-            my %info = py_study_package("$name");
+            # Bind the python functions to the perl $package package
+            my \%info = py_study_package("$py_module");
             for my \$func (\@{ \$info{functions} }) {
-                py_bind_func("${name}::\$func", "$name", \$func);
+                py_bind_func("${package}::\$func", "$py_module", \$func);
             }
             EOM
         $$is_python = 1;
@@ -269,17 +283,37 @@ check C<vars{BIGTEST}> or C<vars{LIVETEST}>.
 
 =cut
 
+sub _test_identifiers ($test) {
+    $test->{identifiers} //= do {
+        my ($base_class) = $test->{class} =~ /([^:]+)$/;
+        [$test->{name}, $test->{class}, $base_class, $test->{fullname}];
+    };
+    return @{$test->{identifiers}};
+}
+
 sub _should_schedule ($test) {
-    if ($bmwqemu::vars{EXCLUDE_MODULES}) {
-        my %excluded = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES};
-        return 0 if $excluded{$test->{class}} || $excluded{$test->{fullname}};
+    if (my $ex_modules = $bmwqemu::vars{EXCLUDE_MODULES}) {
+        state %excluded;
+        state $last_ex_mod = '';
+        if ($last_ex_mod ne $ex_modules) {
+            %excluded = map { $_ => 1 } split /\s*,\s*/, $ex_modules;
+            $last_ex_mod = $ex_modules;
+        }
+        return 0 if any { $excluded{$_} } _test_identifiers($test);
     }
-    if ($bmwqemu::vars{INCLUDE_MODULES}) {
-        my %included = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES};
-        return 0 unless $included{$test->{class}} || $included{$test->{fullname}};
+    if (my $in_modules = $bmwqemu::vars{INCLUDE_MODULES}) {
+        state %included;
+        state $last_in_mod = '';
+        if ($last_in_mod ne $in_modules) {
+            %included = map { $_ => 1 } split /\s*,\s*/, $in_modules;
+            $last_in_mod = $in_modules;
+        }
+        return 0 unless any { $included{$_} } _test_identifiers($test);
     }
     if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
-        return 0 if any { $_->{class} eq $exit_after || $_->{fullname} eq $exit_after } @testorder;
+        for my $t (@testorder) {
+            return 0 if any { $_ eq $exit_after } _test_identifiers($t);
+        }
     }
     return $test->is_applicable;
 }
@@ -288,12 +322,16 @@ sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $script_path = find_script($script);
     my ($name, $category) = parse_test_path($script_path);
+    my @parts = grep { $_ && $_ ne 'other' } split m{/}, $category;
+    my $class = join '::', @parts, $name;
+    my $test_name = $args{name} // $name;
+    my $fullname = "$category-$test_name";
     my ($test, $is_python);
-    my $fullname = "$category-$name";
     state %loaded;    # keep track of loaded packages
-                      # note: Never load a test module that would result in the same package twice as this would only lead to warnings
-                      #       like "Subroutine run redefined at …".
-    eval _make_test_code_to_eval($script_path, $script, $name, \$is_python) unless $loaded{$script_path}++;
+
+    # note: Never load a test module that would result in the same package twice as this would only lead to warnings
+    #       like "Subroutine run redefined at …".
+    eval _make_test_code_to_eval($script_path, $script, $class, \$is_python) unless $loaded{$class}++;
     if (my $err = $@) {
         if ($is_python) {
             try { require Inline; import Inline Python => 'sys.stderr.flush()'; }
@@ -308,7 +346,8 @@ sub loadtest ($script, %args) {
         bmwqemu::serialize_state(component => 'tests', msg => $state_msg, result => 'incomplete');
         die $msg;
     }
-    $test = $name->new($category);
+    $test = $class->new($category);
+    $test->{name} = $test_name;
     $test->{script} = $script;
     $test->{fullname} = $fullname;
     $test->{serial_failures} = $testapi::distri->{serial_failures} // [];
@@ -327,11 +366,10 @@ sub loadtest ($script, %args) {
 
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
-        my $new_name = join '#', $name, ++$nr;
+        my $new_name = join '#', $args{name} // $name, ++$nr;
         $test->{name} = $new_name;
         $test->{fullname} = "$category-$new_name";
     }
-    $test->{name} = $args{name} if $args{name};
 
     $tests{$fullname . $nr} = $test;
 
@@ -341,7 +379,7 @@ sub loadtest ($script, %args) {
     # Test schedule may change at runtime. Update test_order.json to notify
     # the OpenQA server of the change.
     write_test_order() if $tests_running;
-    bmwqemu::diag("scheduling $test->{name} $script");
+    bmwqemu::diag("scheduling $test->{fullname} $script");
 }
 
 our $current_test;

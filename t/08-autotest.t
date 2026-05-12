@@ -34,7 +34,7 @@ like warning {
 sub loadtest ($test, $msg = "loadtest($test)") {
     my $filename = $test =~ /\.(p[my]|lua)$/ ? $test : $test . '.pm';
     $test =~ s/\.(p[my]|lua)//;
-    stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
+    stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling [^ ]+$test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
 my @sent;    # array of messages sent with the fake json_send
@@ -249,13 +249,13 @@ my $targs = OpenQA::Test::RunArgs->new();
 stderr_like {
     autotest::loadtest('tests/run_args.pm', name => 'alt_name', run_args => $targs)
 }
-qr@scheduling alt_name tests/run_args.pm@;
+qr@scheduling [^ ]*alt_name tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'run_args test should not die');
 is($completed, 1, 'run_args test should complete');
 
-stderr_like { autotest::loadtest('tests/run_args.pm', name => 'alt_name') } qr@scheduling alt_name tests/run_args.pm@;
+stderr_like { autotest::loadtest('tests/run_args.pm', name => 'alt_name') } qr@scheduling [^ ]*alt_name#?1? tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'run_args test should not die if there is no run_args');
@@ -402,7 +402,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     loadtest 'scheduler';
     ok !defined $json_data{$json_filename}, 'loadtest should not create test_order.json before tests started';
 
-    stderr_like { autotest::run_all } qr#scheduling next tests/next\.pm#, 'new test module gets scheduled at runtime';
+    stderr_like { autotest::run_all } qr/scheduling [^ ]*next tests\/next\.pm/, 'new test module gets scheduled at runtime';
     is scalar @autotest::testorder, 2, 'loadtest adds new modules at runtime';
     is_deeply $json_data{$json_filename}, \@testorder, 'loadtest updates test_order.json at test runtime';
 
@@ -427,7 +427,7 @@ subtest python => sub {
 
     combined_like {
         lives_ok { autotest::loadtest('tests/pythontest.py') } 'can load test module'
-    } qr{Using python version.*scheduling pythontest tests/pythontest}s, 'python pythontest module referenced';
+    } qr{Using python version.*scheduling [^ ]*pythontest tests/pythontest}s, 'python pythontest module referenced';
 
     %autotest::tests = ();
     loadtest 'pythontest.py';
@@ -465,7 +465,7 @@ subtest 'python with bad run method' => sub {
     my @msg;
     $mock_bmwqemu->mock(diag => sub ($message) { push @msg, $message });
     autotest::loadtest('tests/pythontest_with_bad_run_fn.py');
-    is $msg[0], 'scheduling pythontest_with_bad_run_fn tests/pythontest_with_bad_run_fn.py', 'debug message from autotest';
+    like $msg[0], qr/scheduling [^ ]*pythontest_with_bad_run_fn tests\/pythontest_with_bad_run_fn\.py/, 'debug message from autotest';
     $mock_bmwqemu->unmock('diag');
 
     loadtest 'pythontest_with_bad_run_fn.py';
@@ -565,6 +565,42 @@ subtest croak => sub {
 subtest 'test skipping tests' => sub {
     $bmwqemu::vars{SKIPTO} = 'pythontest.py';
     stderr_like { autotest::runalltests } qr/skipping/, 'Skipping Test Run';
+};
+
+subtest 'modules with same filename' => sub {
+    local %autotest::tests = ();
+    local @autotest::testorder = ();
+    local $bmwqemu::vars{CASEDIR} = "$Bin/data/collision";
+    stderr_like { autotest::loadtest('tests/dir1/test.pm') } qr/scheduling dir1-test tests\/dir1\/test\.pm/, 'dir1/test.pm scheduled';
+    stderr_like { autotest::loadtest('tests/dir2/test.pm') } qr/scheduling dir2-test tests\/dir2\/test\.pm/, 'dir2/test.pm scheduled';
+
+    ok exists $autotest::tests{'dir1-test'}, 'dir1/test scheduled';
+    ok exists $autotest::tests{'dir2-test'}, 'dir2/test scheduled';
+
+    my $t1 = $autotest::tests{'dir1-test'};
+    my $t2 = $autotest::tests{'dir2-test'};
+
+    is $t1->run(), 'dir1', 't1 should return dir1';
+    is $t2->run(), 'dir2', 't2 should return dir2';
+};
+
+subtest 'python modules with same filename' => sub {
+    plan skip_all => 'Inline::Python is not available' unless $has_python;
+
+    local %autotest::tests = ();
+    local @autotest::testorder = ();
+    local $bmwqemu::vars{CASEDIR} = "$Bin/data/collision";
+    stderr_like { autotest::loadtest('pythontests/dir1/test.py') } qr/scheduling dir1-test pythontests\/dir1\/test\.py/, 'dir1/test.py scheduled';
+    stderr_like { autotest::loadtest('pythontests/dir2/test.py') } qr/scheduling dir2-test pythontests\/dir2\/test\.py/, 'dir2/test.py scheduled';
+
+    ok exists $autotest::tests{'dir1-test'}, 'dir1/test.py scheduled';
+    ok exists $autotest::tests{'dir2-test'}, 'dir2/test.py scheduled';
+
+    my $t1 = $autotest::tests{'dir1-test'};
+    my $t2 = $autotest::tests{'dir2-test'};
+
+    is $t1->run(), 'dir1', 't1 should return dir1';
+    is $t2->run(), 'dir2', 't2 should return dir2';
 };
 
 subtest 'start_process' => sub {
