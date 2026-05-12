@@ -291,24 +291,20 @@ sub _test_identifiers ($test) {
     return @{$test->{identifiers}};
 }
 
-sub _should_schedule ($test) {
-    if (my $ex_modules = $bmwqemu::vars{EXCLUDE_MODULES}) {
-        state %excluded;
-        state $last_ex_mod = '';
-        if ($last_ex_mod ne $ex_modules) {
-            %excluded = map { $_ => 1 } split /\s*,\s*/, $ex_modules;
-            $last_ex_mod = $ex_modules;
-        }
-        return 0 if any { $excluded{$_} } _test_identifiers($test);
+sub _matches_var ($test, $var_name) {
+    state %cache;
+    my $val = $bmwqemu::vars{$var_name} // return 0;
+    if (($cache{$var_name}{raw} // '') ne $val) {
+        $cache{$var_name}{parsed} = {map { $_ => 1 } split m{\s*,\s*}, $val};
+        $cache{$var_name}{raw} = $val;
     }
-    if (my $in_modules = $bmwqemu::vars{INCLUDE_MODULES}) {
-        state %included;
-        state $last_in_mod = '';
-        if ($last_in_mod ne $in_modules) {
-            %included = map { $_ => 1 } split /\s*,\s*/, $in_modules;
-            $last_in_mod = $in_modules;
-        }
-        return 0 unless any { $included{$_} } _test_identifiers($test);
+    return any { $cache{$var_name}{parsed}{$_} } _test_identifiers($test);
+}
+
+sub _should_schedule ($test) {
+    return 0 if _matches_var($test, 'EXCLUDE_MODULES');
+    if ($bmwqemu::vars{INCLUDE_MODULES}) {
+        return 0 unless _matches_var($test, 'INCLUDE_MODULES');
     }
     if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
         for my $t (@testorder) {
