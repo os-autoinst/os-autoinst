@@ -67,7 +67,10 @@ if ($spid == 0) {
     while (1) {    # uncoverable statement
         my $json = myjsonrpc::read_json($cfd);    # uncoverable statement
         next unless my $cmd = delete $json->{cmd};    # uncoverable statement
-        myjsonrpc::send_json($cfd, $cmd eq 'version' ? {VERSION => 'COOL'} : {response_for => $cmd, %$json});    # uncoverable statement
+        myjsonrpc::send_json($cfd,    # uncoverable statement
+            $cmd eq 'version' ? {VERSION => 'COOL'}    # uncoverable statement
+            : $cmd eq 'stop_processing_isotovideo_commands' ? {stop_processing_isotovideo_commands => 1}    # uncoverable statement
+            : {response_for => $cmd, %$json});    # uncoverable statement
     }
     _exit(0);    # uncoverable statement
 }
@@ -111,6 +114,17 @@ subtest 'web socket route' => sub {
     $t->message_ok('result from isotovideo is passed back');
     $t->json_message_is('/response_for' => 'set_pause_at_test');
     $t->json_message_is('/name' => 'installation-welcome');
+
+    $t->send_ok(
+        {
+            json => {
+                cmd => 'stop_processing_isotovideo_commands',
+            }
+        },
+        'stop command passed to isotovideo'
+    );
+    $t->message_ok('result from isotovideo is passed back');
+    $t->json_message_is('/stop_processing_isotovideo_commands' => 1);
 
     subtest 'broadcast messages to websocket clients' => sub {
         my $t2 = Test::Mojo->new;
@@ -229,9 +243,15 @@ subtest 'current_script test' => sub {
     $t->get_ok("$base_url/$job/current_script")->status_is(200)->content_type_is('application/octet-stream');
 };
 
-kill TERM => $spid;
-waitpid $spid, 0;
-combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
+combined_like {
+    kill TERM => $spid;
+    waitpid $spid, 0;
+    my $timer = Mojo::IOLoop->timer(5 => sub { Mojo::IOLoop->stop });
+    $cserver->on(collected => sub { Mojo::IOLoop->stop });
+    Mojo::IOLoop->start;
+    $cserver->stop() if $cserver->is_running;
+    $cserver->session->consume_collected_info();
+} qr/commands process exited/, 'commands server stopped';
 
 subtest 'decode failure' => sub {
     my $oc = Test::MockModule->new('OpenQA::Commands');
