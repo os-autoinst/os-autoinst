@@ -318,6 +318,7 @@ subtest 'serial_terminal_redirection_guard' => sub {
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(is_serial_terminal => sub { 1 });
     $mock_testapi->redefine(backend_get_wait_still_screen_on_here_doc_input => sub { 0 });
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     my $typed = '';
     my $diag_msg = '';
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
