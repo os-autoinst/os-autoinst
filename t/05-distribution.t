@@ -146,9 +146,10 @@ subtest 'serial_marker_reinstall_cached_level' => sub {
 
     $d->{_serial_marker_level}->{'test-console'} = 2;
     $d->invalidate_serial_marker_hook('test-console');
+    $mock_testapi->redefine(wait_serial => sub { 'HM' });
 
     is $d->_detect_serial_marker_capability(), 2, 'Returns cached level 2';
-    like $typed, qr/grep -q __oa_prompt.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
+    like $typed, qr/grep -q __oa_prompt.*echo HM > \/dev\/ttyS0.*\{ echo .* \}; \. ~\/\.bashrc/s, 'Calls install_serial_marker_hook (types full setup when hook is missing)';
     ok $d->{_serial_marker_hook_installed}->{'test-console'}, 'Hook marked as installed';
 };
 
@@ -171,11 +172,12 @@ subtest 'reboot_safety' => sub {
             my ($regexp) = @_;
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            return 'HM' if ref($regexp) eq 'Regexp' && 'HM' =~ $regexp;
             return 'OA:DONE-abcd-0-';
     });
 
     $d->script_run('foo');
-    like $typed_string, qr/grep -q __oa_prompt.*__oa_prompt\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
+    like $typed_string, qr/grep -q __oa_prompt.*\{ echo .* \}; \. ~\/\.bashrc/s, 'Initial install uses full setup when hook missing';
     $typed_string = '';
 
     # Simulate console selection (e.g. after reboot/login)
@@ -191,7 +193,7 @@ subtest 'reboot_safety' => sub {
     $d->reset_serial_marker('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/grep -q __oa_prompt.*__oa_prompt\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
+    like $typed_string, qr/grep -q __oa_prompt.*\{ echo .* \}; \. ~\/\.bashrc/s, 'Re-detect and re-install uses full setup when hook missing';
     like $typed_string, qr/baz\n/, 'Command typed after re-installation';
 
     # Case 3: select_console triggers reset
@@ -295,17 +297,20 @@ subtest 'serial_marker_hook_persistence' => sub {
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     my $typed = '';
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $mock_testapi->redefine(wait_serial => sub { 'HM' });
 
     # First install
     $d->install_serial_marker_hook(3);
-    like $typed, qr/grep -q __oa_prompt.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
+    like $typed, qr/grep -q __oa_prompt.*echo HM > \/dev\/ttyS0.*\{ echo .* \}; \. ~\/\.bashrc/s, 'Types consolidated setup with persistence when hook missing';
     ok $d->{_serial_marker_hook_persistent}->{'test-console'}, 'Persistence marked';
 
     # Invalidate hook but keep persistence
     $d->invalidate_serial_marker_hook('test-console');
     $typed = '';
+    $mock_testapi->redefine(wait_serial => sub { 'HC' });
     $d->install_serial_marker_hook(3);
-    like $typed, qr/\. ~\/\.bashrc/, 'Types setup again (with sourcing) when invalidated';
+    like $typed, qr/grep -q __oa_prompt.*echo HC > \/dev\/ttyS0.*\. ~\/\.bashrc/s, 'Only types sourcing when hook is already persistent';
+    unlike $typed, qr/\{ echo .* \}/, 'Does NOT re-type the full logic';
 };
 
 subtest 'serial_terminal_redirection_guard' => sub {
