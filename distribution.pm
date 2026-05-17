@@ -84,6 +84,7 @@ sub ensure_installed ($self, @pkglist) {
 }
 
 sub become_root ($self) {
+    $self->_detect_serial_marker_capability() if testapi::get_var('PRETTY_SERIAL_MARKER');
     testapi::script_sudo('bash', 0);    # become root
     testapi::enter_cmd('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
     testapi::wait_serial('imroot') || die 'Root prompt not there';
