@@ -141,6 +141,7 @@ RUN zypper in -y -C \
        'perl(Scalar::Util)' \
        'perl(Socket)' \
        'perl(Socket::MsgHdr)' \
+       'perl(Syntax::Keyword::Try)' \
        'perl(Template::Toolkit)' \
        'perl(Term::ANSIColor)' \
        'perl(Test::CheckGitStatus)' \

@@ -149,6 +149,7 @@ test_base_requires:
   perl(Devel::Cover):
   perl(FindBin):
   perl(Pod::Coverage):
+  perl(Syntax::Keyword::Try):
   perl(Test::MockModule):
   perl(Test::MockObject):
   perl(Test::MockRandom):
