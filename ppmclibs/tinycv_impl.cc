@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <condition_variable>
+#include <csignal>
 #include <functional>
 #include <mutex>
 #include <exception>
 #include <iostream>
+#include <cerrno>
+#include <cstdlib>
 #include <cstdint>
 #include <cstdio>
+#include <signal.h>
 #include <sys/time.h>
 #include <byteswap.h>
 
@@ -331,7 +335,7 @@ private:
  */
 int opencv_default_thread_count()
 {
-    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs() - 1));
+    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs()));
 }
 
 /*!
@@ -366,10 +370,33 @@ void create_opencv_threads(int thread_count)
     parallel_for_(Range(0, thread_count), RunFunctionInParallel([&] (const Range &) {
         // keep the thread idling until the expected number of threads has been spawned
         std::unique_lock<std::mutex> lock(m);
+
         if (++threads_spawned >= thread_count) {
             cv.notify_all(); // note: The last thread releases all previously spawned threads.
         } else {
             cv.wait(lock);
+        }
+
+        // check whether the signal mask is set as expected
+        auto current_set = sigset_t();
+        sigemptyset(&current_set);
+        auto sigmask_get = pthread_sigmask(SIG_BLOCK, nullptr, &current_set);
+
+        // exit with an error if the signal mask does not contain at least SIGCHLD and SIGTERM
+        if (sigmask_get != 0) {
+            std::cerr << "Unable to get sigprocmask of OpenCV thread: " << std::strerror(errno) << '\n';
+            std::exit(EXIT_FAILURE);
+        }
+        const auto is_sigchld_blocked = sigismember(&current_set, SIGCHLD);
+        const auto is_sigterm_blocked = sigismember(&current_set, SIGTERM);
+        if (is_sigchld_blocked != 1 || is_sigterm_blocked != 1) {
+            if (is_sigchld_blocked == -1 || is_sigterm_blocked == -1) {
+                auto lock = std::unique_lock<std::mutex>(m);
+                std::cerr << "Not all signals are blocked in OpenCV thread: " << std::strerror(errno) << '\n';
+            } else {
+                std::cerr << "Not all signals are blocked in OpenCV thread.\n";
+            }
+            std::exit(EXIT_FAILURE);
         }
     }));
 }
