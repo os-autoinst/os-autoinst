@@ -395,7 +395,7 @@ subtest 'input events' => sub {
     my ($cmds_fh, @cmds);
     my $console = consoles::video_stream->new(undef, {
             url => 'udp://@:5004',
-            input_cmd => "socat -lf /dev/null STDIO 'EXEC:yes ok!!CREATE:input-commands'",
+            input_cmd => q{perl -e '$|=1; open my $fh, ">", "input-commands"; while(<>) { print $fh $_; print "ok\n" }'},
     });
     $console->backend($mock_backend);
     $console->activate;
