@@ -281,6 +281,6 @@ done_testing;
 
 END {
     require File::Path;
-    File::Path::remove_tree(grep { -d $_ } @tempfiles);
-    unlink grep { -f $_ } @tempfiles;
+    File::Path::remove_tree(grep { -d } @tempfiles);
+    unlink grep { -f } @tempfiles;
 }

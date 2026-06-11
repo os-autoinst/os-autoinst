@@ -164,7 +164,7 @@ sub _handle_isotovideo_response ($app, $response) {
     return undef unless $response && $response->{stop_processing_isotovideo_commands};
 
     # stop processing isotovideo commands if isotovideo says so
-    $app->log->info('cmdsrv: stop processing isotovideo commands');
+    $app->log->debug('cmdsrv: stop processing isotovideo commands');
     $app->defaults(isotovideo => undef);
 }
 
