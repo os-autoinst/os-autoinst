@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
+use Feature::Compat::Try;
 use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
@@ -69,9 +70,17 @@ my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
     %bmwqemu::vars = (CASEDIR => $case_dir);
-    my $out = combined_from {
-        throws_ok { checkout_git_repo_and_branch('CASEDIR', retry_count => 0) } qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, 'Error message when trying to clone wrong git hash'
+    my ($err, $out);
+    $out = combined_from {
+        try {
+            checkout_git_repo_and_branch('CASEDIR', retry_count => 0);
+        }
+        catch ($e) {
+            $err = $e;
+        }
     };
+    like $err, qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, 'Error message when trying to clone wrong git hash'
+      or diag "Test failed! Full Git output was:\n$out";
     like $out, qr{Fetching 'abcdef' from origin manually}s, 'manual git fetch for revspec was attempted';
     like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch with --depth option was attempted';
 };
