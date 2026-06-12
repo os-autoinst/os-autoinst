@@ -464,8 +464,7 @@ sub install_serial_marker_hook ($self, $level) {
     # Sourcing ~/.bashrc then activates the hook in the current session.
     testapi::type_string "grep -q __oa_prompt ~/.bashrc 2>/dev/null || { echo '$func; $pc' | tee -a ~/.bashrc ~/.profile >/dev/null; }; . ~/.bashrc\n";
 
-    my $console = testapi::current_console();
-    return undef unless defined $console;
+    my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;
     $self->{_serial_marker_hook_persistent}->{$console} = 1;
 }
@@ -485,8 +484,7 @@ a reboot or when switching to a different OS/shell.
 =cut
 
 sub reset_serial_marker ($self, $console = undef) {
-    $console //= testapi::current_console();
-    return undef unless defined $console;
+    $console //= testapi::current_console() // 'sut';
     delete $self->{_serial_marker_level}->{$console};
     $self->invalidate_serial_marker_hook($console);
 }
@@ -506,8 +504,7 @@ environment-specific hook needs to be re-installed for the new user.
 =cut
 
 sub invalidate_serial_marker_hook ($self, $console = undef) {
-    $console //= testapi::current_console();
-    return undef unless defined $console;
+    $console //= testapi::current_console() // 'sut';
     delete $self->{_serial_marker_hook_installed}->{$console};
 }
 
@@ -583,8 +580,7 @@ Returns:
 =cut
 
 sub _detect_serial_marker_capability ($self) {
-    my $console = testapi::current_console();
-    return 1 unless defined $console;
+    my $console = testapi::current_console() // 'sut';
     if (my $level = $self->{_serial_marker_level}->{$console}) {
         return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
 
