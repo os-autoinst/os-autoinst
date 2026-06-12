@@ -623,11 +623,23 @@ subtest 'upload_logs' => sub {
 };
 
 subtest 'script_sudo' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(is_serial_terminal => 0);
+    $mock_testapi->redefine(hashed_string => 'XXX');
+    $testapi::distri->{_serial_marker_level}->{'a-console'} = 1;
+    $fake_exit = 0;
+
     script_sudo 'rm /boot/grub/menu.lst';
     is_deeply $cmds, [
         {
-            text => "sudo rm /boot/grub/menu.lst; echo XXX > /dev/null\n",
-            cmd => 'backend_type_string'
+            text => 'sudo rm /boot/grub/menu.lst',
+            cmd => 'backend_type_string',
+            max_interval => 250
+        },
+        {
+            text => '; echo XXX-$?- > /dev/null' . "\n",
+            cmd => 'backend_type_string',
+            max_interval => 250
         },
         {
             mustmatch => 'sudo-passwordprompt',
@@ -638,16 +650,15 @@ subtest 'script_sudo' => sub {
         },
         {
             cmd => 'backend_type_string',
-            secret => 1,
             text => 'stupid',
             max_interval => 100
         }
     ];
     $cmds = [];
     script_sudo('ls /', 0);
-    is $cmds->[0]{text}, "sudo ls /\n", 'text argument of script_sudo matched';
-    is_deeply $cmds->[0], {text => "sudo ls /\n", cmd => 'backend_type_string'}, 'sudo command is typed';
-    ok $cmds->[2]{secret}, 'password is treated as secret';
+    is $cmds->[0]{text}, 'sudo ls /', 'text argument of script_sudo matched';
+    is $cmds->[1]{cmd}, 'check_screen', 'check_screen of script_sudo matched';
+    is $cmds->[2]{text}, 'stupid', 'password of script_sudo matched';
     $cmds = [];
 };
 
@@ -1283,7 +1294,12 @@ $bmwqemu::vars{CASEDIR} = 'foo';
 is get_test_data('foo'), undef, 'get_test_data can be called';
 $bmwqemu::vars{CASEDIR} = 't';
 like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
-lives_ok { become_root } 'become_root can be called';
+{
+    my $old_fake_exit = $fake_exit;
+    $fake_exit = 0;
+    lives_ok { become_root } 'become_root can be called';
+    $fake_exit = $old_fake_exit;
+}
 lives_ok { hold_key('ret') } 'hold_key can be called';
 lives_ok { release_key('ret') } 'release_key can be called';
 lives_ok { reset_consoles } 'reset_consoles can be called';

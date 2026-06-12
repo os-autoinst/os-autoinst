@@ -84,11 +84,17 @@ sub ensure_installed ($self, @pkglist) {
 }
 
 sub become_root ($self) {
-    testapi::script_sudo('bash', 0);    # become root
-    testapi::enter_cmd('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
-    testapi::wait_serial('imroot') || die 'Root prompt not there';
-    testapi::enter_cmd('cd /tmp');
-    $self->invalidate_serial_marker_hook();
+    $self->script_sudo('bash', 0);
+
+    my $console = testapi::current_console() // 'sut';
+    my $level = $self->{_serial_marker_level}->{$console} // 1;
+
+    $self->install_serial_marker_hook($level) if $level > 1;
+
+    my $uid = $self->script_run('id -u');
+    die 'Failed to become root' unless defined $uid && $uid == 0;
+
+    $self->script_run('cd /tmp');
 }
 
 =head2 disable_key_repeat
@@ -144,7 +150,8 @@ sub script_run ($self, $cmd, @args) {
             check_typing_cmd => 1,
             output => '',
             quiet => undef,
-            max_interval => testapi::DEFAULT_MAX_INTERVAL
+            max_interval => testapi::DEFAULT_MAX_INTERVAL,
+            check_password => undef
         }, ['timeout'], @args);
 
     if (testapi::is_serial_terminal) {
@@ -168,6 +175,7 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
+            $self->_check_sudo_password(\%args);
             my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
             return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
@@ -191,6 +199,7 @@ sub script_run ($self, $cmd, @args) {
                 testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
             }
         }
+        $self->_check_sudo_password(\%args);
         my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
         return undef unless $res;
         return ($res =~ $wait_pattern)[0];
@@ -198,6 +207,7 @@ sub script_run ($self, $cmd, @args) {
     else {
         testapi::type_string "$cmd", max_interval => $args{max_interval};
         testapi::send_key 'ret';
+        $self->_check_sudo_password(\%args);
         return undef;
     }
 }
@@ -239,6 +249,13 @@ sub background_script_run ($self, $cmd, %args) {
     return $1;
 }
 
+sub _check_sudo_password ($self, $args) {
+    if ($args->{check_password} && testapi::check_screen('sudo-passwordprompt', 3)) {
+        testapi::type_password;
+        testapi::send_key 'ret';
+    }
+}
+
 =head2 script_sudo
 
 script_sudo($program, $wait_seconds)
@@ -250,20 +267,7 @@ $wait_seconds
 =cut
 
 sub script_sudo ($self, $prog, $wait = 10) {
-    my $str;
-    if ($wait > 0) {
-        $str = testapi::hashed_string("SS$prog$wait");
-        $prog = "$prog; echo $str > /dev/$testapi::serialdev";
-    }
-    testapi::type_string "sudo $prog\n";
-    if (testapi::check_screen 'sudo-passwordprompt', 3) {
-        testapi::type_password;
-        testapi::send_key 'ret';
-    }
-    if ($str) {
-        return testapi::wait_serial($str, $wait, internal_marker => 1);
-    }
-    return undef;
+    return $self->script_run("sudo $prog", timeout => $wait, check_password => 1);
 }
 
 =head2 script_output
