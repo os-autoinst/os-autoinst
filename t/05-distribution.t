@@ -92,6 +92,7 @@ subtest 'pretty_serial_marker' => sub {
     });
 
     $typed_string = '';
+    $d->{_serial_marker_level}->{'test-console'} = 2;
     $d->script_run('foo');
     like $typed_string, qr/export __OA_MARK=.*; foo\n/, 'Level 2 uses export marker';
 

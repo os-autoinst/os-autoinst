@@ -596,12 +596,7 @@ sub _detect_serial_marker_capability ($self) {
     testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
     my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
     if ($out && $out =~ /BASH:(?:[3-9]|\d{2,})/) {
-        $level = 2;
-        # Check if bash and history features are available to use pretty serial markers
-        testapi::type_string "type fc && set -o | grep -q 'history.*on' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
-        if (testapi::wait_serial(qr/FC:OK:/, 10)) {
-            $level = 3;
-        }
+        $level = 3;
         $self->install_serial_marker_hook($level);
         bmwqemu::log_call("serial_marker: console '$console' Level $level detected");
     }
