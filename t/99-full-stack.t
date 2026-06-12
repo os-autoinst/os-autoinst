@@ -75,6 +75,8 @@ like $log, qr/Saving storage devices \(current VM state is running\)/, 'save_sto
 like $log, qr/Saving storage complete/, 'save_storage done';
 like $log, qr/get_test_data returned expected file/, 'get_test_data test';
 like $log, qr/save_tmp_file returned expected file/, 'save_tmp_file test';
+like $log, qr/serial_marker: console 'sut' Level 3 detected/, 'pretty serial markers reach Level 3';
+like $log, qr/wait_serial:.*OA:DONE.*ok/, 'Level 3 marker response seen in serial output';
 unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected termination';
 
 my $ignore_results_re = qr/fail/;
