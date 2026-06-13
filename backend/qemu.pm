@@ -589,7 +589,9 @@ sub virtio_console_names () {
 sub virtio_console_fifo_names () { map { $_ . '.in', $_ . '.out' } virtio_console_names }
 
 sub console_fifo ($name) {
-    return bmwqemu::fctwarn("Fifo pipe '$name' already exists!") if -e $name;
+    if (-e $name) {
+        unlink $name or $!{ENOENT} or bmwqemu::fctwarn("Could not unlink existing pipe $name: $!");
+    }
     mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
 }
 
