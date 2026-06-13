@@ -85,6 +85,7 @@ sub ensure_installed ($self, @pkglist) {
 
 sub become_root ($self) {
     $self->script_sudo('bash', 0);
+    $self->invalidate_serial_marker_hook();
 
     my $console = testapi::current_console() // 'sut';
     my $level = $self->{_serial_marker_level}->{$console} // 1;
