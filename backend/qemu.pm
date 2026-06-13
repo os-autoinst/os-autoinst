@@ -595,7 +595,9 @@ sub console_fifo ($name) {
 
 sub create_virtio_console_fifo () { console_fifo($_) for virtio_console_fifo_names }
 
-sub delete_virtio_console_fifo () { unlink or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
+sub delete_virtio_console_fifo () {
+    unlink or $!{ENOENT} or bmwqemu::fctwarn("Could not unlink $_: $!") for virtio_console_fifo_names;
+}
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
