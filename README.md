@@ -355,6 +355,32 @@ for how it can be used. The [README of the example test
 distribution](https://github.com/os-autoinst/os-autoinst-distri-example/blob/main/README.md#local-testing-and-ci-environment)
 also contains further details.
 
+## Production Validation Runs
+
+For validating code changes on your local fork branch against production jobs, you can clone an existing job from a production openQA instance and instruct it to execute `isotovideo` inside a container utilizing your custom `os-autoinst` branch.
+
+```sh
+openqa-clone-job --within-instance https://openqa.opensuse.org/tests/<job_id> \
+    _GROUP=0 \
+    {TEST,BUILD}+=-validation \
+    ISOTOVIDEO="mkdir -p /var/lib/openqa/cache/podman/run /var/lib/openqa/cache/podman/config /var/lib/openqa/cache/podman/data && \
+      env HOME=/var/lib/openqa/cache/podman \
+      XDG_CONFIG_HOME=/var/lib/openqa/cache/podman/config \
+      XDG_DATA_HOME=/var/lib/openqa/cache/podman/data \
+      XDG_RUNTIME_DIR=/var/lib/openqa/cache/podman/run \
+      podman --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file \
+      run --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache \
+      registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest \
+      sh -c 'git clone --branch=<your_branch> --depth=1 https://github.com/<your_github_username>/os-autoinst.git && \
+        make -C os-autoinst && \
+        zypper -n in os-autoinst-distri-opensuse-deps && \
+        os-autoinst/isotovideo -d'" \
+    CASEDIR=https://github.com/<your_github_username>/os-autoinst-distri-opensuse.git#<your_branch> \
+    PRODUCTDIR=os-autoinst-distri-opensuse/products/opensuse
+```
+
+This will run the specified production job inside a container, building your custom `os-autoinst` branch on-the-fly, allowing you to thoroughly validate your changes before making a pull request.
+
 # Standalone tool for image search
 
 The script `imgsearch` in the repository’s script folder allows to use
