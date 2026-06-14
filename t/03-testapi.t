@@ -323,6 +323,7 @@ is current_console, 'a-console', 'Current console is the a-console';
 is console('b-console')->{console}, 'b-console', 'new console created on the fly';
 
 subtest 'script_run' => sub {
+    local $bmwqemu::vars{PRETTY_SERIAL_MARKER} = 0;
     # just save ourselves some time during testing
     $mock_bmwqemu->noop('wait_for_one_more_screenshot');
 

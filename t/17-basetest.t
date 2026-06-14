@@ -570,11 +570,18 @@ subtest record_serialresult_hiding => sub {
 
     my @test_cases = (
         {
-            name => 'expected regex is visible by default (no pretty vars set)',
-            vars => {},
+            name => 'expected regex is visible when PRETTY_SERIAL_MARKER is 0',
+            vars => {PRETTY_SERIAL_MARKER => 0},
             params => ['regex', 'ok', 'some output marker', internal_marker => 1, marker_pattern => 'marker'],
             expected => [qr/# wait_serial expected: regex/],
             not_expected => [],
+        },
+        {
+            name => 'expected regex is hidden by default (no pretty vars set)',
+            vars => {},
+            params => ['regex', 'ok', 'some output marker', internal_marker => 1, marker_pattern => 'marker'],
+            expected => [qr/some output/],
+            not_expected => [qr/# wait_serial expected: regex/],
         },
         {
             name => 'expected regex is hidden and literal marker is stripped when PRETTY_SERIAL_MARKER is set',
@@ -621,7 +628,7 @@ subtest record_serialresult_hiding => sub {
     );
 
     foreach my $case (@test_cases) {
-        $mock_testapi->mock(get_var => sub ($var) { return $case->{vars}->{$var} });
+        $mock_testapi->mock(get_var => sub ($var, $default = undef) { return exists $case->{vars}->{$var} ? $case->{vars}->{$var} : $default });
         $basetest->record_serialresult(@{$case->{params}});
         like $recorded_output, $_, "$case->{name} (contains expected)" for @{$case->{expected}};
         unlike $recorded_output, $_, "$case->{name} (does not contain unexpected)" for @{$case->{not_expected}};
