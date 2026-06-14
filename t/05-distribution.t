@@ -97,7 +97,7 @@ subtest 'pretty_serial_marker' => sub {
     $typed_string = '';
     $d->{_serial_marker_level}->{'test-console'} = 2;
     $d->script_run('foo');
-    like $typed_string, qr/export __OA_MARK=.*; foo\n/, 'Level 2 uses export marker';
+    like $typed_string, qr/export _OAM=.*; foo\n/, 'Level 2 uses export marker';
 
     $mock_testapi->redefine(wait_serial => sub {
             my ($regexp) = @_;
@@ -152,7 +152,7 @@ subtest 'serial_marker_reinstall_cached_level' => sub {
     $d->invalidate_serial_marker_hook('test-console');
 
     is $d->_detect_serial_marker_capability(), 2, 'Returns cached level 2';
-    like $typed, qr/grep -q __oa_prompt.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
+    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
     ok $d->{_serial_marker_hook_installed}->{'test-console'}, 'Hook marked as installed';
 };
 
@@ -179,7 +179,7 @@ subtest 'reboot_safety' => sub {
     });
 
     $d->script_run('foo');
-    like $typed_string, qr/grep -q __oa_prompt.*__oa_prompt\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
+    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
     $typed_string = '';
 
     # Simulate console selection (e.g. after reboot/login)
@@ -195,7 +195,7 @@ subtest 'reboot_safety' => sub {
     $d->reset_serial_marker('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/grep -q __oa_prompt.*__oa_prompt\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
+    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
     like $typed_string, qr/baz\n/, 'Command typed after re-installation';
 
     # Case 3: select_console triggers reset
@@ -302,7 +302,7 @@ subtest 'serial_marker_hook_persistence' => sub {
 
     # First install
     $d->install_serial_marker_hook(3);
-    like $typed, qr/grep -q __oa_prompt.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
+    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
     ok $d->{_serial_marker_hook_persistent}->{'test-console'}, 'Persistence marked';
 
     # Invalidate hook but keep persistence
@@ -352,11 +352,11 @@ subtest 'serial_terminal_redirection_guard' => sub {
 
         $d->script_run($case->{cmd});
         if ($case->{guard}) {
-            like $typed, qr/OA_NO_MARKER=1; /, $case->{msg};
+            like $typed, qr/_OANM=1; /, $case->{msg};
             like $diag_msg, qr/Manual redirection to \/dev\/ttyS0 is deprecated/, 'deprecation warning shown';
         }
         else {
-            unlike $typed, qr/OA_NO_MARKER=1; /, $case->{msg};
+            unlike $typed, qr/_OANM=1; /, $case->{msg};
             unlike $diag_msg, qr/Manual redirection to \/dev\/ttyS0 is deprecated/, 'no deprecation warning for normal command';
         }
         is $vars{PRETTY_SERIAL_MARKER}, 1, "PRETTY_SERIAL_MARKER is active again after '$case->{cmd}'";
@@ -367,7 +367,7 @@ subtest 'serial_terminal_redirection_guard' => sub {
     delete $d->{_serial_marker_hook_persistent}->{'test-console'};
     $d->{_serial_marker_level}->{'test-console'} = 3;
     $d->install_serial_marker_hook(3);
-    like $typed, qr/__oa_prompt\(\) \{ r=\$\?; if \[ -n "\$OA_NO_MARKER" \]/, '__oa_prompt must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
+    like $typed, qr/_oap\(\)\{ r=\$\?;if \[ -n "\$_OANM" \]/, '_oap must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
 };
 
 subtest 'terminal_session_boundary' => sub {
@@ -391,16 +391,16 @@ subtest 'terminal_session_boundary' => sub {
     });
 
     $d->script_run('first_cmd');
-    like $typed, qr/__oa_prompt/, 'pretty serial marker hook is initially configured and installed on the terminal session';
+    like $typed, qr/_oap/, 'pretty serial marker hook is initially configured and installed on the terminal session';
 
     $typed = '';
     $d->script_run('second_cmd');
-    unlike $typed, qr/__oa_prompt/, 'hook re-installation is skipped on subsequent commands if cached status is stale';
+    unlike $typed, qr/_oap/, 'hook re-installation is skipped on subsequent commands if cached status is stale';
 
     $d->invalidate_serial_marker_hook('x11');
     $typed = '';
     $d->script_run('third_cmd');
-    like $typed, qr/__oa_prompt/, 'hook is successfully re-installed on the next command after cached status is explicitly invalidated';
+    like $typed, qr/_oap/, 'hook is successfully re-installed on the next command after cached status is explicitly invalidated';
 };
 
 done_testing;

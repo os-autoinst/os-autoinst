@@ -184,11 +184,11 @@ sub script_run ($self, $cmd, @args) {
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
         if ($level == 2) {
-            testapi::type_string "export __OA_MARK=$str; $cmd\n", max_interval => $args{max_interval};
+            testapi::type_string "export _OAM=$str; $cmd\n", max_interval => $args{max_interval};
         }
         else {
             my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-            my $final_cmd = $skip_pretty ? "OA_NO_MARKER=1; $cmd" : $cmd;
+            my $final_cmd = $skip_pretty ? "_OANM=1; $cmd" : $cmd;
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
                 testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
@@ -457,17 +457,17 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     my $func;
     if ($level == 3) {
-        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else c=\$(fc -ln -1 2>/dev/null); printf "OA:DONE-%04x-%d-%s\\nOA:START\\n" \$RANDOM \$r "\${c#\${c%%[![:space:]]*}}" > $dev; fi; }};
+        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(fc -ln -1 2>/dev/null);printf "OA:DONE-%04x-%d-%s\\nOA:START\\n" \$RANDOM \$r "\${c#\${c%%[![:space:]]*}}">$dev;fi;}};
     }
     else {
-        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};
+        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}};
     }
-    my $pc = 'PROMPT_COMMAND=__oa_prompt';
+    my $pc = 'PROMPT_COMMAND=_oap';
 
     # Consolidate installation and persistence into a single typed line to minimize VNC overhead.
     # We append to both ~/.bashrc and ~/.profile to cover both interactive and login shells.
     # Sourcing ~/.bashrc then activates the hook in the current session.
-    testapi::type_string "grep -q __oa_prompt ~/.bashrc 2>/dev/null || { echo '$func; $pc' | tee -a ~/.bashrc ~/.profile >/dev/null; }; . ~/.bashrc\n";
+    testapi::type_string "grep -q _oap ~/.bashrc 2>/dev/null||{ echo '$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
 
     my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;
