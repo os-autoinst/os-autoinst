@@ -18,10 +18,13 @@ my @wait_serial_calls;
 subtest 'script_run' => sub {
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
     $mock_testapi->redefine(type_string => undef);
     $mock_testapi->redefine(wait_serial => undef);
     throws_ok { $d->script_run() } qr/^Too few arguments/, 'Error on incorrect usage';
-    like warning { $d->script_run('foo') }, qr/^Use of uninitialized.*serialdev/, 'Warning on undefined serialdev';
+    my @warns = warnings { $d->script_run('foo') };
+    like $warns[0], qr/^Use of uninitialized.*serialdev/, 'Warning on undefined serialdev';
     {
         no warnings 'once';
         $testapi::serialdev = 'my_serial';
@@ -81,7 +84,7 @@ subtest 'pretty_serial_marker' => sub {
     $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? (defined $_[1] ? $_[1] : 1) : undef });
     $testapi::serialdev = 'ttyS0';
 
     $mock_testapi->redefine(wait_serial => sub {
@@ -164,7 +167,7 @@ subtest 'reboot_safety' => sub {
     $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? (defined $_[1] ? $_[1] : 1) : undef });
     $testapi::serialdev = 'ttyS0';
 
     # Initial detection (Level 3)
@@ -248,7 +251,7 @@ subtest 'pretty_serial_marker_helpers' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     my %vars;
-    $mock_testapi->redefine(get_var => sub { $vars{$_[0]} });
+    $mock_testapi->redefine(get_var => sub { exists $vars{$_[0]} ? $vars{$_[0]} : $_[1] });
     $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     my $typed = '';
@@ -314,7 +317,7 @@ subtest 'serial_terminal_redirection_guard' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     my %vars = (PRETTY_SERIAL_MARKER => 1);
-    $mock_testapi->redefine(get_var => sub { $vars{$_[0]} });
+    $mock_testapi->redefine(get_var => sub { exists $vars{$_[0]} ? $vars{$_[0]} : $_[1] });
     $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(is_serial_terminal => sub { 1 });
@@ -377,7 +380,7 @@ subtest 'terminal_session_boundary' => sub {
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(current_console => sub { 'x11' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? (defined $_[1] ? $_[1] : 1) : undef });
     $mock_testapi->redefine(check_screen => sub { undef });
     $testapi::serialdev = 'ttyS0';
 

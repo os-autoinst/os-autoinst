@@ -437,7 +437,7 @@ sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     # take screenshot for documentation (screenshot does not represent fail itself)
     $self->take_screenshot() unless (testapi::is_serial_terminal);
 
-    my $pretty = $testapi::distri ? $testapi::distri->get_pretty_serial_marker() : (testapi::get_var('PRETTY_SERIAL_MARKER') || testapi::get_var('HIDE_MARKER_EVALUATION'));
+    my $pretty = $testapi::distri ? $testapi::distri->get_pretty_serial_marker() : (testapi::get_var('PRETTY_SERIAL_MARKER', 1) || testapi::get_var('HIDE_MARKER_EVALUATION'));
     my $internal = $args{internal_marker};
     my $output_string = $string;
     my $captured_val;
