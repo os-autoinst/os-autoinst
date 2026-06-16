@@ -17,9 +17,6 @@ use cv;
 cv::init();
 require tinycv;
 
-
-my ($image, $img_src);
-
 my $data_dir = "$Bin/data";
 my $result_dir = "$data_dir/results";
 
@@ -34,7 +31,7 @@ $watch->start();
 
 foreach my $img_src (@all_images) {
     my (undef, $filename) = tempfile('test-XXXXX', DIR => $result_dir, SUFFIX => $img_src, OPEN => 0);
-    $image = tinycv::read($data_dir . '/' . $img_src);
+    my $image = tinycv::read($data_dir . '/' . $img_src);
     if ($image) {
         $image->write($filename);
     }
