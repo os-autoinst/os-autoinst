@@ -715,6 +715,10 @@ subtest 'lua_runtest' => sub {
 
 done_testing();
 
+undef $mock_jsonrpc;
+undef $mock_bmwqemu;
+undef $isolation_guard;
+
 END {
     unlink qw(vars.json base_state.json);
     rmtree $_ for qw(testresults foo);
