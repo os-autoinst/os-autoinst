@@ -34,6 +34,7 @@ use OpenQA::Exceptions;
 use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
+use Data::Dumper;
 
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
 use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
@@ -637,7 +638,6 @@ sub check_socket ($self, $fh, $write = undef) {
         }
     }
     else {
-        use Data::Dumper;
         die 'no command in ' . Dumper($cmd);
     }
     return 1;

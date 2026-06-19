@@ -1,7 +1,7 @@
 theme = community + openqa
 severity = 4
 
-include = strict ValuesAndExpressions::ProhibitInterpolationOfLiterals CodeLayout::ProhibitParensWithBuiltins BuiltinFunctions::RequireBlockMap BuiltinFunctions::ProhibitStringySplit ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions ValuesAndExpressions::RequireQuotedHeredocTerminator Variables::ProhibitPackageVars CodeLayout::RequireTidyCode Community::WarningsSwitch Community::EmptyReturn Variables::ProhibitUnusedVariables RegularExpressions::ProhibitUselessTopic BuiltinFunctions::ProhibitUselessTopic CodeLayout::ProhibitQuotedWordLists BuiltinFunctions::RequireBlockGrep
+include = strict ValuesAndExpressions::ProhibitInterpolationOfLiterals CodeLayout::ProhibitParensWithBuiltins BuiltinFunctions::RequireBlockMap BuiltinFunctions::ProhibitStringySplit ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions ValuesAndExpressions::RequireQuotedHeredocTerminator Variables::ProhibitPackageVars CodeLayout::RequireTidyCode Community::WarningsSwitch Community::EmptyReturn Variables::ProhibitUnusedVariables RegularExpressions::ProhibitUselessTopic BuiltinFunctions::ProhibitUselessTopic CodeLayout::ProhibitQuotedWordLists BuiltinFunctions::RequireBlockGrep Modules::ProhibitConditionalUseStatements
 
 verbose = ::warning file=%f,line=%l,col=%c,title=%m - severity %s::[%p] %e\n
 
