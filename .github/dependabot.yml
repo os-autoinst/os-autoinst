@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/rust/spice-bridge"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "rust"

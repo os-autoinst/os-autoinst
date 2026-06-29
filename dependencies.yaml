@@ -74,6 +74,9 @@ build_base_requires:
   pkgconfig(sndfile):
   pkgconfig(theoraenc):
   '%opencv_require':
+  cargo:
+  cargo-packaging:
+  pkgconfig(spice-client-glib-2.0):
 
 build_requires:
   '%build_base_requires':
@@ -141,6 +144,7 @@ ocr_requires:
 test_non_s390_requires:
   ipxe-bootimgs:
   qemu-x86:
+  qemu-spice:
 
 test_base_requires:
   '%main_requires':
