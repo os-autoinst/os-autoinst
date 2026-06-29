@@ -46,6 +46,8 @@ set(PERL_FILES
     consoles/video_stream.pm
     consoles/virtio_terminal.pm
     consoles/vnc_base.pm
+    consoles/spice_base.pm
+    consoles/SPICE.pm
     consoles/VNC.pm
     consoles/VMWare.pm
     distribution.pm
@@ -158,6 +160,19 @@ add_custom_target(
     ${OUT_OF_SOURCE_TREE_BUILD_COMMANDS}
 )
 add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
+
+# Build the SPICE bridge daemon using Cargo
+find_program(CARGO_BIN cargo)
+if (CARGO_BIN)
+    add_custom_target(
+        spice-bridge
+        ALL
+        COMMENT "Building SPICE bridge Rust daemon"
+        COMMAND "${CARGO_BIN}" build --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/rust/spice-bridge/Cargo.toml"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_dependencies(symlinks spice-bridge)
+endif ()
 
 # create installable versions of isotovideo and cv.pm
 set(OS_AUTOINST_VERSION "" CACHE STRING "os-autoinst version to set for the installation")

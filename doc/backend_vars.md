@@ -215,6 +215,10 @@ Supported variables per backend
 | VNC | integer | worker instance + 90 | Display on which VNC server is running. Actual port is 5900 + VNC |
 | VNC_EXTRA_VARS | string |  | Additional variables passed to the qemu VNC parameter (`-vnc`) |
 | VNCKB |  |  | Set the keyboard layout if you are not using en-us |
+| QEMU_SPICE | boolean | 0 | Enable SPICE display instead of VNC |
+| SPICE_EXTRA_VARS | string |  | Additional options passed to the QEMU SPICE parameter (`-spice`) |
+| SPICE_PORT | integer | 5900 + VNC | Port on which the SPICE server runs |
+| VIRT_CONSOLE | string | vnc | Preferred virtual console type (e.g., set to `spice` to enable SPICE) |
 | WORKER_CLASS | string | undef | qemu system types |
 | WORKER_HOSTNAME | string | undef | Worker hostname |
 | QEMU_VIDEO_DEVICE | string | virtio-gpu-pci on ARM, VGA otherwise | Video device to use with VM (using -device, not -vga). Can have options appended e.g. "virtio-gpu-gl,edid=on", but it is better to set QEMU_VIDEO_DEVICE_OPTIONS. See qemu docs and https://www.kraxel.org/blog/2019/09/display-devices-in-qemu/ for valid choices |
