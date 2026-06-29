@@ -51,7 +51,12 @@ path('vars.json')->spew(<<"EOV");
    "VNC_CONNECT_TIMEOUT_LOCAL" : "0.001",
    "VNC_CONNECT_TIMEOUT_REMOTE" : "0.001",
    "NAME" : "00001-1-i386@32bit",
-   "TEST_NON_STRICT_MODULE": "1"
+   "TEST_NON_STRICT_MODULE": "1",
+   "VIRT_CONSOLE" : "@{[ $ENV{OS_AUTOINST_SPICE} ? 'spice' : 'vnc' ]}",
+   "QEMU_SPICE" : @{[ $ENV{OS_AUTOINST_SPICE} ? 1 : 0 ]},
+   "QEMU_VIDEO_DEVICE" : "VGA",
+   "VNC" : @{[ $ENV{OS_AUTOINST_SPICE} ? 91 : 90 ]},
+   "QEMUPORT" : @{[ $ENV{OS_AUTOINST_SPICE} ? 15224 : 15222 ]}
 }
 EOV
 # create screenshots
