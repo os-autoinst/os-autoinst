@@ -1,0 +1,14 @@
+[package]
+name = "spice-bridge"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+glib = "0.20"
+
+[build-dependencies]
+pkg-config = "0.3"
+bindgen = "0.71"
