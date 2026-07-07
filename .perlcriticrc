@@ -1,7 +1,11 @@
-theme = community + openqa
-severity = 4
+theme = community + openqa + core
+severity = 1
 
-include = strict ValuesAndExpressions::ProhibitInterpolationOfLiterals CodeLayout::ProhibitParensWithBuiltins BuiltinFunctions::RequireBlockMap BuiltinFunctions::ProhibitStringySplit ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions ValuesAndExpressions::RequireQuotedHeredocTerminator Variables::ProhibitPackageVars CodeLayout::RequireTidyCode Community::WarningsSwitch Community::EmptyReturn Variables::ProhibitUnusedVariables RegularExpressions::ProhibitUselessTopic BuiltinFunctions::ProhibitUselessTopic CodeLayout::ProhibitQuotedWordLists BuiltinFunctions::RequireBlockGrep Modules::ProhibitConditionalUseStatements BuiltinFunctions::ProhibitLvalueSubstr Community::OpenArgs Plicease::ProhibitArrayAssignAref Community::Wantarray ClassHierarchies::ProhibitExplicitISA Community::ConditionalImplicitReturn Documentation::RequirePackageMatchesPodName BuiltinFunctions::ProhibitStringyEval InputOutput::ProhibitOneArgSelect ErrorHandling::RequireCheckingReturnValueOfEval Community::Each ProhibitQuotesAsQuotelikeOperatorDelimiter BuiltinFunctions::ProhibitSleepViaSelects ValuesAndExpressions::ProhibitInterpolationOfLiterals Miscellanea::ProhibitUselessNoCritic RegularExpressions::ProhibitSingleCharAlternation
+exclude = BuiltinFunctions::ProhibitBooleanGrep BuiltinFunctions::ProhibitComplexMappings BuiltinFunctions::ProhibitReverseSortBlock BuiltinFunctions::ProhibitVoidMap ClassHierarchies::ProhibitAutoloading CodeLayout::RequireTrailingCommas Community::DiscouragedModules Community::Prototypes ControlStructures::ProhibitCStyleForLoops ControlStructures::ProhibitMutatingListFunctions ControlStructures::ProhibitPostfixControls ControlStructures::ProhibitUnlessBlocks ControlStructures::ProhibitUntilBlocks Documentation::PodSpelling Documentation::RequirePodAtEnd Documentation::RequirePodSections ErrorHandling::RequireCarping InputOutput::ProhibitBacktickOperators InputOutput::ProhibitExplicitStdin InputOutput::ProhibitInteractiveTest InputOutput::ProhibitJoinedReadline InputOutput::RequireBracedFileHandleWithPrint InputOutput::RequireBriefOpen InputOutput::RequireCheckedClose InputOutput::RequireCheckedOpen InputOutput::RequireCheckedSyscalls Miscellanea::ProhibitTies Modules::ProhibitMultiplePackages Modules::RequireBarewordIncludes Modules::RequireEndWithOne Modules::RequireExplicitPackage Modules::RequireFilenameMatchesPackage Modules::RequireNoMatchVarsWithUseEnglish Modules::RequireVersionVar NamingConventions::Capitalization NamingConventions::ProhibitAmbiguousNames References::ProhibitDoubleSigils RegularExpressions::ProhibitCaptureWithoutTest RegularExpressions::ProhibitComplexRegexes RegularExpressions::ProhibitEnumeratedClasses RegularExpressions::ProhibitEscapedMetacharacters RegularExpressions::ProhibitFixedStringMatches RegularExpressions::ProhibitUnusedCapture RegularExpressions::ProhibitUnusualDelimiters RegularExpressions::RequireBracesForMultiline RegularExpressions::RequireDotMatchAnything RegularExpressions::RequireExtendedFormatting RegularExpressions::RequireLineBoundaryMatching Subroutines::ProhibitBuiltinHomonyms Subroutines::ProhibitExplicitReturnUndef Subroutines::ProhibitSubroutinePrototypes Subroutines::ProhibitUnusedPrivateSubroutines Subroutines::ProtectPrivateSubs Subroutines::RequireFinalReturn ValuesAndExpressions::ProhibitCommaSeparatedStatements ValuesAndExpressions::ProhibitConstantPragma ValuesAndExpressions::ProhibitEmptyQuotes ValuesAndExpressions::ProhibitEscapedCharacters ValuesAndExpressions::ProhibitImplicitNewlines ValuesAndExpressions::ProhibitLeadingZeros ValuesAndExpressions::ProhibitLongChainsOfMethodCalls ValuesAndExpressions::ProhibitMagicNumbers ValuesAndExpressions::ProhibitMismatchedOperators ValuesAndExpressions::ProhibitMixedBooleanOperators ValuesAndExpressions::ProhibitNoisyQuotes ValuesAndExpressions::RequireConstantVersion ValuesAndExpressions::RequireInterpolationOfMetachars Variables::ProhibitAugmentedAssignmentInDeclaration Variables::ProhibitLocalVars Variables::ProhibitPunctuationVars Variables::ProhibitReusedNames Variables::RequireInitializationForLocalVars Variables::RequireLocalizedPunctuationVars
+
+# ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions
+# No operators like < =~ ! allowed in 'unless' or 'until', only simple
+# unless $x && @$y
 
 verbose = ::warning file=%f,line=%l,col=%c,title=%m - severity %s::[%p] %e\n
 
@@ -24,7 +28,6 @@ severity = 4
 add_themes = community
 max_nests = 4
 
-# == Community Policies
 # -- Test::Most brings in strict & warnings
 [Community::StrictWarnings]
 extra_importers = Test::Most
@@ -45,5 +48,38 @@ severity = 5
 [OpenQA::RedundantStrictWarning]
 equivalent_modules = Test::Most
 
+[ValuesAndExpressions::RequireNumberSeparators]
+min_value = 1000000
+
 [Variables::ProhibitPackageVars]
 add_packages = autotest bmwqemu log needle testapi Carp OpenQA::Isotovideo::Interface
+
+[Community::DiscouragedModules]
+allowed_modules = FindBin
+
+[TestingAndDebugging::ProhibitNoWarnings]
+allow = redefine
+
+# The following policies might be interesting:
+# InputOutput::ProhibitInteractiveTest
+# InputOutput::ProhibitExplicitStdin
+# BuiltinFunctions::ProhibitComplexMappings
+# RegularExpressions::ProhibitUnusedCapture
+
+[Modules::ProhibitExcessMainComplexity]
+# Reduce me! (backend/qemu.pm::start_qemu has 156)
+max_mccabe = 100
+
+[ControlStructures::ProhibitCascadingIfElse]
+# Reduce me! (t/03-testapi.t has 12 elsif, consoles/VNC.pm has 7 elsif)
+max_elsif = 12
+
+[Subroutines::ProhibitExcessComplexity]
+# Reduce me! (backend/qemu.pm::start_qemu has 156)
+max_mccabe = 160
+
+[Subroutines::ProhibitManyArgs]
+# Reduce me!
+max_arguments = 12
+# Ignore first arg if called $self or $class
+skip_object = 1
