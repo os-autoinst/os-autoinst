@@ -58,7 +58,7 @@ add_packages = autotest bmwqemu log needle testapi Carp OpenQA::Isotovideo::Inte
 allowed_modules = FindBin
 
 [TestingAndDebugging::ProhibitNoWarnings]
-allow = redefine
+allow = redefine once
 
 # The following policies might be interesting:
 # InputOutput::ProhibitInteractiveTest
