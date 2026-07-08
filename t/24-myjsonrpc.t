@@ -40,6 +40,13 @@ subtest single_json => sub {
     my $read1 = myjsonrpc::read_json($isotovideo, undef, 0);
     my $read2 = myjsonrpc::read_json($isotovideo, undef, 0);
     is_deeply [$read1, $read2], [$send1, $send2], 'read_json twice works';
+
+    if ($read2) {
+        pass 'this should be covered';
+    }
+    else {
+        pass 'this should be uncovered';
+    }
 };
 
 subtest multi_json => sub {
