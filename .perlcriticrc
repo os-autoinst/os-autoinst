@@ -83,3 +83,6 @@ max_mccabe = 160
 max_arguments = 12
 # Ignore first arg if called $self or $class
 skip_object = 1
+
+[Community::PreferredAlternatives]
+allowed_modules = List::MoreUtils
