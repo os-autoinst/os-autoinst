@@ -22,7 +22,7 @@ jobs:
     container:
       image: registry.opensuse.org/devel/openqa/containers/opensuse/openqa_ci:latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
       - name: Create additional user to avoid initdb error "cannot be run as root"
         run: useradd "$TEST_USER"
       - name: Make project folder user-writable
