@@ -138,6 +138,22 @@ else ()
     message(STATUS "Set GITLINT_PATH to the path of the gitlint executable to enable git commit message checks.")
 endif ()
 
+# add test for Rust code style and clippy
+find_program(RUSTFMT_PATH rustfmt)
+find_program(CARGO_BIN cargo)
+if (RUSTFMT_PATH AND CARGO_BIN)
+    add_test(
+        NAME test-local-rust-style
+        COMMAND "${CARGO_BIN}" fmt --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/rust/spice-bridge/Cargo.toml" --check
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_test(
+        NAME test-local-rust-clippy
+        COMMAND "${CARGO_BIN}" clippy --manifest-path "${CMAKE_CURRENT_SOURCE_DIR}/rust/spice-bridge/Cargo.toml" -- -D warnings
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+endif ()
+
 # add spell checking for test API documentation
 find_program(PODSPELL_PATH podspell)
 find_program(SPELL_PATH spell)

@@ -1,0 +1,1 @@
+#include <spice-client.h>

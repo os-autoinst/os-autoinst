@@ -23,10 +23,13 @@ RUN zypper in -y -C \
        'pkgconfig(libpng)' \
        'pkgconfig(opencv4)' \
        'pkgconfig(sndfile)' \
+       'pkgconfig(spice-client-glib-2.0)' \
        'pkgconfig(theoraenc)' \
        ShellCheck \
        aspell-en \
        aspell-spell \
+       cargo \
+       cargo-packaging \
        cmake \
        cpio \
        diffutils \
@@ -57,6 +60,7 @@ RUN zypper in -y -C \
        python3-vulture \
        python3-yamllint \
        qemu \
+       qemu-spice \
        qemu-tools \
        qemu-x86 \
        rsync \

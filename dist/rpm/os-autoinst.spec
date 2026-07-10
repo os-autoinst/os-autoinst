@@ -24,6 +24,7 @@ License:        GPL-2.0-or-later
 Group:          Development/Tools/Other
 URL:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
+Source1:        vendor.tar.zst
 %{perl_requires}
 %define opencv_require pkgconfig(opencv4)
 # exclude additional sub packages that would pull in a lot of extra dependencies on SLE
@@ -35,7 +36,7 @@ Source0:        %{name}-%{version}.tar.xz
 %bcond_with deps_package
 %endif
 # The following line is generated from dependencies.yaml
-%define build_base_requires %opencv_require gcc-c++ perl(Pod::Html) pkg-config pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc)
+%define build_base_requires %opencv_require cargo cargo-packaging gcc-c++ perl(Pod::Html) pkg-config pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(spice-client-glib-2.0) pkgconfig(theoraenc)
 # The following line is generated from dependencies.yaml
 %define build_requires %build_base_requires cmake ninja
 # The following line is generated from dependencies.yaml
@@ -112,7 +113,7 @@ Source0:        %{name}-%{version}.tar.xz
 %endif
 %ifnarch s390x
 # The following line is generated from dependencies.yaml
-%define test_non_s390_requires ipxe-bootimgs qemu-x86
+%define test_non_s390_requires ipxe-bootimgs qemu-spice qemu-x86
 %else
 %define test_non_s390_requires %{nil}
 %endif
@@ -244,7 +245,8 @@ Convenience package providing os-autoinst + ipmi worker jumphost dependencies.
 %endif
 
 %prep
-%setup -q
+%setup -q -a 1
+%cargo_prep
 
 # don't require qemu within OBS
 # and exclude known flaky tests in OBS check
@@ -252,7 +254,7 @@ Convenience package providing os-autoinst + ipmi worker jumphost dependencies.
 # 07-commands: https://progress.opensuse.org/issues/60755
 # 29-backend-driver: https://progress.opensuse.org/issues/105061
 # 29-backend-generalhw: https://progress.opensuse.org/issues/117352
-for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 29-backend-driver 29-backend-generalhw 99-full-stack; do
+for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 29-backend-driver 29-backend-generalhw 99-full-stack 99-full-stack-spice; do
     rm t/$i.t
 done
 # exclude unnecessary author tests

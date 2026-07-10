@@ -843,6 +843,7 @@ subtest 'port availability checks' => sub {
         $sock_mock->redefine(new => sub { Test::MockObject->new->set_true('close') });
         combined_like { throws_ok { $backend->start_qemu } qr/Port 39100 \(hostfwd\) is already in use/, 'dies on hostfwd port conflict' }
           qr/qemu version/si, 'expected logs before hostfwd port check';
+        $sock_mock->unmock('new');
     };
     %bmwqemu::vars = %initial_vars;
 };
@@ -866,6 +867,100 @@ subtest 'die with error on QMP command after power("off")' => sub {
     combined_like { $backend->power({action => 'off'}); } qr/[debug]*POWER: action: off/s, 'Debug message logged for power off';
     $backend_mock->unmock('handle_qmp_command');
     combined_like { throws_ok { $backend->power({action => 'reset'}) } qr/Bad file descriptor/, 'die as expected' } qr/qemu was explicitly stopped from test code.*system_reset/s, 'warning as expected';
+};
+
+subtest 'SPICE options' => sub {
+    my %initial_vars = %bmwqemu::vars;
+    {
+        local $SIG{__WARN__} = sub { };
+        $proc->unmock('static_param');
+    }
+    delete $bmwqemu::vars{QEMU_VIDEO_DEVICE};
+    $backend_mock->redefine(handle_qmp_command => undef);
+    my $orig_find_bin = $backend_mock->original('find_bin');
+    $backend_mock->redefine(find_bin => sub ($dir, @candidates) {
+            return '/bin/true' if grep { $_ eq 'spice-bridge' } @candidates;
+            return $orig_find_bin->($dir, @candidates);
+    });
+    $backend_mock->redefine(_child_process => sub { return 42 });
+    $bmwqemu::vars{QEMU_SPICE} = 1;
+    $bmwqemu::vars{VNC} = '2';    # display 2
+    my $backend = backend();
+    my $stdout = '';
+    my $stderr = '';
+    {
+        local *STDOUT;
+        local *STDERR;
+        open STDOUT, '>', \$stdout or die "Can't redirect STDOUT";
+        open STDERR, '>', \$stderr or die "Can't redirect STDERR";
+        ok $backend->start_qemu(), 'qemu starts with SPICE';
+    }
+    my $params = $backend->{proc}->_static_params;
+    # Check that -spice is in params
+    my @spice_args = grep { /spice/ } @$params;
+    ok @spice_args, 'contains spice parameter';
+    like "@$params", qr/-spice port=5902,disable-ticketing=on/, 'spice port set correctly';
+    # Check that -vnc is NOT in params
+    my @vnc_args = grep { /vnc/ } @$params;
+    ok !@vnc_args, 'does not contain vnc parameter';
+    # Check default video device is qxl-vga for x86_64
+    like "@$params", qr/-device qxl-vga/, 'defaults to qxl-vga video device';
+    $backend_mock->unmock('find_bin');
+    $backend_mock->unmock('_child_process');
+    %bmwqemu::vars = %initial_vars;
+};
+
+subtest 'VIRT_CONSOLE=spice options' => sub {
+    my %initial_vars = %bmwqemu::vars;
+    {
+        local $SIG{__WARN__} = sub { };
+        $proc->unmock('static_param');
+    }
+    delete $bmwqemu::vars{QEMU_VIDEO_DEVICE};
+    $backend_mock->redefine(handle_qmp_command => undef);
+    my $orig_find_bin = $backend_mock->original('find_bin');
+    $backend_mock->redefine(find_bin => sub ($dir, @candidates) {
+            return '/bin/true' if grep { $_ eq 'spice-bridge' } @candidates;
+            return $orig_find_bin->($dir, @candidates);
+    });
+    $backend_mock->redefine(_child_process => sub { return 42 });
+    $bmwqemu::vars{VIRT_CONSOLE} = 'spice';
+    $bmwqemu::vars{VNC} = '3';
+    my $backend = backend();
+    my $stdout = '';
+    my $stderr = '';
+    {
+        local *STDOUT;
+        local *STDERR;
+        open STDOUT, '>', \$stdout or die "Can't redirect STDOUT";
+        open STDERR, '>', \$stderr or die "Can't redirect STDERR";
+        ok $backend->start_qemu(), 'qemu starts with VIRT_CONSOLE=spice';
+    }
+    my $params = $backend->{proc}->_static_params;
+    like "@$params", qr/-spice port=5903,disable-ticketing=on/, 'spice port set correctly';
+    $backend_mock->unmock('find_bin');
+    $backend_mock->unmock('_child_process');
+    %bmwqemu::vars = %initial_vars;
+};
+
+subtest 'QEMU_SPICE=1 binary not found' => sub {
+    my %initial_vars = %bmwqemu::vars;
+    {
+        local $SIG{__WARN__} = sub { };
+        $proc->unmock('static_param');
+    }
+    delete $bmwqemu::vars{QEMU_VIDEO_DEVICE};
+    $backend_mock->redefine(handle_qmp_command => undef);
+    my $orig_find_bin = $backend_mock->original('find_bin');
+    $backend_mock->redefine(find_bin => sub ($dir, @candidates) {
+            return undef if grep { $_ eq 'spice-bridge' } @candidates;
+            return $orig_find_bin->($dir, @candidates);
+    });
+    $bmwqemu::vars{QEMU_SPICE} = 1;
+    my $backend = backend();
+    dies_ok { $backend->start_qemu() } 'qemu dies without spice-bridge binary';
+    $backend_mock->unmock('find_bin');
+    %bmwqemu::vars = %initial_vars;
 };
 
 done_testing();

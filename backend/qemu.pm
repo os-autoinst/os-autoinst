@@ -27,6 +27,7 @@ use Data::Dumper;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use OpenQA::Qemu::Proc;
 use Socket;
+use FindBin;
 
 # The maximum value of the system's native signed integer. Which will probably
 # be 2^64 - 1.
@@ -654,6 +655,9 @@ sub _set_graphics_backend ($self) {
     elsif ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
         bmwqemu::fctwarn('QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead');
     }
+    elsif ($vars->{QEMU_SPICE}) {
+        $device = (is_arm($vars->{ARCH}) || is_s390x($vars->{ARCH})) ? 'virtio-gpu' : 'qxl-vga';
+    }
     elsif (is_arm($vars->{ARCH})) {
         # annoying pre-existing special-case default for ARM
         $device = 'virtio-gpu-pci';
@@ -695,6 +699,7 @@ sub start_qemu ($self) {
 
     local *sp = sub (@args) { $self->{proc}->static_param(@args); };
     $vars->{VIRTIO_CONSOLE} = 1 if ($vars->{VIRTIO_CONSOLE} // '') ne 0;
+    $vars->{QEMU_SPICE} = 1 if ($vars->{VIRT_CONSOLE} // '') eq 'spice' || $vars->{QEMU_SPICE};
 
     unless ($qemubin) {
         if ($vars->{QEMU}) {
@@ -1026,7 +1031,12 @@ sub start_qemu ($self) {
         sp('enable-kvm') if -r '/dev/kvm' && !$vars->{QEMU_NO_KVM};
         sp('no-shutdown');
 
-        if ($vars->{VNC}) {
+        if ($vars->{QEMU_SPICE}) {
+            my $spiceport = $vars->{SPICE_PORT} // (5900 + ($vars->{VNC} // 0));
+            my $extraspice = $vars->{SPICE_EXTRA_VARS} // '';
+            $extraspice = ",$extraspice" if $extraspice && $extraspice !~ /^,/;
+            sp('spice', [qv "port=$spiceport,disable-ticketing=on$extraspice"]);
+        } elsif ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
             my $extravars = $vars->{VNC_EXTRA_VARS};
             $extravars = defined $extravars ? " $extravars" : '';
@@ -1062,21 +1072,59 @@ sub start_qemu ($self) {
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-    my $vncport = 5900 + $bmwqemu::vars{VNC};
-    my $vnc = $testapi::distri->add_console(
-        'sut',
-        'vnc-base',
-        {
-            hostname => 'localhost',
-            connect_timeout => 3,
-            port => $vncport,
-            description => q{QEMU's VNC}});
+    my $console;
+    if ($vars->{QEMU_SPICE}) {
+        my $spiceport = $vars->{SPICE_PORT} // (5900 + ($vars->{VNC} // 0));
+        my $socket_path = "/tmp/spice-bridge-$spiceport.sock";
 
-    $vnc->backend($self);
+        my $bridge_bin = find_bin("$FindBin::Bin/../rust/spice-bridge/target/debug", 'spice-bridge')
+          // find_bin("$FindBin::Bin/../rust/spice-bridge/target/release", 'spice-bridge')
+          // find_bin("$FindBin::Bin/rust/spice-bridge/target/debug", 'spice-bridge')
+          // find_bin("$FindBin::Bin/rust/spice-bridge/target/release", 'spice-bridge')
+          // find_bin('/usr/lib/os-autoinst', 'spice-bridge')
+          // find_bin('/usr/bin', 'spice-bridge');
+
+        die "SPICE bridge binary not found!\n" unless $bridge_bin;
+
+        my @cmd = ($bridge_bin, $socket_path, $spiceport);
+        my $child_pid = $self->_child_process(
+            sub {
+                $SIG{__DIE__} = undef;
+                exec @cmd or die "failed to exec spice-bridge: $!";
+            });
+        bmwqemu::diag "SPICE bridge daemon started with pid $child_pid";
+
+        $console = $testapi::distri->add_console(
+            'sut',
+            'spice-base',
+            {
+                hostname => 'localhost',
+                connect_timeout => 3,
+                port => $spiceport,
+                description => q{QEMU's SPICE}});
+    } else {
+        my $vncport = 5900 + $bmwqemu::vars{VNC};
+        $console = $testapi::distri->add_console(
+            'sut',
+            'vnc-base',
+            {
+                hostname => 'localhost',
+                connect_timeout => 3,
+                port => $vncport,
+                description => q{QEMU's VNC}});
+    }
+
+    $console->backend($self);
     my $ret = $self->select_console({testapi_console => 'sut'});
 
     if ($ret->{error}) {
-        bmwqemu::fctinfo("VNC port details:\n" . port_details($vncport));
+        if ($vars->{QEMU_SPICE}) {
+            my $spiceport = $vars->{SPICE_PORT} // (5900 + ($vars->{VNC} // 0));
+            bmwqemu::fctinfo("SPICE port details:\n" . port_details($spiceport));
+        } else {
+            my $vncport = 5900 + $bmwqemu::vars{VNC};
+            bmwqemu::fctinfo("VNC port details:\n" . port_details($vncport));
+        }
         die $ret->{error};
     }
     if ($vars->{NICTYPE} eq 'tap') {
