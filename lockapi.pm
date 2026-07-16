@@ -8,8 +8,10 @@ use Mojo::Base 'Exporter', -signatures;
 use Scalar::Util 'looks_like_number';
 use List::Util qw(min);
 use Time::Seconds;
+## no critic (Modules::ProhibitAutomaticExportation)
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
+## use critic
 
 require bmwqemu;
 use mmapi qw(api_call_2 get_job_info);

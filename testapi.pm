@@ -32,6 +32,7 @@ use constant DEFAULT_MAX_INTERVAL => 250;
 use constant DEFAULT_TIMEOUT => 90;
 use constant TIMEOUT_INCREASE => 10;
 
+## no critic (Modules::ProhibitAutomaticExportation)
 our @EXPORT = qw(
 
   $realname get_realname set_realname
