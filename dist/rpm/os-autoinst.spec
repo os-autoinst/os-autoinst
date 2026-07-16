@@ -112,16 +112,22 @@ Source0:        %{name}-%{version}.tar.xz
 %endif
 %ifnarch s390x
 # The following line is generated from dependencies.yaml
-%define test_non_s390_requires ipxe-bootimgs qemu-x86
+%define test_non_s390_requires qemu-x86
 %else
 %define test_non_s390_requires %{nil}
+%endif
+%ifarch x86_64 aarch64
+# The following line is generated from dependencies.yaml
+%define test_x86_64_aarch64_requires ipxe-bootimgs
+%else
+%define test_x86_64_aarch64_requires %{nil}
 %endif
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires cpio icewm perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Compile) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::MockRandom) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Perl::Critic) perl(Test::Pod) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu >= 4.0 qemu-tools socat xorg-x11-Xvnc xterm xterm-console
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %yamllint_requires ffmpeg python3-Pillow-tk python3-gitlint python3-pytest python3-pytest-cov python3-pytest-mock python3-pytest-xdist
+%define test_requires %build_requires %lua_support_requires %ocr_requires %python_support_requires %spellcheck_requires %test_base_requires %test_non_s390_requires %test_x86_64_aarch64_requires %yamllint_requires ffmpeg python3-Pillow-tk python3-gitlint python3-pytest python3-pytest-cov python3-pytest-mock python3-pytest-xdist
 %ifnarch s390x
 # The following line is generated from dependencies.yaml
 %define devel_non_s390_requires ShellCheck
