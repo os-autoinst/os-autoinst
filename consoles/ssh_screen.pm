@@ -28,7 +28,7 @@ sub new ($class, @args) {
     return $self->SUPER::new($self->ssh_channel);
 }
 
-sub do_read {    # no:style:signatures
+sub do_read {    ## no critic (Subroutines::RequireArgUnpacking) # no:style:signatures
     my ($self, undef, %args) = @_;
     my $buffer = '';
     my %error_seen = (LIBSSH2_ERROR_EAGAIN => 1);

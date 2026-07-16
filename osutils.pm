@@ -104,9 +104,9 @@ sub runcmd_out (@cmd) {
 
 sub wait_attempt () { sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1) }
 
-sub attempt {    # no:style:signatures
+sub attempt (@args) {
     my $attempts = 0;
-    my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
+    my ($total_attempts, $condition, $cb, $or) = ref $args[0] eq 'HASH' ? (@{$args[0]}{qw(attempts condition cb or)}) : @args;
     while (!$condition->() && $attempts < $total_attempts) {
         bmwqemu::diag "Waiting for $attempts attempts";
         $cb->();
