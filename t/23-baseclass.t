@@ -13,6 +13,8 @@ use Test::Warnings qw(:all :report_warnings);
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
+use MIME::Base64 'decode_base64';
+use Digest::SHA 'sha256_hex';
 use backend::baseclass;
 use POSIX qw(tzset pause _exit);
 use Mojo::File qw(tempdir path);
@@ -886,6 +888,7 @@ subtest 'special cases of set_tags_to_assert' => sub {
         };
         like $warning, qr/invalid needle passed <HASH>.*invalid.*tags/s, 'warning about invalid needle';
         is_deeply $baseclass->assert_screen_needles, [], 'no assert screen needles assigned';
+        is $baseclass->assert_screen_check, undef, 'missing check mode uses assert semantics';
     };
 
     subtest 'multiple tags specified, multiple needles set for assertion' => sub {
@@ -896,22 +899,96 @@ subtest 'special cases of set_tags_to_assert' => sub {
         is scalar @needles, 2, 'matching needles assigned';
         is $needles[0]->{name}, 'inst-welcome-20140902', 'needle inst-welcome-20140902 matched';
         is $needles[1]->{name}, 'welcome.ref', 'needle welcome.ref matched';
+
+        $baseclass->set_tags_to_assert({mustmatch => \@tags, check => 1});
+        is $baseclass->assert_screen_check, 1, 'check mode stored for timeout response';
     };
 };
 
-subtest 'test _failed_screens_to_json when _reduce_to_biggest_changes removed final mismatch' => sub {
-    my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
-            pop @$failed_screens;    # test case when the last one in the reduced list differs
-    });
-    my $dummy_img = Test::MockObject->new->set_always(similarity => 49)->set_always(ppm_data => 'img-data');
-    my $dummy_frame = 'foo';
-    $baseclass->assert_screen_fails([[$dummy_img, 'img 1', 5, 500, 'foo'], [$dummy_img, 'img 2', 5, 500, 'bar']]);
-    my @expected_failures = (
-        {candidates => 'img 1', frame => 'foo', image => "aW1nLWRhdGE=\n"},
-        {candidates => 'img 2', frame => 'bar', image => "aW1nLWRhdGE=\n"},
-    );
-    my $res = $baseclass->_failed_screens_to_json;
-    is_deeply $res, {timeout => 1, failed_screens => \@expected_failures}, 'expected res' or always_explain $res;
+subtest 'serialize failed screens according to screen-check mode' => sub {
+
+    sub image ($index, $similarity = 49) {
+        return Test::MockObject->new
+          ->set_always(similarity => $similarity)
+          ->set_always(ppm_data => "image-$index");
+    }
+
+    for my $check (0, 1) {
+        $baseclass->assert_screen_check($check);
+        $baseclass->assert_screen_fails([]);
+        is_deeply $baseclass->_failed_screens_to_json, {timeout => 1, failed_screens => []}, "empty failure list preserved for check=$check";
+
+        $baseclass->assert_screen_fails([[image(1), 'candidates-1', 0, 1000, 1]]);
+        my $single = $baseclass->_failed_screens_to_json;
+        is scalar @{$single->{failed_screens}}, 1, "single failure preserved for check=$check";
+        is decode_base64($single->{failed_screens}->[0]->{image}), 'image-1', "single image preserved for check=$check";
+        is_deeply $baseclass->assert_screen_fails, [], "failure images released for check=$check";
+    }
+
+    my @failures = map {
+        [image($_), "candidates-$_", 23 - $_, $_, $_]
+    } 1 .. 23;
+    $baseclass->assert_screen_check(0);
+    $baseclass->assert_screen_fails([map { [@$_] } @failures]);
+    my $assert_response = $baseclass->_failed_screens_to_json;
+    is scalar @{$assert_response->{failed_screens}}, 21, 'assert mode retains the existing reduced diagnostic set';
+    my @expected_frames = (1, 4 .. 23);
+    is_deeply [map { $_->{frame} } @{$assert_response->{failed_screens}}], \@expected_frames, 'assert mode retains failure ordering';
+    is_deeply [map { $_->{candidates} } @{$assert_response->{failed_screens}}],
+      [map { "candidates-$_" } @expected_frames], 'assert mode retains candidates';
+    is_deeply [map { sha256_hex(decode_base64($_->{image})) } @{$assert_response->{failed_screens}}],
+      [map { sha256_hex("image-$_") } @expected_frames], 'assert mode retains screenshot contents';
+
+    $baseclass->assert_screen_check(1);
+    $baseclass->assert_screen_fails([map { [@$_] } @failures]);
+    my $check_response = $baseclass->_failed_screens_to_json;
+    is_deeply $check_response->{failed_screens}, [$assert_response->{failed_screens}->[-1]], 'check mode retains the post-reduction final mismatch only';
+    is_deeply [map { sha256_hex(decode_base64($_->{image})) } @{$check_response->{failed_screens}}],
+      [sha256_hex('image-23')], 'retained check screenshot has the expected content';
+    is_deeply $baseclass->assert_screen_fails, [], 'reduced failure images released after serialization';
+
+    subtest 'append a distinct final mismatch after reduction' => sub {
+        my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
+                pop @$failed_screens;
+        });
+        my @removed_final = ([image(1), 'img 1', 5, 500, 'foo'], [image(2), 'img 2', 5, 500, 'bar']);
+
+        $baseclass->assert_screen_check(0);
+        $baseclass->assert_screen_fails([map { [@$_] } @removed_final]);
+        my $assert = $baseclass->_failed_screens_to_json;
+        is scalar @{$assert->{failed_screens}}, 2, 'assert mode appends the distinct final mismatch';
+
+        $baseclass->assert_screen_check(1);
+        $baseclass->assert_screen_fails([map { [@$_] } @removed_final]);
+        my $check = $baseclass->_failed_screens_to_json;
+        is_deeply $check->{failed_screens}, [$assert->{failed_screens}->[-1]], 'check mode keeps the appended final mismatch';
+    };
+};
+
+subtest 'timeout response metadata and images' => sub {
+    local $log::logger = Mojo::Log->new(level => 'error');
+    my $timeout_backend = backend::baseclass->new;
+    my $previous = Test::MockObject->new->set_always(ppm_data => 'previous-image')->set_always(similarity => 49);
+    my $timeout_image = Test::MockObject->new->set_list(search => undef, [])->set_always(ppm_data => 'timeout-image');
+    $baseclass_mock->redefine(_time_to_assert_screen_deadline => -1);
+    $timeout_backend->last_image($timeout_image);
+    $timeout_backend->assert_screen_needles([]);
+    $timeout_backend->screenshot_interval(20);
+    $timeout_backend->{video_frame_number} = 42;
+
+    for my $check (0, 1) {
+        $timeout_backend->assert_screen_check($check);
+        $timeout_backend->assert_screen_fails([[$previous, [], 5, 500, 41]]);
+        $timeout_backend->assert_screen_last_check(undef);
+        $timeout_backend->stall_detected(1);
+        my $response = $timeout_backend->check_asserted_screen({});
+        is $response->{stall}, 1, "stall metadata preserved for check=$check";
+        is decode_base64($response->{image}), 'timeout-image', "top-level timeout image preserved for check=$check";
+        is scalar @{$response->{failed_screens}}, $check ? 1 : 2, "mode-appropriate failure evidence returned for check=$check";
+        is decode_base64($response->{failed_screens}->[-1]->{image}), 'timeout-image', "final mismatch preserved for check=$check";
+        is $response->{failed_screens}->[-1]->{frame}, 42, "final frame preserved for check=$check";
+    }
+    $baseclass_mock->redefine(_time_to_assert_screen_deadline => 2 * backend::baseclass::FULL_UPDATE_REQUEST_FREQUENCY);
 };
 
 subtest 'check_asserted_screen takes too long' => sub {

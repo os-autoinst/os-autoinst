@@ -997,6 +997,7 @@ sub _failed_screens_to_json ($self) {
             push @$failed_screens, $final_mismatch if ($sim < 50);
         }
     }
+    $failed_screens = [$failed_screens->[-1]] if $self->assert_screen_check && @$failed_screens;
     my @json_fails = map {
         my ($img, $failed_candidates, $testtime, $similarity, $frame) = @$_;
         {candidates => $failed_candidates, image => encode_base64($img->ppm_data), frame => $frame}
