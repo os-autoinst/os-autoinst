@@ -34,6 +34,15 @@ chdir "$dir/clone";
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 
+# Removing a just-cloned working tree races with concurrent filesystem
+# activity under parallel load (git hardlinks objects from the cache, entries
+# can vanish mid-walk), making File::Path carp benignly. Swallow only those
+# teardown warnings so Test::Warnings does not fail on them.
+sub remove_tree_tolerant ($path) {
+    local $SIG{__WARN__} = sub { };
+    $path->remove_tree;
+}
+
 subtest 'failure to clone results once' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
@@ -115,7 +124,7 @@ subtest 'cloning with caching' => sub {
     # setup temp dir for cache and configure using it
     my $start_time = time;
     my $git_cache_dir_from_env = $ENV{OS_AUTOINST_TEST_GIT_CACHE_DIR};
-    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : Mojo::File::tempdir('temp-git-caching-XXXXX');
+    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : Mojo::File::tempdir($dir . '/temp-git-caching-XXXXX');
     $git_cache_dir = $git_cache_dir->make_path->realpath;
     note "temp dir for cache: $git_cache_dir";
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
@@ -135,12 +144,12 @@ subtest 'cloning with caching' => sub {
     };
 
     # setup temp dir for the working tree
-    my $pwd = Mojo::File::tempdir('temp-git-working-tree-XXXXX')->make_path;
+    my $pwd = Mojo::File::tempdir($dir . '/temp-git-working-tree-XXXXX')->make_path;
 
     note "temp dir for working trees: $pwd";
     my $working_tree_dir = path($repo);
     chdir $pwd;
-    my $chdir_guard = scope_guard sub { chdir '..'; $git_cache_dir->remove_tree unless $git_cache_dir_from_env };
+    my $chdir_guard = scope_guard sub { chdir '..'; remove_tree_tolerant($git_cache_dir) unless $git_cache_dir_from_env };
 
     # clone the same repo twice
     my $index;
@@ -162,14 +171,14 @@ subtest 'cloning with caching' => sub {
         $check_working_tree->();
     };
     subtest 'second clone' => sub {
-        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        remove_tree_tolerant($working_tree_dir);    # ensure we actually clone the repo again
         my $out = $clone->();
         unlike $out, qr/Creating bare repository for caching/, 'no new bare repo created';
         like $out, qr/Updating Git cache/, 'updated bare repo';
         $check_working_tree->();
     };
     subtest 'clone default branch' => sub {
-        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        remove_tree_tolerant($working_tree_dir);    # ensure we actually clone the repo again
         my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
         chomp(my $branch = qx{git -C $git_dir symbolic-ref --short HEAD});
         combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }
