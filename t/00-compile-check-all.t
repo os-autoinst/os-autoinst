@@ -24,6 +24,7 @@ my $TEST_SKIP = [
 ];
 
 my $test = Test::Compile->new();
+$test->verbose(1);
 my @files;
 
 # Prevent any non-tracked files or files within .git (e.g. in.git/rr-cache) to
