@@ -832,6 +832,7 @@ subtest 'extract hostfwd ports from NICTYPE_USER_OPTIONS' => sub {
 subtest 'port availability checks' => sub {
     my %initial_vars = %bmwqemu::vars;
     my $sock_mock = Test::MockModule->new('IO::Socket::IP');
+    $sock_mock->redefine(new => sub { return undef });
     subtest VNC => sub {
         combined_like { lives_ok { backend::qemu::_assert_port_availability(5991, 'test') } 'free port passes' }
         qr/checking 5991 port availability/, 'logs port post-qemu check for VNC';
