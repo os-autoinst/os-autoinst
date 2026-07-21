@@ -66,7 +66,7 @@ if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
 fi
 if [[ \"$target\" == \"coverage-codecovbash\" ]]; then
 	zypper -n in perl-App-cpanminus
-	cpanm -nq 'Devel::Cover::Report::Codecovbash'
+	cpanm -nq 'Devel::Cover::Report::Codecovbash@v0.42.2'
 fi
 cd /opt
 ./tools/install-new-deps.sh
