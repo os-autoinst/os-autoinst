@@ -145,13 +145,23 @@ sub run ($self, $cmdpipe, $rsppipe) {
 }
 
 sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
-    # write as much data as possible (this is called when $fh is ready to write)
-    my $data = shift @$array_of_buffers;
-    my $data_written = $fh->syswrite($data);
+    # write as much data as possible (this is called when $fh is ready to write); the head
+    # buffer is kept in place and written from a tracked offset to avoid re-copying the
+    # unwritten tail on every partial write
+    my $data = $array_of_buffers->[0];
+    my $offset = $self->{_encoder_write_offset}{$fh} // 0;
+    my $data_written = $fh->syswrite($data, length($data) - $offset, $offset);
     die "$program_name not accepting data: $!" unless defined $data_written;
 
-    # put remaining data it back into the queue
-    unshift @$array_of_buffers, substr $data, $data_written unless $data_written == length $data;
+    $offset += $data_written;
+    if ($offset == length $data) {
+        # buffer fully written, move on to the next one
+        shift @$array_of_buffers;
+        delete $self->{_encoder_write_offset}{$fh};
+    }
+    else {
+        $self->{_encoder_write_offset}{$fh} = $offset;
+    }
 
     # remove file handle from selects if there's no more data to write
     if (!@$array_of_buffers) {
