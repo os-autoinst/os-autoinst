@@ -209,6 +209,8 @@ git init >/dev/null 2>&1 && \
 git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
 git config commit.gpgsign false >/dev/null && \
+git config gc.auto 0 >/dev/null && \
+git config maintenance.auto false >/dev/null && \
 touch README.md && \
 git add README.md && \
 git commit -mInit >/dev/null
