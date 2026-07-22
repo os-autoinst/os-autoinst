@@ -553,6 +553,34 @@ subtest 'check_assert_screen' => sub {
         is $report_timeout_called, 1, 'report_timeout called only once';
     };
 
+    subtest 'mode-specific failure evidence recording' => sub {
+        my @recorded;
+        $mock_basetest->redefine(record_screenfail => sub ($self, %args) {
+                push @recorded, \%args;
+        });
+        my @failed_screens = map {
+            {image => $dummy_image, candidates => ["candidate-$_"], frame => $_}
+        } 1 .. 3;
+        my %multi_response = (timeout => 1, tags => [qw(fake tags)], failed_screens => \@failed_screens);
+
+        testapi::_check_backend_response(\%multi_response, 1, 10, 'foo');
+        is_deeply [map { [$_->{frame}, $_->{needles}, $_->{result}, $_->{overall}] } @recorded],
+          [[3, ['candidate-3'], 'unk', undef]], 'check_screen records the final mismatch only';
+
+        @recorded = ();
+        throws_ok { testapi::_check_backend_response(\%multi_response, 0, 10, 'foo') }
+        qr/no candidate needle with tag\(s\) 'foo' matched/,
+          'assert_screen still throws after recording all failures';
+        is_deeply [map { [$_->{frame}, $_->{needles}, $_->{result}, $_->{overall}] } @recorded],
+          [
+            [1, ['candidate-1'], 'unk', 'fail'],
+            [2, ['candidate-2'], 'unk', 'fail'],
+            [3, ['candidate-3'], 'fail', 'fail'],
+          ],
+          'assert_screen records all retained evidence in order';
+        $mock_basetest->unmock('record_screenfail');
+    };
+
     my @tags = qw(tag1 tag2 tag3);
     my %rsp = (timeout => 1, tags => \@tags, failed_screens => [{image => $dummy_image}]);
     my $detail_count = @{$autotest::current_test->{details}};
