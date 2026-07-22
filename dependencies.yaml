@@ -33,6 +33,7 @@ targets:
     - python_style
     - ocr
     - test_non_s390
+    - test_x86_64_aarch64
     - python_support
     - lua_support
   docker:
@@ -50,6 +51,7 @@ targets:
     - python_style
     - ocr
     - test_non_s390
+    - test_x86_64_aarch64
     - devel_non_s390
     - python_support
     - lua_support
@@ -139,8 +141,10 @@ ocr_requires:
   tesseract-ocr-traineddata-english:
 
 test_non_s390_requires:
-  ipxe-bootimgs:
   qemu-x86:
+
+test_x86_64_aarch64_requires:
+  ipxe-bootimgs:
 
 test_base_requires:
   '%main_requires':
@@ -183,6 +187,7 @@ test_requires:
   '%yamllint_requires':
   '%ocr_requires':
   '%test_non_s390_requires':
+  '%test_x86_64_aarch64_requires':
   '%python_support_requires':
   '%lua_support_requires':
   python3-pytest:
