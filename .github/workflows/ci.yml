@@ -29,6 +29,7 @@ jobs:
           name: coverage
           path: coverage.tar
           retention-days: 15
+      - run: ./tools/check-line-coverage build/cover_db/codecov.json
   static-check-containers:
     permissions:
       contents: read
