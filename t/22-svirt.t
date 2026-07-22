@@ -35,6 +35,7 @@ set_var(SVIRT_WORKER_CACHE => 1);
 
 my $ssh_xterm_vt_mock = Test::MockModule->new('consoles::sshXtermVt');
 $ssh_xterm_vt_mock->noop('activate');
+$ssh_xterm_vt_mock->mock(wait_for_ssh_port => 1);
 
 my $distri = $testapi::distri = distribution->new;
 my $svirt = backend::svirt->new;
@@ -51,6 +52,13 @@ is_deeply +{$ssh_virtsh->get_ssh_credentials}, {
     username => 'root',
     password => 'foo',
 }, 'reading SSH credentials via sshVirtsh console, username defaults to "root"';
+
+subtest 'activate dies if ssh port unreachable' => sub {
+    my $mock = Test::MockModule->new('consoles::sshXtermVt');
+    $mock->mock(wait_for_ssh_port => 0);
+    my $ssh_virtsh_unreachable = consoles::sshVirtsh->new(undef, {hostname => 'unreachable-host', password => 'foo'});
+    throws_ok { $ssh_virtsh_unreachable->activate } qr/backend died: hypervisor host unreachable-host is not reachable after 1800 seconds/, 'activate dies when hypervisor is unreachable';
+};
 
 $svirt->do_start_vm;
 $distri->add_console('root-sut-serial', 'ssh-virtsh-serial', {});
