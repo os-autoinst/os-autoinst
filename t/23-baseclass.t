@@ -391,6 +391,53 @@ sub _prepare_video_encoder ($baseclass) {
     $baseclass->{external_video_encoder_image_data} = [55 .. 60];
 }
 
+# fake file handle that only accepts a few bytes per syswrite call, used to
+# exercise the offset-based partial-write handling in
+# _write_buffered_data_to_file_handle without relying on real pipe buffering
+package FakeShortWriteFh;
+sub new ($class, $chunk_size) { return bless {chunk_size => $chunk_size, written => ''}, $class }
+
+sub syswrite ($self, $data, $length = undef, $offset = 0) {
+    my $available = (defined $length ? $length : length($data) - $offset);
+    my $n = $available < $self->{chunk_size} ? $available : $self->{chunk_size};
+    $self->{written} .= substr $data, $offset, $n;
+    return $n;
+}
+
+# records calls instead of touching a real IO::Select, since the fake fh above is not a real filehandle
+package RecordingSelect;
+sub new ($class) { return bless {removed => []}, $class }
+sub remove ($self, $fh) { push @{$self->{removed}}, $fh }
+
+package main;
+
+subtest '_write_buffered_data_to_file_handle offset writes' => sub {
+    my $baseclass = backend::baseclass->new();
+    $baseclass->{select_read} = RecordingSelect->new;
+    $baseclass->{select_write} = RecordingSelect->new;
+    my $fh = FakeShortWriteFh->new(3);
+
+    my $first_buffer = 'ABCDEFGHIJ';    # 10 bytes, drained in 3-byte chunks
+    my $second_buffer = 'KLMNOPQ';    # 7 bytes
+    my $buffers = [$first_buffer, $second_buffer];
+
+    backend::baseclass::_write_buffered_data_to_file_handle($baseclass, 'Encoder', $buffers, $fh);
+    is scalar @$buffers, 2, 'head buffer not shifted off after a partial write';
+    is $buffers->[0], $first_buffer, 'head buffer left untouched (no tail copy) after a partial write';
+    is $fh->{written}, 'ABC', 'first chunk written';
+
+    backend::baseclass::_write_buffered_data_to_file_handle($baseclass, 'Encoder', $buffers, $fh) for 1 .. 3;
+    is scalar @$buffers, 1, 'head buffer shifted off only once fully written';
+    is $buffers->[0], $second_buffer, 'next buffer now at the head of the queue';
+    is $fh->{written}, $first_buffer, 'first buffer reassembled in order with no corruption at chunk boundaries';
+
+    backend::baseclass::_write_buffered_data_to_file_handle($baseclass, 'Encoder', $buffers, $fh) for 1 .. 3;
+    is scalar @$buffers, 0, 'queue empty once all buffers fully written';
+    is $fh->{written}, $first_buffer . $second_buffer, 'full byte stream reassembled in order, losslessly, across multiple calls';
+    is_deeply $baseclass->{select_read}->{removed}, [$fh], 'file handle removed from select_read once queue drained';
+    is_deeply $baseclass->{select_write}->{removed}, [$fh], 'file handle removed from select_write once queue drained';
+};
+
 subtest 'video-encoder' => sub {
     my $baseclass = backend::baseclass->new();
     _prepare_video_encoder($baseclass);
