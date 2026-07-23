@@ -18,8 +18,8 @@ $screen = consoles::serial_screen->new('same', 'same');
 is $screen->{fd_read}, 'same', 'Fd read member was set.';
 is $screen->{fd_read}, $screen->{fd_write}, 'If only one fd give, read and write are equal';
 
-dies_ok { $screen->hold_key } 'hold_key dies with error';
-dies_ok { $screen->release_key } 'release_key dies with error';
+throws_ok { $screen->hold_key(23) } qr/Virtio terminal and svirt serial terminal do not support send_key/, 'hold_key dies with error';
+throws_ok { $screen->release_key(23) } qr/Virtio terminal and svirt serial terminal do not support send_key/, 'release_key dies with error';
 dies_ok { $screen->send_key({key => 'space'}) } 'send_key dies for most keys';
 is $screen->current_screen, 0, 'no current screen';
 is $screen->request_screen_update, undef, 'can call request_screen_update';
