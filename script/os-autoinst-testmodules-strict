@@ -31,12 +31,12 @@ Write changed file(s)
 
 Be verbose
 
-=item B<-v, --signatures>
+=item B<--signatures>
 
 Always add signatures.
 By default it does not add C<-signatures> if it was not alraedy used.
 
-=item B<-v, --force>
+=item B<-f, --force>
 
 Ignore C<## no os-autoinst style> comments.
 
@@ -60,7 +60,7 @@ sub usage ($r) { require Pod::Usage; Pod::Usage::pod2usage($r) }
 my $rc = 0;
 unless (caller) {
     $|++;
-    GetOptions(\my %options, 'help|h|?', 'verbose|v', 'force', 'write', 'signatures') or usage(1);
+    GetOptions(\my %options, 'help|h|?', 'verbose|v', 'force|f', 'write', 'signatures') or usage(1);
     usage(0) if $options{help};
     usage(1) unless @ARGV;
     $rc = main(\%options, @ARGV);
