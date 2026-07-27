@@ -9,7 +9,7 @@ preview = true
 # PL: Pylint
 extend-select =[
     "E", "F", "D", "Q", "PL",
-    "T100", # https://docs.astral.sh/ruff/rules/#flake8-debugger-t10
+    "debugger", # https://docs.astral.sh/ruff/rules/#flake8-debugger-t10
     "T2", # https://docs.astral.sh/ruff/rules/#flake8-print-t20
     "TD", # https://docs.astral.sh/ruff/rules/#flake8-todos-td
     "W",
@@ -69,21 +69,21 @@ extend-select =[
 ]
 
 ignore = [
-    "D203",   # incorrect-blank-line-before-class
-    "PLC1802", # use-implicit-booleaness-not-len
-    "D213", # multi-line-summary-second-line
-    "PLR0904", # too-many-public-methods
-    "DOC201", # docstring-missing-returns
-    "DOC501", # docstring-missing-exception
-    "COM812", # missing-trailing-comma
+    "incorrect-blank-line-before-class",
+    "len-test",
+    "multi-line-summary-second-line",
+    "too-many-public-methods",
+    "docstring-missing-returns",
+    "docstring-missing-exception",
+    "missing-trailing-comma",
 ]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-"t/**/*" = ["PLR2004", "ANN401", "PLR0913", "S101", "S105", "S106", "PLR0917", "D103", "D100", "CPY001", "T201", "INP001", "F403", "F405", "ANN", "E402", "ARG001", "TRY002", "TRY003", "EM101", "C406", "RUF100"]
-"script/crop.py" = ["D100", "D101", "D102", "D103", "D107", "ANN", "T201", "PTH119", "PLW1514", "SIM115", "C901", "PLR6104", "SIM102", "PLW0602", "PLW0603", "UP031", "A001", "PLC0415", "ARG001", "PLR2004"]
+"t/**/*" = ["magic-value-comparison", "any-type", "too-many-arguments", "assert", "hardcoded-password-string", "hardcoded-password-func-arg", "too-many-positional-arguments", "undocumented-public-function", "undocumented-public-module", "missing-copyright-notice", "print", "implicit-namespace-package", "undefined-local-with-import-star", "undefined-local-with-import-star-usage", "ANN", "module-import-not-at-top-of-file", "unused-function-argument", "raise-vanilla-class", "raise-vanilla-args", "raw-string-in-exception", "unnecessary-literal-dict", "unused-noqa"]
+"script/crop.py" = ["undocumented-public-module", "undocumented-public-class", "undocumented-public-method", "undocumented-public-function", "undocumented-public-init", "ANN", "print", "os-path-basename", "unspecified-encoding", "open-file-with-context-handler", "complex-structure", "non-augmented-assignment", "collapsible-if", "global-variable-not-assigned", "global-statement", "printf-string-formatting", "builtin-variable-shadowing", "import-outside-top-level", "unused-function-argument", "magic-value-comparison"]
 
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.
