@@ -1,2 +1,2 @@
-# ruff: noqa: F401, D100, CPY001, INP001
+# ruff:file-ignore[unused-import, undocumented-public-module, missing-copyright-notice, implicit-namespace-package]
 import thismoduleshouldnotexist
