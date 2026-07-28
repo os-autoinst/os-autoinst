@@ -332,17 +332,29 @@ subtest 'script_run' => sub {
     stderr_like { is assert_script_run('true'), undef, 'nothing happens on success' } qr/wait_serial/, 'log';
     $mock_bmwqemu->noop('fctres');
     $fake_exit = 1;
-    throws_ok { assert_script_run 'false', 42 } qr/command.*false.*failed at/, 'with timeout option (deprecated mode)';
-    throws_ok { assert_script_run 'false', 0; } qr/command.*false.*timed out/, 'exception message distinguishes failed/timed out';
-    throws_ok { assert_script_run 'false', 7, 'my custom fail message'; }
-    qr/command.*false.*failed: my custom fail message at/,
-      'custom message on die (deprecated mode)';
-    throws_ok { assert_script_run('false', fail_message => 'my custom fail message'); }
-    qr/command.*false.*failed: my custom fail message at/,
-      'using named arguments';
-    throws_ok { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); }
-    qr/command.*false.*timed out/,
-      'using two named arguments; fail message does not apply on timeout';
+
+    subtest 'failures (deprecated mode)' => sub {
+        throws_ok { assert_script_run 'false', 42 } qr/command.*false.*failed/, 'with timeout option';
+        throws_ok { assert_script_run 'false', 7, 'my custom fail message'; }
+        qr/command.*false.*failed: my custom fail message/,
+          'custom message on die';
+    };
+
+    subtest failures => sub {
+        throws_ok { assert_script_run 'false', 0; } qr/command.*false.*timed out/, 'exception message distinguishes failed/timed out';
+        throws_ok { assert_script_run('false', fail_message => 'my custom fail message'); }
+        qr/command.*false.*failed: my custom fail message/,
+          'using named arguments';
+        throws_ok { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); }
+        qr/command.*false.*timed out/,
+          'using two named arguments; fail message does not apply on timeout';
+        $fake_matched = 0;
+        throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
+        throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
+        throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
+    };
+
+    $fake_matched = 1;
     $fake_exit = 0;
     $cmds = [];
     is script_run('true'), '0', 'script_run with no check of success, returns exit code';
@@ -355,10 +367,7 @@ subtest 'script_run' => sub {
     is script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code';
     is script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting';
     $fake_matched = 0;
-    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
-    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
 
-    throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
     my $autotest_mock = Test::MockModule->new('autotest');
     my @diag_messages;
     $mock_bmwqemu->redefine(diag => sub ($msg) { push @diag_messages, $msg });
