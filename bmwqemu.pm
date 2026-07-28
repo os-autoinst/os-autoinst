@@ -227,16 +227,35 @@ sub current_test () {
     return $autotest::current_test;
 }
 
-sub update_line_number () {
+sub filter_stack_trace ($stacktrace, $casedir = $vars{CASEDIR}) {
+    my @filtered;
+    $casedir //= '';
+    for my $frame (@$stacktrace) {
+        my $filename = $frame->{filename};
+        next unless $filename && $filename =~ /\Q$casedir/;
+        $frame->{filename} =~ s{$casedir/?}{};
+        $frame->{frame} =~ s{$casedir/?}{} if $frame->{frame};
+        push @filtered, $frame;
+    }
+    return \@filtered;
+}
+
+sub update_line_number ($stacktrace = undef) {
     return unless my $current_test = current_test;
     return unless $current_test->{script};
     my @out;
-    my $casedir = $vars{CASEDIR} // '';
-    for (my $i = 10; $i > 0; $i--) {
-        my ($package, $filename, $line, $subroutine) = caller $i;
-        next unless $filename && $filename =~ /\Q$casedir/;
-        $filename =~ s@$casedir/?@@;
-        push @out, "$filename:$line called $subroutine";
+    unless ($stacktrace) {
+        my @stack;
+        for (my $i = 10; $i > 0; $i--) {
+            my ($package, $filename, $line, $subroutine) = caller $i;
+            push @stack, {filename => $filename, line => $line, sub => $subroutine};
+        }
+        $stacktrace = filter_stack_trace(\@stack);
+    }
+    for my $st (@$stacktrace) {
+        my $out = sprintf '%s:%d', $st->{filename}, $st->{line};
+        $out .= " called $st->{sub}" if $st->{sub};
+        push @out, $out;
     }
     my $step_info = sprintf '[step:%s,%s,%s]',
       $current_test->{category} // '-', $current_test->{name} // '-', ($current_test->{test_count} // 0) + 1;

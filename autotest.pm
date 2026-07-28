@@ -516,9 +516,8 @@ sub croak ($command, $error) {
     return bmwqemu::diag "ignoring failure via developer mode: $error"
       if autotest::pause_on_failure("$command failed: $error", $command)->{ignore_failure};
 
-    # … or escalate the failure as usual via croak
-    local $Carp::CarpLevel = 2;    # omit this helper function in the trace
-    Carp::croak $error;
+    # … or escalate the failure as usual via Exception
+    OpenQA::Exception::TestapiError->throw(error => $error);
 }
 
 my $failed_command;

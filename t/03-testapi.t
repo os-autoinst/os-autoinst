@@ -349,6 +349,7 @@ subtest 'script_run' => sub {
         throws_ok { assert_script_run 'false', 7, 'my custom fail message'; }
         qr/command.*false.*failed: my custom fail message/,
           'custom message on die';
+        throws_ok { assert_script_run 'false', 42 } 'OpenQA::Exception::TestapiError', 'throws exception';
     };
 
     subtest failures => sub {
@@ -363,6 +364,8 @@ subtest 'script_run' => sub {
         throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
         throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
         throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
+
+        throws_ok { assert_script_run 'false', 0; } 'OpenQA::Exception::TestapiError', 'throws exception';
     };
 
     $fake_matched = 1;
@@ -486,6 +489,7 @@ subtest 'check_assert_screen' => sub {
 
     subtest 'handle check_screen timeout' => sub {
         $cmds = [];
+        local $autotest::current_test->{test_count} = 0;
         $autotest::current_test->{details} = [];
 
         ok !check_screen('foo', 3, timeout => 2);
@@ -510,7 +514,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply $autotest::current_test->{details}, [
             {
                 result => 'unk',
-                screenshot => 'basetest-14.png',
+                screenshot => 'basetest-1.png',
                 frametime => [qw(1.75 1.79)],
                 tags => [qw(fake tags)],
             }
@@ -521,13 +525,14 @@ subtest 'check_assert_screen' => sub {
     $report_timeout_called = 0;
 
     subtest 'module step logging' => sub {
+        local $autotest::current_test->{test_count} = 0;
         local $autotest::current_test->{script} = 'dummy';
         local $autotest::current_test->{category} = 'cat';
         combined_like {
             throws_ok { assert_screen('foo', 3, timeout => 2) }
             qr/no candidate needle/,
               'error message like expeected';
-        } qr{\Q[step:cat,basetest,16]\E.*called testapi::assert_screen}, 'module step logged in case of failed assert_screen';
+        } qr{\Q[step:cat,basetest,2]\E.*called testapi::assert_screen}, 'module step logged in case of failed assert_screen';
     };
 
     subtest 'handle assert_screen timeout' => sub {
