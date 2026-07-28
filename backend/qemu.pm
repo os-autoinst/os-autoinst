@@ -730,14 +730,14 @@ sub start_qemu ($self) {
         die 'No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package' unless $vars->{UEFI_PFLASH_CODE};
     }
 
+    # A non-absolute path is relative to /usr/share/qemu
+    $vars->{BIOS} = '/usr/share/qemu/' . $vars->{BIOS} if $vars->{BIOS} && $vars->{BIOS} !~ /^\//;
+
+    # Convert those vars to absolute paths and check for existence
     foreach my $attribute (qw(KERNEL INITRD BIOS)) {
-        if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
-            # Non-absolute paths are assumed relative to /usr/share/qemu
-            $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
-        }
-        if ($vars->{$attribute} && !-e $vars->{$attribute}) {
-            die "'$vars->{$attribute}' missing, check $attribute\n";
-        }
+        next unless $vars->{$attribute};
+        $vars->{$attribute} = path($vars->{$attribute})->to_abs->to_string;
+        die "'$vars->{$attribute}' missing, check $attribute\n" unless -e $vars->{$attribute};
     }
 
     if ($vars->{LAPTOP}) {
