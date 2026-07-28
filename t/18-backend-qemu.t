@@ -685,7 +685,7 @@ subtest 'special cases when starting QEMU' => sub {
     # set certain variables to test special handling for them that is not otherwise tested
     $bmwqemu::topdir = "$Bin/..";    # for dmi data
     $bmwqemu::vars{ARCH} = 'x86_64';
-    $bmwqemu::vars{KERNEL} = 'linuxboot_dma.bin';
+    $bmwqemu::vars{BIOS} = 'bios.bin';
     $bmwqemu::vars{LAPTOP} = '1';
     $bmwqemu::vars{BOOT_HDD_IMAGE} = 1;
     $bmwqemu::vars{MULTIPATH} = 1;
@@ -713,7 +713,7 @@ subtest 'special cases when starting QEMU' => sub {
     my @invoked_cmds;
     $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join ' ', @cmd });
     combined_like { $backend->start_qemu } qr{.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s, 'slirpvde started, DELAYED_START logged';
-    like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot_dma\.bin}, 'KERNEL set to absolute location';
+    like $bmwqemu::vars{BIOS}, qr{/.*/bios\.bin}, 'BIOS set to absolute location';
     is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
     is $bmwqemu::vars{BOOTFROM}, 'c', 'BOOTFROM defaults to "c" for BOOT_HDD_IMAGE=1';
     is $bmwqemu::vars{HDDMODEL}, 'scsi-hd', 'HDDMODEL set for MULTIPATH=1';
@@ -807,7 +807,7 @@ subtest 'special cases when starting QEMU' => sub {
         combined_like { throws_ok { $backend->start_qemu } qr{no dmi data for 'auslaufmoDELL'}, 'dies on unknown LAPTOP' }
           qr/qemu version/si, 'expected logs until exception thrown (4)';
         $bmwqemu::vars{KERNEL} = 'does-not-exist';
-        combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
+        combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BIOS/KERNEL/INITRD' }
           qr/qemu version/si, 'expected logs until exception thrown (5)';
         $bmwqemu::vars{UEFI} = 1;
         $bmwqemu::vars{UEFI_PFLASH_CODE} = 0;

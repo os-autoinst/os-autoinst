@@ -111,7 +111,7 @@ Supported variables per backend
 | ARCH | x86_64\|i686\|aarch64\|... | depends on tested medium | Architecture of VM. |
 | APPEND | string |  | Kernel options to pass when using the KERNEL variable, see https://qemu-project.gitlab.io/qemu/system/linuxboot.html |
 | ATACONTROLLER | see qemu -device ?, e. g. for SATA: ich9-ahci |  | Controller for ATA devices, needed for connecting disks as SATA. |
-| BIOS | string |  | Set the filename for the BIOS |
+| BIOS | string |  | Set the filename for the BIOS. Relative paths are assumed to be relative to `/usr/share/qemu/`. |
 | BOOT_HDD_IMAGE | boolean |  | enables boot from HDD_1 (BOOTFROM has higher priority) |
 | BOOT_MENU | boolean | undef | enables boot menu for selection of boot device |
 | BOOT_MENU_TIMEOUT | integer | 5000 | boot menu timeout in ms. Needs BOOT_MENU |
@@ -126,10 +126,10 @@ Supported variables per backend
 | HDDNUMQUEUES_$i | integer | -1 | see qemu-system-x86_64 -device nvme,help - set the number of queues for HDD_$i |
 | HDDSECTORSIZE_$i | integer | undef | specifies the physical and logical block size and boot sector size of the HDD image |
 | ISO | filename |  | Filename of ISO file to be attached to VM |
-| INITRD | filename |  | Path to the initrd (initial ramdisk) image for direct kernel boot. Relative paths are assumed to be relative to `/usr/share/qemu/`. |
+| INITRD | filename |  | Path to the initrd (initial ramdisk) image for direct kernel boot. |
 | ISO_$i | filename |  | Additional ISO to be attached to VM. Up to 9 |
 | KEEPHDDS | boolean |  | Leave created HDD after test finishes. Useful for debugging tests |
-| KERNEL | filename |  | Path to kernel image for direct kernel boot. When specified, QEMU will boot directly into this kernel without using a bootloader. Relative paths are assumed to be relative to `/usr/share/qemu/`. |
+| KERNEL | filename |  | Path to kernel image for direct kernel boot. When specified, QEMU will boot directly into this kernel without using a bootloader. |
 | LAPTOP | boolean or filename | 0 | If 1, loads HP EliteBook 820 G1 DMI. If filename, loads specified DMI |
 | MAKETESTSNAPSHOTS | boolean | 0 | Save snapshot for each test module in qcow image |
 | MULTIPATH | boolean | 0 | Add HDD drives as multipath devices. Override HDDMODEL to virtio-scsi-pci |
