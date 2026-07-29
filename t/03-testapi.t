@@ -298,6 +298,17 @@ subtest 'send_key with wait_screen_change' => sub {
 
 subtest 'assert_screen_change' => sub {
     combined_like { testapi::assert_screen_change { say 'something' } } qr/something/, 'callback invoked';
+
+    my $received_timeout = 'unset';
+    my $mock_wsc = Test::MockModule->new('testapi');
+    $mock_wsc->redefine(wait_screen_change => sub : prototype(&@) {
+            my ($callback, $timeout, %args) = @_;
+            $received_timeout = $timeout;
+            $callback->() if $callback;
+            return 1;
+    });
+    testapi::assert_screen_change(sub { }, 42);
+    is $received_timeout, 42, 'timeout forwarded to wait_screen_change';
 };
 
 is $autotest::current_test->{dents}, 0, 'no soft failures so far';
