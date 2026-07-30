@@ -809,7 +809,7 @@ sub _receive_message ($self) {
     $socket->blocking(0);
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
-    return undef unless $ret;
+    return undef unless defined $ret;
     $self->_vnc_stalled(0);
 
     die "socket closed: $ret\n${\Dumper $self}" if $ret <= 0;
