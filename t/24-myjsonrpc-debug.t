@@ -17,6 +17,7 @@ BEGIN {
 use myjsonrpc;
 
 use Test::Warnings qw(warnings :report_warnings);
+use Test::MockModule;
 
 no warnings 'redefine';
 *bmwqemu::diag = sub ($text) { warn $text };
@@ -44,6 +45,21 @@ subtest debug_json => sub {
     like $warnings[1], qr{read_json}, 'debug read_json';
     like $warnings[2], qr{read_json.*json_cmd_token=dummy}, 'debug json_cmd_token';
     is scalar @warnings, 3, 'Correct number of warnings';
+};
+
+subtest 'sysread failure' => sub {
+    open my $fh, '<', '.';
+
+    my $fctwarn_msg;
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->redefine(fctwarn => sub ($msg) { $fctwarn_msg = $msg });
+    $mock_bmwqemu->redefine(diag => sub { });
+
+    my $res = myjsonrpc::read_json($fh);
+    is $res, undef, 'read_json returns undef on sysread failure';
+    like $fctwarn_msg, qr/sysread failed: Is a directory/, 'fctwarn sysread failed was called';
+
+    close $fh;
 };
 
 close $isotovideo;
