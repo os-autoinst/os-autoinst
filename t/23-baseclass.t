@@ -500,6 +500,31 @@ BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, '
     is_deeply $baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, 'Test regex mismatch';
     is_deeply $baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, 'Test string literal mismatch';
 
+    subtest 'incremental read across a poll boundary' => sub {
+        path($baseclass->{serialfile})->spew('abc DEF');
+        $baseclass->{serial_offset} = 0;
+        my $poll_count = 0;
+        my $previous_run_capture_loop = \&backend::baseclass::run_capture_loop;
+        my $cleanup = scope_guard sub { $baseclass_mock->redefine(run_capture_loop => $previous_run_capture_loop) };
+        $baseclass_mock->redefine(run_capture_loop => sub ($self, @args) {
+                $poll_count++;
+                open my $fh, '>>', $self->{serialfile} or die $!;
+                print $fh 'GHI';
+                close $fh;
+        });
+        is_deeply $baseclass->wait_serial({%dargs, regexp => qr/DEFGHI/, timeout => 60}), {matched => 1, string => 'abc DEFGHI'}, 'match straddling a poll boundary joins chunks correctly';
+        is $poll_count, 1, 'exactly one additional poll was needed to see the appended bytes';
+    };
+
+    subtest 'no data available yet' => sub {
+        path($baseclass->{serialfile})->spew('');
+        $baseclass->{serial_offset} = 0;
+        my $previous_run_capture_loop = \&backend::baseclass::run_capture_loop;
+        my $cleanup = scope_guard sub { $baseclass_mock->redefine(run_capture_loop => $previous_run_capture_loop) };
+        $baseclass_mock->redefine(run_capture_loop => sub ($self, @args) { ff(1) });
+        is_deeply $baseclass->wait_serial({%dargs, regexp => 'anything', timeout => 1, no_regex => 1}), {matched => 0, string => ''}, 'no bytes read yields an empty (not undef) string, matching read_serial EOF semantics';
+    };
+
     subtest 'waiting for serial terminal' => sub {
         my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true('read_until');
         $current_console->set_true('is_serial_terminal');

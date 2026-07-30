@@ -859,16 +859,6 @@ sub clear_serial_buffer ($self, @) {
 }
 
 
-=head2 serial_text
-
-Returns the output on the serial device since the last call to clear_serial_buffer
-
-=cut
-
-sub serial_text ($self) {
-    return ($self->read_serial($self->{serial_offset}))[0];
-}
-
 =head2 read_serial
 
 Returns the output and the offset after reading on the serial device from position
@@ -899,8 +889,10 @@ sub wait_serial ($self, $args) {
     $regexp = [$regexp] if ref $regexp ne 'ARRAY';
     my $initial_time = time;
     my $current_offset = $self->{serial_offset};
+    my $read_pos = $self->{serial_offset};
     while (time < $initial_time + $timeout) {
-        $str = $self->serial_text();
+        (my $chunk, $read_pos) = $self->read_serial($read_pos);
+        $str = ($str // '') . $chunk;
         for my $r (@$regexp) {
             if (!$args->{no_regex} && $str =~ m/$r/) {
                 $current_offset += $LAST_MATCH_END[0];
