@@ -876,4 +876,24 @@ subtest 'die with error on QMP command after power("off")' => sub {
     combined_like { throws_ok { $backend->power({action => 'reset'}) } qr/Bad file descriptor/, 'die as expected' } qr/qemu was explicitly stopped from test code.*system_reset/s, 'warning as expected';
 };
 
+subtest 'virtio_console_names with various console numbers' => sub {
+    local $bmwqemu::vars{VIRTIO_CONSOLE} = 1;
+    local $bmwqemu::vars{VIRTIO_CONSOLE_NUM} = undef;
+    is_deeply [backend::qemu::virtio_console_names()], ['virtio_console', 'virtio_console_user'], 'VIRTIO_CONSOLE_NUM defaults to 1, names for 1 console';
+    local $bmwqemu::vars{VIRTIO_CONSOLE_NUM} = 1;
+    is_deeply [backend::qemu::virtio_console_names()], ['virtio_console', 'virtio_console_user'], 'names for 1 console';
+    local $bmwqemu::vars{VIRTIO_CONSOLE_NUM} = 3;
+    is_deeply [backend::qemu::virtio_console_names()], ['virtio_console', 'virtio_console_user', 'virtio_console1', 'virtio_console2'], 'names for 3 consoles';
+    local $bmwqemu::vars{VIRTIO_CONSOLE} = 0;
+    is_deeply [backend::qemu::virtio_console_names()], [], 'no virtio consoles if VIRTIO_CONSOLE is disabled';
+};
+
+subtest 'QEMU_ENABLE_SMBD support' => sub {
+    $bmwqemu::vars{QEMU_ENABLE_SMBD} = 1;
+    $bmwqemu::vars{NICTYPE} = 'user';
+    $backend_mock->redefine(handle_qmp_command => undef);
+    stderr_like { ok $backend->start_qemu(), 'qemu can be started with SMBD enabled' } qr/running .*chattr/, 'preparing local files with SMBD enabled';
+    $backend_mock->unmock('handle_qmp_command');
+};
+
 done_testing();
