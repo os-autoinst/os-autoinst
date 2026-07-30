@@ -136,7 +136,7 @@ just read once.
 
 =cut
 
-sub do_read {    # no:style:signatures
+sub do_read {    ## no critic (Subroutines::RequireArgUnpacking) # no:style:signatures
     my ($self, undef, %args) = @_;
     my $buffer = '';
     $args{timeout} //= undef;    # wait till data is available

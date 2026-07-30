@@ -5,11 +5,13 @@
 package mmapi;
 
 use Mojo::Base 'Exporter', -signatures;
+## no critic (Modules::ProhibitAutomaticExportation)
 our @EXPORT = qw(get_children_by_state get_children get_parents
   get_job_info get_job_autoinst_url get_job_autoinst_vars
   wait_for_children wait_for_children_to_start api_call
   api_call_2 handle_api_error get_current_job_id
 );
+## use critic
 
 require bmwqemu;
 

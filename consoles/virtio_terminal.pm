@@ -99,7 +99,7 @@ there Fcntl bindings. See https://perldoc.perl.org/Fcntl.html
 
 sub F_GETPIPE_SZ () {
     eval {
-        no warnings 'all';
+        no warnings 'all';    ## no critic (TestingAndDebugging::ProhibitNoWarnings)
         Fcntl::F_GETPIPE_SZ;
     } || 1032;
 }
@@ -111,7 +111,7 @@ there Fcntl bindings. See: https://perldoc.perl.org/Fcntl.html
 
 sub F_SETPIPE_SZ () {
     eval {
-        no warnings 'all';
+        no warnings 'all';    ## no critic (TestingAndDebugging::ProhibitNoWarnings)
         Fcntl::F_SETPIPE_SZ;
     } || 1031;
 }

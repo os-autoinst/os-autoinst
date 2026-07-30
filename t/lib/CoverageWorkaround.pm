@@ -74,16 +74,15 @@ my $patched_pp_leave;    # apply 134812 fix below
 }
 
 sub pp_leave {    # fix https://rt.cpan.org/Ticket/Display.html?id=134812 # no:style:signatures
-    my $self = shift;
-    my ($op) = @_;
+    my ($self, $op) = @_;
 
     my $enter = $op->first;
     no strict 'subs';    ## no critic (TestingAndDebugging::ProhibitNoStrict, TestingAndDebugging::ProhibitProlongedStrictureOverride)
-    no warnings;
-    return $self->$orig_pp_leave(@_) if $enter->type != OP_ENTER;
+    no warnings;    ## no critic (TestingAndDebugging::ProhibitNoWarnings)
+    return $self->$orig_pp_leave($op) if $enter->type != OP_ENTER;
 
     my $meth = ref $enter->sibling eq 'B::COP' ? $orig_pp_leave : $patched_pp_leave;
-    return $self->$meth(@_);
+    return $self->$meth($op);
 }
 
 1;
