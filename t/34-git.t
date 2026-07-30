@@ -17,6 +17,8 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
+BEGIN { $ENV{LANG} = 'C.utf8' }
+
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $git_repo = 'tmpgitrepo';
 my $git_dir = "$dir/source/$git_repo";
