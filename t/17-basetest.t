@@ -621,6 +621,7 @@ subtest record_serialresult_hiding => sub {
     );
 
     foreach my $case (@test_cases) {
+        local %bmwqemu::vars = %{$case->{vars}};
         $mock_testapi->mock(get_var => sub ($var) { return $case->{vars}->{$var} });
         $basetest->record_serialresult(@{$case->{params}});
         like $recorded_output, $_, "$case->{name} (contains expected)" for @{$case->{expected}};

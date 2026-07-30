@@ -216,10 +216,19 @@ sub ensure_valid_vars () {
 # local vars
 
 our $backend;    ## no critic (Variables::ProhibitPackageVars)
+my $distribution_object;
 
 # local vars end
 
 # util and helper functions
+
+sub distribution () {
+    return $distribution_object;
+}
+
+sub _set_distribution ($distri) {
+    $distribution_object = $distri;
+}
 
 sub current_test () {
     require autotest;
