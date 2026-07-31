@@ -527,7 +527,7 @@ Return the current C<PRETTY_SERIAL_MARKER> state. Falls back to the test variabl
 =cut
 
 sub get_pretty_serial_marker ($self) {
-    return $self->{_pretty_serial_marker} // testapi::get_var('PRETTY_SERIAL_MARKER');
+    return $self->{_pretty_serial_marker} // testapi::get_var('PRETTY_SERIAL_MARKER', 1);
 }
 
 =head2 set_pretty_serial_marker
