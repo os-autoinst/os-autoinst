@@ -8,7 +8,8 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Mojo::Base -signatures;
 use File::Find;
@@ -29,11 +30,18 @@ use File::Which;
 use Data::Dumper;
 use POSIX '_exit';
 
+my $toplevel_dir = path($Bin);
+my $data_dir = $toplevel_dir->child('data');
+
+my $isolation_guard = setup_isolated_workdir();
+
 my $mojoport = Mojo::IOLoop::Server->generate_port;
 my $base_url = "http://localhost:$mojoport";
 my $job = 'Hallo';
-my $toplevel_dir = path(__FILE__)->dirname->realpath;
-my $data_dir = $toplevel_dir->child('data');
+
+my $pool_directory = tempdir('10-terminal-poolXXXXX', TMPDIR => 1);
+use File::Copy;
+copy($data_dir->child('pool/01377524-autoinst.xml'), $pool_directory->child('01377524-autoinst.xml'));
 
 sub wait_for_server ($ua) {
     for (my $counter = 0; $counter < 20; $counter++) {
@@ -49,10 +57,8 @@ $bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} = 0.0048828125;    # 5 MiB, less than
 
 my @tempfiles;
 # now this is a game of luck
-my $pool_directory = $data_dir->child('pool');
 ok chdir $pool_directory, "change command server working directory to $pool_directory";
 my ($cserver, $cfd);
-ok chdir $data_dir->child('pool'), 'change command server working directory';
 combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'command server started';
 
 my $spid = fork;
@@ -61,7 +67,10 @@ if ($spid == 0) {
     while (1) {    # uncoverable statement
         my $json = myjsonrpc::read_json($cfd);    # uncoverable statement
         next unless my $cmd = delete $json->{cmd};    # uncoverable statement
-        myjsonrpc::send_json($cfd, $cmd eq 'version' ? {VERSION => 'COOL'} : {response_for => $cmd, %$json});    # uncoverable statement
+        myjsonrpc::send_json($cfd,    # uncoverable statement
+            $cmd eq 'version' ? {VERSION => 'COOL'}    # uncoverable statement
+            : $cmd eq 'stop_processing_isotovideo_commands' ? {stop_processing_isotovideo_commands => 1}    # uncoverable statement
+            : {response_for => $cmd, %$json});    # uncoverable statement
     }
     _exit(0);    # uncoverable statement
 }
@@ -105,6 +114,17 @@ subtest 'web socket route' => sub {
     $t->message_ok('result from isotovideo is passed back');
     $t->json_message_is('/response_for' => 'set_pause_at_test');
     $t->json_message_is('/name' => 'installation-welcome');
+
+    $t->send_ok(
+        {
+            json => {
+                cmd => 'stop_processing_isotovideo_commands',
+            }
+        },
+        'stop command passed to isotovideo'
+    );
+    $t->message_ok('result from isotovideo is passed back');
+    $t->json_message_is('/stop_processing_isotovideo_commands' => 1);
 
     subtest 'broadcast messages to websocket clients' => sub {
         my $t2 = Test::Mojo->new;
@@ -199,12 +219,12 @@ subtest 'upload api' => sub {
     subtest 'successful upload' => sub {
         $t->post_ok("$base_url/$job/upload_asset/private-asset", form => {upload => {content => 'private-content'}});
         $t->status_is(200)->content_is("OK: private-asset\n");
-        push @tempfiles, $pool_directory->child('assets_private/private-asset');
+        push @tempfiles, $pool_directory->child('assets_private');
         is $pool_directory->child('assets_private/private-asset')->slurp, 'private-content', 'private asset created';
 
         $t->post_ok("$base_url/$job/upload_asset/public-asset", form => {upload => {content => 'public-content'}, target => 'assets_public'});
         $t->status_is(200)->content_is("OK: public-asset\n");
-        push @tempfiles, $pool_directory->child('assets_public/public-asset');
+        push @tempfiles, $pool_directory->child('assets_public');
         is $pool_directory->child('assets_public/public-asset')->slurp, 'public-content', 'public asset created';
     };
 };
@@ -223,9 +243,15 @@ subtest 'current_script test' => sub {
     $t->get_ok("$base_url/$job/current_script")->status_is(200)->content_type_is('application/octet-stream');
 };
 
-kill TERM => $spid;
-waitpid $spid, 0;
-combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
+combined_like {
+    kill TERM => $spid;
+    waitpid $spid, 0;
+    my $timer = Mojo::IOLoop->timer(5 => sub { Mojo::IOLoop->stop });
+    $cserver->on(collected => sub { Mojo::IOLoop->stop });
+    Mojo::IOLoop->start;
+    $cserver->stop() if $cserver->is_running;
+    $cserver->session->consume_collected_info();
+} qr/commands process exited/, 'commands server stopped';
 
 subtest 'decode failure' => sub {
     my $jsonrpc = Test::MockModule->new('myjsonrpc');
@@ -259,5 +285,7 @@ subtest 'decode failure' => sub {
 done_testing;
 
 END {
-    unlink @tempfiles;
+    require File::Path;
+    File::Path::remove_tree(grep { -d } @tempfiles);
+    unlink grep { -f } @tempfiles;
 }

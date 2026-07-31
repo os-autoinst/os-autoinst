@@ -13,7 +13,8 @@ use Test::Warnings qw(:all :report_warnings);
 use File::Basename;
 use File::Copy;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
@@ -21,7 +22,8 @@ use Test::MockObject;
 use consoles::video_stream;
 use tinycv;
 
-my $data_dir = dirname(__FILE__) . '/data/';
+my ($isolation_guard, $dir) = setup_isolated_workdir();
+my $data_dir = "$Bin/data/";
 
 my $mock_console = Test::MockModule->new('consoles::video_stream');
 my %v4l2_ctl_results = ();
@@ -180,9 +182,19 @@ subtest 'frames parsing' => sub {
     my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
     $mock_video_source = $data_dir . 'frame1.ppm';
     $console->activate;
+    my $wait_for_frame = sub ($expected_img) {
+        my $received;
+        for (1 .. 100) {
+            $received = $console->current_screen();
+            last if $received && $received->similarity($expected_img) == 1_000_000;
+            select undef, undef, undef, 0.1;    # uncoverable statement
+        }
+        return $received;
+    };
 
     $img = tinycv::read($data_dir . 'frame1.png');
-    $received_img = $console->current_screen();
+    $received_img = $wait_for_frame->($img);
+
     ok $received_img, 'current screen available to read for single frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
@@ -192,7 +204,7 @@ subtest 'frames parsing' => sub {
     $console->connect_remote({url => 'udp://@:5004'});
 
     $img = tinycv::read($data_dir . 'frame2.png');
-    $received_img = $console->current_screen();
+    $received_img = $wait_for_frame->($img);
     ok $received_img, 'current screen available to read for second frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct frame';
     $console->disable_video;
@@ -382,10 +394,13 @@ subtest 'v4l2 resolution' => sub {
 };
 
 subtest 'input events' => sub {
+    local %ENV = %ENV;
+    # Avoid Devel::Cover lock contention/hangs in the mock subprocess
+    delete $ENV{PERL5OPT};
     my ($cmds_fh, @cmds);
     my $console = consoles::video_stream->new(undef, {
             url => 'udp://@:5004',
-            input_cmd => "socat -lf /dev/null STDIO 'EXEC:yes ok!!CREATE:input-commands'",
+            input_cmd => q{perl -e '$|=1; open my $fh, ">", "input-commands"; while(<>) { print $fh $_; print "ok\n" }'},
     });
     $console->backend($mock_backend);
     $console->activate;
@@ -457,6 +472,11 @@ subtest 'input events' => sub {
 };
 
 done_testing;
+
+undef $mock_console;
+undef $mock_bmwqemu;
+undef $mock_backend;
+undef $isolation_guard;
 
 END {
     unlink 'input-commands';
