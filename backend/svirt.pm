@@ -78,8 +78,17 @@ sub do_stop_vm_hyperv ($self) {
 
 sub do_stop_vm_svirt ($self) {
     my $vmname = $self->vmname;
-    $self->run_ssh_cmd(virsh() . " destroy $vmname");
-    $self->run_ssh_cmd(virsh() . " undefine --snapshots-metadata $vmname");
+
+    # Only attempt cleanup if the domain actually exists on the host
+    if ($self->run_ssh_cmd(virsh() . " dominfo $vmname 2>/dev/null") == 0) {
+        $self->run_ssh_cmd(virsh() . " destroy $vmname");
+        $self->run_ssh_cmd(virsh() . " undefine --snapshots-metadata $vmname");
+
+        # Verify the domain is actually gone to prevent cryptic UUID clashes later
+        if ($self->run_ssh_cmd(virsh() . " dominfo $vmname 2>/dev/null") == 0) {
+            bmwqemu::fctwarn("Domain '$vmname' still exists after undefine attempt. The QEMU process is likely stuck (D-state) on the host.");
+        }
+    }
 }
 
 sub do_stop_vm ($self, @) {
@@ -121,7 +130,7 @@ sub can_handle ($self, $args) {
 sub is_shutdown_cmd_hyperv ($vmname) { qq{powershell -Command "if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }"} }
 
 sub is_shutdown_cmd_svirt ($vmname) {
-    return '! ' . virsh() . " dominfo $vmname | grep -w 'shut off'";
+    return '! ' . virsh() . " dominfo $vmname 2>/dev/null | grep -w 'shut off'";
 }
 
 sub is_shutdown ($self, @) {
