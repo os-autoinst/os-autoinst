@@ -7,6 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
+use Test::MockObject;
 use Test::Output qw(combined_like combined_from stderr_like);
 use File::Basename;
 use Mojo::File qw(path tempdir);
@@ -634,4 +635,33 @@ subtest record_serialresult_hiding => sub {
         unlike $recorded_output, $_, "$case->{name} (does not contain unexpected)" for @{$case->{not_expected}};
     }
 };
+
+subtest 'record_screenfail with needles' => sub {
+    my $test = basetest->new;
+
+    # mock _serialize_match on basetest to return a mock serialized representation
+    my $mock_basetest = Test::MockModule->new('basetest');
+    my $serialize_called = 0;
+    $mock_basetest->redefine(_serialize_match => sub ($self, $candidate) {
+            $serialize_called++;
+            return 'serialized_candidate';
+    });
+
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->redefine(result_dir => sub { '/tmp' });
+
+    my $res = $test->record_screenfail(
+        img => Test::MockObject->new->set_always(write_with_thumbnail => 1),
+        needles => [Test::MockObject->new],
+        tags => ['foo'],
+        result => 'fail',
+        overall => 'fail',
+        frame => 1,
+    );
+
+    is $serialize_called, 1, '_serialize_match was called exactly once';
+    is_deeply $res->{needles}, ['serialized_candidate'], 'candidates are serialized';
+    is_deeply $res->{tags}, ['foo'], 'tags are passed through';
+};
+
 done_testing;

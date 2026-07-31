@@ -162,7 +162,6 @@ subtest 'reboot_safety' => sub {
     my $typed_string = '';
     $mock_testapi->redefine(query_isotovideo => sub { });
     $mock_testapi->redefine(type_string => sub { $typed_string .= $_[0] });
-    $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? (defined $_[1] ? $_[1] : 1) : undef });
@@ -248,8 +247,6 @@ subtest 'pretty_serial_marker_helpers' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     my %vars;
-    $mock_testapi->redefine(get_var => sub { exists $vars{$_[0]} ? $vars{$_[0]} : $_[1] });
-    $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     my $typed = '';
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
@@ -314,11 +311,8 @@ subtest 'serial_terminal_redirection_guard' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     my %vars = (PRETTY_SERIAL_MARKER => 1);
-    $mock_testapi->redefine(get_var => sub { exists $vars{$_[0]} ? $vars{$_[0]} : $_[1] });
-    $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(is_serial_terminal => sub { 1 });
-    $mock_testapi->redefine(backend_get_wait_still_screen_on_here_doc_input => sub { 0 });
     my $typed = '';
     my $diag_msg = '';
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
@@ -377,7 +371,6 @@ subtest 'terminal_session_boundary' => sub {
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(current_console => sub { 'x11' });
     $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? (defined $_[1] ? $_[1] : 1) : undef });
-    $mock_testapi->redefine(check_screen => sub { undef });
     $testapi::serialdev = 'ttyS0';
 
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) {

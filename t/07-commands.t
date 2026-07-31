@@ -228,11 +228,6 @@ waitpid $spid, 0;
 combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
 
 subtest 'decode failure' => sub {
-    my $jsonrpc = Test::MockModule->new('myjsonrpc');
-    # uncoverable statement count:2
-    # uncoverable statement count:3
-    $jsonrpc->redefine(send_json => sub ($iso, $data) { 1 });
-
     my $oc = Test::MockModule->new('OpenQA::Commands');
     $oc->redefine(decode_json => sub ($json) { die 23 });
 

@@ -18,14 +18,11 @@ $bmwqemu::vars{ZVM_GUEST} = 'guest.user';
 $bmwqemu::vars{ZVM_PASSWORD} = 'password';
 
 my $ipc_run_mock = Test::MockModule->new('IPC::Run');
-my $vnc_mock = Test::MockModule->new('consoles::VNC');
 my $localXvnc_mock = Test::MockModule->new('consoles::localXvnc');
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $socket_mock = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
 
 $localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = 'display' });
-$vnc_mock->redefine(_read_socket => sub { substr ${$_[1]}, $_[3], $_[2], $socket_mock->mocked_read; length ${$_[1]} });
-$vnc_mock->redefine(login => 1);
 $inet_mock->redefine(new => $socket_mock);
 $ipc_run_mock->redefine(pump => 1);
 

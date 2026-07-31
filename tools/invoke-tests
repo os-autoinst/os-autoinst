@@ -17,7 +17,7 @@ options:
 }
 
 # parse arguments
-prove_path=prove make_path=make unbuffer_path=unbuffer build_directory=$source_directory
+prove_path=prove make_path=make unbuffer_path=unbuffer build_directory=$source_directory tests=()
 opts=$(getopt \
     --options h \
     --longoptions help,coverage,skip-if-cover-db-exists,prove-tool:,make-tool:,unbuffer-tool:,build-directory: \
@@ -51,6 +51,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --)
+            [[ $1 != -- ]] && tests+=("$1")
             shift
             break
             ;;
@@ -68,6 +69,7 @@ if [[ $WITH_COVER_OPTIONS ]]; then
     ignore="external/|tools/|t/data/tests/tests/|t/data/tests/pythontests/|t/data/tests/luatests/|t/data/wheels_dir|/tmp|$prove_path|CoverageWorkaround"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
     export PERL5OPT="$PERL5OPT -I$source_directory/external/os-autoinst-common/lib -MTest::CheckGitStatus -It/lib -MCoverageWorkaround -MDevel::Cover=-db,$db,-ignore,$ignore,-coverage,statement"
+    export DEVEL_COVER_CODECOVBASH_COVER_ALL_STATEMENTS=1
     echo "$PERL5OPT"
 fi
 # set variables for tests which need to invoke the make tool
@@ -79,7 +81,8 @@ args=()
 # note: When executing tests with prove it seems that the output is only flushed after one test has finished unless there's a terminal.
 [[ $unbuffer_path ]] && [[ $unbuffer_path != 'UNBUFFER_PATH-NOTFOUND' ]] && args+=("$unbuffer_path")
 # split TESTS on white-spaces to allow specifying multiple tests as documented
-TESTS=${TESTS:-"-r t xt"}
 # shellcheck disable=SC2206
-args+=("$prove_path" $PROVE_ARGS $TESTS)
-(cd "$source_directory" && "${args[@]}")
+[[ ${#tests[@]} -eq 0 ]] && tests+=(${TESTS:--r t xt})
+# shellcheck disable=SC2206
+args+=("$prove_path" $PROVE_ARGS)
+(cd "$source_directory" && "${args[@]}" "${tests[@]}")

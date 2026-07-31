@@ -82,8 +82,6 @@ subtest 'request WebSockets URL' => sub {
     my $req_mock = Test::MockModule->new('Mojo::Message::Request');
     my @fake_res = mk_res 200, '<faultstring>some error</faultstring>';
     $user_agent_mock->redefine(start => sub ($ua, $tx) { });
-    # uncoverable statement count:2
-    $user_agent_mock->redefine(get => sub { Mojo::Transaction::HTTP->new });
     $http->redefine(result => sub { shift @fake_res });
 
     my $vmware = consoles::VMWare->new(vm_id => 42, host => 'mocked');

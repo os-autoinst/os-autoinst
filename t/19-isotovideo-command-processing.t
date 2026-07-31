@@ -389,19 +389,21 @@ subtest check_asserted_screen => sub {
 };
 
 subtest signalhandler => sub {
+    local %SIG = %SIG;
     my $last_signal;
     my $runner = OpenQA::Isotovideo::Runner->new;
     $runner->command_handler($command_handler);
     $command_handler->once(signal => sub ($event, $sig) { $last_signal = $sig });
+    $runner->setup_signal_handler;
     $runner->loop(1);
     stderr_like {
-        $runner->_signal_handler('TERM');
+        $SIG{TERM}->('TERM');
     } qr/isotovideo received signal TERM/, 'Signal logged';
     is $runner->loop, 0, 'Loop was stopped';
     is $last_signal, undef, 'No event emitted';
 
     stderr_like {
-        $runner->_signal_handler('INT');
+        $SIG{INT}->('INT');
     } qr/isotovideo received signal INT/, 'Signal logged';
     is $last_signal, 'INT', 'Event emitted';
 };

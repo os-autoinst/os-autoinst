@@ -456,6 +456,37 @@ subtest 'input events' => sub {
     $console->disable;
 };
 
+subtest 'screen method' => sub {
+    my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
+    is $console->screen(), $console, 'screen returns self';
+};
+
+subtest 'ffmpeg closed when receiving frame and the process is still running' => sub {
+    my $console = consoles::video_stream->new(undef, {url => 'udp://@:5004'});
+
+    # start a dummy running background child process
+    my $pid = fork;
+    if ($pid == 0) {
+        # inside child: sleep and exit
+        sleep 10;    # uncoverable statement
+        exit 0;    # uncoverable statement
+    }
+
+    my $mock_ffmpeg = Test::MockObject->new;
+    $mock_ffmpeg->set_always(blocking => 1);
+    $mock_ffmpeg->mock(read => sub { $_[1] = ''; return 0; });
+    $console->{ffmpeg} = $mock_ffmpeg;
+    $console->{ffmpegpid} = $pid;
+
+    # _receive_frame_ffmpeg should detect that $pid is still running (waitpid returns 0),
+    # so it should throw "ffmpeg closed: 0"
+    throws_ok { $console->_receive_frame_ffmpeg } qr/ffmpeg closed: 0/, 'dies with ffmpeg closed exception because process is still running';
+
+    # Clean up child process
+    kill KILL => $pid;
+    waitpid $pid, 0;
+};
+
 done_testing;
 
 END {

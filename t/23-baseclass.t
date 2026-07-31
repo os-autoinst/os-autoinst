@@ -1044,7 +1044,9 @@ subtest 'timeout response metadata and images' => sub {
     my $timeout_image = Test::MockObject->new->set_list(search => undef, [])->set_always(ppm_data => 'timeout-image');
     $baseclass_mock->redefine(_time_to_assert_screen_deadline => -1);
     $timeout_backend->last_image($timeout_image);
-    $timeout_backend->assert_screen_needles([]);
+    my $mock_needle = Test::MockObject->new;
+    $mock_needle->{unregistered} = 1;
+    $timeout_backend->assert_screen_needles([$mock_needle]);
     $timeout_backend->screenshot_interval(20);
     $timeout_backend->{video_frame_number} = 42;
 
@@ -1077,9 +1079,10 @@ subtest 'check_asserted_screen takes too long' => sub {
 subtest 'child process handling' => sub {
     throws_ok { $baseclass->_child_process(undef) } qr/without code/, 'starting dies without specifying coderef';
     local $SIG{TERM} = 'DEFAULT';
-    # uncoverable statement count:2
-    # uncoverable statement count:3
-    my $pid = $baseclass->_child_process(sub { pause; _exit 0 });
+    my $pid = $baseclass->_child_process(sub {
+            pause;    # uncoverable statement
+            _exit 0;    # uncoverable statement
+    });
     ok $pid, 'started child, pid returned: ' . ($pid // '?');
     combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';
 };
@@ -1088,6 +1091,121 @@ subtest 'deprecate backend' => sub {
     throws_ok { backend::baseclass::handle_deprecate_backend('AMT') } qr/is unsupported and planned to be\nremoved from os-autoinst eventually/, 'deprecated message is displayed';
     $bmwqemu::vars{NO_DEPRECATE_BACKEND_TESTBACKEND} = 1;
     stderr_like { backend::baseclass::handle_deprecate_backend('TESTBACKEND') } qr/DEPRECATED: 'backend::TESTBACKEND' is unsupported/, 'deprecation message is logged';
+};
+
+subtest 'do_capture timeout corner cases' => sub {
+    local $baseclass->{cmdpipe} = 1;
+    my $ret_timed_out = $baseclass->do_capture(undef, 10, Time::HiRes::gettimeofday - 11);
+    is $ret_timed_out, 0, 'do_capture returns 0 when timed out';
+};
+
+subtest 'bouncer methods forwarding' => sub {
+    my $mock_screen = Test::MockObject->new;
+    $mock_screen->set_always(send_key => 'key_sent');
+    $mock_screen->set_always(hold_key => 'key_held');
+    $mock_screen->set_always(release_key => 'key_released');
+    $mock_screen->set_always(type_string => 'string_typed');
+    $mock_screen->set_always(mouse_set => 'mouse_set');
+    $mock_screen->set_always(mouse_hide => 'mouse_hidden');
+    $mock_screen->set_always(mouse_button => 'mouse_button');
+    $mock_screen->set_always(get_last_mouse_set => 'last_mouse');
+
+    local $baseclass->{current_screen} = $mock_screen;
+    is $baseclass->send_key('args'), 'key_sent', 'send_key forwarded';
+    is $baseclass->hold_key('args'), 'key_held', 'hold_key forwarded';
+    is $baseclass->release_key('args'), 'key_released', 'release_key forwarded';
+    is $baseclass->type_string('args'), 'string_typed', 'type_string forwarded';
+    is $baseclass->mouse_set('args'), 'mouse_set', 'mouse_set forwarded';
+    is $baseclass->mouse_hide('args'), 'mouse_hidden', 'mouse_hide forwarded';
+    is $baseclass->mouse_button('args'), 'mouse_button', 'mouse_button forwarded';
+    is $baseclass->get_last_mouse_set('args'), 'last_mouse', 'get_last_mouse_set forwarded';
+};
+
+subtest 'reload_needles' => sub {
+    $baseclass_mock->unmock('reload_needles');
+
+    my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
+    my $load_vars_called = 0;
+    $bmwqemu_mock->redefine(load_vars => sub { $load_vars_called = 1 });
+
+    my $needle_mock = Test::MockModule->new('needle');
+    my $all_called = 0;
+    my $init_called = 0;
+    my $unregister_called = 0;
+
+    my $fake_needle = Test::MockObject->new();
+    $fake_needle->mock(unregister => sub { $unregister_called++ });
+    $needle_mock->redefine(all => sub { $all_called = 1; return ($fake_needle) });
+    $needle_mock->redefine(init => sub { $init_called = 1 });
+
+    backend::baseclass::reload_needles();
+
+    ok $load_vars_called, 'bmwqemu::load_vars called';
+    ok $all_called, 'needle::all called';
+    is $unregister_called, 1, 'needle unregister called on all needles';
+    ok $init_called, 'needle::init called';
+};
+
+subtest 'set_reference_screenshot and similarity_to_reference' => sub {
+    $baseclass_mock->unmock('similiarity_to_reference');
+    $baseclass_mock->unmock('set_reference_screenshot');
+
+    subtest 'reference_screenshot or last_image is not defined' => sub {
+        $baseclass->reference_screenshot(undef);
+        $baseclass->last_image(undef);
+        is_deeply $baseclass->similiarity_to_reference({}), {sim => 10000}, 'sim 10000 when ref or last_image is undef';
+    };
+    subtest 'reference_screenshot is last_image' => sub {
+        my $mock_image = Test::MockObject->new();
+        $mock_image->mock(similarity => sub { return 42 });
+        $baseclass->last_image($mock_image);
+        $baseclass->set_reference_screenshot({});
+        is $baseclass->reference_screenshot, $mock_image, 'reference_screenshot set to last_image';
+    };
+    subtest 'similarity calculation' => sub {
+        is_deeply $baseclass->similiarity_to_reference({}), {sim => 42}, 'similarity_to_reference returns similarity from image method';
+    };
+};
+
+subtest 'special cases of set_tags_to_assert scalar' => sub {
+    my $needle_mock = Test::MockModule->new('needle');
+    $needle_mock->redefine(tags => sub { return undef });
+    my $res;
+    combined_like { $res = $baseclass->set_tags_to_assert({mustmatch => 'welcome'}) } qr/NO matching needles for welcome/, 'info logged';
+    is_deeply $res, {tags => ['welcome']}, 'scalar string tags returned correctly';
+};
+
+subtest '_time_to_assert_screen_deadline' => sub {
+    $baseclass_mock->unmock('_time_to_assert_screen_deadline');
+
+    $baseclass->assert_screen_deadline(time + 100);
+    my $time_left = backend::baseclass::_time_to_assert_screen_deadline($baseclass);
+    is $time_left, 100, '_time_to_assert_screen_deadline calculates correctly';
+};
+
+subtest 'check_asserted_screen when needle is found' => sub {
+    my $mock_image = Test::MockObject->new();
+    $mock_image->mock(search => sub { return ('found_needle_obj', ['failed_candidate']) });
+    $mock_image->mock(ppm_data => sub { return 'fake_ppm_data' });
+
+    $baseclass->last_image($mock_image);
+    $baseclass->assert_screen_needles([]);
+    $baseclass->assert_screen_last_check(undef);
+    $baseclass->{video_frame_number} = undef;
+
+    # mock _reset_asserted_screen_check_variables to verify it gets called
+    my $reset_called = 0;
+    my $baseclass_mock_local = Test::MockModule->new('backend::baseclass');
+    $baseclass_mock_local->redefine(_reset_asserted_screen_check_variables => sub { $reset_called = 1 });
+
+    my $res = $baseclass->check_asserted_screen({});
+    ok $reset_called, '_reset_asserted_screen_check_variables called';
+    is_deeply $res, {
+        image => MIME::Base64::encode_base64('fake_ppm_data'),
+        found => 'found_needle_obj',
+        candidates => ['failed_candidate'],
+        frame => undef,
+    }, 'returns correct data when needle is found';
 };
 
 done_testing;

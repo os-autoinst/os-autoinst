@@ -141,7 +141,6 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'no rollback is triggered if snapshots are not supported' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1, milestone => 1});
         $mock_autotest->redefine(query_isotovideo => 0);
-        $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
         local $bmwqemu::vars{FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED} = 0;
         stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
         ($died, $completed) = get_tests_done;
@@ -429,7 +428,6 @@ subtest 'test scheduling test modules at test runtime' => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     $mock_basetest->noop('_result_add_screenshot');
     $mock_basetest->noop('record_resultfile');
-    $mock_basetest->redefine(runtest => sub { die 'oh noes!' });
 
     my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
     $mock_autotest->noop('_terminate');
@@ -448,7 +446,6 @@ subtest 'test scheduling test modules at test runtime' => sub {
         {name => 'next', category => 'tests', flags => {}, script => 'tests/next.pm'}
     );
 
-    $mock_basetest->unmock('runtest');
     $mock_bmwqemu->redefine(save_json_file => sub ($data, $filename) { $json_data{$filename} = $data });
 
     loadtest 'scheduler';
@@ -554,13 +551,26 @@ subtest 'pausing on failure' => sub {
 };
 
 subtest rollback_activated_consoles => sub {
-
-    $autotest::activated_consoles = ['activated_console'];
-    $autotest::last_milestone_console = 'last_milestone_console';
-    autotest::rollback_activated_consoles();
-    is scalar(@$autotest::activated_consoles), 0, 'activated consoles cleared';
-    is_deeply \@reset_consoles, [{cmd => 'backend_reset_console', testapi_console => 'activated_console'}], 'activated consoles reset';
-    is_deeply \@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected';
+    subtest 'console is not in the last milestone active consoles (it should be reset)' => sub {
+        @reset_consoles = @selected_consoles = ();
+        $autotest::activated_consoles = ['activated_console'];
+        $autotest::last_milestone_active_consoles = ['different_console'];
+        $autotest::last_milestone_console = 'last_milestone_console';
+        autotest::rollback_activated_consoles();
+        is scalar(@$autotest::activated_consoles), 0, 'activated consoles cleared';
+        is_deeply \@reset_consoles, [{cmd => 'backend_reset_console', testapi_console => 'activated_console'}], 'activated consoles reset';
+        is_deeply \@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected';
+    };
+    subtest 'console is in the last milestone active consoles (it should NOT be reset)' => sub {
+        @reset_consoles = @selected_consoles = ();
+        $autotest::activated_consoles = ['keep_console'];
+        $autotest::last_milestone_active_consoles = ['keep_console'];
+        $autotest::last_milestone_console = 'last_milestone_console';
+        autotest::rollback_activated_consoles();
+        is scalar(@$autotest::activated_consoles), 0, 'activated consoles cleared (second run)';
+        is_deeply \@reset_consoles, [], 'no consoles reset because it was in last milestone';
+        is_deeply \@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected (second run)';
+    };
 };
 
 subtest find_script => sub {
@@ -685,6 +695,8 @@ subtest 'lua_use' => sub {
     is $lua_vars->{testfunc2}(), 43, 'Explicit imports of non-exported functions';
     is_deeply $lua_vars->{testarray}, [1, 2, 3], 'Import Array';
     is_deeply $lua_vars->{testhash}, {foo => 'bar'}, 'Import Hash';
+
+    throws_ok { autotest::_lua_use('nonexistent_perl_module_xyz') } qr/Could not load 'nonexistent_perl_module_xyz'/, 'throws error if module cannot be loaded';
 };
 
 subtest 'lua_runtest' => sub {

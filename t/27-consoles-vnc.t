@@ -470,4 +470,10 @@ subtest 'login on real VNC server via vnctest, request and receive frame buffer'
     ok $has_framebuffer, 'received frame buffer';
 };
 
+subtest 'socket closed on receive message' => sub {
+    $c->socket($s);
+    $s->set_series(mocked_read => '');
+    throws_ok { $c->_receive_message() } qr/socket closed: 0/, 'dies with socket closed exception when socket returns 0';
+};
+
 done_testing;

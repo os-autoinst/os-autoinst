@@ -19,6 +19,10 @@ my $screen = consoles::ssh_screen->new(ssh_connection => 'My_Con', ssh_channel =
 is $screen->{fd_read}, 'My_Chan', 'SSH channel is used for reading';
 is $screen->{fd_write}, 'My_Chan', 'SSH channel is used for writing';
 
+my $screen_hashref = consoles::ssh_screen->new({ssh_connection => 'My_Con2', ssh_channel => 'My_Chan2'});
+is $screen_hashref->{fd_read}, 'My_Chan2', 'SSH channel from hashref is used for reading';
+is $screen_hashref->{fd_write}, 'My_Chan2', 'SSH channel from hashref is used for writing';
+
 subtest 'Correct message when type_string timeouts' => sub {
     my $mock_screenconsole = Test::MockModule->new('consoles::serial_screen');
     $mock_screenconsole->mock('elapsed', sub { 1000 });

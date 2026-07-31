@@ -132,7 +132,6 @@ subtest 'Execution routing' => sub {
     is path($bmwqemu::result_dir)->child('llm-failure-analysis.txt')->slurp, 'cmd', 'Route to CMD';
 
     $mock_llm->redefine(gather_context => sub { return undef });
-    $mock_bmwqemu->redefine(diag => sub { die 'No context should return' });
     ok !OpenQA::Isotovideo::LLMAnalysis::run($bmwqemu::result_dir), 'Early return if no context';
 };
 

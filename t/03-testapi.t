@@ -1087,6 +1087,7 @@ subtest 'host_ip, autoinst_url' => sub {
     is autoinst_url('foo'), 'http://192.168.42.1:1/foo', 'autoinst_url returns configured static IP';
     $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
     is autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns';
+    is autoinst_url('foo', {bar => 'baz', abc => 123}), 'http://localhost:1/foo?abc=123&bar=baz', 'autoinst_url formats query string correctly';
 };
 
 subtest 'data_url' => sub {

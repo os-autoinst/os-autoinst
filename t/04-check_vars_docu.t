@@ -21,8 +21,6 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.md';
 
-# array of ignored "backends"
-my @backend_blocklist = qw();
 # blocklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blocklist = (
     QEMU => ['WORKER_ID', 'WORKER_INSTANCE', 'NAME'],
@@ -96,8 +94,6 @@ EO_HEADER
 sub read_backend_pm {    # no:style:signatures
     my ($backend) = /^([^\.]+)\.pm/;
     return unless $backend;
-    # uncoverable statement count:2
-    return if (grep { /$backend/i } @backend_blocklist);
     $backend = uc $backend;
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
     my @lines = split /\n/, path($File::Find::name)->slurp;

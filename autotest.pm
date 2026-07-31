@@ -131,6 +131,7 @@ references for them.
 =cut
 
 sub _lua_use ($perlmod, $import = undef) {
+    # uncoverable statement count:1
     my $result = eval "use $perlmod (); 1";    ## no critic (BuiltinFunctions::ProhibitStringyEval)
     if (!$result) { die "Could not load '$perlmod': $@" }
     my %exports;

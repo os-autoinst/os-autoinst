@@ -15,6 +15,7 @@ use Time::HiRes qw(usleep clock_gettime CLOCK_MONOTONIC);
 use Fcntl;
 use File::Map qw(map_handle unmap);
 use IPC::Open2 qw(open2);
+use Data::Dumper;
 
 use bmwqemu;
 
@@ -226,9 +227,15 @@ sub _receive_frame_ffmpeg ($self) {
     my $ret = $ffmpeg->read(my $header, DEFAULT_PPM_HEADER_BYTES);
     $ffmpeg->blocking(1);
 
-    return undef unless $ret;
+    return undef unless defined $ret;
 
-    die "ffmpeg closed: $ret\n${\Dumper $self}" if $ret <= 0;
+    if ($ret == 0) {
+        if ($self->{ffmpegpid}) {
+            my $reaped = waitpid $self->{ffmpegpid}, POSIX::WNOHANG;
+            return undef if $reaped > 0 || $reaped == -1;
+        }
+        die "ffmpeg closed: $ret\n${\Dumper $self}" if $ret <= 0;
+    }
 
     # support P6 only
     if (!($header =~ m/^(P6\n(\d+) (\d+)\n(\d+)\n)/)) {

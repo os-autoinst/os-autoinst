@@ -14,8 +14,6 @@ use Test::Warnings qw(:all :report_warnings);
 use POSIX qw(waitpid _exit);
 
 BEGIN { *backend::ipmi::system = sub { 1 } }
-BEGIN { *consoles::localXvnc::system = sub { 0 } }
-BEGIN { *consoles::localXvnc::exec = sub { _exit("@_" =~ /hardware-console-log/ ? 1 : 0); } }
 
 use backend::ipmi;    # SUT
 
