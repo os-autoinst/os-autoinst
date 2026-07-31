@@ -328,15 +328,32 @@ sub runtest ($self) {
     catch ($e) {
         # copy the exception early
         my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
-        $error_message = $e;
+
+        my $stacktrace = [];
+        $error_message = "$e";
+        if ((ref $e) =~ 'OpenQA::Exception::(?:TestapiError|FailedNeedle)') {
+            my $s = $e->error;
+            while (my $frame = $e->trace->next_frame) {
+                push @$stacktrace, {filename => $frame->filename, line => $frame->line, sub => $frame->subroutine, frame => $frame->as_string};
+            }
+            $stacktrace = bmwqemu::filter_stack_trace($stacktrace);
+        }
+        else {
+            if ($error_message =~ m/ at ((\S+) line (\d+))/) {
+                $stacktrace = bmwqemu::filter_stack_trace([{filename => $2, line => $3, frame => $1}]);
+            }
+        }
+
         $self->{result} = 'fail';
         # add a fail screenshot in case there is none
         if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
+            bmwqemu::update_line_number([reverse @$stacktrace]);
             $self->take_screenshot();
         }
-        if (!$internal && $e =~ /Can't locate .+ in \@INC/) {
+        if (!$internal && $error_message =~ /Can't locate .+ in \@INC/) {
             my $msg = "# Test died with missing dependency: $e";
             bmwqemu::fctinfo($msg);
+            bmwqemu::update_line_number();
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $self->{fatal_failure} = 1;
             bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
@@ -344,8 +361,12 @@ sub runtest ($self) {
         }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
-            my $msg = "# Test died: $e";
+            my $msg = "# Test died: $error_message";
+            if (@$stacktrace) {
+                $msg .= "\n--- # stack trace\n" . (join '', map { $_->{frame} . "\n" } @$stacktrace);
+            }
             bmwqemu::fctinfo($msg);
+            bmwqemu::update_line_number([reverse @$stacktrace]);
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $died = 1;
         }

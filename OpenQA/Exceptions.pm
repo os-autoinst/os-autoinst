@@ -25,6 +25,9 @@ use Exception::Class (
     'OpenQA::Exception::ConsoleReadError' => {
         description => 'Failed to receive data from console'
     },
+    'OpenQA::Exception::TestapiError' => {
+        description => 'A testapi function failed'
+    },
 );
 
 1;

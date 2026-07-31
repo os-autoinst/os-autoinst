@@ -249,7 +249,6 @@ subtest 'test always_rollback flag' => sub {
     undef $mock_basetest;
 };
 
-
 subtest run_args => sub {
     my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
     $mock_autotest->noop('_terminate');
@@ -370,6 +369,28 @@ subtest 'failing tests' => sub {
     is @{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' . $_}}{@opts}, "tests-fatal$_ share same options with tests-fatal"
       and is $autotest::tests{'tests-fatal' . $_}->{name}, 'fatal#' . $_
       for 1 .. 10;
+
+};
+
+subtest 'exceptions' => sub {
+    my $mock_autotest = Test::MockModule->new('autotest');
+    $mock_autotest->noop('_terminate');
+    %autotest::tests = ();
+    @autotest::testorder = ();
+    %autotest::scheduled_basenames = ();
+    my $stepinfo = qr{\[step:tests,exc,1\] tests/exception.pm:\d+ called exception::something -> tests/exception.pm:\d+ called .*throw};
+    my $stack = qr{Test died: ON PURPOSE\n.*--- \# stack trace\n.*throw.*called at tests/exception.pm line \d+\n.*exception::something at tests/exception.pm line \d+};
+    subtest 'exception' => sub {
+        local $ENV{THROW_EXCEPTION} = 1;
+        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stack.*$stepinfo}s, 'OpenQA::Exception::TestapiError produces step info and stack trace';
+    };
+    subtest 'perl die' => sub {
+        $stepinfo = qr{\[step:tests,exc,2\] tests/exception.pm:\d+};
+
+        $stack = qr{Test died: Illegal division by zero.*\n.*--- \# stack trace\n.*tests/exception.pm line \d+}s;
+        local $ENV{PERL_DIE} = 1;
+        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stack.*$stepinfo}s, 'perl internal error produces step info and stack trace';
+    };
 };
 
 subtest 'scheduling rules' => sub {
