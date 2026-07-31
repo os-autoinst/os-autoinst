@@ -1079,9 +1079,10 @@ subtest 'check_asserted_screen takes too long' => sub {
 subtest 'child process handling' => sub {
     throws_ok { $baseclass->_child_process(undef) } qr/without code/, 'starting dies without specifying coderef';
     local $SIG{TERM} = 'DEFAULT';
-    # uncoverable statement count:2
-    # uncoverable statement count:3
-    my $pid = $baseclass->_child_process(sub { pause; _exit 0 });
+    my $pid = $baseclass->_child_process(sub {
+            pause;    # uncoverable statement
+            _exit 0;    # uncoverable statement
+    });
     ok $pid, 'started child, pid returned: ' . ($pid // '?');
     combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';
 };

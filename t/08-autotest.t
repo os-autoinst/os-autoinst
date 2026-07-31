@@ -141,7 +141,6 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'no rollback is triggered if snapshots are not supported' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1, milestone => 1});
         $mock_autotest->redefine(query_isotovideo => 0);
-        $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
         local $bmwqemu::vars{FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED} = 0;
         stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
         ($died, $completed) = get_tests_done;
@@ -408,7 +407,6 @@ subtest 'test scheduling test modules at test runtime' => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     $mock_basetest->noop('_result_add_screenshot');
     $mock_basetest->noop('record_resultfile');
-    $mock_basetest->redefine(runtest => sub { die 'oh noes!' });
 
     my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
     $mock_autotest->noop('_terminate');
@@ -427,7 +425,6 @@ subtest 'test scheduling test modules at test runtime' => sub {
         {name => 'next', category => 'tests', flags => {}, script => 'tests/next.pm'}
     );
 
-    $mock_basetest->unmock('runtest');
     $mock_bmwqemu->redefine(save_json_file => sub ($data, $filename) { $json_data{$filename} = $data });
 
     loadtest 'scheduler';

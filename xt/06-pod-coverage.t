@@ -17,7 +17,9 @@ chdir $Bin . '/..';
 
 # Pod::Coverage does not reveal the actual error message
 try { require testapi }
-catch ($e) { diag "Error requiring testapi: $e" }
+catch ($e) {
+    diag "Error requiring testapi: $e";    # uncoverable statement
+}
 
 my $pc = Pod::Coverage->new(
     package => 'testapi',

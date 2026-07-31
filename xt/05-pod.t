@@ -15,7 +15,7 @@ my @files = grep {
 # Scan each file to forbid empty POD headings (=headX with no text)
 for my $file (@files) {
     if (path($file)->slurp =~ /^=head[1-4]\s*$/m) {
-        die "Empty POD heading (=headX with no text) found in $file\n";
+        die "Empty POD heading (=headX with no text) found in $file\n";    # uncoverable statement
     }
 }
 

@@ -24,8 +24,9 @@ my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
 $vnc_base_mock->redefine(connect_remote => $vnc_mock);
 $bmwqemu::topdir = "$Bin/..";
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
-# uncoverable statement count:2
-$local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });
+$local_xvnc_mock->redefine(start_xvnc => sub {
+        _exit(0);    # uncoverable statement
+});
 
 my $args = {hostname => 'testhost', password => 'testpass', serial => '/dev/ttyS0'};
 

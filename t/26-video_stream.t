@@ -468,8 +468,8 @@ subtest 'ffmpeg closed when receiving frame and the process is still running' =>
     my $pid = fork;
     if ($pid == 0) {
         # inside child: sleep and exit
-        sleep 10;
-        exit 0;
+        sleep 10;    # uncoverable statement
+        exit 0;    # uncoverable statement
     }
 
     my $mock_ffmpeg = Test::MockObject->new;

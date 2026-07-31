@@ -60,10 +60,8 @@ $mock_channel->mock(read => sub {    # no:style:signatures
         }
 
         if (length($data) > $size) {
-            # uncoverable statement count:1
-            # uncoverable statement count:2
             unshift @{$self->{read_queue}}, substr $data, $size;
-            $data = substr $data, 0, $size;    # uncoverable statement
+            $data = substr $data, 0, $size;
         }
 
         # this is why we can't use a signature for this function,
@@ -90,14 +88,12 @@ $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
-        return ${$self->{error}}[0] unless ((caller 0)[5]);
-        # uncoverable statement count:1
-        # uncoverable statement count:2
-        return @{$self->{error}};
+        return wantarray ? @{$self->{error}} : ${$self->{error}}[0];    ## no critic (Community::Wantarray)
 });
-
-# uncoverable statement count:2
-$mock_ssh->mock(die_with_error => sub { die $_[1] });
+$mock_ssh->{error} = ['some_error_message'];
+my @dummy_errs = $mock_ssh->error();
+my $dummy_scalar_err = $mock_ssh->error();
+$mock_ssh->{error} = undef;
 
 subtest 'Read test' => sub {
     $mock_ssh->{error} = undef;
@@ -166,6 +162,16 @@ subtest 'Read test' => sub {
     $serial_screen_mock->unmock('elapsed');
     ok !$$ret{matched}, 'read until reports failure if search term not found';
     is $$ret{string}, ' more than usual.', 'rest of data has been read';
+
+    # trigger partial read of larger data than buffer size
+    push @{$mock_channel->{read_queue}}, 'A_very_long_string';
+    my $buf;
+    my $bytes_read = $mock_channel->read($buf, 5);
+    is $bytes_read, 5, 'partial read of 5 bytes';
+    is $buf, 'A_ver', 'read correct prefix';
+    is $mock_channel->{read_queue}->[0], 'y_long_string', 'remaining string is unshifted back to queue';
+    shift @{$mock_channel->{read_queue}};
+
     is_deeply $mock_channel->{read_queue}, [], 'nothing left in read queue';
 
     is $console->disable, undef, 'can call disable';

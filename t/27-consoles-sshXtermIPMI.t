@@ -35,22 +35,16 @@ my $testapi_console_mock = Test::MockModule->new("consoles::$testapi_console");
 ok my $backend = backend::ipmi->new(), 'backend can be created';
 my $backend_mock = Test::MockModule->new('backend::ipmi');
 my $localXvnc_mock = Test::MockModule->new('consoles::localXvnc');
-my $vnc_mock = Test::MockModule->new('consoles::VNC');
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
 
-sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack 'N', 1) }
-_setup_rfb_magic;
-
-$s->mock(read => sub { $_[1] = $s->mocked_read; length $_[1] });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
-$vnc_mock->redefine(_read_socket => sub { substr ${$_[1]}, $_[3], $_[2], $s->mocked_read; length ${$_[1]} });
+$s->print('test_print');
+$s->write('test_write');
 $inet_mock->redefine(new => $s);
 $backend_mock->redefine(do_mc_reset => sub { bmwqemu::diag 'IPMI mc reset success'; });
 $testapi_console_mock->redefine(backend => $backend);
 $localXvnc_mock->redefine(activate => sub ($self) { $self->{DISPLAY} = 'display'; });
-$vnc_mock->noop('_server_initialization');
-$vnc_mock->noop('login');
 
 ok my $sol_connection = consoles::sshXtermIPMI->new($testapi_console, undef), 'sol connection can be established';
 

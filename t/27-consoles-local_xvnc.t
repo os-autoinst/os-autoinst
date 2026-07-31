@@ -22,7 +22,6 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 BEGIN { *consoles::localXvnc::system = sub { 1 } }
-BEGIN { *consoles::localXvnc::exec = sub { _exit(0) } }
 BEGIN { *CORE::GLOBAL::sleep = sub { 1 } }
 
 # mock external tool for testing
@@ -40,8 +39,9 @@ my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
 $vnc_base_mock->redefine(connect_remote => $vnc_mock);
 $bmwqemu::topdir = "$Bin/..";
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
-# uncoverable statement count:2
-$local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });
+$local_xvnc_mock->redefine(start_xvnc => sub {
+        _exit(0);    # uncoverable statement
+});
 stderr_like { $c->activate } qr/Connected to Xvnc/, 'can call activate';
 stderr_like { ok $c->callxterm('true', 'window1'), 'can call callxterm'; } qr/Xterm PID: \d+/, 'PID is logged';
 $vnc_mock->called_pos_ok(0, 'check_vnc_stalls', 'VNC stall detection configured');

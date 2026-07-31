@@ -190,10 +190,7 @@ subtest 'isotovideo with wheels' => sub {
     # also verify that isotovideo invokes the wheel code correctly
     $specfile->spew("version: v0.1\nwheels: [copy/writer]");
 
-    my @warnings;
-    my @infos;
-    my @diags;
-    $bmwqemu_mock->redefine(fctwarn => sub { push @warnings, $_[0] });
+    my (@infos, @diags);
     $bmwqemu_mock->redefine(fctinfo => sub { push @infos, $_[0] });
     $bmwqemu_mock->redefine(diag => sub { push @diags, $_[0] });
 
@@ -228,10 +225,6 @@ subtest 'isotovideo with wheels' => sub {
     $specfile->remove;
 
     subtest 'non-existant WHEELS_DIR' => sub {
-        my $runner_mock = Test::MockModule->new('OpenQA::Isotovideo::Runner');
-        $runner_mock->redefine(checkout_wheels => sub { 1 });
-        $runner_mock->redefine(checkout_git_repo_and_branch => sub { 1 });
-        $runner_mock->redefine(checkout_git_refspec => sub { 1 });
         my $wheels_dir = '/does/not/exist';
         $bmwqemu::vars{WHEELS_DIR} = $wheels_dir;
         throws_ok { OpenQA::Isotovideo::Runner->checkout_code } qr{WHEELS_DIR '$wheels_dir' does not exist}, 'Invalid WHEELS_DIR dies';
