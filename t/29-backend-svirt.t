@@ -54,6 +54,7 @@ subtest 'Generic svirt backend' => sub {
     # silence some log output for cleaner tests
     $bmwqemu_mock->noop('diag');
     $bmwqemu_mock->noop('log_call');
+    $bmwqemu_mock->noop('fctwarn');
     redefine_ssh;
     $backend->{need_delete_log} = 1;
     ok $backend->do_start_vm, 'can start vm';
@@ -80,6 +81,7 @@ subtest 'VMWARE backend' => sub {
     # silence some log output for cleaner tests
     $bmwqemu_mock->noop('diag');
     $bmwqemu_mock->noop('log_call');
+    $bmwqemu_mock->noop('fctwarn');
     redefine_ssh;
     $backend->{need_delete_log} = 1;
     ok $backend->do_start_vm, 'can start vm';
@@ -104,6 +106,7 @@ subtest 'HyperV backend' => sub {
     # silence some log output for cleaner tests
     $bmwqemu_mock->noop('diag');
     $bmwqemu_mock->noop('log_call');
+    $bmwqemu_mock->noop('fctwarn');
     redefine_ssh;
     ok $backend->do_start_vm, 'can start vm';
     is $backend->can_handle({function => 'snapshots'})->{ret}, 1, 'can handle snapshots';
@@ -124,6 +127,31 @@ subtest 'check virsh() method' => sub {
     $bmwqemu::vars{VMWARE_REMOTE_VMM} = 'my_vmm';
     my $virsh = backend::svirt::virsh();
     is $virsh, 'virsh my_vmm', 'correct output from virsh()';
+};
+
+subtest 'do_stop_vm_svirt validation' => sub {
+    my $backend = backend::svirt->new;
+    my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
+    $bmwqemu_mock->noop('diag');
+    $bmwqemu_mock->noop('log_call');
+
+    subtest 'triggers fctwarn when the domain still exists after undefining' => sub {
+        my @warn_log;
+        $bmwqemu_mock->redefine(fctwarn => sub { push @warn_log, @_ });
+        $run_ssh_cmd_mock->redefine(run_ssh_cmd => 0);
+        $backend->do_stop_vm_svirt;
+        like "@warn_log", qr/still exists/, 'logged fctwarn contains still exists warning';
+    };
+
+    subtest 'does not trigger fctwarn when the domain is successfully gone' => sub {
+        my @warn_log;
+        $bmwqemu_mock->redefine(fctwarn => sub { push @warn_log, @_ });
+        $run_ssh_cmd_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) {
+                return $cmd =~ /dominfo/ ? 1 : 0;
+        });
+        $backend->do_stop_vm_svirt;
+        is scalar(@warn_log), 0, 'no warning was logged';
+    };
 };
 
 done_testing;
