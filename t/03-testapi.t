@@ -892,8 +892,11 @@ sub script_output_test ($is_serial_terminal) {
         @wait_serial_args = ();
         is script_output('echo foo', $t->{args}->@*), 'foo', "$t->{msg}: returns expected output";
         is $wait_serial_args[-1]->{timeout}, $t->{timeout}, "$t->{msg}: correct timeout passed to final wait_serial call";
-        my @inconsistent_quiet = grep { ($_->{quiet} // 0) != ($t->{quiet} // 0) } @wait_serial_args;
-        is_deeply \@inconsistent_quiet, [], "$t->{msg}: quiet argument is consistent across all calls";
+        # The final wait_serial (the actual command execution) should match the user-specified quiet value.
+        is $wait_serial_args[-1]->{quiet}, $t->{quiet}, "$t->{msg}: correct quiet passed to final wait_serial call";
+        # Earlier wait_serials are internal and must always be quiet.
+        my @inconsistent_internal_quiet = grep { !$_->{quiet} } @wait_serial_args[0 .. $#wait_serial_args - 1];
+        is_deeply \@inconsistent_internal_quiet, [], "$t->{msg}: internal wait_serial calls are always quiet";
     }
     $mock_testapi->redefine(wait_serial => "This is a simulated output on the serial dev\nXXX\nfoo\nSCRIPT_FINISHEDXXX-0-\nand more here");
     is script_output('echo foo', type_command => 0), 'foo', 'script_output with type_command => 0 output in a file';
@@ -1063,7 +1066,9 @@ subtest 'check quiet option on script runs' => sub {
     ok !validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1';
 
     $mock_testapi->redefine(wait_serial => sub ($regex, %args) {
-            is $args{quiet}, 0, 'Check default quiet argument';
+            my $reg_str = ref $regex eq 'Regexp' ? "$regex" : $regex;
+            my $is_final = $args{capture_name} && $args{capture_name} eq 'Exit code' && $reg_str =~ /\\d\+/;
+            is $args{quiet}, ($is_final ? 0 : 1), 'Check default quiet argument';
             return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0';
