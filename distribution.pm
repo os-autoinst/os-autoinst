@@ -156,7 +156,7 @@ sub script_run ($self, $cmd, @args) {
         }, ['timeout'], @args);
 
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
     }
 
     if ($args{timeout} > 0) {
@@ -193,7 +193,7 @@ sub script_run ($self, $cmd, @args) {
             my $final_cmd = $skip_pretty ? "_OANM=1; $cmd" : $cmd;
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
-                testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
+                testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => 1, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
                   or _handle_cmd_typing_error($final_cmd, \%args);
                 testapi::type_string "\n", max_interval => $args{max_interval};
             }
@@ -232,7 +232,7 @@ Use C<quiet> to avoid recording serial_results.
 
 sub background_script_run ($self, $cmd, %args) {
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
     }
 
     $cmd = "( $cmd )";
@@ -241,7 +241,7 @@ sub background_script_run ($self, $cmd, %args) {
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string $marker;
-        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, internal_marker => 1) or _handle_cmd_typing_error($cmd, \%args);
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => 1, internal_marker => 1) or _handle_cmd_typing_error($cmd, \%args);
         testapi::type_string "\n";
     }
     else {
@@ -317,17 +317,17 @@ sub script_output ($self, $script, @args) {
     if (testapi::is_serial_terminal) {
         my $heretag = 'EOT_' . $marker;
         my $cat = "cat > $script_path << '$heretag'; echo $marker-\$?-";
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string $cat . "\n";
-        testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial("$cat", no_regex => 1, quiet => 1);
         # Wait for input prompt of here tag before typing $script. This avoids
         # messy output, like duplicate output of $script. We do this in a second
         # wait_serial() call, to avoid issues during new line detection.
-        testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial('> ', no_regex => 1, quiet => 1);
         testapi::type_string "$script\n$heretag\n";
-        testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
-        testapi::wait_serial(qr/$marker-(0)-/, capture_name => 'Exit code', quiet => $args{quiet}, internal_marker => 1);
+        testapi::wait_serial("> $heretag", no_regex => 1, quiet => 1);
+        testapi::wait_serial(qr/$marker-(0)-/, capture_name => 'Exit code', quiet => 1, internal_marker => 1);
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;";
@@ -352,9 +352,9 @@ sub script_output ($self, $script, @args) {
     my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
         testapi::type_string "$run_script\n";
-        testapi::wait_serial($run_script, no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial($run_script, no_regex => 1, quiet => 1);
     }
     else {
         testapi::type_string "($run_script) | tee /dev/$testapi::serialdev\n";
