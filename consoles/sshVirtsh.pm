@@ -41,6 +41,13 @@ sub activate ($self) {
     # initialize SSH console(s)
     $self->_init_ssh($args);
 
+    # Pre-check: Ensure hypervisor is reachable before starting Xvnc/activating console
+    my $hostname = $self->{ssh_credentials}->{default}->{hostname};
+    my $timeout = $bmwqemu::vars{SVIRT_HYPERVISOR_SSH_TIMEOUT} // 1800;
+    if (!$self->wait_for_ssh_port($hostname, timeout => $timeout)) {
+        die "backend died: hypervisor host $hostname is not reachable after $timeout seconds\n";
+    }
+
     # start Xvnc
     $self->SUPER::activate;
 
