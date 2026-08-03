@@ -1,0 +1,22 @@
+<services>
+  <service name="obs_scm">
+    <param name="url">https://github.com/os-autoinst/os-autoinst</param>
+    <param name="scm">git</param>
+    <param name="revision">master</param>
+    <param name="versionprefix">5</param>
+    <param name="versionformat">%ct.%h</param>
+    <param name="subdir">container/osado-dev-container</param>
+    <param name="extract">Dockerfile</param>
+    <param name="changesgenerate">enable</param>
+    <param name="changesauthor">okurz@suse.de</param>
+  </service>
+  <service mode="buildtime" name="kiwi_metainfo_helper"/>
+  <service mode="buildtime" name="docker_label_helper"/>
+  <service mode="buildtime" name="replace_using_package_version">
+    <param name="file">Dockerfile</param>
+    <param name="regex">%PKG_VERSION%</param>
+    <param name="parse-version">patch</param>
+    <param name="package">os-autoinst-distri-opensuse-deps</param>
+  </service>
+</services>
+
