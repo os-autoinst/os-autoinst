@@ -365,6 +365,24 @@ within the container specified via `OS_AUTOINST_CONTAINER_IMAGE`. Additional dep
 (e.g. `os-autoinst-distri-opensuse-deps`) must be provided by that container image rather
 than the worker host.
 
+For example, you can run an openQA test using your custom `os-autoinst` branch and the
+pre-built `osado-dev-container` image (which already bundles `os-autoinst-distri-opensuse-deps`).
+
+Note: You must point `CASEDIR` and `NEEDLES_DIR` to remote Git repositories because the
+rootless container starts with a clean environment and does not mount local worker directories:
+
+```sh
+openqa-clone-job --skip-chained-deps --within-instance <target_job_url> \
+  _GROUP=0 \
+  BUILD+=-custom_suffix \
+  TEST+=-custom_suffix \
+  CASEDIR=https://github.com/os-autoinst/os-autoinst-distri-opensuse.git \
+  NEEDLES_DIR=https://github.com/os-autoinst/os-autoinst-needles-opensuse.git \
+  OS_AUTOINST_GIT_REPO=https://github.com/<your_username>/os-autoinst.git \
+  OS_AUTOINST_GIT_BRANCH=<your_test_branch> \
+  OS_AUTOINST_CONTAINER_IMAGE=registry.opensuse.org/devel/openqa/containers/osado-dev-container:latest
+```
+
 ### Advanced testing with custom test-distribution dependencies
 
 If you are testing changes against tests that require custom dependencies not
