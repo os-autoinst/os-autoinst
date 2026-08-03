@@ -177,9 +177,11 @@ sub script_run ($self, $cmd, @args) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
             $self->_check_sudo_password(\%args);
-            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            my $fp = $self->sut_marker($cmd);
+            my $regex = qr/OA:DONE-[0-9a-f]{4}-(\d+)-\Q$fp\E/;
+            my $res = testapi::wait_serial($regex, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
+            return ($res =~ $regex)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -432,7 +434,8 @@ sub console_selected ($self, $console) { }
     sut_marker($cmd)
 
 Generate a unique marker string for a command to be used for synchronization
-with the SUT. Used primarily for internal testing.
+with the SUT. Canonical command fingerprint used for level-3 marker
+correlation.
 
 =cut
 
@@ -462,7 +465,7 @@ sub install_serial_marker_hook ($self, $level) {
     # _OANM: openQA No Marker (skip hook done marker)
     # _OAM: openQA Marker (custom marker string)
     if ($level == 3) {
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(fc -ln -1 2>/dev/null);printf "OA:DONE-%04x-%d-%s\\nOA:START\\n" \$RANDOM \$r "\${c#\${c%%[![:space:]]*}}">$dev;fi;}};
+        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(fc -ln -1 2>/dev/null);c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}};
     }
     else {
         $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}};
