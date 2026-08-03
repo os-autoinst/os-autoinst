@@ -615,7 +615,12 @@ __END'
     $self->backend->do_stop_vm_svirt() if $args{pre_cleanup};
 
     # define the new domain
-    $self->run_cmd(backend::svirt::virsh() . " define $xmlfilename") && die 'virsh define failed';
+    my ($stdout, $stderr);
+    ($ret, $stdout, $stderr) = $self->run_cmd(backend::svirt::virsh() . " define $xmlfilename", wantarray => 1);
+    if ($ret) {
+        $stderr =~ s/\s+$// if $stderr;
+        die 'virsh define failed: ' . ($stderr || "exit code $ret");
+    }
     if ($self->vmm_family eq 'vmware') {
         my $vmx = sprintf '/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name;
 

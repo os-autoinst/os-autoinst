@@ -117,8 +117,10 @@ sub _check_vmware_cmds ($cmds, $extra_cmds = []) {
     like shift @$cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     my @expected = (
+        $s . ' dominfo openQA-SUT-1 2>/dev/null',
         $s . ' destroy openQA-SUT-1',
         $s . ' undefine --snapshots-metadata openQA-SUT-1',
+        $s . ' dominfo openQA-SUT-1 2>/dev/null',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
