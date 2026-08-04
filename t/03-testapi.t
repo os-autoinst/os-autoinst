@@ -982,6 +982,10 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
       'assert_still_screen forwards arguments to wait_still_screen';
     $fake_timeout = 1;
     ok !wait_still_screen, 'falsy return value on timeout';
+
+    $testapi->redefine(wait_still_screen => 0);
+    throws_ok { assert_still_screen; } qr/assert_still_screen failed to detect a still screen/,
+      'expeected error message for no still screen';
 };
 
 subtest 'test console::console argument settings' => sub {
