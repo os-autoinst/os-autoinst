@@ -375,8 +375,8 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
 }
 
 sub _check_or_assert ($mustmatch, $check, %args) {
-    die 'no tags specified' if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
-    die 'current_test undefined' unless $autotest::current_test;
+    OpenQA::Exception::TestapiUsageError->throw(error => 'no tags specified') if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
+    OpenQA::Exception::TestapiUsageError->throw(error => 'current_test undefined') unless $autotest::current_test;
 
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
