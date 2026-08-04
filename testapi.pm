@@ -645,7 +645,8 @@ sub assert_screen_change : prototype(&@) {    # no:style:signatures
     # wait_screen_change uses prototype which expects code block as an argument
     # This resolves compile time issues
     my ($coderef, @args) = @_;
-    wait_screen_change(\&{$coderef}, @args) or die 'assert_screen_change failed to detect a screen change';
+    wait_screen_change(\&{$coderef}, @args) or
+      OpenQA::Exception::TestapiError->throw(error => 'assert_screen_change failed to detect a screen change');
 }
 
 

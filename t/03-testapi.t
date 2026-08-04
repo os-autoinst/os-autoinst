@@ -309,6 +309,9 @@ subtest 'assert_screen_change' => sub {
     });
     testapi::assert_screen_change(sub { }, 42);
     is $received_timeout, 42, 'timeout forwarded to wait_screen_change';
+
+    $mock_wsc->redefine(wait_screen_change => 0);
+    throws_ok { testapi::assert_screen_change(sub { }, 42) } qr/assert_screen_change failed to detect a screen change/, 'expected error message for no screen change';
 };
 
 is $autotest::current_test->{dents}, 0, 'no soft failures so far';
