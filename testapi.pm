@@ -1440,7 +1440,7 @@ sub type_string {    # no:style:signatures
         }
         if ($wait_still && !wait_still_screen(stilltime => $wait_still,
                 timeout => $wait_timeout, similarity_level => $wait_sim_level)) {
-            die "wait_still_screen timed out after ${wait_timeout}s!";
+            OpenQA::Exception::TestapiError->throw(error => "wait_still_screen timed out after ${wait_timeout}s!");
         }
     }
 }
