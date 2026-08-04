@@ -1705,7 +1705,7 @@ sub select_console ($testapi_console, @args) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
     my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
-    die $ret->{error} if $ret->{error};
+    OpenQA::Exception::TestapiError->throw(error => $ret->{error}) if $ret->{error};
 
     $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
