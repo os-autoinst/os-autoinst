@@ -28,6 +28,9 @@ use Exception::Class (
     'OpenQA::Exception::TestapiError' => {
         description => 'A testapi function failed'
     },
+    'OpenQA::Exception::TestapiUsageError' => {
+        description => 'A testapi function failed because of wrong usage'
+    },
 );
 
 1;
