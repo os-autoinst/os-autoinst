@@ -757,6 +757,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 12
             });
             like $last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file';
+            is $last_ssh_commands[1], "qemu-img info --force-share --output=json /my/path/to/this/file/$file", 'qemu-img info uses --force-share';
             is $last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size';
         };
 

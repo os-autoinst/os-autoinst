@@ -489,7 +489,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
         # $args->{size} is expected to be e.g. '20G' but internally we need it as integer
         my $size = ($args->{size} // 0) =~ tr/G//dr;
         # expected value in Bytes
-        my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
+        my (undef, $json) = $self->run_cmd("qemu-img info --force-share --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
         $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
         $self->_do_create_disk($file, $size, {additional_args => "-F qcow2 -b '$basedir/$file_basename'"});
