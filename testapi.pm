@@ -1607,7 +1607,7 @@ sub mouse_drag (%args) {
     }
     # If neither coordinates nor a needle is provided, report an error and quit.
     else {
-        die "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.";
+        OpenQA::Exception::TestapiUsageError->throw(error => "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.");
     }
 
     # Repeat the same for endpoint coordinates or needles.
@@ -1621,7 +1621,7 @@ sub mouse_drag (%args) {
         ($endx, $endy) = _calculate_clickpoint($end_matched_needle);
     }
     else {
-        die "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
+        OpenQA::Exception::TestapiUsageError->throw(error => "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.");
     }
     # Get the button variable. If no button has been provided, assume the "left" button.
     my $button = $args{button} // 'left';
