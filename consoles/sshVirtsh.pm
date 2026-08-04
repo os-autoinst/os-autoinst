@@ -302,6 +302,7 @@ sub add_interface ($self, $args) {
 
 sub _do_create_disk ($self, $file, $size, $args = undef) {
     my $bucket = 5;
+    my $active_recovery_attempted = 0;
     my @cmd = "qemu-img create '$file' -f qcow2";
     push @cmd, $args->{additional_args} if $args->{additional_args};
     push @cmd, $size;
@@ -311,7 +312,19 @@ sub _do_create_disk ($self, $file, $size, $args = undef) {
         my ($ret, $stdout, $stderr) = $self->run_cmd((join ' ', @cmd), wantarray => 1);
         if (($stderr // '') =~ /lock/i) {
             $bucket--;
-            die 'Too many attempts to create disk' unless $bucket;
+            if (!$bucket) {
+                if (!$active_recovery_attempted) {
+                    # forcefully try to free the lock by destroying the domain and pkill any orphaned processes
+                    bmwqemu::diag('Lock is still held. Attempting active recovery by force-killing lingering processes for ' . $self->name);
+                    $self->run_cmd(backend::svirt::virsh() . " destroy '" . $self->name . "'");
+                    $self->run_cmd("pkill -9 -f '" . $self->name . "'");
+                    $active_recovery_attempted = 1;
+                    $bucket = 2;    # allow 2 more attempts after active recovery
+                }
+                else {
+                    die 'Too many attempts to create disk';
+                }
+            }
             bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
             sleep 5;
             next;
