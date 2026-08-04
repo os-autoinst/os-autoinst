@@ -328,15 +328,21 @@ $details_ok &= like $details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft f
 always_explain $details unless $details_ok;
 $mock_bmwqemu->noop('log_call');
 
-require distribution;
-testapi::set_distribution(distribution->new());
-$autotest::last_milestone = {};
-select_console('a-console');
-is console('a-console')->{console}, 'a-console';
-is_deeply $autotest::activated_consoles, ['a-console'], 'Current console is activated';
-is is_serial_terminal, 0, 'Not a serial terminal';
-is current_console, 'a-console', 'Current console is the a-console';
-is console('b-console')->{console}, 'b-console', 'new console created on the fly';
+subtest console => sub {
+    require distribution;
+    testapi::set_distribution(distribution->new());
+    $autotest::last_milestone = {};
+    select_console('a-console');
+    is console('a-console')->{console}, 'a-console';
+    is_deeply $autotest::activated_consoles, ['a-console'], 'Current console is activated';
+    is is_serial_terminal, 0, 'Not a serial terminal';
+    is current_console, 'a-console', 'Current console is the a-console';
+    is console('b-console')->{console}, 'b-console', 'new console created on the fly';
+
+    $mod2->redefine(query_isotovideo => sub { return {error => 'on purpose'} });
+    throws_ok { select_console('dummy') } qr/on purpose/, 'select_console dies as expected';
+    $mod2->unmock('query_isotovideo');
+};
 
 subtest 'script_run' => sub {
     local $bmwqemu::vars{PRETTY_SERIAL_MARKER} = 0;
