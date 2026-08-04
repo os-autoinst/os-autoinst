@@ -701,7 +701,7 @@ into C<wait_still_screen> for details.
 =cut
 
 sub assert_still_screen (@args) {
-    wait_still_screen(@args) or die 'assert_still_screen failed to detect a still screen';
+    wait_still_screen(@args) or OpenQA::Exception::TestapiError->throw(error => 'assert_still_screen failed to detect a still screen');
 }
 
 =head1 test variable access
