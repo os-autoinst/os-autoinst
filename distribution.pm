@@ -98,6 +98,14 @@ sub become_root ($self) {
     $self->script_run('cd /tmp');
 }
 
+sub become_user ($self, $user) {
+    $self->script_run("su - $user", 0);
+    $self->invalidate_serial_marker_hook();
+    my $console = testapi::current_console() // 'sut';
+    my $level = $self->{_serial_marker_level}->{$console} // 1;
+    $self->install_serial_marker_hook($level);
+}
+
 =head2 disable_key_repeat
 
   disable_key_repeat()
