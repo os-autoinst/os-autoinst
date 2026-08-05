@@ -5,11 +5,13 @@ This document gives an overview about the multi-process architecture of os-autoi
 Once everything is running, the process tree looks like this:
 
 * **isotovideo**: spawns further processes, IO-loop for passing commands (main occupation), cleanup  
-  relevant files: `isotovideo`, `needle.pm` (initial needle scan)
+  relevant files: `isotovideo`, `driver.pm`, `OpenQA/Isotovideo/Runner.pm`,
+                  `OpenQA/Isotovideo/CommandHandler.pm`, `needle.pm` (initial needle scan)
 
     * **backend**: spawns and handles backend (eg. qemu), receives commands from isotovideo IO-loop,
                    handles the VNC connections, makes regular screenshots  
-      relevant files: `baseclass.pm` and derived, `console.pm` and derived, `needle.pm` (reloading, matching), `cv.pm`, `ppmclibs/*`
+      relevant files: `baseclass.pm` and derived, `console.pm` and derived, `needle.pm` (reloading,
+                      matching), `cv.pm`, `ppmclibs/*`
 
         * **qemu** (for instance)
 
@@ -31,3 +33,24 @@ Once everything is running, the process tree looks like this:
 * All processes have an IO loop except **autotest**. The latter mainly executes the test code and
   everything else reacts to it.
 * The command server is accessed by the openQA worker and livehandler.
+
+### Details about IPC between main processes
+* **isotovideo**
+    * in `OpenQA::Isotovideo::Runner`: tokenless `read_json` from **autotest**, **backend**,
+      **command server**
+    * in `driver`: `send_json` and `read_json` pair *with* tokens to send/receive to/from
+      **backend**
+    * in `OpenQA::Isotovideo::CommandHandler`: `send_json` to send messages to **command server**
+    * in `OpenQA::Isotovideo::CommandHandler`: `send_json` to send messages to **backend**
+* **autotest**
+    * in `autotest`: `send_json` and `read_json` pair *with* tokens to send/receive to/from
+      **isotovideo**
+* **backend**
+    * in `baseclass:::check_socket`: tokenless `read_json` and optional `send_json` pair to handle
+      commands from **isotovideo** and send back result
+    * in `baseclass`: `send_json` in various places to send messages unasked to **isotovideo**
+* **command server**
+    * in `commands`: tokenless `read_json` to receive from **isotovideo** and "handle" it
+    * in `commands::isotovideo_command`: `send_json` and `read_json` pair *without* tokens to
+      send/receive to/from **isotovideo**
+    * in `OpenQA::Commands`: `send_json` to send messages from ws clients to **isotovideo**
