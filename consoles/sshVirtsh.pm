@@ -300,6 +300,12 @@ sub add_interface ($self, $args) {
     return;
 }
 
+sub _free_lock_forcefully ($self) {
+    bmwqemu::diag('Lock is still held. Attempting active recovery by force-killing lingering processes for ' . $self->name);
+    $self->run_cmd(backend::svirt::virsh() . " destroy '" . $self->name . "'");
+    $self->run_cmd("pkill -9 -f '" . $self->name . "'");
+}
+
 sub _do_create_disk ($self, $file, $size, $args = undef) {
     my $bucket = 5;
     my $active_recovery_attempted = 0;
@@ -314,10 +320,7 @@ sub _do_create_disk ($self, $file, $size, $args = undef) {
             $bucket--;
             if (!$bucket) {
                 if (!$active_recovery_attempted) {
-                    # forcefully try to free the lock by destroying the domain and pkill any orphaned processes
-                    bmwqemu::diag('Lock is still held. Attempting active recovery by force-killing lingering processes for ' . $self->name);
-                    $self->run_cmd(backend::svirt::virsh() . " destroy '" . $self->name . "'");
-                    $self->run_cmd("pkill -9 -f '" . $self->name . "'");
+                    $self->_free_lock_forcefully;
                     $active_recovery_attempted = 1;
                     $bucket = 2;    # allow 2 more attempts after active recovery
                 }
