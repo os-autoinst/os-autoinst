@@ -300,8 +300,15 @@ sub add_interface ($self, $args) {
     return;
 }
 
+sub _free_lock_forcefully ($self) {
+    bmwqemu::diag('Lock is still held. Attempting active recovery by force-killing lingering processes for ' . $self->name);
+    $self->run_cmd(backend::svirt::virsh() . " destroy '" . $self->name . "'");
+    $self->run_cmd("pkill -9 -f '" . $self->name . "'");
+}
+
 sub _do_create_disk ($self, $file, $size, $args = undef) {
     my $bucket = 5;
+    my $active_recovery_attempted = 0;
     my @cmd = "qemu-img create '$file' -f qcow2";
     push @cmd, $args->{additional_args} if $args->{additional_args};
     push @cmd, $size;
@@ -311,7 +318,16 @@ sub _do_create_disk ($self, $file, $size, $args = undef) {
         my ($ret, $stdout, $stderr) = $self->run_cmd((join ' ', @cmd), wantarray => 1);
         if (($stderr // '') =~ /lock/i) {
             $bucket--;
-            die 'Too many attempts to create disk' unless $bucket;
+            if (!$bucket) {
+                if (!$active_recovery_attempted) {
+                    $self->_free_lock_forcefully;
+                    $active_recovery_attempted = 1;
+                    $bucket = 2;    # allow 2 more attempts after active recovery
+                }
+                else {
+                    die 'Too many attempts to create disk';
+                }
+            }
             bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
             sleep 5;
             next;
@@ -476,7 +492,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
         # $args->{size} is expected to be e.g. '20G' but internally we need it as integer
         my $size = ($args->{size} // 0) =~ tr/G//dr;
         # expected value in Bytes
-        my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
+        my (undef, $json) = $self->run_cmd("qemu-img info --force-share --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
         $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
         $self->_do_create_disk($file, $size, {additional_args => "-F qcow2 -b '$basedir/$file_basename'"});

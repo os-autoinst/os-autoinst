@@ -668,15 +668,43 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
         };
 
         subtest 'family svirt-xen-hvm create=1 error handling' => sub {
-            @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock']);
+            # 5 failures, active recovery (destroy + pkill), 2 more failures -> dies
+            @ssh_cmd_return = (
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [0, '', ''],    # virsh destroy
+                [0, '', ''],    # pkill
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+            );
 
             my $dev_id = 'dev_id_005';
             my $exp_file = $svirt->name . $dev_id . '.img';
-            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to create disk/, 'Died after 5 retry attempts';
+            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to create disk/, 'died after 7 total attempts with active recovery';
+
+            # 5 failures, active recovery, then succeeds on 6th attempt
+            @ssh_cmd_return = (
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [1, '', 'lock'],
+                [0, '', ''],    # virsh destroy
+                [0, '', ''],    # pkill
+                [0, '', ''],    # succeeds
+            );
+            @last_ssh_commands = ();
+            $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
+            is $last_ssh_commands[-2], "pkill -9 -f 'openQA-SUT-1'", 'active recovery ran pkill';
+            like $last_ssh_commands[-3], qr/destroy 'openQA-SUT-1'/, 'active recovery ran virsh destroy';
+            is $last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 88G", 'triggered img creation, after active recovery';
 
             @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [0, '', '']);
             $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
-            is $last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 88G", 'Triggered img creation, after 4 errors';
+            is $last_ssh_commands[-1], "qemu-img create '$basedir$exp_file' -f qcow2 88G", 'triggered img creation, after 4 errors';
 
             @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
 
@@ -729,6 +757,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 12
             });
             like $last_ssh_commands[0], qr%^rsync.*--partial.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file';
+            is $last_ssh_commands[1], "qemu-img info --force-share --output=json /my/path/to/this/file/$file", 'qemu-img info uses --force-share';
             is $last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size';
         };
 
