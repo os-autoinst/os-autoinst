@@ -51,6 +51,7 @@ sub run ($self) {
     $io_select->add($ch->backend_out_fd);
 
     while ($self->loop) {
+        $self->_drain_pending_backend_responses;
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
             my $rsp = myjsonrpc::read_json($readable);
@@ -61,6 +62,15 @@ sub run ($self) {
     }
     $ch->stop_command_processing;
     return 0;
+}
+
+# replies that arrived while a synchronous backend request was in flight were
+# stashed by myjsonrpc; the fd will not become readable for them again
+sub _drain_pending_backend_responses ($self) {
+    my $fd = $self->command_handler->backend_out_fd or return;
+    while (defined(my $rsp = myjsonrpc::take_pending($fd))) {
+        $self->_read_response($rsp, $fd);
+    }
 }
 
 sub _read_response ($self, $rsp, $fd) {

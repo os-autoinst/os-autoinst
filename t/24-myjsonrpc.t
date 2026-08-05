@@ -66,6 +66,18 @@ subtest 'send_json dies when buffer is empty and pipe is broken' => sub {
     dies_ok { myjsonrpc::send_json($child, $send1) } 'myjsonrpc: remote end terminated connection, stopping';
 };
 
+subtest 'out-of-order message is stashed instead of dying' => sub {
+    myjsonrpc::send_json($child, {postponed => 1, json_cmd_token => 'other-token'});
+    myjsonrpc::send_json($child, {answer => 1, json_cmd_token => 'my-token'});
+    my $read;
+    my @w = warnings { $read = myjsonrpc::read_json($isotovideo, 'my-token') };
+    like $w[0], qr/stashing out-of-order message/, 'out-of-order message logged';
+    is $read->{answer}, 1, 'awaited response returned despite preceding foreign message';
+    my $stashed = myjsonrpc::take_pending($isotovideo);
+    is $stashed->{postponed}, 1, 'stashed message can be taken later';
+    is myjsonrpc::take_pending($isotovideo), undef, 'queue is empty afterwards';
+};
+
 my $io_select_mock = Test::MockModule->new('IO::Select');
 $io_select_mock->redefine(can_read => undef);
 throws_ok { myjsonrpc::read_json($isotovideo) } qr/Illegal seek/, 'error exception raised when reading is aborted';

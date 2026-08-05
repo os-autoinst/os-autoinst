@@ -513,6 +513,36 @@ subtest 'No readable JSON' => sub {
     is $runner->loop, 0, 'Loop was stopped';
 };
 
+subtest '_drain_pending_backend_responses' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
+
+    subtest 'no backend_out_fd set' => sub {
+        $command_handler->backend_out_fd(undef);
+        my $calls = 0;
+        $rpc_mock->redefine(take_pending => sub { $calls++; return undef });
+        $runner->_drain_pending_backend_responses;
+        is $calls, 0, 'take_pending not called when backend_out_fd unset';
+    };
+
+    subtest 'delivers stashed backend response' => sub {
+        reset_state();
+        $command_handler->backend_out_fd($backend_fd);
+        my $token = 'drain-token';
+        $command_handler->process_command($answer_fd, {cmd => 'backend_some_cmd', json_cmd_token => $token});
+
+        my @queue = ({rsp => 'the-answer'});
+        $rpc_mock->redefine(take_pending => sub { shift @queue });
+        $runner->_drain_pending_backend_responses;
+        is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 'the-answer', json_cmd_token => $token},
+          'stashed response reached the original requester via send_to_backend_requester';
+    };
+
+    $rpc_mock->redefine(take_pending => sub {
+            fail 'we do not expect anything to be read here';    # uncoverable statement
+    });
+};
+
 subtest 'shutdown handling' => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
     my $return_code = 1;

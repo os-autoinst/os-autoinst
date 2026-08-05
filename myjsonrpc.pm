@@ -16,6 +16,8 @@ use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 
 # hash for keeping state
 my $sockets;
+# per-fd queue of messages whose token didn't match the awaited one
+my $pending;
 
 sub _syswrite ($to_fd, $json, $length = undef, $offset = undef) { syswrite $to_fd, $json, $length, $offset }
 
@@ -90,7 +92,12 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
                 push @results, undef;
                 last;
             }
-            confess 'ERROR: the token does not match - questions and answers not in the right order' if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
+            if ($cmd_token && ($hash->{json_cmd_token} // '') ne $cmd_token) {
+                bmwqemu::diag(sprintf 'read_json(%d): stashing out-of-order message (token %s) while waiting for %s',
+                    $fd, $hash->{json_cmd_token} // 'no-token', $cmd_token);
+                push @{$pending->{$fd}}, $hash;
+                next;
+            }
             push @results, $hash;
             # parse all lines from buffer
             next if $multi;
@@ -111,6 +118,15 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     }
 
     return $multi ? @results : $results[0];
+}
+
+# return the next out-of-order message stashed for $socket by read_json, or undef
+sub take_pending ($socket) {
+    my $fd = fileno $socket;
+    my $queue = $pending->{$fd} or return undef;
+    my $msg = shift @$queue;
+    delete $pending->{$fd} unless @$queue;
+    return $msg;
 }
 
 ###################################################################
