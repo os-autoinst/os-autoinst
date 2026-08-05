@@ -7,5 +7,12 @@ for i in container/*/Dockerfile*; do
     echo "$0 => Testing container $i"
     tag=${i,,}
     $cre build -t "$tag" -f "$i" "$(dirname "$i")"/
+    if grep -q "BuildTag:" "$i"; then
+        # shellcheck disable=SC2013
+        for t in $(sed -n 's/.*BuildTag: //p' "$i"); do
+            [[ "$t" == *%* ]] && continue
+            $cre tag "$tag" "$t"
+        done
+    fi
     $cre run --rm "$tag" --help
 done
