@@ -50,6 +50,9 @@ sub run ($self) {
     $io_select->add($ch->cmd_srv_fd);
     $io_select->add($ch->backend_out_fd);
 
+    my @interleaved_cmds;
+    myjsonrpc::set_interleaved_command_handler(\@interleaved_cmds);
+
     while ($self->loop) {
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
@@ -57,6 +60,7 @@ sub run ($self) {
             $self->_read_response($rsp, $readable);
             last unless defined $rsp;
         }
+        $self->_read_response(@$_) for splice @interleaved_cmds;
         $ch->check_asserted_screen if defined($ch->tags);
     }
     $ch->stop_command_processing;
