@@ -118,6 +118,10 @@ sub disable_key_repeat ($self) {
 
 sub _handle_cmd_typing_error ($cmd, $args) { ($args->{check_typing_cmd} // 1 ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") }
 
+# _OANM: openQA No Marker, skips the shell hook's done marker. Applied on
+# serial terminals or when C<$force> is set (e.g. manual serial redirection).
+sub _no_marker_prefix ($cmd, $force = 0) { ($force || testapi::is_serial_terminal) ? "_OANM=1; $cmd" : $cmd }
+
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
@@ -189,8 +193,7 @@ sub script_run ($self, $cmd, @args) {
         }
         else {
             my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-            # _OANM: openQA No Marker, skips printing the hook's done marker
-            my $final_cmd = $skip_pretty ? "_OANM=1; $cmd" : $cmd;
+            my $final_cmd = _no_marker_prefix($cmd, $skip_pretty);
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
                 testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => 1, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
@@ -235,7 +238,7 @@ sub background_script_run ($self, $cmd, %args) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
     }
 
-    $cmd = "( $cmd )";
+    $cmd = _no_marker_prefix("( $cmd )");
     testapi::type_string $cmd;
     my $str = testapi::hashed_string('SR' . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
@@ -350,7 +353,7 @@ sub script_output ($self, $script, @args) {
     # might encounter on the serial device depending on how it is used in the
     # SUT
     my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
-    my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
+    my $run_script = _no_marker_prefix("echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-");
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
         testapi::type_string "$run_script\n";
@@ -472,7 +475,7 @@ sub install_serial_marker_hook ($self, $level) {
     # Consolidate installation and persistence into a single typed line to minimize VNC overhead.
     # We append to both ~/.bashrc and ~/.profile to cover both interactive and login shells.
     # Sourcing ~/.bashrc then activates the hook in the current session.
-    testapi::type_string "grep -q _oap ~/.bashrc 2>/dev/null||{ echo '$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
+    testapi::type_string "grep -q _OANM ~/.bashrc 2>/dev/null||{ echo '$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
 
     my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;
@@ -518,6 +521,14 @@ sub invalidate_serial_marker_hook ($self, $console = undef) {
     delete $self->{_serial_marker_hook_installed}->{$console};
 }
 
+# Disable any pre-existing PROMPT_COMMAND hook (e.g. inherited from ~/.bashrc)
+# so it cannot pollute serial0.txt with markers. On a serial terminal we wait
+# for the prompt to consume the command echo.
+sub _disable_inherited_prompt_hook ($self, $wait_prompt = 0) {
+    testapi::type_string "unset PROMPT_COMMAND\n";
+    testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1) if $wait_prompt && $self->{serial_term_prompt};
+}
+
 =head2 get_pretty_serial_marker
 
     get_pretty_serial_marker()
@@ -547,7 +558,7 @@ sub set_pretty_serial_marker ($self, $value) {
 
     # If we are turning it OFF, we MUST tell the SUT to stop sending markers
     # to avoid polluting the fallback mode.
-    testapi::type_string "unset PROMPT_COMMAND\n" if !$value;
+    $self->_disable_inherited_prompt_hook if !$value;
 
     $self->reset_serial_marker();
 }
@@ -601,7 +612,10 @@ sub detect_serial_marker_capability ($self) {
     my $level = 1;
     my $pretty = $self->get_pretty_serial_marker();
     my $serial_term = testapi::is_serial_terminal();
-    return $self->{_serial_marker_level}->{$console} = $level if !$pretty || $serial_term;
+    if (!$pretty || $serial_term) {
+        $self->_disable_inherited_prompt_hook(1) if $serial_term;
+        return $self->{_serial_marker_level}->{$console} = $level;
+    }
 
     testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
     my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
