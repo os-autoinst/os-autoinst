@@ -1009,7 +1009,7 @@ sub script_run {    # no:style:signatures
 
     bmwqemu::log_call(cmd => $cmd, %args);
     my $ret = $distri->script_run($cmd, %args);
-    croak("command '$cmd' timed out") if $args{timeout} > 0 && !defined $ret;
+    OpenQA::Exception::TestapiError->throw(error => "command '$cmd' timed out") if $args{timeout} > 0 && !defined $ret;
     return $ret;
 }
 
