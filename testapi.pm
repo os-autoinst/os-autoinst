@@ -1239,13 +1239,13 @@ sub validate_script_output {    # no:style:signatures
           $script, $check, $output;
     }
     else {
-        croak 'Invalid use of validate_script_output(), second arg must be a coderef or regexp';
+        OpenQA::Exception::TestapiError->throw(error => 'Invalid use of validate_script_output(), second arg must be a coderef or regexp');
     }
     $autotest::current_test->record_resultfile(
         $title, $message,
         result => $res,
     );
-    croak $fail_message if $res eq 'fail';
+    OpenQA::Exception::TestapiError->throw(error => $fail_message) if $res eq 'fail';
     return 0;
 }
 
