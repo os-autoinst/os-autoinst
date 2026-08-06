@@ -130,6 +130,19 @@ subtest 'read_json recovers a token stashed by an earlier call instead of hangin
     is $got_a->{msg}, 'reload_needles reply', 'previously stashed message for token A recovered';
 };
 
+# The stash lookup must fall through when it holds only tokens nobody is waiting
+# on yet, otherwise a reply still on the wire would be shadowed by it.
+subtest 'stashed foreign token does not shadow a reply still on the wire' => sub {
+    myjsonrpc::send_json($child, {msg => 'foreign', json_cmd_token => 'X'});
+    myjsonrpc::send_json($child, {msg => 'awaited', json_cmd_token => 'Y'});
+    warnings { is myjsonrpc::read_json($isotovideo, 'Y')->{msg}, 'awaited', 'token Y returned, token X stashed' };
+
+    myjsonrpc::send_json($child, {msg => 'later', json_cmd_token => 'Z'});
+    is myjsonrpc::read_json($isotovideo, 'Z')->{msg}, 'later', 'token Z read from the fd although X is still stashed';
+    is myjsonrpc::take_pending($isotovideo)->{msg}, 'foreign', 'stashed token X left untouched';
+    is myjsonrpc::take_pending($isotovideo), undef, 'queue is empty afterwards';
+};
+
 # poo#205302 AC1: a wedge must never be silent again. If a genuinely unrecoverable
 # run of foreign messages piles up, fail loudly with more information than the old
 # unconditional confess ever had, instead of stashing forever.
