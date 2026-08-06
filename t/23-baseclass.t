@@ -948,6 +948,52 @@ subtest 'special cases when checking socket' => sub {
     is $baseclass->{_postponed_cmd_token}, 'fake-postponed-token', 'reply postponed, token saved for later';
 };
 
+subtest 'do_capture drains cmdpipe messages coalesced into one sysread' => sub {
+    # root cause (poo#205302): two commands written to the cmdpipe close together
+    # can be coalesced by the kernel into one sysread. check_socket only reads one
+    # message per call, and the trailing one is already consumed from the fd, so
+    # select() will not report it readable again for it -- do_capture must keep
+    # draining the cmdpipe specifically (not other fds) while more is buffered.
+    my $cmdpipe_fh = IO::Handle->new_from_fd(fileno(STDOUT), 'w');
+    local $baseclass->{select_read} = OpenQA::NamedIOSelect->new;
+    local $baseclass->{select_write} = OpenQA::NamedIOSelect->new;
+    local $baseclass->{encoder_pipe} = undef;
+    local $baseclass->{external_video_encoder_cmd_pipe} = undef;
+    local $baseclass->{cmdpipe} = $cmdpipe_fh;
+    local $baseclass->{_wait_screen_change} = undef;    # clear state leaked from an earlier subtest
+    local $baseclass->{_wait_still_screen} = undef;
+    local $baseclass->{update_request_interval} = 999;
+    local $baseclass->{screenshot_interval} = 999;
+    local $baseclass->{last_update_request} = time;
+    local $baseclass->{last_screenshot} = time;
+    local $baseclass->{assert_screen_last_check} = 0;
+    $baseclass_mock->redefine(check_select_rate => sub (@) { 0 });    # stall detection not under test here
+
+    my $io_select_mock = Test::MockModule->new('IO::Select');
+    $io_select_mock->redefine(select => sub ($self, $read_select, $write_select, $exception, $timeout) {
+            return ([$cmdpipe_fh], []);
+    });
+
+    my @commands = (
+        {cmd => 'set_pause_at_test', name => 'first', json_cmd_token => 't1'},
+        {cmd => 'set_pause_at_test', name => 'second', json_cmd_token => 't2'},
+    );
+    my @buffered_after = (1, 0);    # more data available after the first read, none after the second
+    my $rpc_mock = Test::MockModule->new('myjsonrpc');
+    $rpc_mock->redefine(read_json => sub { shift @commands });
+    $rpc_mock->redefine(buffered => sub { shift @buffered_after });
+    $rpc_mock->redefine(send_json => sub { });
+
+    my @handled;
+    $baseclass_mock->redefine(handle_command => sub ($self, $cmd) { push @handled, $cmd->{json_cmd_token}; return 0 });
+
+    $baseclass->do_capture({});
+    is_deeply \@handled, ['t1', 't2'], 'both coalesced cmdpipe messages handled from a single readable event';
+
+    $baseclass_mock->unmock('handle_command');
+    $baseclass_mock->unmock('check_select_rate');
+};
+
 subtest 'special cases of set_tags_to_assert' => sub {
     combined_like { needle::init("$Bin/data") } qr/loaded \d+ needles/, 'needles loaded';
 

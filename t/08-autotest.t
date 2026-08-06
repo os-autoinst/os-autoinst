@@ -4,6 +4,7 @@ use Test::Most;
 use Mojo::Base -signatures;
 
 use Mojo::File 'path';
+use Socket;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -707,6 +708,47 @@ subtest 'lua_runtest' => sub {
     like $out, qr{testfunc1\ntestfunc2\ntestfunc3}, 'function calls work';
     like $out, qr{testarray:\t1,2,3}, 'arrays work';
     like $out, qr{foo = bar}, 'hashes work';
+};
+
+subtest 'query_isotovideo survives coalesced and stashed messages on the real pipe' => sub {
+    # unlike the rest of this file, use the real myjsonrpc implementation here to
+    # verify autotest's read sites actually benefit from the fixes in myjsonrpc.pm
+    # (poo#205302): a coalesced trailing message is not stranded, and a message
+    # already stashed for an earlier token is recoverable instead of hanging.
+    $mock_jsonrpc->unmock('send_json');
+    $mock_jsonrpc->unmock('read_json');
+
+    socketpair my $isotovideo_side, my $autotest_side, AF_UNIX, SOCK_STREAM, PF_UNSPEC or die $!;
+    local $autotest::isotovideo = $autotest_side;
+
+    subtest 'coalesced reply is not stranded across two query_isotovideo calls' => sub {
+        myjsonrpc::send_json($isotovideo_side, {ret => 'first'});
+        myjsonrpc::send_json($isotovideo_side, {ret => 'second'});
+        is autotest::query_isotovideo('some_cmd'), 'first', 'first reply consumed';
+        is autotest::query_isotovideo('some_cmd'), 'second', 'second, coalesced reply recovered on the next call';
+    };
+
+    subtest 'reply stashed by an earlier tokened wait is recoverable, not a silent hang' => sub {
+        myjsonrpc::send_json($isotovideo_side, {msg => 'late', json_cmd_token => 'stale-token'});
+        myjsonrpc::send_json($isotovideo_side, {died => 0, completed => 1, json_cmd_token => 'awaited-token'});
+        my $rsp;
+        stderr_like {
+            eval {    ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+                local $SIG{ALRM} = sub { die "timed out\n" };
+                alarm 5;
+                $rsp = myjsonrpc::read_json($autotest_side, 'awaited-token');
+                alarm 0;
+            };
+            alarm 0;
+        } qr/stashing out-of-order message/, 'out-of-order message logged';
+        is $@, '', 'read_json awaiting the tests_done token does not hang on an earlier out-of-order message';
+        is $rsp->{completed}, 1, 'awaited reply recovered';
+        my $late = myjsonrpc::take_pending($autotest_side);
+        is $late->{msg}, 'late', 'earlier out-of-order message still available via take_pending, not silently lost';
+    };
+
+    $mock_jsonrpc->redefine(send_json => \&fake_send);
+    $mock_jsonrpc->redefine(read_json => \&fake_read);
 };
 
 done_testing();

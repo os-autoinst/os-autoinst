@@ -296,6 +296,15 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
             }
         }
         die "error checking socket for read: $fh\n" unless $self->check_socket($fh, 0);
+        if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
+            # two commands written close together can be coalesced by the kernel
+            # into one sysread; the trailing one is already consumed from the fd,
+            # so select() will not report it readable again for it. Scoped to the
+            # cmdpipe only -- other fds go through the "one socket per iteration"
+            # path below because check_socket can have side effects there
+            # (e.g. console resets).
+            $self->check_socket($fh, 0) while myjsonrpc::buffered($fh);
+        }
         # don't check for further sockets after this one as
         # check_socket can have side effects on the sockets
         # (e.g. console resets), so better take the next socket

@@ -7,11 +7,12 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
-use Test::Output qw(stderr_like stderr_unlike combined_like);
+use Test::Output qw(stderr_like stderr_unlike combined_like combined_from);
 use Test::Warnings ':report_warnings';
 use Mojo::JSON 'encode_json';
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
+use IO::Handle;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
@@ -511,6 +512,136 @@ subtest 'No readable JSON' => sub {
         $runner->_read_response(undef, $readable);
     } qr/THERE IS NOTHING TO READ/, 'no response';
     is $runner->loop, 0, 'Loop was stopped';
+};
+
+subtest '_drain_readable' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
+    # a real fd distinct from backend_out_fd so the fileno() calls in _read_response
+    # (on the "no response" path) succeed and the fd comparison stays well-defined
+    open my $readable, '<', $Bin;
+    $runner->testfd($readable);
+    $runner->cmd_srv_fd($readable);
+    $command_handler->backend_out_fd(-1);
+
+    subtest 'dispatches every message coalesced into one readable event' => sub {
+        my @responses = ({cmd => 'status', json_cmd_token => 'first'}, {cmd => 'status', json_cmd_token => 'second'});
+        my @buffered_after = (1, 0);    # more data available after the first read, none after the second
+        $rpc_mock->redefine(read_json => sub { shift @responses });
+        $rpc_mock->redefine(buffered => sub { shift @buffered_after });
+
+        my @processed_tokens;
+        my $ch_mock = Test::MockModule->new('OpenQA::Isotovideo::CommandHandler');
+        $ch_mock->redefine(process_command => sub ($self, $fd, $cmd) { push @processed_tokens, $cmd->{json_cmd_token} });
+
+        is $runner->_drain_readable($readable), 1, '_drain_readable reports success when the last message read was defined';
+        is_deeply \@processed_tokens, ['first', 'second'], 'both coalesced messages dispatched from a single readable event';
+    };
+
+    subtest 'stops at the first undefined response without consulting buffered()' => sub {
+        $rpc_mock->redefine(read_json => sub { undef });
+        my $buffered_calls = 0;
+        $rpc_mock->redefine(buffered => sub { $buffered_calls++; return 1 });
+        stderr_like {
+            ok !$runner->_drain_readable($readable), '_drain_readable reports failure on a closed/errored fd';
+        } qr/THERE IS NOTHING TO READ/;
+        is $buffered_calls, 0, 'buffered() not called once read_json returns undef';
+    };
+
+    $rpc_mock->redefine(read_json => sub {
+            fail 'we do not expect anything to be read here';    # uncoverable statement
+    });
+    $rpc_mock->redefine(buffered => sub {
+            fail 'we do not expect this to be called here';    # uncoverable statement
+    });
+};
+
+subtest '_drain_pending_backend_responses' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
+
+    subtest 'no backend_out_fd set' => sub {
+        $command_handler->backend_out_fd(undef);
+        my $calls = 0;
+        $rpc_mock->redefine(take_pending => sub { $calls++; return undef });
+        $runner->_drain_pending_backend_responses;
+        is $calls, 0, 'take_pending not called when backend_out_fd unset';
+    };
+
+    subtest 'delivers stashed backend response' => sub {
+        reset_state();
+        $command_handler->backend_out_fd($backend_fd);
+        my $token = 'drain-token';
+        $command_handler->process_command($answer_fd, {cmd => 'backend_some_cmd', json_cmd_token => $token});
+
+        my @queue = ({rsp => 'the-answer', json_cmd_token => $token});
+        $rpc_mock->redefine(take_pending => sub { shift @queue });
+        $runner->_drain_pending_backend_responses;
+        is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 'the-answer', json_cmd_token => $token},
+          'stashed response reached the original requester via send_to_backend_requester';
+    };
+
+    subtest 'warns instead of silently dropping a stashed reply with no requester' => sub {
+        reset_state();
+        $command_handler->backend_out_fd($backend_fd);
+        $command_handler->backend_requester(undef);
+        $command_handler->backend_requester_token(undef);
+
+        my @queue = ({rsp => 'orphaned', json_cmd_token => 'orphan-token'});
+        $rpc_mock->redefine(take_pending => sub { shift @queue });
+        stderr_like { $runner->_drain_pending_backend_responses }
+        qr/stashed backend reply \(token orphan-token\) has no waiting backend_requester, dropping it/,
+          'warns about the dropped reply';
+    };
+
+    subtest 'warns on a token mismatch between the stashed reply and the awaited requester' => sub {
+        reset_state();
+        $command_handler->backend_out_fd($backend_fd);
+        my $token = 'awaited-token';
+        $command_handler->process_command($answer_fd, {cmd => 'backend_some_cmd', json_cmd_token => $token});
+
+        my @queue = ({rsp => 'mismatched', json_cmd_token => 'foreign-token'});
+        $rpc_mock->redefine(take_pending => sub { shift @queue });
+        stderr_like { $runner->_drain_pending_backend_responses }
+        qr/stashed backend reply token foreign-token does not match awaited backend_requester_token awaited-token/,
+          'warns about the mismatch';
+        is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 'mismatched', json_cmd_token => $token},
+          'reply is still delivered to whoever is waiting despite the mismatch (unchanged behavior, just louder)';
+    };
+
+    $rpc_mock->redefine(take_pending => sub {
+            fail 'we do not expect anything to be read here';    # uncoverable statement
+    });
+};
+
+subtest 'run() drains any leftover stash on exit' => sub {
+    reset_state();
+    $command_handler->backend_out_fd($backend_fd);
+    my $token = 'exit-drain-token';
+    $command_handler->process_command($answer_fd, {cmd => 'backend_some_cmd', json_cmd_token => $token});
+
+    my @queue = ({rsp => 'final-answer', json_cmd_token => $token});
+    $rpc_mock->redefine(take_pending => sub { shift @queue });
+
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
+    $runner->loop(0);    # exit the main loop without ever iterating it
+    $runner->testfd(IO::Handle->new_from_fd(fileno(STDOUT), 'w'));
+
+    eval {    ## no critic (ErrorHandling::RequireCheckingReturnValueOfEval)
+        local $SIG{ALRM} = sub { die "run() did not return\n" };
+        alarm 5;
+        combined_from { $runner->run };
+        alarm 0;
+    };
+    alarm 0;
+    is $@, '', 'run() returns rather than hanging';
+    is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 'final-answer', json_cmd_token => $token},
+      'stash drained and delivered to its requester even though the main loop never iterated';
+
+    $rpc_mock->redefine(take_pending => sub {
+            fail 'we do not expect anything to be read here';    # uncoverable statement
+    });
 };
 
 subtest 'shutdown handling' => sub {

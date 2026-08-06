@@ -51,16 +51,57 @@ sub run ($self) {
     $io_select->add($ch->backend_out_fd);
 
     while ($self->loop) {
+        $self->_drain_pending_backend_responses;
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
-            my $rsp = myjsonrpc::read_json($readable);
-            $self->_read_response($rsp, $readable);
-            last unless defined $rsp;
+            last unless $self->_drain_readable($readable);
         }
         $ch->check_asserted_screen if defined($ch->tags);
     }
+    # deliver (or warn about) anything still stashed rather than silently
+    # discarding it now that the loop is no longer around to drain it
+    $self->_drain_pending_backend_responses;
     $ch->stop_command_processing;
     return 0;
+}
+
+# read and dispatch every complete message already available on $readable, not
+# just the first one: two messages written close together can be coalesced by
+# the kernel into a single sysread, and the trailing one is already consumed
+# from the fd, so select() will not report it readable again for it.
+# Returns false once a closed/errored fd is seen, mirroring the old inline
+# "last unless defined $rsp" behaviour.
+sub _drain_readable ($self, $readable) {
+    my $rsp;
+    do {
+        $rsp = myjsonrpc::read_json($readable);
+        $self->_read_response($rsp, $readable);
+    } while (defined $rsp && myjsonrpc::buffered($readable));
+    return defined $rsp;
+}
+
+# replies that arrived while a synchronous backend request was in flight were
+# stashed by myjsonrpc; the fd will not become readable for them again
+sub _drain_pending_backend_responses ($self) {
+    my $fd = $self->command_handler->backend_out_fd or return;
+    while (defined(my $rsp = myjsonrpc::take_pending($fd))) {
+        $self->_warn_if_backend_reply_mismatched($rsp);
+        $self->_read_response($rsp, $fd);
+    }
+}
+
+# send_to_backend_requester relabels a reply with backend_requester_token
+# regardless of which token the backend actually sent it with, and silently
+# drops it if nothing is waiting -- warn loudly instead of quietly mismatching
+# or losing a stashed reply (poo#205302 AC1)
+sub _warn_if_backend_reply_mismatched ($self, $rsp) {
+    my $ch = $self->command_handler;
+    my $stashed_token = $rsp->{json_cmd_token} // 'no-token';
+    return fctwarn "isotovideo: stashed backend reply (token $stashed_token) has no waiting backend_requester, dropping it"
+      unless $ch->backend_requester;
+    my $requester_token = $ch->backend_requester_token // 'no-token';
+    return undef if $stashed_token eq $requester_token;
+    fctwarn "isotovideo: stashed backend reply token $stashed_token does not match awaited backend_requester_token $requester_token";
 }
 
 sub _read_response ($self, $rsp, $fd) {
