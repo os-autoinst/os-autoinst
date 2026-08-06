@@ -1309,6 +1309,10 @@ subtest init => sub {
 
 lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
 
+subtest 'get_var' => sub {
+    throws_ok { get_required_var 'NOT HERE' } qr/Could not retrieve required variable NOT HERE/, 'get_required_var dies with expected message';
+};
+
 subtest 'set_var' => sub {
     $cmds = [];
     lives_ok { set_var('FOO', 'BAR', reload_needles => 1) } 'can call set_var with reload_needles';

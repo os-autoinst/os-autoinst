@@ -728,7 +728,7 @@ Similar to C<get_var> but without default value and throws exception if variable
 =cut
 
 sub get_required_var ($var) {
-    return $bmwqemu::vars{$var} // croak "Could not retrieve required variable $var";
+    return $bmwqemu::vars{$var} // OpenQA::Exception::TestapiError->throw(error => "Could not retrieve required variable $var");
 }
 
 =head2 set_var
