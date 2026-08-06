@@ -269,6 +269,40 @@ subtest 'exit status from test results' => sub {
     };
 };
 
+subtest 'command processing stays stable under interleaved backend commands (poo#205302)' => sub {
+    # Extends os-autoinst specific tests, as poo#205302 suggests, instead of
+    # relying on openQA's t/33-developer_mode.t. Schedules the same module
+    # (each firing an async 'backend_reload_needles' and then, via the very
+    # next module's automatic 'set_current_test', a synchronous
+    # 'clear_serial_buffer' backend exchange) many times in a row, to give
+    # many real, live inter-process opportunities for a reply to arrive out of
+    # order the way note-7 of poo#205206 describes.
+    #
+    # Note: reproducing the *exact* historical hang deterministically needs a
+    # postponed reply (e.g. from wait_screen_change) racing a concurrent
+    # synchronous request from the command server -- that requires a real
+    # console/screen or a developer-mode websocket client, neither available
+    # to a plain schedule-based run here. This test instead guards the
+    # observable contract: many real, live interleaved backend exchanges must
+    # never wedge isotovideo or resurface as a token mismatch, regardless of
+    # whether this particular run happens to interleave two messages onto one
+    # fd. The precise, deterministic reproduction of the underlying defects
+    # (select() blind to a coalesced message; a stashed reply never re-checked
+    # by a later wait) lives in t/24-myjsonrpc.t.
+    chdir $pool_dir;
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove if -e 'vars.json';
+    path('testresults/')->remove_tree if -e 'testresults';
+    my $module = 'tests/reload_needles_stress';
+    my $schedule = join ',', ($module) x 40;
+    my $log = combined_from { isotovideo(
+            default_opts => '--exit-status-from-test-results backend=null',
+            opts => "casedir=$data_dir/tests schedule=$schedule", exit_code => 0) };
+    like $log, qr/scheduling reload_needles_stress $module\.pm/, 'module scheduled';
+    like $log, qr/Test result \[testresults\/result\-reload_needles_stress\.json\] ok/, 'all 40 iterations completed without wedging isotovideo';
+    unlike $log, qr/the token does not match/, 'no fail-fast triggered by a genuinely unrecoverable race';
+};
+
 subtest 'upload assets on demand even in failed jobs' => sub {
     # qemu isotovideo invocation
     chdir $pool_dir;
