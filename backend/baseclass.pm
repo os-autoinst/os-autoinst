@@ -19,6 +19,7 @@ use Feature::Compat::Try;
 use POSIX qw(_exit waitpid WNOHANG);
 use IO::Select;
 require IPC::System::Simple;
+use Socket qw(SOL_SOCKET SO_KEEPALIVE);
 use myjsonrpc;
 use needle;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
@@ -1229,6 +1230,9 @@ sub new_ssh_connection ($self, %args) {
             sleep $interval;
             $counter--;
             next;
+        }
+        if (my $sock = $ssh->sock()) {
+            setsockopt $sock, SOL_SOCKET, SO_KEEPALIVE, 1;
         }
         if (!$args{use_ssh_agent} && defined $args{password}) {
             $ssh->auth(username => $args{username}, password => $args{password});
