@@ -465,7 +465,11 @@ sub install_serial_marker_hook ($self, $level) {
     # _OANM: openQA No Marker (skip hook done marker)
     # _OAM: openQA Marker (custom marker string)
     if ($level == 3) {
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(fc -ln -1 2>/dev/null);c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}};
+        # `history 1` reads the in-memory history list, which bash updates before
+        # running PROMPT_COMMAND, so it yields the command that just ran (no
+        # off-by-one, unlike `fc -ln -1`) and the whole line (compound/pipeline
+        # commands intact). Strip the leading "<index>  " field, then trim.
+        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}};
     }
     else {
         $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}};
