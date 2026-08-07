@@ -59,6 +59,7 @@ sub new ($class) {
     $self->{started} = 0;
     $self->{serialfile} = 'serial0';
     $self->{serial_offset} = 0;
+    $self->{_last_serial_read_time} = time;
     $self->{video_frame_data} = [];
     $self->{video_frame_number} = 0;
     $self->{video_encoders} = {};
@@ -874,6 +875,10 @@ sub read_serial ($self, $position, $whence = 0) {
     my $offset = tell $SERIAL;
     close $SERIAL;
 
+    if (defined $data && length $data) {
+        $self->{_last_serial_read_time} = time;
+    }
+
     return ($data, $offset);
 }
 
@@ -911,6 +916,13 @@ sub wait_serial ($self, $args) {
         $self->run_capture_loop(1);
     }
     $self->{serial_offset} = $current_offset;
+    if (!$matched) {
+        my $silence_duration = time - ($self->{_last_serial_read_time} // $initial_time);
+        my $silence_timeout = $bmwqemu::vars{SERIAL_CONSOLE_SILENCE_TIMEOUT} // 300;
+        if ($silence_duration > $silence_timeout) {
+            bmwqemu::diag("WARNING: Serial console has been silent for ${silence_duration}s. This might indicate a broken/half-open socket or a silent TCP connection drop (e.g. firewall/NAT timeout) on the background serial SSH channel.");
+        }
+    }
     return {matched => $matched, string => $str};
 }
 
