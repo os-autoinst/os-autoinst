@@ -231,8 +231,12 @@ subtest 'level3_marker_correlation' => sub {
     my $typed = '';
     $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
     $d->install_serial_marker_hook(3);
+    like $typed, qr'c=\$\(HISTTIMEFORMAT= history 1\);c=\$\{c#\*\[0-9\]  \}',
+      'level-3 shell hook captures the just-run command via in-memory history (no fc off-by-one)';
     like $typed, qr'l=\$\{#c\};t=\$c;\[ \$l -ge 4 \]&&t=\$\{c: -4\};printf.*OA:DONE',
       'level-3 shell hook emits the compact head4+len+tail4 command fingerprinting script';
+    unlike $typed, qr'fc -ln -1',
+      'level-3 shell hook no longer uses fc -ln -1 (off-by-one lag emitting the previous command marker one prompt late)';
 
     $d->{_serial_marker_level}->{'test-console'} = 3;
     $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
