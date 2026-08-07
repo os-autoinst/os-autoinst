@@ -53,24 +53,27 @@ subtest 'script_run' => sub {
             return $wait_serial_res;
     });
     $mock_testapi->redefine(is_serial_terminal => 1);
+    my $oanm_len = length '_OANM=1; ';
     $d->script_run('short_command');
-    # script_run calls wait_serial three times when on a serial
-    # console, the call we want to check - which actually types the
-    # command - is the second
-    my $cmdcall = $wait_serial_calls[1];
-    is $cmdcall->{buffer_size}, 141, 'appropriate buffer size used for short command';
+    # First script_run also detects marker capability, which types an extra
+    # 'unset PROMPT_COMMAND' and waits for the prompt, so the call that types
+    # the command is the third
+    my $cmdcall = $wait_serial_calls[2];
+    is $cmdcall->{buffer_size}, 141 + $oanm_len, 'appropriate buffer size used for short command (base + _OANM prefix)';
+    # marker capability is now cached, so no 'unset PROMPT_COMMAND' wait
+    # precedes this call: the command is at index 1
     @wait_serial_calls = ();
     $d->script_run('long_command' x 512);
     $cmdcall = $wait_serial_calls[1];
-    is $cmdcall->{buffer_size}, 6272, 'appropriate buffer size used for long command';
+    is $cmdcall->{buffer_size}, 6272 + $oanm_len, 'appropriate buffer size used for long command (base + _OANM prefix)';
 
     $wait_serial_res = 0;
     @wait_serial_calls = ();
-    throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'timeout while typing command handled';
+    throws_ok { $d->script_run('foo') } qr/typing command '_OANM=1; foo' timed out/, 'timeout while typing command handled';
 
     @wait_serial_calls = ();
     combined_like { $d->script_run('foo', check_typing_cmd => 0) }
-    qr/typing command 'foo' timed out/, 'timeout while typing command just logged when opted-out';
+    qr/typing command '_OANM=1; foo' timed out/, 'timeout while typing command just logged when opted-out';
 };
 
 subtest 'pretty_serial_marker' => sub {
@@ -130,13 +133,13 @@ subtest 'pretty_serial_marker' => sub {
     $mock_testapi->redefine(is_serial_terminal => sub { 1 });
     $typed_string = '';
     $d->script_run('foo');
-    like $typed_string, qr/foo; echo SR.*-.*-\n/, 'Level 1 uses classic marker on serial terminal';
+    like $typed_string, qr/_OANM=1; foo; echo SR.*-.*-\n/, 'Level 1 uses classic marker on serial terminal';
 
     $mock_testapi->redefine(wait_serial => sub ($pat, %) {
             return 0 if $pat =~ /foo; echo SR.*-\$\?-/;
             return 'SRfoo-0-';
     });
-    throws_ok { $d->script_run('foo') } qr/typing command 'foo' timed out/, 'typing error handled in Level 1';
+    throws_ok { $d->script_run('foo') } qr/typing command '_OANM=1; foo' timed out/, 'typing error handled in Level 1';
 };
 
 subtest 'serial_marker_reinstall_cached_level' => sub {
@@ -150,7 +153,7 @@ subtest 'serial_marker_reinstall_cached_level' => sub {
     $d->invalidate_serial_marker_hook('test-console');
 
     is $d->detect_serial_marker_capability(), 2, 'Returns cached level 2';
-    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
+    like $typed, qr/grep -q _OANM.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
     ok $d->{_serial_marker_hook_installed}->{'test-console'}, 'Hook marked as installed';
 };
 
@@ -175,7 +178,7 @@ subtest 'reboot_safety' => sub {
     });
 
     $d->script_run('foo');
-    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
+    like $typed_string, qr/grep -q _OANM.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
     $typed_string = '';
 
     # Simulate console selection (e.g. after reboot/login)
@@ -191,7 +194,7 @@ subtest 'reboot_safety' => sub {
     $d->reset_serial_marker('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
+    like $typed_string, qr/grep -q _OANM.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
     like $typed_string, qr/baz\n/, 'Command typed after re-installation';
 
     # Case 3: select_console triggers reset
@@ -296,7 +299,7 @@ subtest 'serial_marker_hook_persistence' => sub {
 
     # First install
     $d->install_serial_marker_hook(3);
-    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
+    like $typed, qr/grep -q _OANM.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
     ok $d->{_serial_marker_hook_persistent}->{'test-console'}, 'Persistence marked';
 
     # Invalidate hook but keep persistence
