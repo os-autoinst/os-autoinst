@@ -458,25 +458,29 @@ sub sut_marker ($self, $cmd) {
 Install shell hooks (like PROMPT_COMMAND) into the SUT to emit synchronization
 markers to serial.
 
+B<Persistence implications:> the hook is appended to the SUT's C<~/.bashrc> and
+C<~/.profile> and therefore persists across shells and across jobs that boot the
+same qcow image. Once installed, every prompt of every shell sourcing those
+files emits C<OA:DONE>/C<OA:START> to C</dev/$testapi::serialdev> (i.e.
+C<serial0.txt>), including login/C<exec $SHELL>/C<su> shells and non-serial
+terminal (VNC/tty) consoles. This is by design (C<serial0.txt> is the control
+channel for these markers) but means C<serial0.txt> cannot be kept completely
+clean by patching individual command invocations. To fully suppress the hook,
+disable the feature via C<PRETTY_SERIAL_MARKER=0> for the whole cluster,
+including the parent job that creates the qcow so no hook is ever baked in. See
+also L</detect_serial_marker_capability> and C<doc/backend_vars.md>.
+
 =cut
 
 sub install_serial_marker_hook ($self, $level) {
     return undef if $level < 2;
     my $dev = "/dev/$testapi::serialdev";
-    my $func;
-    # _oap: openQA prompt hook function
-    # _OANM: openQA No Marker (skip hook done marker)
-    # _OAM: openQA Marker (custom marker string)
-    if ($level == 3) {
-        # `history 1` reads the in-memory history list, which bash updates before
-        # running PROMPT_COMMAND, so it yields the command that just ran (no
-        # off-by-one, unlike `fc -ln -1`) and the whole line (compound/pipeline
-        # commands intact). Strip the leading "<index>  " field, then trim.
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}};
-    }
-    else {
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}};
-    }
+    # Shell hook tokens: _oap=prompt hook, _OANM=skip-done-marker, _OAM=custom
+    # marker (grepped in ~/.bashrc below to detect an already-installed hook).
+    my $func = {
+        3 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}},
+        2 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}},
+    }->{$level};
     my $pc = 'PROMPT_COMMAND=_oap';
 
     # Version tag: bump whenever the emitted marker format changes so a stale
@@ -611,6 +615,16 @@ Returns:
 - 1: Fallback (classic markers)
 - 2: Basic bash (PROMPT_COMMAND support)
 - 3: Advanced bash (PROMPT_COMMAND + history/fc support)
+
+Level 1 is returned without installing any hook when C<PRETTY_SERIAL_MARKER> is
+disabled or when the active console is a serial terminal (C<is_serial_terminal>).
+On a serial terminal command markers already appear on that terminal's log
+(C<serial_terminal.txt>), so no hook is baked in and nothing is written to
+C<serial0.txt> from that console. Consequently, residual C<OA:DONE>/C<OA:START>
+markers seen in C<serial0.txt> for serial-terminal-centric tests originate from
+the VNC/tty consoles those tests still use (where the hook I<is> installed), not
+from the serial terminal itself. To eliminate them entirely, disable the feature
+cluster-wide with C<PRETTY_SERIAL_MARKER=0>; see L</install_serial_marker_hook>.
 
 =cut
 
