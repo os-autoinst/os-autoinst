@@ -34,6 +34,6 @@ jobs:
       - name: Build os-autoinst
         run: sudo -u "$TEST_USER" make symlinks
       - name: Run unit tests
-        run: sudo -u "$TEST_USER" make -C ../openQA test-fullstack
+        run: sudo -u "$TEST_USER" make -C ../openQA test-with-database FULLSTACK=1 TIMEOUT_M=30 PROVE_ARGS="t/full-stack.t"
         env:
           STABILITY_TEST: ${{ github.event.inputs.stability_test }}

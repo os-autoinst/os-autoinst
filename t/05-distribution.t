@@ -78,6 +78,7 @@ subtest 'pretty_serial_marker' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     $mock_bmwqemu->noop('log_call');
+    $mock_bmwqemu->noop('diag');
     my $typed_string = '';
     $mock_testapi->redefine(query_isotovideo => sub { });
     $mock_testapi->redefine(type_string => sub { $typed_string .= $_[0] });
@@ -101,7 +102,7 @@ subtest 'pretty_serial_marker' => sub {
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-abcd-0-foo';
+            return 'OA:DONE-abcd-0-OA:foo3foo';
     });
 
     $d->{_serial_marker_level} = {};
@@ -171,7 +172,10 @@ subtest 'reboot_safety' => sub {
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-abcd-0-';
+            my $regexp_str = "$regexp";
+            my ($fp) = grep { (my $c = $regexp_str) =~ s/\\//g; $c =~ /\Q$_\E/ }
+              map { $d->sut_marker($_) } qw(foo bar baz qux);
+            return "OA:DONE-abcd-0-$fp";
     });
 
     $d->script_run('foo');
@@ -215,6 +219,61 @@ subtest 'sut_marker' => sub {
     for my $case (@test_cases) {
         is $d->sut_marker($case->{cmd}), $case->{expected}, "sut_marker: $case->{msg}";
     }
+};
+
+subtest 'level3_marker_correlation' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    $testapi::serialdev = 'ttyS0';
+
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $d->install_serial_marker_hook(3);
+    like $typed, qr'c=\$\(HISTTIMEFORMAT= history 1\);c=\$\{c#\*\[0-9\]  \}',
+      'level-3 shell hook captures the just-run command via in-memory history (no fc off-by-one)';
+    like $typed, qr'l=\$\{#c\};t=\$c;\[ \$l -ge 4 \]&&t=\$\{c: -4\};printf.*OA:DONE',
+      'level-3 shell hook emits the compact head4+len+tail4 command fingerprinting script';
+    unlike $typed, qr'fc -ln -1',
+      'level-3 shell hook no longer uses fc -ln -1 (off-by-one lag emitting the previous command marker one prompt late)';
+
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+    $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(query_isotovideo => sub { });
+
+    my @regexes_seen;
+    $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
+            push @regexes_seen, $regexp;
+            return 'OA:DONE-1234-0-OA:curl11logs';
+    });
+
+    my $exit_code = $d->script_run('curl --logs');
+    is $exit_code, 0, 'Level 3 script_run returns correct exit code on successful command match';
+    is scalar(@regexes_seen), 1, 'Only wait_serial for the anchored fingerprint is called when match succeeds';
+    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-OA(?:\\:|:)curl11logs/,
+      'wait_serial matches the exact head4+len+tail4 command fingerprint of curl --logs';
+
+    my $fp = $d->sut_marker('curl --logs');
+    my $regex = qr/OA:DONE-[0-9a-f]{4}-(\d+)-\Q$fp\E/;
+    my $stale_systemctl = "OA:DONE-aaaa-1-OA:syst15_ctl\n";
+    my $stale_tar = "OA:DONE-bbbb-2-OA:tar_7_tar\n";
+    my $correct_curl = "OA:DONE-cccc-0-OA:curl11logs\n";
+
+    unlike $stale_systemctl, $regex, 'Stale unconsumed systemctl markers from other commands are ignored by the curl regex';
+    unlike $stale_tar, $regex, 'Stale unconsumed tar markers from other commands are ignored by the curl regex';
+    like $correct_curl, $regex, 'The target curl marker matches the anchored regex perfectly';
+
+    my ($extracted_exit) = ($correct_curl =~ $regex);
+    is $extracted_exit, 0, 'Exit code is correctly extracted from the fingerprinted marker';
+
+    @regexes_seen = ();
+    $mock_testapi->redefine(wait_serial => sub ($regexp, @) { push @regexes_seen, $regexp; return undef });
+    $exit_code = $d->script_run('curl --logs');
+    is $exit_code, undef, 'Anchored match miss fails closed with undef instead of an unreliable generic fallback';
+    is scalar(@regexes_seen), 1, 'No second generic wait_serial is issued, preventing stale-marker mismatch and doubled timeout';
+    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-OA(?:\\:|:)curl11logs/, 'The single wait_serial call uses the anchored fingerprint';
 };
 
 subtest 'set expected serial and autoinst failures' => sub {
