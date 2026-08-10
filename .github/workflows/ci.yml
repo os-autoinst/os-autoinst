@@ -11,11 +11,11 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: Static checks, unit tests and integration tests
         run: tools/container_run_ci
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@a99c28d3f0da835de33ff2feb2e15691c7b9641f  # v7
         with:
           # should not be necessary for public repos, but might help avoid sporadic upload token errors
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -24,7 +24,7 @@ jobs:
           verbose: true
       - run: |
           tar cvf coverage.tar build/cover_db
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: coverage
           path: coverage.tar
@@ -35,6 +35,6 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: Test our container definitions
         run: tools/static_check_containers
