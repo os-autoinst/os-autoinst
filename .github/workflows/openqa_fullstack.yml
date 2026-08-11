@@ -12,6 +12,7 @@ on:
 env:
   # Set to 1 to temporarily ignore warnings
   PERL_TEST_WARNINGS_ONLY_REPORT_WARNINGS: 0
+  OPENQA_FULLSTACK_TEMP_DIR: /tmp/test-results/fullstack
   TEST_USER: testuser
 
 jobs:
@@ -34,6 +35,17 @@ jobs:
       - name: Build os-autoinst
         run: sudo -u "$TEST_USER" make symlinks
       - name: Run unit tests
-        run: sudo -u "$TEST_USER" make -C ../openQA test-with-database FULLSTACK=1 TIMEOUT_M=30 PROVE_ARGS="t/full-stack.t"
+        run: |
+          sudo -u "$TEST_USER" mkdir -p "$OPENQA_FULLSTACK_TEMP_DIR"
+          sudo -u "$TEST_USER" make -C ../openQA test-with-database \
+            FULLSTACK=1 TIMEOUT_M=30 PROVE_ARGS="t/full-stack.t" \
+            OPENQA_FULLSTACK_TEMP_DIR="$OPENQA_FULLSTACK_TEMP_DIR"
         env:
           STABILITY_TEST: ${{ github.event.inputs.stability_test }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: Test results
+          path: |
+            /tmp/test-results/
+            !/tmp/test-results/**/*.iso
+          include-hidden-files: true
