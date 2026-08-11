@@ -37,9 +37,7 @@ jobs:
       - name: Run unit tests
         run: |
           sudo -u "$TEST_USER" mkdir -p "$OPENQA_FULLSTACK_TEMP_DIR"
-          sudo -u "$TEST_USER" make -C ../openQA test-with-database \
-            FULLSTACK=1 TIMEOUT_M=30 PROVE_ARGS="t/full-stack.t" \
-            OPENQA_FULLSTACK_TEMP_DIR="$OPENQA_FULLSTACK_TEMP_DIR"
+          sudo -u "$TEST_USER" make -C ../openQA test-fullstack OPENQA_FULLSTACK_TEMP_DIR="$OPENQA_FULLSTACK_TEMP_DIR"
         env:
           STABILITY_TEST: ${{ github.event.inputs.stability_test }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
