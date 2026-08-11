@@ -476,10 +476,17 @@ sub install_serial_marker_hook ($self, $level) {
     }
     my $pc = 'PROMPT_COMMAND=_oap';
 
+    # Version tag: bump whenever the emitted marker format changes so a stale
+    # hook persisted in ~/.bashrc by an older os-autoinst is replaced instead of
+    # kept (a presence-only `grep _oap` guard would re-source the old format and
+    # emit markers the current wait_serial regex never matches).
+    my $tag = '_OAPV=3';
+
     # Consolidate installation and persistence into a single typed line to minimize VNC overhead.
     # We append to both ~/.bashrc and ~/.profile to cover both interactive and login shells.
-    # Sourcing ~/.bashrc then activates the hook in the current session.
-    testapi::type_string "grep -q _oap ~/.bashrc 2>/dev/null||{ echo '$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
+    # If the current version tag is absent, strip any stale hook lines first, then
+    # (re)install. Sourcing ~/.bashrc then activates the hook in the current session.
+    testapi::type_string "grep -q '$tag' ~/.bashrc 2>/dev/null||{ sed -i '/_oap/d;/$tag/d' ~/.bashrc ~/.profile 2>/dev/null;echo '$tag;$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
 
     my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;

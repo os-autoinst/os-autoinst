@@ -151,7 +151,7 @@ subtest 'serial_marker_reinstall_cached_level' => sub {
     $d->invalidate_serial_marker_hook('test-console');
 
     is $d->detect_serial_marker_capability(), 2, 'Returns cached level 2';
-    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
+    like $typed, qr/grep -q '_OAPV=\d+'.*\. ~\/\.bashrc/, 'Calls install_serial_marker_hook (types consolidated setup with sourcing)';
     ok $d->{_serial_marker_hook_installed}->{'test-console'}, 'Hook marked as installed';
 };
 
@@ -179,7 +179,7 @@ subtest 'reboot_safety' => sub {
     });
 
     $d->script_run('foo');
-    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
+    like $typed_string, qr/grep -q '_OAPV=\d+'.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Initial install';
     $typed_string = '';
 
     # Simulate console selection (e.g. after reboot/login)
@@ -195,7 +195,7 @@ subtest 'reboot_safety' => sub {
     $d->reset_serial_marker('test-console');
     $typed_string = '';
     $d->script_run('baz');
-    like $typed_string, qr/grep -q _oap.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
+    like $typed_string, qr/grep -q '_OAPV=\d+'.*_oap\(\).*OA:DONE.*\. ~\/\.bashrc/s, 'Re-detect and re-install after resetting the serial marker';
     like $typed_string, qr/baz\n/, 'Command typed after re-installation';
 
     # Case 3: select_console triggers reset
@@ -355,7 +355,7 @@ subtest 'serial_marker_hook_persistence' => sub {
 
     # First install
     $d->install_serial_marker_hook(3);
-    like $typed, qr/grep -q _oap.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
+    like $typed, qr/grep -q '_OAPV=\d+'.*\. ~\/\.bashrc/, 'Types consolidated setup with persistence and sourcing';
     ok $d->{_serial_marker_hook_persistent}->{'test-console'}, 'Persistence marked';
 
     # Invalidate hook but keep persistence
@@ -363,6 +363,19 @@ subtest 'serial_marker_hook_persistence' => sub {
     $typed = '';
     $d->install_serial_marker_hook(3);
     like $typed, qr/\. ~\/\.bashrc/, 'Types setup again (with sourcing) when invalidated';
+};
+
+subtest 'serial_marker_hook_version_migration' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $d->install_serial_marker_hook(3);
+    like $typed, qr/grep -q '_OAPV=\d+'/, 'Guard keys on a version tag, not mere _oap presence';
+    like $typed, qr/sed -i '[^']*_oap[^']*' ~\/\.bashrc ~\/\.profile/,
+      'Stale hook lines are stripped before reinstall so an old-format _oap persisted by a previous os-autoinst is replaced';
+    like $typed, qr/echo '_OAPV=\d+;_oap\(\)/, 'The version tag is persisted together with the hook definition';
 };
 
 subtest 'serial_terminal_redirection_guard' => sub {
