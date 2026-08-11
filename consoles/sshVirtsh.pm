@@ -302,8 +302,8 @@ sub add_interface ($self, $args) {
 
 sub _free_lock_forcefully ($self) {
     bmwqemu::diag('Lock is still held. Attempting active recovery by force-killing lingering processes for ' . $self->name);
-    $self->run_cmd(backend::svirt::virsh() . " destroy '" . $self->name . "'");
-    $self->run_cmd("pkill -9 -f '" . $self->name . "'");
+    $self->run_cmd(sprintf "%s destroy '%s'", backend::svirt::virsh, $self->name);
+    $self->run_cmd(sprintf "pkill -9 -f '%s'", $self->name);
 }
 
 sub _do_create_disk ($self, $file, $size, $args = undef) {
