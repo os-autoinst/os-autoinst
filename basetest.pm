@@ -15,6 +15,9 @@ use autotest ();
 use MIME::Base64 'decode_base64';
 use OpenQA::Exceptions;
 use Mojo::File 'path';
+use Encode qw(encode_utf8);
+
+use constant MAX_TITLE_LENGTH => 20;
 
 my $serial_file_pos = 0;
 my $autoinst_log_pos = 0;
@@ -478,6 +481,15 @@ sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $output .= "# Command: $args{command}\n" if defined $args{command};
     $output .= "# wait_serial expected: $ref\n" unless $internal && $pretty;
     $output .= "# Result:\n";
+    if (defined $captured_val && $args{capture_name}) {
+        my $title = $args{command} // 'wait_serial';
+        $title =~ s/\n.*//s;
+        if (length($title) > MAX_TITLE_LENGTH) {
+            $title = substr($title, 0, MAX_TITLE_LENGTH - 1) . '…';
+        }
+        $title = encode_utf8($title);
+        $output .= "$title\n";
+    }
     $output .= "$output_string\n";
     if (defined $captured_val && $args{capture_name}) {
         $output .= "# $args{capture_name}: $captured_val\n";
