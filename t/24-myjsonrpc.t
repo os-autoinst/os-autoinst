@@ -66,6 +66,44 @@ subtest 'send_json dies when buffer is empty and pipe is broken' => sub {
     dies_ok { myjsonrpc::send_json($child, $send1) } 'myjsonrpc: remote end terminated connection, stopping';
 };
 
+subtest 'handling interleaved commands' => sub {
+    my ($sub_child, $sub_isotovideo);
+    socketpair $sub_child, $sub_isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC;
+    $sub_child->autoflush(1);
+    $sub_isotovideo->autoflush(1);
+
+    my $msg_a = {a => 1, json_cmd_token => 'token-A'};
+    my $msg_b = {b => 2, json_cmd_token => 'token-B'};
+    my $msg_c = {c => 3, json_cmd_token => 'token-C'};
+    my $msg_d = {d => 4, json_cmd_token => 'token-D'};
+
+    subtest 'interleaved_command_handler is not set' => sub {
+        myjsonrpc::send_json($sub_child, $msg_c);
+        myjsonrpc::send_json($sub_child, $msg_d);
+        myjsonrpc::send_json($sub_child, $msg_b);
+        myjsonrpc::send_json($sub_child, $msg_a);
+        my $read_a = myjsonrpc::read_json($sub_isotovideo, 'token-A');
+        is_deeply $read_a, $msg_a, 'read_json with token-A returns msg_a';
+        my $read_b = myjsonrpc::read_json($sub_isotovideo, 'token-B');
+        is_deeply $read_b, $msg_b, 'subsequent read_json call returns msg_b from cached results';
+        my @read_c_d = myjsonrpc::read_json($sub_isotovideo, undef, 1);
+        is_deeply \@read_c_d, [$msg_c, $msg_d], 'subsequent multi read_json call returns msg_c and msg_d from cached results';
+    };
+    subtest 'interleaved_command_handler is set' => sub {
+        my @interleaved;
+        myjsonrpc::set_interleaved_command_handler(\@interleaved);
+        myjsonrpc::send_json($sub_child, $msg_b);
+        myjsonrpc::send_json($sub_child, $msg_a);
+        my $read_a = myjsonrpc::read_json($sub_isotovideo, 'token-A');
+        is_deeply $read_a, $msg_a, 'read_json with token-A returns msg_a';
+        is_deeply \@interleaved, [[$msg_b, $sub_isotovideo]], 'message msg_b captured';
+    };
+
+    myjsonrpc::set_interleaved_command_handler(undef);
+    close $sub_child;
+    close $sub_isotovideo;
+};
+
 my $io_select_mock = Test::MockModule->new('IO::Select');
 $io_select_mock->redefine(can_read => undef);
 throws_ok { myjsonrpc::read_json($isotovideo) } qr/Illegal seek/, 'error exception raised when reading is aborted';

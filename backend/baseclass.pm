@@ -139,6 +139,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
         $console->backend($self);
     }
 
+    myjsonrpc::set_interleaved_command_handler($self->{interleaved_cmds} = []);
     $self->run_capture_loop;
 
     bmwqemu::diag('management process exit at ' . POSIX::strftime('%F %T', gmtime));    # uncoverable statement
@@ -302,6 +303,10 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
         # next time
         last;
     }
+
+    # handle interleaved commands (commands received while waiting for the reply to another command)
+    $self->_handle_cmd($_->[0]) for splice @{$self->{interleaved_cmds}};
+
     return 1;
 }
 
@@ -633,24 +638,23 @@ sub close_pipes ($self, $closeall = 0) {
     _exit(0);    # uncoverable statement
 }
 
+sub _handle_cmd ($self, $cmd) {
+    die 'no command in ' . Dumper($cmd) unless $cmd->{cmd};
+    my $rsp = ($self->handle_command($cmd) // 0);
+    my $response = {rsp => $rsp};
+    if (ref $rsp eq 'HASH' && $rsp->{postponed}) {
+        $self->{_postponed_cmd_token} = $cmd->{json_cmd_token};
+    } elsif ($self->{rsppipe}) {    # the command might have closed it
+        $response->{json_cmd_token} = $cmd->{json_cmd_token};
+        myjsonrpc::send_json($self->{rsppipe}, $response);
+    }
+}
+
 # this is called for all sockets ready to read from
 sub check_socket ($self, $fh, $write = undef) {
     return 0 unless $self->{cmdpipe} && $fh == $self->{cmdpipe};
     return 1 if $write;
-    my $cmd = myjsonrpc::read_json($self->{cmdpipe});
-    if ($cmd->{cmd}) {
-        my $rsp = ($self->handle_command($cmd) // 0);
-        my $response = {rsp => $rsp};
-        if (ref $rsp eq 'HASH' && $rsp->{postponed}) {
-            $self->{_postponed_cmd_token} = $cmd->{json_cmd_token};
-        } elsif ($self->{rsppipe}) {    # the command might have closed it
-            $response->{json_cmd_token} = $cmd->{json_cmd_token};
-            myjsonrpc::send_json($self->{rsppipe}, $response);
-        }
-    }
-    else {
-        die 'no command in ' . Dumper($cmd);
-    }
+    $self->_handle_cmd($_) for myjsonrpc::read_json($self->{cmdpipe}, undef, 1);
     return 1;
 }
 
