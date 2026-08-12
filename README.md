@@ -384,7 +384,7 @@ openqa-clone-job --skip-chained-deps --within-instance <target_job_url> \
   TEST+=-custom_suffix \
   CASEDIR=https://github.com/<your_username>/os-autoinst-distri-opensuse.git#<your_test_branch> \
   WORKER_CLASS=<suitable_worker_class> \
-  ISOTOVIDEO="p=/var/lib/openqa/cache/podman && mkdir -p \$p/run \$p/config \$p/data && env HOME=\$p XDG_CONFIG_HOME=\$p/config XDG_DATA_HOME=\$p/data XDG_RUNTIME_DIR=\$p/run podman --root \$p/data/containers/storage --runroot \$p/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
+  ISOTOVIDEO="c=/var/lib/openqa/cache/podman_storage && p=\$(pwd)/podman_tmp && mkdir -p \$c \$p/run && env HOME=\$p XDG_RUNTIME_DIR=\$p/run podman --root \$c --runroot \$p/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
 ```
 
 # Running isotovideo as CI check
