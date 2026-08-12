@@ -118,6 +118,10 @@ sub disable_key_repeat ($self) {
 
 sub _handle_cmd_typing_error ($cmd, $args) { ($args->{check_typing_cmd} // 1 ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") }
 
+# _OANM: openQA No Marker, skips the shell hook's done marker. Applied on
+# serial terminals or when C<$force> is set (e.g. manual serial redirection).
+sub _no_marker_prefix ($cmd, $force = 0) { ($force || testapi::is_serial_terminal) ? "_OANM=1; $cmd" : $cmd }
+
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
@@ -191,8 +195,7 @@ sub script_run ($self, $cmd, @args) {
         }
         else {
             my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-            # _OANM: openQA No Marker, skips printing the hook's done marker
-            my $final_cmd = $skip_pretty ? "_OANM=1; $cmd" : $cmd;
+            my $final_cmd = _no_marker_prefix($cmd, $skip_pretty);
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
                 testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => 1, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
@@ -237,7 +240,7 @@ sub background_script_run ($self, $cmd, %args) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
     }
 
-    $cmd = "( $cmd )";
+    $cmd = _no_marker_prefix("( $cmd )");
     testapi::type_string $cmd;
     my $str = testapi::hashed_string('SR' . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
@@ -352,7 +355,7 @@ sub script_output ($self, $script, @args) {
     # might encounter on the serial device depending on how it is used in the
     # SUT
     my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
-    my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
+    my $run_script = _no_marker_prefix("echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-");
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
         testapi::type_string "$run_script\n";
@@ -455,25 +458,29 @@ sub sut_marker ($self, $cmd) {
 Install shell hooks (like PROMPT_COMMAND) into the SUT to emit synchronization
 markers to serial.
 
+B<Persistence implications:> the hook is appended to the SUT's C<~/.bashrc> and
+C<~/.profile> and therefore persists across shells and across jobs that boot the
+same qcow image. Once installed, every prompt of every shell sourcing those
+files emits C<OA:DONE>/C<OA:START> to C</dev/$testapi::serialdev> (i.e.
+C<serial0.txt>), including login/C<exec $SHELL>/C<su> shells and non-serial
+terminal (VNC/tty) consoles. This is by design (C<serial0.txt> is the control
+channel for these markers) but means C<serial0.txt> cannot be kept completely
+clean by patching individual command invocations. To fully suppress the hook,
+disable the feature via C<PRETTY_SERIAL_MARKER=0> for the whole cluster,
+including the parent job that creates the qcow so no hook is ever baked in. See
+also L</detect_serial_marker_capability> and C<doc/backend_vars.md>.
+
 =cut
 
 sub install_serial_marker_hook ($self, $level) {
     return undef if $level < 2;
     my $dev = "/dev/$testapi::serialdev";
-    my $func;
-    # _oap: openQA prompt hook function
-    # _OANM: openQA No Marker (skip hook done marker)
-    # _OAM: openQA Marker (custom marker string)
-    if ($level == 3) {
-        # `history 1` reads the in-memory history list, which bash updates before
-        # running PROMPT_COMMAND, so it yields the command that just ran (no
-        # off-by-one, unlike `fc -ln -1`) and the whole line (compound/pipeline
-        # commands intact). Strip the leading "<index>  " field, then trim.
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}};
-    }
-    else {
-        $func = qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}};
-    }
+    # Shell hook tokens: _oap=prompt hook, _OANM=skip-done-marker, _OAM=custom
+    # marker (grepped in ~/.bashrc below to detect an already-installed hook).
+    my $func = {
+        3 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}},
+        2 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}},
+    }->{$level};
     my $pc = 'PROMPT_COMMAND=_oap';
 
     # Version tag: bump whenever the emitted marker format changes so a stale
@@ -532,6 +539,14 @@ sub invalidate_serial_marker_hook ($self, $console = undef) {
     delete $self->{_serial_marker_hook_installed}->{$console};
 }
 
+# Disable any pre-existing PROMPT_COMMAND hook (e.g. inherited from ~/.bashrc)
+# so it cannot pollute serial0.txt with markers. On a serial terminal we wait
+# for the prompt to consume the command echo.
+sub _disable_inherited_prompt_hook ($self, $wait_prompt = 0) {
+    testapi::type_string "unset PROMPT_COMMAND\n";
+    testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1) if $wait_prompt && $self->{serial_term_prompt};
+}
+
 =head2 get_pretty_serial_marker
 
     get_pretty_serial_marker()
@@ -561,7 +576,7 @@ sub set_pretty_serial_marker ($self, $value) {
 
     # If we are turning it OFF, we MUST tell the SUT to stop sending markers
     # to avoid polluting the fallback mode.
-    testapi::type_string "unset PROMPT_COMMAND\n" if !$value;
+    $self->_disable_inherited_prompt_hook if !$value;
 
     $self->reset_serial_marker();
 }
@@ -601,6 +616,16 @@ Returns:
 - 2: Basic bash (PROMPT_COMMAND support)
 - 3: Advanced bash (PROMPT_COMMAND + history/fc support)
 
+Level 1 is returned without installing any hook when C<PRETTY_SERIAL_MARKER> is
+disabled or when the active console is a serial terminal (C<is_serial_terminal>).
+On a serial terminal command markers already appear on that terminal's log
+(C<serial_terminal.txt>), so no hook is baked in and nothing is written to
+C<serial0.txt> from that console. Consequently, residual C<OA:DONE>/C<OA:START>
+markers seen in C<serial0.txt> for serial-terminal-centric tests originate from
+the VNC/tty consoles those tests still use (where the hook I<is> installed), not
+from the serial terminal itself. To eliminate them entirely, disable the feature
+cluster-wide with C<PRETTY_SERIAL_MARKER=0>; see L</install_serial_marker_hook>.
+
 =cut
 
 sub detect_serial_marker_capability ($self) {
@@ -615,7 +640,10 @@ sub detect_serial_marker_capability ($self) {
     my $level = 1;
     my $pretty = $self->get_pretty_serial_marker();
     my $serial_term = testapi::is_serial_terminal();
-    return $self->{_serial_marker_level}->{$console} = $level if !$pretty || $serial_term;
+    if (!$pretty || $serial_term) {
+        $self->_disable_inherited_prompt_hook(1) if $serial_term;
+        return $self->{_serial_marker_level}->{$console} = $level;
+    }
 
     testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
     my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
