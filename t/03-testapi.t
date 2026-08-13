@@ -309,6 +309,9 @@ subtest 'assert_screen_change' => sub {
     });
     testapi::assert_screen_change(sub { }, 42);
     is $received_timeout, 42, 'timeout forwarded to wait_screen_change';
+
+    $mock_wsc->redefine(wait_screen_change => 0);
+    throws_ok { testapi::assert_screen_change(sub { }, 42) } qr/assert_screen_change failed to detect a screen change/, 'expected error message for no screen change';
 };
 
 is $autotest::current_test->{dents}, 0, 'no soft failures so far';
@@ -323,15 +326,21 @@ $details_ok &= like $details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft f
 always_explain $details unless $details_ok;
 $mock_bmwqemu->noop('log_call');
 
-require distribution;
-testapi::set_distribution(distribution->new());
-$autotest::last_milestone = {};
-select_console('a-console');
-is console('a-console')->{console}, 'a-console';
-is_deeply $autotest::activated_consoles, ['a-console'], 'Current console is activated';
-is is_serial_terminal, 0, 'Not a serial terminal';
-is current_console, 'a-console', 'Current console is the a-console';
-is console('b-console')->{console}, 'b-console', 'new console created on the fly';
+subtest console => sub {
+    require distribution;
+    testapi::set_distribution(distribution->new());
+    $autotest::last_milestone = {};
+    select_console('a-console');
+    is console('a-console')->{console}, 'a-console';
+    is_deeply $autotest::activated_consoles, ['a-console'], 'Current console is activated';
+    is is_serial_terminal, 0, 'Not a serial terminal';
+    is current_console, 'a-console', 'Current console is the a-console';
+    is console('b-console')->{console}, 'b-console', 'new console created on the fly';
+
+    $mod2->redefine(query_isotovideo => {error => 'on purpose'});
+    throws_ok { select_console('dummy') } qr/on purpose/, 'select_console dies as expected';
+    $mod2->unmock('query_isotovideo');
+};
 
 subtest 'script_run' => sub {
     local $bmwqemu::vars{PRETTY_SERIAL_MARKER} = 0;
@@ -921,7 +930,7 @@ subtest 'validate_script_output' => sub {
     } qr/output not validating/, 'Die on output not match for regex';
     throws_ok {
         validate_script_output('script', ['Invalid parameter'])
-    } qr/coderef or regexp/, 'Die on invalid parameter';
+    } qr/Invalid use.*coderef or regexp/, 'Die on invalid parameter';
     throws_ok {
         validate_script_output('script', qr/error/, fail_message => 'foo bar')
     } qr/foo bar/, 'Die on output not match';
@@ -979,6 +988,10 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
       'assert_still_screen forwards arguments to wait_still_screen';
     $fake_timeout = 1;
     ok !wait_still_screen, 'falsy return value on timeout';
+
+    $testapi->redefine(wait_still_screen => 0);
+    throws_ok { assert_still_screen; } qr/assert_still_screen failed to detect a still screen/,
+      'expeected error message for no still screen';
 };
 
 subtest 'test console::console argument settings' => sub {
@@ -1293,6 +1306,10 @@ subtest init => sub {
 };
 
 lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
+
+subtest 'get_var' => sub {
+    throws_ok { get_required_var 'NOT HERE' } qr/Could not retrieve required variable NOT HERE/, 'get_required_var dies with expected message';
+};
 
 subtest 'set_var' => sub {
     $cmds = [];

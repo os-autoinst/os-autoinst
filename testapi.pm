@@ -244,7 +244,7 @@ tag on the result file.
 
 sub record_info ($title, $output = undef, %nargs) {
     $nargs{result} //= 'ok';
-    die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
+    OpenQA::Exception::TestapiUsageError->throw(error => "unsupported \$result '$nargs{result}'") unless _is_valid_result($nargs{result});
     $output //= '';
     bmwqemu::log_call(title => $title, output => $output, %nargs);
     $autotest::current_test->record_resultfile($title, $output, %nargs);
@@ -375,8 +375,8 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
 }
 
 sub _check_or_assert ($mustmatch, $check, %args) {
-    die 'no tags specified' if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
-    die 'current_test undefined' unless $autotest::current_test;
+    OpenQA::Exception::TestapiUsageError->throw(error => 'no tags specified') if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
+    OpenQA::Exception::TestapiUsageError->throw(error => 'current_test undefined') unless $autotest::current_test;
 
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
@@ -645,7 +645,8 @@ sub assert_screen_change : prototype(&@) {    # no:style:signatures
     # wait_screen_change uses prototype which expects code block as an argument
     # This resolves compile time issues
     my ($coderef, @args) = @_;
-    wait_screen_change(\&{$coderef}, @args) or die 'assert_screen_change failed to detect a screen change';
+    wait_screen_change(\&{$coderef}, @args) or
+      OpenQA::Exception::TestapiError->throw(error => 'assert_screen_change failed to detect a screen change');
 }
 
 
@@ -700,7 +701,7 @@ into C<wait_still_screen> for details.
 =cut
 
 sub assert_still_screen (@args) {
-    wait_still_screen(@args) or die 'assert_still_screen failed to detect a still screen';
+    wait_still_screen(@args) or OpenQA::Exception::TestapiError->throw(error => 'assert_still_screen failed to detect a still screen');
 }
 
 =head1 test variable access
@@ -727,7 +728,7 @@ Similar to C<get_var> but without default value and throws exception if variable
 =cut
 
 sub get_required_var ($var) {
-    return $bmwqemu::vars{$var} // croak "Could not retrieve required variable $var";
+    return $bmwqemu::vars{$var} // OpenQA::Exception::TestapiError->throw(error => "Could not retrieve required variable $var");
 }
 
 =head2 set_var
@@ -1008,7 +1009,7 @@ sub script_run {    # no:style:signatures
 
     bmwqemu::log_call(cmd => $cmd, %args);
     my $ret = $distri->script_run($cmd, %args);
-    croak("command '$cmd' timed out") if $args{timeout} > 0 && !defined $ret;
+    OpenQA::Exception::TestapiError->throw(error => "command '$cmd' timed out") if $args{timeout} > 0 && !defined $ret;
     return $ret;
 }
 
@@ -1238,13 +1239,13 @@ sub validate_script_output {    # no:style:signatures
           $script, $check, $output;
     }
     else {
-        croak 'Invalid use of validate_script_output(), second arg must be a coderef or regexp';
+        OpenQA::Exception::TestapiError->throw(error => 'Invalid use of validate_script_output(), second arg must be a coderef or regexp');
     }
     $autotest::current_test->record_resultfile(
         $title, $message,
         result => $res,
     );
-    croak $fail_message if $res eq 'fail';
+    OpenQA::Exception::TestapiError->throw(error => $fail_message) if $res eq 'fail';
     return 0;
 }
 
@@ -1439,7 +1440,7 @@ sub type_string {    # no:style:signatures
         }
         if ($wait_still && !wait_still_screen(stilltime => $wait_still,
                 timeout => $wait_timeout, similarity_level => $wait_sim_level)) {
-            die "wait_still_screen timed out after ${wait_timeout}s!";
+            OpenQA::Exception::TestapiError->throw(error => "wait_still_screen timed out after ${wait_timeout}s!");
         }
     }
 }
@@ -1606,7 +1607,7 @@ sub mouse_drag (%args) {
     }
     # If neither coordinates nor a needle is provided, report an error and quit.
     else {
-        die "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.";
+        OpenQA::Exception::TestapiUsageError->throw(error => "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.");
     }
 
     # Repeat the same for endpoint coordinates or needles.
@@ -1620,7 +1621,7 @@ sub mouse_drag (%args) {
         ($endx, $endy) = _calculate_clickpoint($end_matched_needle);
     }
     else {
-        die "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
+        OpenQA::Exception::TestapiUsageError->throw(error => "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.");
     }
     # Get the button variable. If no button has been provided, assume the "left" button.
     my $button = $args{button} // 'left';
@@ -1704,7 +1705,7 @@ sub select_console ($testapi_console, @args) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
     my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
-    die $ret->{error} if $ret->{error};
+    OpenQA::Exception::TestapiError->throw(error => $ret->{error}) if $ret->{error};
 
     $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
