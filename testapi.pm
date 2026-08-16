@@ -63,7 +63,7 @@ our @EXPORT = qw(
 
   wait_screen_change assert_screen_change wait_still_screen assert_still_screen wait_serial
   record_soft_failure record_info force_soft_failure
-  become_root x11_start_program ensure_installed eject_cd disconnect_usb power
+  become_root become_user x11_start_program ensure_installed eject_cd disconnect_usb power
 
   switch_network
   save_memory_dump freeze_vm resume_vm save_storage
@@ -1260,6 +1260,20 @@ I<The implementation is distribution specific and not always available.>
 =cut
 
 sub become_root () { $distri->become_root }
+
+=head2 become_user
+
+  become_user($user);
+
+Switch the current shell session's user to C<$user> (e.g. via C<su - $user>) and
+properly handle openQA serial marker synchronization hook invalidation so subsequent
+commands run cleanly under the new user.
+
+I<The implementation is distribution specific and not always available.>
+
+=cut
+
+sub become_user ($user) { $distri->become_user($user) }
 
 =head2 ensure_installed
 

@@ -466,6 +466,26 @@ subtest 'terminal_session_boundary' => sub {
     like $typed, qr/_oap/, 'hook is successfully re-installed on the next command after cached status is explicitly invalidated';
 };
 
+subtest 'become_user' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    my $typed = '';
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $testapi::serialdev = 'ttyS0';
+    $mock_testapi->redefine(wait_serial => undef);
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+    $d->become_user('geeko');
+    like $typed, qr/su - geeko/, 'become_user types su command to switch session user';
+    like $typed, qr/_oap/, 'become_user automatically reinstalls the shell synchronization hook after invalidation';
+    throws_ok { $d->become_user('geeko; rm -rf /') } qr/Invalid username/, 'invalid username is rejected';
+};
+
 done_testing;
 
 1;
