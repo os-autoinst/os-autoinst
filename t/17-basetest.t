@@ -571,11 +571,18 @@ subtest record_serialresult_hiding => sub {
 
     my @test_cases = (
         {
-            name => 'expected regex is visible when PRETTY_SERIAL_MARKER is 0',
-            vars => {PRETTY_SERIAL_MARKER => 0},
+            name => 'expected regex is visible when PRETTY_SERIAL_OUTPUT is 0 and PRETTY_SERIAL_MARKER is 1',
+            vars => {PRETTY_SERIAL_OUTPUT => 0, PRETTY_SERIAL_MARKER => 1},
             params => ['regex', 'ok', 'some output marker', internal_marker => 1, marker_pattern => 'marker'],
             expected => [qr/# wait_serial expected: regex/],
             not_expected => [],
+        },
+        {
+            name => 'expected regex is hidden when PRETTY_SERIAL_OUTPUT is 1 and PRETTY_SERIAL_MARKER is 0',
+            vars => {PRETTY_SERIAL_OUTPUT => 1, PRETTY_SERIAL_MARKER => 0},
+            params => ['regex', 'ok', "some output\nmarker\n", internal_marker => 1, marker_pattern => 'marker'],
+            expected => [qr/some output\n\s*\n/],
+            not_expected => [qr/# wait_serial expected: regex/],
         },
         {
             name => 'expected regex is hidden by default (no pretty vars set)',
@@ -585,8 +592,8 @@ subtest record_serialresult_hiding => sub {
             not_expected => [qr/# wait_serial expected: regex/],
         },
         {
-            name => 'expected regex is hidden and literal marker is stripped when PRETTY_SERIAL_MARKER is set',
-            vars => {PRETTY_SERIAL_MARKER => 1},
+            name => 'expected regex is hidden and literal marker is stripped when PRETTY_SERIAL_OUTPUT is set',
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
             params => ['regex', 'ok', "some output\nmarker\n", internal_marker => 1, marker_pattern => 'marker'],
             expected => [qr/some output\n\s*\n/],
             not_expected => [qr/# wait_serial expected: regex/],
@@ -600,7 +607,7 @@ subtest record_serialresult_hiding => sub {
         },
         {
             name => 'Exit code is displayed when capture_name is provided',
-            vars => {PRETTY_SERIAL_MARKER => 1},
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
             params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
             expected => [qr/# Exit code: 0/, qr/command output\n\s*\n/],
             not_expected => [qr/# wait_serial expected: regex/],
@@ -614,14 +621,14 @@ subtest record_serialresult_hiding => sub {
         },
         {
             name => 'no hiding occurs if it is not an internal marker even if pretty vars are set',
-            vars => {PRETTY_SERIAL_MARKER => 1, HIDE_MARKER_EVALUATION => 1},
+            vars => {PRETTY_SERIAL_OUTPUT => 1, HIDE_MARKER_EVALUATION => 1},
             params => ['regex', 'ok', 'some output marker', internal_marker => 0, marker_pattern => 'marker'],
             expected => [qr/# wait_serial expected: regex/],
             not_expected => [],
         },
         {
             name => 'regex marker is provided but string does not match (e.g. on timeout)',
-            vars => {PRETTY_SERIAL_MARKER => 1},
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
             params => ['regex', 'fail', "some output that did not hit the marker\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
             expected => [qr/some output that did not hit the marker\n/],
             not_expected => [qr/# Exit code:/],
