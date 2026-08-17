@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: MIT
+#!BuildTag: osado-dev-container:latest opensuse/osado-dev-container:latest opensuse/osado-dev-container:%PKG_VERSION% opensuse/osado-dev-container:%PKG_VERSION%.%RELEASE%
+# hadolint ignore=DL3007
+FROM opensuse/os-autoinst-dev:latest
+RUN zypper in -y -C os-autoinst-distri-opensuse-deps && zypper clean -a
