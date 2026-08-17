@@ -1383,6 +1383,7 @@ $bmwqemu::vars{CASEDIR} = 't';
 like get_test_data('console.ref.json'), qr/area/, 'get_test_data can be called';
 $fake_exit = 0;
 lives_ok { become_root } 'become_root can be called';
+lives_ok { become_user('geeko') } 'become_user can be called';
 lives_ok { hold_key('ret') } 'hold_key can be called';
 lives_ok { release_key('ret') } 'release_key can be called';
 lives_ok { reset_consoles } 'reset_consoles can be called';
