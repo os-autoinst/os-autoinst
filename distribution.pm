@@ -185,6 +185,15 @@ sub script_run ($self, $cmd, @args) {
             $level = 1;
             $skip_pretty = 1;
         }
+        # A leading space keeps the command out of bash history (HISTCONTROL
+        # ignorespace/ignoreboth), so the level-3 _oap hook reconstructs the
+        # wrong fingerprint and its OA:DONE marker never matches, timing out.
+        # Fall back to the history-independent explicit echo marker instead.
+        if ($level > 1 && $cmd =~ /^\s/) {
+            bmwqemu::diag('Leading-space command bypasses bash history; using explicit exit marker instead of level-3 pretty serial marker to avoid a spurious serial timeout');
+            $level = 1;
+            $skip_pretty = 1;
+        }
         my ($str, $wait_pattern);
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
