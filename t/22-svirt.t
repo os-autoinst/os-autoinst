@@ -117,8 +117,10 @@ sub _check_vmware_cmds ($cmds, $extra_cmds = []) {
     like shift @$cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     my @expected = (
+        $s . ' dominfo openQA-SUT-1 2>/dev/null',
         $s . ' destroy openQA-SUT-1',
         $s . ' undefine --snapshots-metadata openQA-SUT-1',
+        $s . ' dominfo openQA-SUT-1 2>/dev/null',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -319,6 +321,22 @@ subtest 'starting VMware console with cloud-init' => sub {
             'echo \'guestinfo.userdata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
             'echo \'guestinfo.metadata = "CI_test_CONF"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx'
     ]);
+};
+
+subtest 'starting VMware console with define failure' => sub {
+    for my $tc (
+        {ret => 1, stderr => "some define error\n", expected => qr/virsh define failed: some define error/},
+        {ret => 2, stderr => undef, expected => qr/virsh define failed: exit code 2/}
+    ) {
+        my $mocks = _mock_svirt_vmware([], []);
+        $mocks->{console}->redefine(
+            run_cmd => sub ($self, $cmd, %args) {
+                return ($tc->{ret}, undef, $tc->{stderr}) if $cmd =~ /define/ && $args{wantarray};
+                return 0;
+            }
+        );
+        throws_ok { $svirt_console->define_and_start } $tc->{expected};
+    }
 };
 
 subtest 'SSH credentials' => sub {
