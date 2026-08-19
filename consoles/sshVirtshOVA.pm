@@ -89,6 +89,17 @@ __END}
             $self->run_cmd(qq{sed -i 's/^virtualHW.version = ".*"/virtualHW.version = "$bmwqemu::vars{VMWARE_VM_HWVERSION}"/' $vmx}, domain => 'sshVMwareServer');
         }
 
+        # Enable VNC for direct console access if VMWARE_VNC_OVER_WS is not set
+        if (!$bmwqemu::vars{VMWARE_VNC_OVER_WS}) {
+            my $vnc_offset = $bmwqemu::vars{VNC} // ($bmwqemu::vars{WORKER_ID} // 0);
+            my $vncport = 5900 + $vnc_offset;
+            $self->run_cmd(qq{echo 'RemoteDisplay.vnc.enabled = "TRUE"' >> $vmx}, domain => 'sshVMwareServer');
+            $self->run_cmd(qq{echo 'RemoteDisplay.vnc.port = "$vncport"' >> $vmx}, domain => 'sshVMwareServer');
+            if (my $vnc_password = $testapi::password) {
+                $self->run_cmd(qq{echo 'RemoteDisplay.vnc.password = "$vnc_password"' >> $vmx}, domain => 'sshVMwareServer');
+            }
+        }
+
         # provisioning (guestinfo combustion/ignition/cloud-init)
         my $fb_tool = $bmwqemu::vars{GUESTINFO_CONFIG};
         if ($fb_tool && $fb_tool ne 'wizard') {

@@ -153,5 +153,24 @@ subtest 'OVA console define_and_start with extra options' => sub {
     delete $bmwqemu::vars{GUESTINFO_CLOUD_INIT};
     @run_cmds = ();
     throws_ok { $console->define_and_start } qr/GUESTINFO_CLOUD_INIT is unset/, 'throws error when GUESTINFO_CLOUD_INIT is unset for cloud-init provisioning';
+
+    delete $bmwqemu::vars{VMWARE_VNC_OVER_WS};
+    $bmwqemu::vars{VNC} = 4;
+    $testapi::password = 'vncpassword';
+    $bmwqemu::vars{GUESTINFO_CONFIG} = 'wizard';
+    @run_cmds = ();
+    $console->define_and_start;
+    my ($vnc_enabled_cmd) = grep { /RemoteDisplay.vnc.enabled = "TRUE"/ } @run_cmds;
+    ok $vnc_enabled_cmd, 'VNC is enabled in .vmx when VMWARE_VNC_OVER_WS is unset';
+    my ($vnc_port_cmd) = grep { /RemoteDisplay.vnc.port = "5904"/ } @run_cmds;
+    ok $vnc_port_cmd, 'VNC port is correctly configured in .vmx based on VNC offset';
+    my ($vnc_passwd_cmd) = grep { /RemoteDisplay.vnc.password = "vncpassword"/ } @run_cmds;
+    ok $vnc_passwd_cmd, 'VNC password is set in .vmx if testapi::password is defined';
+
+    $bmwqemu::vars{VMWARE_VNC_OVER_WS} = 1;
+    @run_cmds = ();
+    $console->define_and_start;
+    my ($vnc_enabled_cmd_ws) = grep { /RemoteDisplay.vnc.enabled/ } @run_cmds;
+    ok !$vnc_enabled_cmd_ws, 'VNC is not configured in .vmx when VMWARE_VNC_OVER_WS is set';
 };
 done_testing;
