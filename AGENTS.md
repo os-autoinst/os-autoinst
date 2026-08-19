@@ -19,7 +19,8 @@ test scripts.
   for Perl changes before claiming completion.
 - Testing: Always add tests for new features or bug fixes in `t/`. Prefer
   reusing existing failing test modules (e.g. from `t/data/tests`) for
-  integration tests.
+  integration tests. Prefer self-explanatory test description strings rather
+  than in-file comments.
 - Dependencies: Update `dependencies.yaml` and run `make update-deps`.
 
 ## Constraints
