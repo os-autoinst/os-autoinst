@@ -96,9 +96,13 @@ sub die_handler ($msg) {
     $backend->close_pipes();
 }
 
+my $graceful_shutdown_requested = 0;
+
 sub backend_signalhandler ($sig) {
     bmwqemu::diag("backend got $sig");
-    $backend->stop_vm;
+    # set flag for graceful shutdown
+    $graceful_shutdown_requested = 1;
+    bmwqemu::diag('backend: deferring shutdown to allow modules to complete');
 }
 
 sub run ($self, $cmdpipe, $rsppipe) {
@@ -141,6 +145,9 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     myjsonrpc::set_interleaved_command_handler($self->{interleaved_cmds} = []);
     $self->run_capture_loop;
+
+    # clean up when shutdown requested
+    $self->stop_vm if $graceful_shutdown_requested;
 
     bmwqemu::diag('management process exit at ' . POSIX::strftime('%F %T', gmtime));    # uncoverable statement
 }
@@ -210,6 +217,7 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
     my $wait_time_limit = $self->{wait_time_limit};
     my $hits_limit = $self->{hits_limit};
     return 0 unless $self->{cmdpipe};
+    return 0 if $graceful_shutdown_requested;
     my $now = gettimeofday;
     my $time_to_timeout = 'Inf' + 0;
     if (defined $timeout && defined $starttime) {
