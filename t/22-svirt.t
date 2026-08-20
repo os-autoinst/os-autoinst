@@ -642,7 +642,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like $last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore";
+            like $last_ssh_commands[0], qr%cp "/vmfs/volumes/nfs_data_store/iso/$filename" "$vmware_openqa_datastore$filename\.tmp\.%, "Copy iso to $vmware_openqa_datastore";
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -1114,6 +1114,156 @@ subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
             like $output[$i], qr{$vmware_openqa_datastore/$file_out}, 'wmv-test-2: checking image management output: ' . $input . ': ' . $i . 'b';
             $i += 1;
         }
+    };
+};
+
+subtest 'Test routine consoles::sshVirtsh::_copy_image_vmware' => sub {
+    # Temporary base subdir of this test; real default is /vmfs/volumes.
+    my $my_test_basedir = tempdir($dir . '/cp_XXXX');
+    my $nfs_ds = 'openqa_nfs';
+    my $ds = 'datastore_cp';
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
+    $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} = $my_test_basedir;
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE} = $nfs_ds;
+    my $iso = 'copy-mock.iso';
+    my $source = path($my_test_basedir, $nfs_ds, 'iso')->make_path->child($iso);
+    $source->spew('a' x 4096);
+    my $digest = (split ' ', qx(sha256sum $source))[0];
+    # the production code appends the file name, so the datastore must end with a slash
+    my $vmware_openqa_datastore = path($my_test_basedir, $ds, 'openQA')->make_path . '/';
+    my $digest512 = (split ' ', qx(sha512sum $source))[0];
+    my $dest = path($vmware_openqa_datastore . $iso);
+    my $stamp = path("$dest.openqa-checksum");
+    my $svirt = consoles::sshVirtsh->new('svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my ($last_cmd, $last_output);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) {
+            $last_cmd = $cmd;
+            # run the generated shell script on the local host
+            $last_output = qx(($cmd) 2>&1);
+            ($? >> 8);
+    });
+    # $backingfile is false, so only the image copy runs and the thin disk part is skipped
+    my $copy_image = sub { $svirt->_copy_image_vmware('testvm', 0, $iso, $vmware_openqa_datastore, $dest, $dest) };
+    my $reset = sub ($checksum) {
+        $dest->remove;
+        $stamp->remove;
+        set_var(ISO => "/somewhere/on/the/worker/$iso");
+        set_var(CHECKSUM_ISO => $checksum);
+    };
+
+    subtest 'image is copied when the job gives no checksum' => sub {
+        $reset->(undef);
+        lives_ok { $copy_image->() } 'image copied';
+        is $dest->slurp, $source->slurp, 'image content matches the source';
+        ok !-e $stamp, 'nothing recorded without a checksum to record';
+        is_deeply [glob "$dest.tmp.*"], [], 'no temporary file left behind';
+        like $last_cmd, qr/while \[ \$waited -lt/, 'copy of a concurrent job is waited for';
+        # same size but different content, so a copy would be visible
+        $dest->spew('b' x 4096);
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, 'b' x 4096, 'image of the expected size reused without a checksum';
+    };
+
+    subtest 'copied image is verified against the checksum and recorded' => sub {
+        $reset->($digest);
+        lives_ok { $copy_image->() } 'image copied';
+        is $dest->slurp, $source->slurp, 'image content matches the source';
+        is $stamp->slurp, "$digest\n", 'checksum the image was verified against recorded';
+        is_deeply [glob "$dest.tmp.*"], [], 'no temporary file left behind';
+    };
+
+    subtest 'image recorded for this checksum is reused without reading it' => sub {
+        $reset->($digest);
+        # a VM may have the image locked, so the record is trusted over its content
+        $dest->spew('b' x 4096);
+        $stamp->spew("$digest\n");
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, 'b' x 4096, 'image not copied again';
+        unlike $last_output, qr/sha256sum/, 'published image never read back, it may be VMFS-locked';
+    };
+
+    subtest 'image recorded for another checksum is replaced' => sub {
+        $reset->($digest);
+        $dest->spew('b' x 4096);
+        $stamp->spew('0' x 64 . "\n");
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'image replaced by the source';
+        is $stamp->slurp, "$digest\n", 'record updated';
+    };
+
+    subtest 'image cached before checksums were recorded is adopted when it is correct' => sub {
+        $reset->($digest);
+        $dest->spew($source->slurp);
+        lives_ok { $copy_image->() } 'image provided';
+        like $last_output, qr/just been verified/, 'unrecorded image verified in place';
+        is $stamp->slurp, "$digest\n", 'checksum recorded for the adopted image';
+    };
+
+    subtest 'image cached before checksums were recorded is replaced when it is wrong' => sub {
+        $reset->($digest);
+        # same size as the source, so only the checksum can tell it apart
+        $dest->spew('b' x 4096);
+        lives_ok { $copy_image->() } 'image provided';
+        like $last_output, qr/does not match/, 'wrong image detected';
+        is $dest->slurp, $source->slurp, 'wrong image replaced by the source';
+        is $stamp->slurp, "$digest\n", 'checksum recorded for the new image';
+    };
+
+    subtest 'truncated SHA-512 checksum is accepted' => sub {
+        my $truncated = substr $digest512, 0, 64;
+        $reset->($truncated);
+        lives_ok { $copy_image->() } 'image copied';
+        is $dest->slurp, $source->slurp, 'image content matches the source';
+        is $stamp->slurp, "$truncated\n", 'checksum the image was verified against recorded';
+    };
+
+    subtest 'image not matching the checksum is copied again and never published' => sub {
+        $reset->('f' x 64);
+        throws_ok { $copy_image->() } qr/Can't copy VMware image/, 'die on a source that cannot be verified';
+        like $last_output, qr/copying again/, 'copy retried once before giving up';
+        ok !-e $dest, 'no image published';
+        is_deeply [glob "$dest.tmp.*"], [], 'no temporary file left behind';
+    };
+
+    subtest 'checksum that is not a plain digest is ignored' => sub {
+        $reset->('$(rm -rf /) not a digest');
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'image copied without a checksum to verify';
+        ok !-e $stamp, 'nothing recorded without a usable checksum';
+    };
+
+    subtest 'truncated image is replaced' => sub {
+        $reset->($digest);
+        $dest->spew('b' x 10);
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'truncated image replaced by the source';
+        like $last_output, qr/replacing it/, 'replacement reported';
+    };
+
+    subtest 'leftover temporary file of a previous run is removed' => sub {
+        $reset->($digest);
+        path("$dest.tmp.testvm")->spew('leftover of an interrupted copy');
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'image copied despite the leftover';
+        is_deeply [glob "$dest.tmp.*"], [], 'leftover temporary file removed';
+    };
+
+    subtest 'unavailable source is fatal without a cached image' => sub {
+        $reset->($digest);
+        $source->move_to("$source.moved");
+        throws_ok { $copy_image->() } qr/Can't copy VMware image/, 'die on unavailable source';
+        ok !-e $dest, 'no image published';
+        path("$source.moved")->move_to($source);
+    };
+
+    subtest 'unavailable source falls back to the cached image' => sub {
+        $reset->($digest);
+        $dest->spew('cached image');
+        $source->move_to("$source.moved");
+        lives_ok { $copy_image->() } 'image provided';
+        is $dest->slurp, 'cached image', 'cached image kept when the source cannot be checked';
+        path("$source.moved")->move_to($source);
     };
 };
 

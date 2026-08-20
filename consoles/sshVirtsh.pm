@@ -399,22 +399,177 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     return $dest_image;
 }
 
+# Returns the checksum an image is expected to have, or undef if the job does
+# not carry one for it. The expected value is in the job variable CHECKSUM_<VAR>
+# belonging to the <VAR> that names the image, e.g. CHECKSUM_ISO for ISO. This
+# is the same convention the test distribution's verify_checksum() follows.
+#   - $file_basename: file name of the image
+sub _expected_checksum ($file_basename) {
+    for my $checksum_var (sort grep { /^CHECKSUM_/ } keys %bmwqemu::vars) {
+        my $image = $bmwqemu::vars{$checksum_var =~ s/^CHECKSUM_//r};
+        next unless defined $image && basename($image) eq $file_basename;
+        my $checksum = $bmwqemu::vars{$checksum_var};
+        # the value ends up in a shell script, so only a plain digest is usable
+        return $checksum if $checksum =~ /^[0-9a-fA-F]+$/;
+        bmwqemu::diag "Ignoring $checksum_var, '$checksum' is not a checksum";
+    }
+    return undef;
+}
+
 sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile, $copy_timeout = 600) {
-    # If the file exists, make sure someone else is not copying it there right now,
-    # otherwise copy image from NFS datastore.
+    # Provide the image in the host datastore, copying it from the NFS datastore
+    # when it is missing or does not match the source. The copy is published by
+    # renaming a fully verified temporary file, so an interrupted job can never
+    # leave a truncated image behind for the next job to boot from.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
-    my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
-    my $cmd =
-      "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
-      "while lsof | grep 'cp.*$file_basename'; do " .
-      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-      'done;' .
-      'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-      'fi;';
-    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $copy_timeout);
+    my $debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
+    my $base_dir = $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} // '/vmfs/volumes';
+    my $source = "$base_dir/$vmware_nfs_datastore/$nfs_dir/$file_basename";
+    my $dest = "$vmware_openqa_datastore$file_basename";
+    # holds the checksum $dest was verified against when it was published, so a
+    # later job can tell whether the cached image is the one it expects without
+    # reading it
+    my $stamp = "$dest.openqa-checksum";
+    # unique per job, so no VM ever has it attached and it is never VMFS-locked
+    my $temp = "$dest.tmp.$name";
+    my $wait_timeout = $copy_timeout;
+    my $checksum = _expected_checksum($file_basename) // '';
+    # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh.
+    # It must only ever read $dest while `touch` proves that no VM has it open:
+    # a VM booted from that image holds a VMFS lock which makes open() fail with
+    # EBUSY, while ls, test and touch keep working.
+    my $cmd = <<~"EOF";
+    $debug
+    checksum="$checksum"
+
+    # size in bytes, empty if it cannot be determined
+    fsize() { ls -l "\$1" 2>/dev/null | awk '{print \$5}'; }
+
+    # Whether an image matches the expected checksum, mirroring verify_checksum()
+    # of the test distribution: SHA-256 first, SHA-512 only as a fallback and
+    # accepted in full as well as truncated to the length of the expected value.
+    checksum_matches() {
+        [ -z "\$checksum" ] && return 0
+        [ "\$(sha256sum "\$1" | awk '{print \$1}')" = "\$checksum" ] && return 0
+        case "\$(sha512sum "\$1" | awk '{print \$1}')" in "\$checksum"*) return 0 ;; esac
+        return 1
+    }
+
+    source_size=\$(fsize "$source")
+
+    # leftover of a copy this job slot did not finish previously
+    rm -f "$temp"
+
+    # Wait while another job copies the same image, that is while its temporary
+    # file still grows. A dead copier's file stops growing and we take over.
+    waited=0
+    while [ \$waited -lt $wait_timeout ]; do
+        growing=''
+        for other in $dest.tmp.*; do
+            [ -e "\$other" ] || continue
+            before=\$(fsize "\$other")
+            sleep 5
+            waited=\$((waited + 5))
+            after=\$(fsize "\$other")
+            [ "\$before" = "\$after" ] || growing=1
+        done
+        [ -n "\$growing" ] || break
+        echo "Another job is copying $file_basename, waited \${waited}s so far"
+    done
+
+    if [ -e "$dest" ]; then
+        dest_size=\$(fsize "$dest")
+        reuse=''
+        if [ -z "\$source_size" ]; then
+            reuse="source $source is not available"
+        elif [ -z "\$dest_size" ]; then
+            reuse='its size cannot be determined'
+        elif [ "\$dest_size" != "\$source_size" ]; then
+            echo "WARNING: $dest is \$dest_size bytes but $source is \$source_size, replacing it"
+        elif [ -z "\$checksum" ]; then
+            reuse='the job gives no checksum and the size matches the source'
+        elif [ "\$(cat "$stamp" 2>/dev/null)" = "\$checksum" ]; then
+            reuse='it was published for this checksum'
+        elif [ -e "$stamp" ]; then
+            echo "WARNING: $dest was published for another checksum, replacing it"
+        elif ! touch "$dest" 2>/dev/null; then
+            # No publish record, but a VM has it open, so another job is already
+            # running off it and reading it to verify would fail anyway.
+            reuse='it is in use by another VM and cannot be verified'
+        elif checksum_matches "$dest"; then
+            # Adopt an image cached before checksums were recorded
+            echo "\$checksum" > "$stamp"
+            reuse='its checksum has just been verified'
+        elif ! touch "$dest" 2>/dev/null; then
+            reuse='a VM started using it while it was being verified'
+        else
+            echo "WARNING: checksum of $dest does not match \$checksum, replacing it"
+        fi
+        if [ -n "\$reuse" ]; then
+            echo "Reusing $dest, \$reuse"
+            exit 0
+        fi
+    fi
+
+    if [ -z "\$source_size" ]; then
+        echo "ERROR: cannot determine size of $source"
+        exit 1
+    fi
+
+    # Copy to a temporary file and only keep it once it is complete and matches
+    # the checksum, so a bad image can never take the name of the real one.
+    attempt=0
+    while true; do
+        attempt=\$((attempt + 1))
+        error=''
+        if ! cp "$source" "$temp"; then
+            error="copying $source failed"
+        elif [ "\$(fsize "$temp")" != "\$source_size" ]; then
+            error="the copy of $source is not \$source_size bytes"
+        elif ! checksum_matches "$temp"; then
+            error="the copy of $source does not match checksum \$checksum"
+        else
+            break
+        fi
+        rm -f "$temp"
+        if [ \$attempt -ge 2 ]; then
+            echo "ERROR: \$error"
+            exit 1
+        fi
+        echo "WARNING: \$error, copying again"
+    done
+
+    # Another job may have published the same image while we were copying. Do
+    # not replace it, some VM may already be running off it.
+    if [ "\$(fsize "$dest")" = "\$source_size" ] && [ "\$(cat "$stamp" 2>/dev/null)" = "\$checksum" ]; then
+        rm -f "$temp"
+        echo "$dest has been published by another job in the meantime"
+        exit 0
+    fi
+
+    # Publish atomically. Replacing an image some VM still has attached fails
+    # with EBUSY, so retry a while and leave it to a later job if it persists.
+    attempt=0
+    while ! mv -f "$temp" "$dest"; do
+        attempt=\$((attempt + 1))
+        if [ \$attempt -ge 6 ]; then
+            rm -f "$temp"
+            echo "ERROR: cannot replace $dest, it is still in use"
+            exit 1
+        fi
+        echo "$dest is in use, retrying to replace it (attempt \$attempt)"
+        sleep 10
+    done
+    # The old record must not outlive the image it described
+    rm -f "$stamp"
+    [ -n "\$checksum" ] && echo "\$checksum" > "$stamp"
+    echo "Published $dest, \$source_size bytes"
+    EOF
+
+    # budget for waiting on another job, two copy attempts and hashing each copy
+    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $wait_timeout + 4 * $copy_timeout);
     die "Can't copy VMware image $file_basename" if $retval;
     return unless $backingfile;
     # Power VM off, delete it's disk image, and create it again.
