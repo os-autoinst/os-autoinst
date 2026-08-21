@@ -408,7 +408,10 @@ sub _expected_checksum ($file_basename) {
     for my $checksum_var (sort grep { /^CHECKSUM_/ } keys %bmwqemu::vars) {
         my $image = $bmwqemu::vars{$checksum_var =~ s/^CHECKSUM_//r};
         next unless defined $image && basename($image) eq $file_basename;
-        my $checksum = $bmwqemu::vars{$checksum_var};
+        # a variable that is set but carries no value means the job has no
+        # checksum for the image, the same as not setting it at all
+        my $checksum = $bmwqemu::vars{$checksum_var} // '';
+        next unless length $checksum;
         # the value ends up in a shell script, so only a plain digest is usable
         return $checksum if $checksum =~ /^[0-9a-fA-F]+$/;
         bmwqemu::diag "Ignoring $checksum_var, '$checksum' is not a checksum";
