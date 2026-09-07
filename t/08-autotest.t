@@ -5,7 +5,8 @@ use Mojo::Base -signatures;
 
 use Mojo::File 'path';
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from output_like combined_like);
 use Test::Warnings qw(:report_warnings warning);
@@ -18,9 +19,11 @@ use autotest;
 use bmwqemu;
 use OpenQA::Test::RunArgs;
 
+my $isolation_guard = setup_isolated_workdir();
+
 my $has_lua = eval { require Inline::Lua };
 
-$bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$bmwqemu::vars{CASEDIR} = "$Bin/fake";
 $bmwqemu::vars{ENABLE_MODERN_PERL_FEATURES} = 1;
 
 throws_ok { autotest::runalltests } qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first';
@@ -576,8 +579,9 @@ subtest rollback_activated_consoles => sub {
 subtest find_script => sub {
     my $override_path = 0;
     $bmwqemu::vars{WHEELS_DIR} = '';    # overwrite WHEELS_DIR and set it empty
-    $bmwqemu::vars{ASSETDIR} = Cwd::getcwd . '/t/data/assets';
-    $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+    $bmwqemu::vars{ASSETDIR} = "$Bin/data/assets";
+    $bmwqemu::vars{CASEDIR} = "$Bin/fake";
+
     stderr_like {
         $override_path = autotest::find_script('start.pm');
     } qr/Found override test module for/, 'Using Override Path';
@@ -603,7 +607,7 @@ subtest loadtestdir => sub {
             # skip module containing non-strict code as provoking this kind of error is not helpful in this subtest
             return ($script =~ m/non_strict/) || $autotest_mock->original('loadtest')->($script, @args);
     });
-    $bmwqemu::vars{CASEDIR} = 't/data/tests';
+    $bmwqemu::vars{CASEDIR} = "$Bin/data/tests";
     stderr_like { autotest::loadtestdir('tests') } qr/debug.*scheduling/, 'loadtestdir is scheduling successfully (perl)';
     ok exists $autotest::tests{'tests-boot'}, 'boot.pm loaded';
     if ($has_lua) {
@@ -710,6 +714,10 @@ subtest 'lua_runtest' => sub {
 };
 
 done_testing();
+
+undef $mock_jsonrpc;
+undef $mock_bmwqemu;
+undef $isolation_guard;
 
 END {
     unlink qw(vars.json base_state.json);

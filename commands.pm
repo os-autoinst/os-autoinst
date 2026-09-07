@@ -161,7 +161,7 @@ sub current_script ($self) {
 }
 
 sub _handle_isotovideo_response ($app, $response) {
-    return undef unless $response->{stop_processing_isotovideo_commands};
+    return undef unless $response && $response->{stop_processing_isotovideo_commands};
 
     # stop processing isotovideo commands if isotovideo says so
     $app->log->debug('cmdsrv: stop processing isotovideo commands');
@@ -267,6 +267,11 @@ sub run_daemon ($port, $isotovideo) {
     Mojo::IOLoop->singleton->reactor->io($isotovideo => sub ($reactor, $writable) {
 
             my @isotovideo_responses = myjsonrpc::read_json($isotovideo, undef, 1);
+            if (!@isotovideo_responses) {
+                app->log->info('cmdsrv: isotovideo connection closed, stopping');    # uncoverable statement
+                Mojo::IOLoop->singleton->stop;    # uncoverable statement
+                return undef;    # uncoverable statement
+            }
             my $clients = app->defaults('clients');
             for my $response (@isotovideo_responses) {
                 _handle_isotovideo_response(app, $response);

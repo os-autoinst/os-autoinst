@@ -140,8 +140,8 @@ sub _get_version_string () {
 
 sub version () {
     print _get_version_string() . "\n";
-    $RETURN_CODE = EXIT_STATUS_OK;
-    exit 0;
+    $RETURN_CODE = EXIT_STATUS_OK;    # uncoverable statement
+    exit 0;    # uncoverable statement
 }
 
 sub handle_shutdown () {

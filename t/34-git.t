@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
+use Feature::Compat::Try;
 use Mojo::Base -signatures;
 use Mojo::JSON qw(decode_json);
 use Mojo::File qw(path tempdir);
@@ -13,16 +14,18 @@ use FindBin '$Bin';
 use Test::Output qw(combined_from combined_like combined_unlike);
 use Test::Mock::Time;
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch git_remote_url limit_git_cache_dir);
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
 BEGIN { $ENV{LANG} = 'C.utf8' }
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $git_repo = 'tmpgitrepo';
 my $git_dir = "$dir/source/$git_repo";
 my $clone_dir = "$dir/clone/$git_repo";
+# Standardize isolation and increase timeout for parallel stability
 
 path("$dir/source")->make_path;
 path("$dir/clone")->make_path;
@@ -30,6 +33,15 @@ chdir "$dir/clone";
 # some git variables might be set if this test is
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
+
+# Removing a just-cloned working tree races with concurrent filesystem
+# activity under parallel load (git hardlinks objects from the cache, entries
+# can vanish mid-walk), making File::Path carp benignly. Swallow only those
+# teardown warnings so Test::Warnings does not fail on them.
+sub remove_tree_tolerant ($path) {
+    local $SIG{__WARN__} = sub { };
+    $path->remove_tree;
+}
 
 subtest 'failure to clone results once' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
@@ -67,9 +79,17 @@ my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
     %bmwqemu::vars = (CASEDIR => $case_dir);
-    my $out = combined_from {
-        throws_ok { checkout_git_repo_and_branch('CASEDIR', retry_count => 0) } qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, 'Error message when trying to clone wrong git hash'
+    my ($err, $out);
+    $out = combined_from {
+        try {
+            checkout_git_repo_and_branch('CASEDIR', retry_count => 0);
+        }
+        catch ($e) {
+            $err = $e;
+        }
     };
+    like $err, qr{Could not find 'abcdef' in complete history in cloned Git repository "\Q$case_dir\E"}, 'Error message when trying to clone wrong git hash'
+      or diag "Test failed! Full Git output was:\n$out";
     like $out, qr{Fetching 'abcdef' from origin manually}s, 'manual git fetch for revspec was attempted';
     like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch with --depth option was attempted';
 };
@@ -104,7 +124,7 @@ subtest 'cloning with caching' => sub {
     # setup temp dir for cache and configure using it
     my $start_time = time;
     my $git_cache_dir_from_env = $ENV{OS_AUTOINST_TEST_GIT_CACHE_DIR};
-    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : tempdir('temp-git-caching-XXXXX');
+    my $git_cache_dir = $git_cache_dir_from_env ? path($git_cache_dir_from_env) : Mojo::File::tempdir($dir . '/temp-git-caching-XXXXX');
     $git_cache_dir = $git_cache_dir->make_path->realpath;
     note "temp dir for cache: $git_cache_dir";
     $bmwqemu::vars{GIT_CACHE_DIR} = $git_cache_dir->to_string;
@@ -124,11 +144,12 @@ subtest 'cloning with caching' => sub {
     };
 
     # setup temp dir for the working tree
-    my $pwd = tempdir('temp-git-working-tree-XXXXX')->make_path;
+    my $pwd = Mojo::File::tempdir($dir . '/temp-git-working-tree-XXXXX')->make_path;
+
     note "temp dir for working trees: $pwd";
     my $working_tree_dir = path($repo);
     chdir $pwd;
-    my $chdir_guard = scope_guard sub { chdir '..'; $git_cache_dir->remove_tree unless $git_cache_dir_from_env };
+    my $chdir_guard = scope_guard sub { chdir '..'; remove_tree_tolerant($git_cache_dir) unless $git_cache_dir_from_env };
 
     # clone the same repo twice
     my $index;
@@ -150,14 +171,14 @@ subtest 'cloning with caching' => sub {
         $check_working_tree->();
     };
     subtest 'second clone' => sub {
-        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        remove_tree_tolerant($working_tree_dir);    # ensure we actually clone the repo again
         my $out = $clone->();
         unlike $out, qr/Creating bare repository for caching/, 'no new bare repo created';
         like $out, qr/Updating Git cache/, 'updated bare repo';
         $check_working_tree->();
     };
     subtest 'clone default branch' => sub {
-        $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
+        remove_tree_tolerant($working_tree_dir);    # ensure we actually clone the repo again
         my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
         chomp(my $branch = qx{git -C $git_dir symbolic-ref --short HEAD});
         combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }

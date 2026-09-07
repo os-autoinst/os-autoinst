@@ -4,21 +4,20 @@
 
 package ocr;
 use Mojo::Base -strict, -signatures;
-use Mojo::File 'path';
+use Mojo::File qw(path tempdir);
 require IPC::System::Simple;
 
 sub tesseract ($img, $area) {
-    my $imgfn = 'ocr.png';
-    my $txtfn = 'ocr';    # tesseract appends .txt automatically o_O
+    my $tempdir = tempdir();
+    my $imgfn = $tempdir->child('ocr.png');
+    my $txtfn = $tempdir->child('ocr');    # tesseract appends .txt automatically o_O
     my $txt;
     $img = $img->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}) if $area;
-    $img->write($imgfn);
+    $img->write($imgfn->to_string);
     # disable debug output, because new versions by default only reports errors and warnings
     system "tesseract $imgfn $txtfn quiet";
-    $txtfn .= '.txt';
-    $txt = path($txtfn)->slurp('UTF-8');
-    unlink $imgfn;
-    unlink $txtfn;
+    $txtfn = $tempdir->child('ocr.txt');
+    $txt = $txtfn->slurp('UTF-8');
     return $txt;
 }
 
