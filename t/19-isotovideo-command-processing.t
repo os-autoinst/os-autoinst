@@ -41,6 +41,7 @@ $rpc_mock->redefine(read_json => sub {
 
 # mock bmwqemu/backend
 my $check_screen_token_echo;
+my $clear_serial_buffer_error;
 
 package FakeBackend {
     sub new ($class) { bless {messages => []}, $class }
@@ -50,6 +51,7 @@ package FakeBackend {
             return {found => 1} if $cmd->{cmd} eq 'check_asserted_screen';
             return {tags => [qw(some fake tags)]};
         }
+        die $clear_serial_buffer_error if $clear_serial_buffer_error && $cmd->{cmd} eq 'clear_serial_buffer';
         push @{$self->{messages}}, $cmd;
         return $cmd->{cmd} eq 'is_shutdown' ? 'down' : {tags => [qw(some fake tags)]};
     }
@@ -59,6 +61,11 @@ package FakeBackend {
 package bmwqemu {
     our $backend = FakeBackend->new();    ## no critic (Variables::ProhibitPackageVars)
 }
+
+package FakeSelect {
+    sub new ($class) { bless {removed => []}, $class }
+    sub remove ($self, $fd) { push @{$self->{removed}}, $fd }
+}    # uncoverable statement
 
 # setup a CommandHandler instance using the fake file descriptors
 my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
@@ -396,16 +403,33 @@ subtest signalhandler => sub {
     $command_handler->once(signal => sub ($event, $sig) { $last_signal = $sig });
     $runner->setup_signal_handler;
     $runner->loop(1);
+    # first signal: enter graceful shutdown, keep the loop alive so autotest can
+    # finish its always_run modules, and emit the signal event
     stderr_like {
         $SIG{TERM}->('TERM');
     } qr/isotovideo received signal TERM/, 'Signal logged';
-    is $runner->loop, 0, 'Loop was stopped';
-    is $last_signal, undef, 'No event emitted';
+    is $runner->loop, 1, 'Loop kept alive on first signal (graceful shutdown)';
+    is $runner->graceful_shutdown, 1, 'Graceful shutdown engaged on first signal';
+    is $last_signal, 'TERM', 'Event emitted on first signal';
 
+    # second signal: force an immediate stop
     stderr_like {
         $SIG{INT}->('INT');
     } qr/isotovideo received signal INT/, 'Signal logged';
-    is $last_signal, 'INT', 'Event emitted';
+    is $runner->loop, 0, 'Loop stopped on second signal';
+};
+
+subtest set_component_state => sub {
+    reset_state();
+    # autotest handle_sigterm sends this command to defer shutdown. it must be
+    # handled (not die as an unknown command) and acknowledged
+    $command_handler->process_command($answer_fd, {
+            cmd => 'set_component_state',
+            component => 'autotest',
+            msg => 'running modules after cancellation',
+            json_cmd_token => 'scs-token',
+    });
+    is $last_received_msg_by_fd[$answer_fd]->{ret}, 1, 'set_component_state acknowledged';
 };
 subtest token_echo => sub {
     reset_state();
@@ -513,6 +537,61 @@ subtest 'No readable JSON' => sub {
     is $runner->loop, 0, 'Loop was stopped';
 };
 
+subtest 'graceful shutdown tolerates helper connections closing' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    open my $testfd, '<', $Bin or die $!;
+    open my $cmd_srv, '<', $Bin or die $!;
+    open my $backend_out, '<', $Bin or die $!;
+    my $ch = OpenQA::Isotovideo::CommandHandler->new(
+        cmd_srv_fd => $cmd_srv,
+        backend_out_fd => $backend_out,
+    );
+    $runner->command_handler($ch);
+    $runner->testfd($testfd);
+    $runner->cmd_srv_fd($cmd_srv);
+    $runner->graceful_shutdown(1);
+    $runner->loop(1);
+    my $io_select = FakeSelect->new;
+
+    # command server closing: drop it, clear its fd, keep the loop alive
+    stderr_like {
+        $runner->_read_response(undef, $cmd_srv, $io_select);
+    } qr/helper connection closed during graceful shutdown/, 'command server close logged';
+    is $runner->loop, 1, 'loop kept alive when command server closes during graceful shutdown';
+    ok !defined $ch->cmd_srv_fd, 'cmd_srv_fd cleared so status broadcasts become no-ops';
+    is scalar @{$io_select->{removed}}, 1, 'closed command-server fd removed from select set';
+
+    # backend closing with a pending requester: release the requester, clear backend fds
+    $last_received_msg_by_fd[$answer_fd] = undef;
+    $ch->backend_requester($answer_fd);
+    stderr_like {
+        $runner->_read_response(undef, $backend_out, $io_select);
+    } qr/helper connection closed during graceful shutdown/, 'backend close logged';
+    is $runner->loop, 1, 'loop kept alive when backend closes during graceful shutdown';
+    is_deeply $last_received_msg_by_fd[$answer_fd], {ret => {}}, 'pending backend requester released with empty result';
+    ok !defined $ch->backend_fd, 'backend_fd cleared';
+    ok !defined $ch->backend_out_fd, 'backend_out_fd cleared';
+};
+
+subtest 'backend/command-server commands tolerated when peers gone' => sub {
+    reset_state();
+    my ($orig_backend_fd, $orig_cmd_srv_fd) = ($command_handler->backend_fd, $command_handler->cmd_srv_fd);
+
+    # a backend command is answered with an empty result instead of blocking forever
+    $command_handler->backend_fd(undef);
+    $command_handler->process_command($answer_fd, {cmd => 'backend_last_screenshot_data'});
+    is_deeply $last_received_msg_by_fd[$answer_fd], {ret => {}}, 'backend command answered with empty result when backend gone';
+
+    # broadcasting to a gone command server is a no-op rather than a broken-pipe crash
+    $command_handler->cmd_srv_fd(undef);
+    $last_received_msg_by_fd[$cmd_srv_fd] = 'sentinel';
+    lives_ok { $command_handler->_send_to_cmd_srv({foo => 1}) } 'sending to a gone command server does not die';
+    is $last_received_msg_by_fd[$cmd_srv_fd], 'sentinel', 'no broadcast attempted when command server gone';
+
+    $command_handler->backend_fd($orig_backend_fd);
+    $command_handler->cmd_srv_fd($orig_cmd_srv_fd);
+};
+
 subtest 'shutdown handling' => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
     my $return_code = 1;
@@ -523,6 +602,26 @@ subtest 'shutdown handling' => sub {
         is $runner->handle_shutdown(\$return_code), 'down', 'backup shutdown state returned';
     } qr/state: down.*unable to stop VM: faking stop/s, 'shutdown state and error to stop VM logged';
     is $return_code, 1, 'return code set to 1 due to error';
+};
+
+subtest 'set_current_test tolerates backend gone during shutdown' => sub {
+    reset_state;
+    # During graceful shutdown the backend is torn down, so clear_serial_buffer
+    # fails. A "remote end terminated"/"no backend running" error must be swallowed
+    # so the remaining always_run module can still be set up and run.
+    $clear_serial_buffer_error = "myjsonrpc: remote end terminated connection\n";
+    stderr_like {
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'cleanup', full_name => 'cleanup'})
+    } qr/backend already gone during shutdown/, 'backend teardown tolerated and logged';
+    is $command_handler->current_test_name, 'cleanup', 'set_current_test still applied after tolerated failure';
+
+    # Any other backend error must NOT be swallowed.
+    $clear_serial_buffer_error = "some other explosion\n";
+    throws_ok {
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'boom', full_name => 'boom'})
+    } qr/some other explosion/, 'unexpected backend errors are re-thrown';
+
+    $clear_serial_buffer_error = undef;
 };
 
 done_testing;
