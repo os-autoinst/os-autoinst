@@ -1,3 +1,5 @@
+just a test
+
 # os-autoinst [![CI](https://github.com/os-autoinst/os-autoinst/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/os-autoinst/os-autoinst/actions) [![codecov](https://codecov.io/gh/os-autoinst/os-autoinst/branch/master/graph/badge.svg)](https://codecov.io/gh/os-autoinst/os-autoinst)
 
 The OS-autoinst project aims at providing a means to run fully automated
