@@ -379,8 +379,6 @@ subtest 'serial_marker_hook_version_migration' => sub {
     like $typed, qr/sed -i '[^']*_oap[^']*' ~\/\.bashrc ~\/\.profile/,
       'Stale hook lines are stripped before reinstall so an old-format _oap persisted by a previous os-autoinst is replaced';
     like $typed, qr/echo '_OAPV=\d+;_oap\(\)/, 'The version tag is persisted together with the hook definition';
-    like $typed, qr/shopt -u checkwinsize/, 'checkwinsize is disabled';
-    like $typed, qr/stty cols 130 rows 40/, 'terminal columns are set';
 };
 
 subtest 'serial markers are skipped for manual redirections and multiline commands' => sub {

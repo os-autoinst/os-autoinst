@@ -496,7 +496,7 @@ sub install_serial_marker_hook ($self, $level) {
         3 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}},
         2 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}},
     }->{$level};
-    my $pc = 'PROMPT_COMMAND=_oap; shopt -u checkwinsize 2>/dev/null; stty cols 130 rows 40 2>/dev/null';
+    my $pc = 'PROMPT_COMMAND=_oap';
 
     # Version tag: bump whenever the emitted marker format changes so a stale
     # hook persisted in ~/.bashrc by an older os-autoinst is replaced instead of
