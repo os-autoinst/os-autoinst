@@ -73,6 +73,7 @@ set(PERL_FILES
     OpenQA/Qemu/DriveController.pm
     OpenQA/Qemu/DriveDevice.pm
     OpenQA/Qemu/DrivePath.pm
+    OpenQA/Qemu/HWProfiles.pm
     OpenQA/Qemu/MutParams.pm
     OpenQA/Qemu/PFlashDevice.pm
     OpenQA/Qemu/Proc.pm
@@ -93,6 +94,7 @@ set(MISC_FILES
     dmidata/hp_elitebook_820g1/smbios_type_2.bin
     dmidata/hp_elitebook_820g1/smbios_type_3.bin
     dmidata/dump
+    OpenQA/Qemu/hw_profiles.yaml
 )
 set(PYTHON_BINDINGS
     lockapi
