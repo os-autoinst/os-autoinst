@@ -101,7 +101,7 @@ devel_requires:
   perl(Devel::Cover):
   perl(Module::CPANfile):
   perl(Template::Toolkit):
-  perl(Perl::Tidy): == 20260808.0.0
+  perl(Perl::Tidy): == 20260826.0.0
   perl(PPI):
   perl(Test::CheckGitStatus):
   shfmt:
