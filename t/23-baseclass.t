@@ -1155,6 +1155,35 @@ subtest 'send_key with hold' => sub {
     is $baseclass->send_key({key => 'ctrl', hold => 2}), undef, 'returns undef when current_screen is undefined';
 };
 
+subtest 'held keys tracking and auto-release' => sub {
+    my $mock_screen = Test::MockObject->new;
+    my @released;
+    $mock_screen->set_true('hold_key');
+    $mock_screen->mock(release_key => sub { push @released, $_[1]->{key} });
+    local $baseclass->{current_screen} = $mock_screen;
+
+    # Track on hold_key
+    $baseclass->hold_key({key => 'alt'});
+    is_deeply $baseclass->{held_keys}, {alt => 1}, 'key is tracked on hold';
+
+    # Untrack on release_key
+    $baseclass->release_key({key => 'alt'});
+    is_deeply $baseclass->{held_keys}, {}, 'key is untracked on release';
+    is_deeply \@released, ['alt'], 'release forwarded';
+
+    # Auto-release on reset_consoles
+    @released = ();
+    $baseclass->hold_key({key => 'ctrl'});
+    $baseclass->hold_key({key => 'shift'});
+    is_deeply $baseclass->{held_keys}, {ctrl => 1, shift => 1}, 'keys are tracked';
+
+    my $mock_base = Test::MockModule->new('backend::baseclass');
+    $mock_base->redefine(reset_console => sub { });
+    $baseclass->reset_consoles({});
+    is_deeply [sort @released], ['ctrl', 'shift'], 'all held keys were automatically released';
+    is_deeply $baseclass->{held_keys}, {}, 'held_keys was cleared';
+};
+
 subtest 'reload_needles' => sub {
     $baseclass_mock->unmock('reload_needles');
 

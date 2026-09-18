@@ -696,6 +696,18 @@ sub select_console ($self, $args) {
 }
 
 sub reset_consoles ($self, $args) {
+    if ($self->{held_keys}) {
+        for my $key (keys %{$self->{held_keys}}) {
+            try {
+                $self->release_key({key => $key});
+            }
+            catch ($e) {
+                bmwqemu::fctwarn "Failed to release held key $key during reset_consoles: $e";
+            }
+        }
+        $self->{held_keys} = {};
+    }
+
     # we iterate through all consoles
     for my $console (keys %{$testapi::distri->{consoles}}) {
         next if $self->console($console)->{args}->{persistent};
@@ -789,10 +801,16 @@ sub send_key ($self, $args) {
 }
 
 sub hold_key ($self, $args) {
+    if (ref $args eq 'HASH' && defined $args->{key}) {
+        $self->{held_keys}->{$args->{key}} = 1;
+    }
     return $self->bouncer('hold_key', $args);
 }
 
 sub release_key ($self, $args) {
+    if (ref $args eq 'HASH' && defined $args->{key}) {
+        delete $self->{held_keys}->{$args->{key}};
+    }
     return $self->bouncer('release_key', $args);
 }
 
