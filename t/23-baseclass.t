@@ -1134,7 +1134,7 @@ subtest 'send_key with hold_duration' => sub {
     local $baseclass->{current_screen} = $mock_screen;
     is_deeply $baseclass->send_key({key => 'ctrl', hold_duration => 2}), {}, 'send_key with hold_duration returns empty hashref';
     is_deeply \@calls, [
-        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['hold', {key => 'ctrl', hold_duration => 2, no_capture => 1}],
         ['capture', 2],
         ['release', {key => 'ctrl', hold_duration => 2}],
     ], 'send_key with hold_duration executes hold_key, run_capture_loop, and release_key in order';
@@ -1146,7 +1146,7 @@ subtest 'send_key with hold_duration' => sub {
     });
     throws_ok { $baseclass->send_key({key => 'ctrl', hold_duration => 2}) } qr/capture loop failed/, 'dies if capture loop fails';
     is_deeply \@calls, [
-        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['hold', {key => 'ctrl', hold_duration => 2, no_capture => 1}],
         ['capture', 2],
         ['release', {key => 'ctrl', hold_duration => 2}],
     ], 'release_key called even when run_capture_loop dies';
