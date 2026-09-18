@@ -828,6 +828,17 @@ sub mouse_hide ($self, $args) {
 }
 
 sub mouse_button ($self, $args) {
+    if (ref $args eq 'HASH' && (my $hold = $args->{hold})) {
+        return undef unless $self->{current_screen};
+        my %press_args = (%$args, bstate => 1);
+        delete $press_args{hold};
+        my %release_args = (%$args, bstate => 0);
+        delete $release_args{hold};
+        $self->bouncer('mouse_button', \%press_args);
+        my $guard = scope_guard sub { $self->bouncer('mouse_button', \%release_args) };
+        $self->run_capture_loop($hold);
+        return {};
+    }
     return $self->bouncer('mouse_button', $args);
 }
 

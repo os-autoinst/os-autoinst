@@ -1528,9 +1528,7 @@ sub mouse_click ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_CLICK_SLEEP};
     $time //= 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_dclick
@@ -1546,13 +1544,9 @@ sub mouse_dclick ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_tclick
@@ -1568,17 +1562,11 @@ sub mouse_tclick ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_hide
