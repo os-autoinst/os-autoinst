@@ -289,7 +289,6 @@ $cmds = [];
 send_key 'f12', hold_duration => 2;
 is_deeply $cmds, [{cmd => 'backend_send_key', key => 'f12', hold_duration => 2}], 'send_key forwards hold_duration parameter' or always_explain $cmds;
 $cmds = [];
-
 $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {

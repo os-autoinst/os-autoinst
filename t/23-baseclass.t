@@ -1154,7 +1154,6 @@ subtest 'send_key with hold_duration' => sub {
     local $baseclass->{current_screen} = undef;
     is $baseclass->send_key({key => 'ctrl', hold_duration => 2}), undef, 'returns undef when current_screen is undefined';
 };
-
 subtest 'reload_needles' => sub {
     $baseclass_mock->unmock('reload_needles');
 
