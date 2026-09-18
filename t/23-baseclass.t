@@ -1121,6 +1121,40 @@ subtest 'bouncer methods forwarding' => sub {
     is $baseclass->get_last_mouse_set('args'), 'last_mouse', 'get_last_mouse_set forwarded';
 };
 
+subtest 'send_key with hold_duration' => sub {
+    my $mock_screen = Test::MockObject->new;
+    my @calls;
+    $mock_screen->mock(hold_key => sub { push @calls, ['hold', $_[1]] });
+    $mock_screen->mock(release_key => sub { push @calls, ['release', $_[1]] });
+    my $mock_base = Test::MockModule->new('backend::baseclass');
+    $mock_base->redefine(run_capture_loop => sub ($self, $timeout = undef) {
+            push @calls, ['capture', $timeout];
+    });
+
+    local $baseclass->{current_screen} = $mock_screen;
+    is_deeply $baseclass->send_key({key => 'ctrl', hold_duration => 2}), {}, 'send_key with hold_duration returns empty hashref';
+    is_deeply \@calls, [
+        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['capture', 2],
+        ['release', {key => 'ctrl', hold_duration => 2}],
+    ], 'send_key with hold_duration executes hold_key, run_capture_loop, and release_key in order';
+
+    @calls = ();
+    $mock_base->redefine(run_capture_loop => sub ($self, $timeout = undef) {
+            push @calls, ['capture', $timeout];
+            die "capture loop failed\n";
+    });
+    throws_ok { $baseclass->send_key({key => 'ctrl', hold_duration => 2}) } qr/capture loop failed/, 'dies if capture loop fails';
+    is_deeply \@calls, [
+        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['capture', 2],
+        ['release', {key => 'ctrl', hold_duration => 2}],
+    ], 'release_key called even when run_capture_loop dies';
+
+    local $baseclass->{current_screen} = undef;
+    is $baseclass->send_key({key => 'ctrl', hold_duration => 2}), undef, 'returns undef when current_screen is undefined';
+};
+
 subtest 'reload_needles' => sub {
     $baseclass_mock->unmock('reload_needles');
 
