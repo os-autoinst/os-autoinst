@@ -78,7 +78,33 @@ sub _extract_result_for_cmd_token ($results, $cmd_token, $multi) {
     return undef;
 }
 
-## no critic (Subroutines::ProhibitExcessComplexity)
+sub _parse_and_handle_hash ($cjx, $results, %args) {
+    my $fd = $args{fd};
+    my $cmd_token = $args{cmd_token};
+    my $multi = $args{multi};
+    my $socket = $args{socket};
+
+    my $hash = $cjx->incr_parse();
+    return 0 unless $hash;
+
+    bmwqemu::diag(sprintf 'read_json(%d) json_cmd_token=%s', $fd, $hash->{json_cmd_token} // 'no-token') if is_debug();
+    if ($hash->{QUIT}) {
+        bmwqemu::diag('received magic close');
+        push @$results, undef;
+        return 'last';
+    }
+    if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
+        $interleaved_command_handler ? $interleaved_command_handler->($hash, $socket) : (push @$results, $hash);
+        return 'next';
+    }
+    else {
+        push @$results, $hash;
+        # parse all lines from buffer
+        return 'next' if $multi;
+        return 'last';
+    }
+}
+
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     my $fd = fileno $socket;
     bmwqemu::diag("read_json($fd)") if is_debug();
@@ -97,26 +123,17 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
     while (1) {
-        my $hash = $cjx->incr_parse();
-        if ($hash) {
-            bmwqemu::diag(sprintf 'read_json(%d) json_cmd_token=%s', $fd, $hash->{json_cmd_token} // 'no-token') if is_debug();
-            if ($hash->{QUIT}) {
-                bmwqemu::diag('received magic close');
-                push @$results, undef;
-                last;
-            }
-            if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
-                $interleaved_command_handler ? $interleaved_command_handler->($hash, $socket) : (push @$results, $hash);
-                next;
-            }
-            else {
-                push @$results, $hash;
-                # parse all lines from buffer
-                next if $multi;
-                last;
-            }
-        }
-        elsif ($multi and @$results) {
+        my $status = _parse_and_handle_hash(
+            $cjx, $results,
+            fd => $fd,
+            cmd_token => $cmd_token,
+            multi => $multi,
+            socket => $socket
+        );
+        last if $status eq 'last';
+        next if $status eq 'next';
+
+        if ($multi and @$results) {
             # read at least one item in list context
             last;
         }
@@ -125,7 +142,10 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
         handle_read_error($fd) until (my @res = $s->can_read);
 
         my $qbuffer;
-        if (!sysread $socket, $qbuffer, READ_BUFFER) { bmwqemu::fctwarn("sysread failed: $!") if is_debug(); return $multi ? () : undef }
+        if (!sysread $socket, $qbuffer, READ_BUFFER) {
+            bmwqemu::fctwarn("sysread failed: $!") if is_debug();
+            return $multi ? () : undef;
+        }
         $cjx->incr_parse($qbuffer);
     }
 
