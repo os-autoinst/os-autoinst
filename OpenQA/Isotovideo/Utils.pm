@@ -404,6 +404,7 @@ sub load_test_schedule (@) {
     my $main_path = path($productdir, 'main.pm');
     my $nested_main_path = $distri ? path($productdir, 'products', $distri, 'main.pm') : undef;
     try {
+        ## no critic (ControlStructures::ProhibitCascadingIfElse)
         if (-e $main_path) {
             unshift @INC, '.';
             require $main_path;

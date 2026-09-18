@@ -66,9 +66,6 @@ allow = redefine once
 # BuiltinFunctions::ProhibitComplexMappings
 # RegularExpressions::ProhibitUnusedCapture
 
-[ControlStructures::ProhibitCascadingIfElse]
-max_elsif = 5
-
 [Subroutines::ProhibitManyArgs]
 max_arguments = 5
 # Ignore first arg if called $self or $class

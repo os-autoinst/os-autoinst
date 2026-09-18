@@ -640,6 +640,7 @@ sub _set_graphics_backend ($self) {
     my $vars = \%bmwqemu::vars;
     my $device;
     my $options = '';
+    ## no critic (ControlStructures::ProhibitCascadingIfElse)
     if ($vars->{QEMU_VIDEO_DEVICE}) {
         bmwqemu::fctwarn('Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!') if $vars->{QEMUVGA};
         $device = $vars->{QEMU_VIDEO_DEVICE};
