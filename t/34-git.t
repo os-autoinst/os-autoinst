@@ -118,7 +118,14 @@ subtest 'cloning with caching' => sub {
 
     my $orga_cache_dir = $git_cache_dir->child($orga);
     my $repo_cache_dir = $orga_cache_dir->child("$repo$suffix");
-    my @clone_args = ($repo, $url, 1, $rev, $repo, '?', 1);
+    my @clone_args = (
+        $repo, $url,
+        clone_depth => 1,
+        branch => $rev,
+        dir => $repo,
+        dir_variable => '?',
+        direct_fetch => 1
+    );
     my $clone = sub {
         combined_from { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo' };
     };
@@ -158,7 +165,14 @@ subtest 'cloning with caching' => sub {
     };
     subtest 'clone default branch' => sub {
         $working_tree_dir->remove_tree;    # ensure we actually clone the repo again
-        my @clone_args = ($repo, $url, 1, '', $repo, '?', 1);
+        my @clone_args = (
+            $repo, $url,
+            clone_depth => 1,
+            branch => '',
+            dir => $repo,
+            dir_variable => '?',
+            direct_fetch => 1
+        );
         chomp(my $branch = qx{git -C $git_dir symbolic-ref --short HEAD});
         combined_like { ok OpenQA::Isotovideo::Utils::clone_git(@clone_args), 'cloned repo with default branch' }
           qr/$branch/, "detected $branch branch";

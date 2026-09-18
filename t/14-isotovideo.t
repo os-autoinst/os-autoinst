@@ -163,8 +163,8 @@ subtest 'isotovideo with wheels' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
     my @repos;
-    $utils_mock->redefine(clone_git => sub ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
-            push @repos, [$clone_url, $branch];
+    $utils_mock->redefine(clone_git => sub ($local_path, $clone_url, %args) {
+            push @repos, [$clone_url, $args{branch}];
             return 1;
     });
     checkout_wheels($case_dir, $wheels_dir);
