@@ -67,7 +67,6 @@ allow = redefine once
 # RegularExpressions::ProhibitUnusedCapture
 
 [Subroutines::ProhibitManyArgs]
-max_arguments = 5
 # Ignore first arg if called $self or $class
 skip_object = 1
 
