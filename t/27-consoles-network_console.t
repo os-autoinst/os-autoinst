@@ -15,4 +15,7 @@ my $c = consoles::network_console->new('sut', {});
 is $c->activate, undef, 'can call activate';
 is $c->connect_remote(undef), undef, 'connect_remote can be called, to be overwritten';
 
+throws_ok { $c->hold_key({}) } qr/does not support hold_key/, 'hold_key on network_console throws fallback error';
+throws_ok { $c->release_key({}) } qr/does not support release_key/, 'release_key on network_console throws fallback error';
+
 done_testing;
