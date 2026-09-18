@@ -66,14 +66,8 @@ allow = redefine once
 # BuiltinFunctions::ProhibitComplexMappings
 # RegularExpressions::ProhibitUnusedCapture
 
-[Modules::ProhibitExcessMainComplexity]
-max_mccabe = 20
-
 [ControlStructures::ProhibitCascadingIfElse]
 max_elsif = 5
-
-[Subroutines::ProhibitExcessComplexity]
-max_mccabe = 20
 
 [Subroutines::ProhibitManyArgs]
 max_arguments = 5
