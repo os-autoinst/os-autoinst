@@ -399,8 +399,12 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     return $dest_image;
 }
 
-## no critic (Subroutines::ProhibitManyArgs)
-sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile, $copy_timeout = 600) {
+sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, %args) {
+    my $vmware_openqa_datastore = $args{vmware_openqa_datastore};
+    my $vmware_disk_path = $args{vmware_disk_path};
+    my $vmware_disk_path_thinfile = $args{vmware_disk_path_thinfile};
+    my $copy_timeout = $args{copy_timeout} // 600;
+
     # If the file exists, make sure someone else is not copying it there right now,
     # otherwise copy image from NFS datastore.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
@@ -465,8 +469,12 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     }
 }
 
-## no critic (Subroutines::ProhibitManyArgs)
-sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom) {
+sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, %opts) {
+    my $file = $opts{file};
+    my $name = $opts{name};
+    my $basedir = $opts{basedir};
+    my $cdrom = $opts{cdrom};
+
     # Copy image to VM host
     die 'No file given' unless $args->{file};
     my $file_basename = basename($args->{file});
@@ -475,7 +483,12 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
-            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
+            $self->_copy_image_vmware(
+                $name, $backingfile, $file_basename,
+                vmware_openqa_datastore => $vmware_openqa_datastore,
+                vmware_disk_path => $vmware_disk_path,
+                vmware_disk_path_thinfile => $vmware_disk_path_thinfile
+            );
             $self->_copy_nvram_vmware($name, $vmware_openqa_datastore, $vmware_disk_path) if ($backingfile);
         }
         else {
@@ -541,7 +554,13 @@ sub add_disk ($self, $args) {
         $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
     }
     else {
-        $file = $self->_copy_image_to_vm_host($args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom);
+        $file = $self->_copy_image_to_vm_host(
+            $args, $vmware_openqa_datastore,
+            file => $file,
+            name => $name,
+            basedir => $basedir,
+            cdrom => $cdrom
+        );
     }
 
     my $doc = $self->{domainxml};
