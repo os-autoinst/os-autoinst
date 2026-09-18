@@ -109,7 +109,7 @@ is_deeply \@gcmdl, \@cmdl, 'Generate qemu command line for single existing drive
 
 $cmdl[-1] .= ',logical_block_size=4096,physical_block_size=4096';
 $bdc = OpenQA::Qemu::BlockDevConf->new();
-$bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 22_548_578_304, undef, 4096);
+$bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 22_548_578_304, sector_size => 4096);
 @gcmdl = $bdc->gen_cmdline();
 is_deeply \@gcmdl, \@cmdl, 'Generate qemu command line for existing drive with 4k sector size';
 
