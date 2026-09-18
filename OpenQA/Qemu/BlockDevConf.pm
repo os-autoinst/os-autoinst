@@ -109,6 +109,7 @@ new overlay is created so that the existing qcow2 image is not modified.
 
 =cut
 
+## no critic (Subroutines::ProhibitManyArgs)
 sub add_existing_drive ($self, $id, $file_name, $model, $size, $num_queues = undef, $sector_size = undef) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
     my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);

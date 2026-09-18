@@ -9,6 +9,7 @@ use Mojo::IOLoop::Stream;
 use Mojo::Log;
 use Mojo::UserAgent;
 
+## no critic (Subroutines::ProhibitManyArgs)
 sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection, $stream, $cookie = undef) {
     $log->info("Establishing WebSocket connection to $ws_url");
     @$tosend = ();

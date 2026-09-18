@@ -399,6 +399,7 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     return $dest_image;
 }
 
+## no critic (Subroutines::ProhibitManyArgs)
 sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile, $copy_timeout = 600) {
     # If the file exists, make sure someone else is not copying it there right now,
     # otherwise copy image from NFS datastore.
@@ -464,6 +465,7 @@ sub _copy_image_else ($self, $file, $file_basename, $basedir) {
     }
 }
 
+## no critic (Subroutines::ProhibitManyArgs)
 sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom) {
     # Copy image to VM host
     die 'No file given' unless $args->{file};
@@ -593,6 +595,7 @@ sub _encode_config ($self, $config, $key) {
     return $encoded_config;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub define_and_start ($self, %args) {
     $args{pre_cleanup} //= 1;
     my $remote_vmm;

@@ -153,6 +153,7 @@ sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_outp
     return $cache_dir;
 }
 
+## no critic (Subroutines::ProhibitManyArgs)
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
     if (-e $local_path) {
         bmwqemu::diag "Skipping to clone \"$clone_url\"; $local_path already exists";

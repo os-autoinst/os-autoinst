@@ -155,6 +155,7 @@ Configure disk drives and their block device backing chains. See BlockDevConf.pm
 
 =cut
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
     my $bdc = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);

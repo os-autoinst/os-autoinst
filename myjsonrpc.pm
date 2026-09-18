@@ -78,6 +78,7 @@ sub _extract_result_for_cmd_token ($results, $cmd_token, $multi) {
     return undef;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     my $fd = fileno $socket;
     bmwqemu::diag("read_json($fd)") if is_debug();

@@ -538,6 +538,7 @@ sub pause_on_failure ($reason, $command = undef) {
     return $rsp;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub runalltests () {
     die 'ERROR: no tests loaded' unless @testorder;
 

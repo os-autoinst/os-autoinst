@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl ## no critic (Modules::ProhibitExcessMainComplexity)
 
 use Test::Most;
 use Mojo::Base -signatures;
@@ -51,9 +51,11 @@ sub write_with_thumbnail (@) { }
 
 sub fake_send_json ($to_fd, $cmd) { push @$cmds, $cmd }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
     my $cmd = $lcmd->{cmd};
+    ## no critic (ControlStructures::ProhibitCascadingIfElse)
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
         $str =~ s/\(\?\^.*?://;

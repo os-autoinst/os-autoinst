@@ -686,6 +686,7 @@ sub determine_qemu_version ($self, $qemubin) {
     $self->{qemu_version} = $qemu_version;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 

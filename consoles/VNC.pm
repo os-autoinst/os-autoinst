@@ -214,6 +214,7 @@ sub _handshake_protocol_version ($self) {
     $socket->print($protocol_version);
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _handshake_security ($self) {
     my $socket = $self->socket;
 
@@ -353,6 +354,7 @@ sub _client_initialization ($self) {
     $socket->print(pack 'C', !$self->ikvm);    # share
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _server_initialization ($self) {
     my $socket = $self->socket;
     $socket->read(my $server_init, 24) || die 'unexpected end of data';
@@ -833,6 +835,7 @@ sub _receive_message ($self) {
     return $message_type;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _receive_update ($self) {
     $self->_last_update_received(time);
     my $image = $self->_framebuffer;
@@ -855,6 +858,7 @@ sub _receive_update ($self) {
         # work around buggy addrlink VNC
         next if $encoding_type > 0 && $w * $h == 0;
 
+        ## no critic (ControlStructures::ProhibitCascadingIfElse)
         if ($encoding_type == 0 && !$self->ikvm) {    # Raw
             $socket->read(my $data, $w * $h * $self->_bpp / 8) || die 'unexpected end of data';
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
@@ -1000,6 +1004,7 @@ sub _receive_tight_encoding ($self, $x, $y, $w, $h) {
     $self->_framebuffer($image);
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     my $socket = $self->socket;
     my $image = $self->_framebuffer;

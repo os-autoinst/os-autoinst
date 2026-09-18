@@ -283,6 +283,7 @@ sub _handle_found_needle ($foundneedle, $rsp, $tags) {
 }
 
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
     my $tags = $rsp->{tags};
     if (my $foundneedle = $rsp->{found}) {
