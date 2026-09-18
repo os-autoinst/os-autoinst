@@ -9,8 +9,12 @@ use Mojo::IOLoop::Stream;
 use Mojo::Log;
 use Mojo::UserAgent;
 
-## no critic (Subroutines::ProhibitManyArgs)
-sub establish_websocket_connection ($log, $ws_url, $tosend, $ua, $ws_connection, $stream, $cookie = undef) {
+sub establish_websocket_connection ($log, $ws_url, $stream, %args) {
+    my $tosend = $args{tosend};
+    my $ua = $args{ua};
+    my $ws_connection = $args{ws_connection};
+    my $cookie = $args{cookie};
+
     $log->info("Establishing WebSocket connection to $ws_url");
     @$tosend = ();
     my $tx = $ua->build_websocket_tx($ws_url);
@@ -91,7 +95,13 @@ sub main ($args) {
             $stream = Mojo::IOLoop::Stream->new($handle);
             $stream->start;
             $stream->reactor->start unless $stream->reactor->is_running;
-            establish_websocket_connection($log, $ws_url, \@tosend, $ua, \$ws_connection, $stream, $cookie) unless $ws_connection;
+            establish_websocket_connection(
+                $log, $ws_url, $stream,
+                tosend => \@tosend,
+                ua => $ua,
+                ws_connection => \$ws_connection,
+                cookie => $cookie
+            ) unless $ws_connection;
             # pass data from raw socket to websocket
             $stream->on(read => sub ($s, $bytes) {
                     if ($ws_connection) {
