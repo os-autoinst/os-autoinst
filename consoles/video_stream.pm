@@ -557,6 +557,36 @@ sub send_key ($self, $args) {
     return $self->SUPER::send_key($args);
 }
 
+sub hold_key ($self, $args) {
+    if ($bmwqemu::vars{GENERAL_HW_KEYBOARD_URL}) {
+        return $self->_send_keyboard_emulator_cmd(holdkey => $args->{key});
+    }
+    if ($self->{input_pipe}) {
+        $self->{input_pipe}->write("hold $args->{key}\n")
+          or die "failed to send hold '" . $args->{key} . "' input event";
+        $self->{input_pipe}->flush;
+        my $rsp = $self->{input_feedback}->getline;
+        die "Hold key failed: $rsp" unless $rsp eq "ok\n";
+        return {};
+    }
+    return $self->SUPER::hold_key($args);
+}
+
+sub release_key ($self, $args) {
+    if ($bmwqemu::vars{GENERAL_HW_KEYBOARD_URL}) {
+        return $self->_send_keyboard_emulator_cmd(releasekey => $args->{key});
+    }
+    if ($self->{input_pipe}) {
+        $self->{input_pipe}->write("release $args->{key}\n")
+          or die "failed to send release '" . $args->{key} . "' input event";
+        $self->{input_pipe}->flush;
+        my $rsp = $self->{input_feedback}->getline;
+        die "Release key failed: $rsp" unless $rsp eq "ok\n";
+        return {};
+    }
+    return $self->SUPER::release_key($args);
+}
+
 sub get_last_mouse_set ($self, @) {
     return $self->{mouse};
 }
