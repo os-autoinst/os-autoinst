@@ -284,6 +284,14 @@ send_key 'ret';
 is_deeply $cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments' or always_explain $cmds;
 $cmds = [];
 
+send_key 'f12', hold => 2;
+is_deeply $cmds, [{cmd => 'backend_send_key', key => 'f12', hold => 2}], 'send_key forwards hold parameter' or always_explain $cmds;
+$cmds = [];
+
+send_key 'esc', duration => 1.5;
+is_deeply $cmds, [{cmd => 'backend_send_key', key => 'esc', hold => 1.5}], 'send_key forwards duration as hold parameter' or always_explain $cmds;
+$cmds = [];
+
 $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {
