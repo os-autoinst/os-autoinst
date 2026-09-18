@@ -70,14 +70,14 @@ sub send_key_event ($self, $key, $delay) {
 sub hold_key ($self, $args) {
     die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
-    $self->backend->run_capture_loop(.2);
+    $self->backend->run_capture_loop(.2) unless $args->{no_capture};
     return {};
 }
 
 sub release_key ($self, $args) {
     die 'No VNC console connection available' unless $self->{vnc};
     $self->{vnc}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
-    $self->backend->run_capture_loop(.2);
+    $self->backend->run_capture_loop(.2) unless $args->{no_capture};
     return {};
 }
 

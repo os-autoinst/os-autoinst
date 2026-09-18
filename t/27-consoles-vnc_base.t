@@ -51,6 +51,14 @@ ok 0.5 < (@$args)[-1] && (@$args)[-1] < 0.6, 'seconds per keypress somewhere bel
 ok $c->send_key({}), 'send_key can be called';
 ok $c->hold_key({}), 'hold_key can be called';
 ok $c->release_key({}), 'release_key can be called';
+
+$c->{backend}->clear;
+ok $c->hold_key({key => 'ctrl', no_capture => 1}), 'hold_key with no_capture can be called';
+ok !$c->{backend}->called('run_capture_loop'), 'run_capture_loop NOT called when no_capture is passed to hold_key';
+
+$c->{backend}->clear;
+ok $c->release_key({key => 'ctrl', no_capture => 1}), 'release_key with no_capture can be called';
+ok !$c->{backend}->called('run_capture_loop'), 'run_capture_loop NOT called when no_capture is passed to release_key';
 $c->{mouse} = Test::MockObject->new;
 $c->{mouse}->{x} = $c->{mouse}->{y} = 0;
 $vnc->set_always('width', 0);

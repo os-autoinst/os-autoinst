@@ -792,7 +792,8 @@ sub bouncer ($self, $call, $args) {
 sub send_key ($self, $args) {
     if (ref $args eq 'HASH' && (my $hold = $args->{hold})) {
         return undef unless $self->{current_screen};
-        $self->hold_key($args);
+        my %hold_args = (%$args, no_capture => 1);
+        $self->hold_key(\%hold_args);
         my $guard = scope_guard sub { $self->release_key($args) };
         $self->run_capture_loop($hold);
         return {};
