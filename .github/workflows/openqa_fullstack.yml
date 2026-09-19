@@ -37,7 +37,8 @@ jobs:
       - name: Run unit tests
         run: |
           sudo -u "$TEST_USER" mkdir -p "$OPENQA_FULLSTACK_TEMP_DIR"
-          sudo -u "$TEST_USER" make -C ../openQA test-fullstack OPENQA_FULLSTACK_TEMP_DIR="$OPENQA_FULLSTACK_TEMP_DIR"
+          # PROVE_JOBS=1 executes tests sequentially to prevent CPU starvation and chromedriver log clashes on 2-core GHA runners
+          sudo -u "$TEST_USER" make -C ../openQA test-fullstack OPENQA_FULLSTACK_TEMP_DIR="$OPENQA_FULLSTACK_TEMP_DIR" PROVE_JOBS=1
         env:
           STABILITY_TEST: ${{ github.event.inputs.stability_test }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
