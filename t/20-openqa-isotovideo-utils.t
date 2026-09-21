@@ -10,17 +10,16 @@ use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '10';
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec
   handle_generated_assets
   git_remote_url load_test_schedule);
 use OpenQA::Isotovideo::CommandHandler;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my ($isolation_guard, $dir) = setup_isolated_workdir();
 my $pool_dir = "$dir/pool";
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
 

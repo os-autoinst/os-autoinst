@@ -6,7 +6,8 @@
 use Test::Most;
 use Mojo::Base -signatures;
 use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
+use lib "$Bin/../external/os-autoinst-common/lib", "$Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
@@ -14,6 +15,7 @@ use Test::Output qw(stderr_like stderr_unlike);
 
 BEGIN { $ENV{LANG} = 'C.utf8' }
 
+my $isolation_guard = setup_isolated_workdir();
 subtest qv => sub {
     use osutils 'qv';
 
@@ -219,3 +221,5 @@ subtest attempt => sub {
 };
 
 done_testing();
+
+undef $isolation_guard;
