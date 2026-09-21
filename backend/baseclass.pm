@@ -206,6 +206,7 @@ sub _check_for_still_screen ($self, $now) {
     return 1;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
     my $wait_time_limit = $self->{wait_time_limit};
     my $hits_limit = $self->{hits_limit};
@@ -415,6 +416,7 @@ sub start_encoder ($self) {
     return;
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub _stop_video_encoder ($self) {
     my $video_encoders = delete $self->{video_encoders};
     return undef unless defined $video_encoders && keys %$video_encoders;
@@ -1025,6 +1027,7 @@ sub _reset_asserted_screen_check_variables ($self) {
     $self->assert_screen_last_check(undef);
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub check_asserted_screen ($self, $args) {
     return undef unless my $img = $self->last_image;    # no screenshot yet to search on
     my $watch = OpenQA::Benchmark::Stopwatch->new();

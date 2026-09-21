@@ -66,21 +66,7 @@ allow = redefine once
 # BuiltinFunctions::ProhibitComplexMappings
 # RegularExpressions::ProhibitUnusedCapture
 
-[Modules::ProhibitExcessMainComplexity]
-# Reduce me! (backend/qemu.pm::start_qemu has 156)
-max_mccabe = 100
-
-[ControlStructures::ProhibitCascadingIfElse]
-# Reduce me! (t/03-testapi.t has 12 elsif, consoles/VNC.pm has 7 elsif)
-max_elsif = 12
-
-[Subroutines::ProhibitExcessComplexity]
-# Reduce me! (backend/qemu.pm::start_qemu has 156)
-max_mccabe = 160
-
 [Subroutines::ProhibitManyArgs]
-# Reduce me!
-max_arguments = 12
 # Ignore first arg if called $self or $class
 skip_object = 1
 

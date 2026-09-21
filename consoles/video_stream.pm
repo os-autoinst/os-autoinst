@@ -406,6 +406,7 @@ sub _receive_frame_ustreamer ($self) {
         my ($width, $height, $format, $stride) = unpack 'IIa4ICCxxI', substr $ustreamer_map, $meta_offset, 28;
 
         my $img;
+        ## no critic (ControlStructures::ProhibitCascadingIfElse)
         if ($format eq 'JPEG') {
             # tinycv::from_ppm in fact handles a bunch of formats, including JPEG
             $img = tinycv::from_ppm(substr $ustreamer_map, $data_offset, $used);

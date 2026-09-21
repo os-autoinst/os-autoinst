@@ -47,6 +47,7 @@ sub fake_send_json ($to_fd, $cmd) { push @$cmds, $cmd }
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
     my $cmd = $lcmd->{cmd};
+    ## no critic (ControlStructures::ProhibitCascadingIfElse)
     if ($cmd eq 'read_serial') {
         return {
             serial => substr($serial_buffer, $lcmd->{position}),

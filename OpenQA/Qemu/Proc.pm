@@ -155,6 +155,7 @@ Configure disk drives and their block device backing chains. See BlockDevConf.pm
 
 =cut
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
     my $bdc = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
@@ -184,7 +185,11 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
                 $backing_file = $path . $name;
             }
             $size //= $self->get_img_size($backing_file);
-            $drive = $bdc->add_existing_drive($node_id, $backing_file, $hdd_model, $size, $num_queues, $sector_size);
+            $drive = $bdc->add_existing_drive(
+                $node_id, $backing_file, $hdd_model, $size,
+                num_queues => $num_queues,
+                sector_size => $sector_size
+            );
         } else {
             $size //= $vars->{HDDSIZEGB} . 'G';
             $drive = $bdc->add_new_drive($node_id, $hdd_model, $size, $num_queues, $sector_size);

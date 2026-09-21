@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl ## no critic (Modules::ProhibitExcessMainComplexity)
 
 use Test::Most;
 use Mojo::Base -signatures;

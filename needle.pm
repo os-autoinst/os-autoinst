@@ -31,6 +31,7 @@ sub is_click_point_valid ($click_point) {
       || $click_point eq 'center';
 }
 
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub new ($classname, $jsonfile) {
     die 'needles not initialized via needle::init() before needle constructor called' unless defined $needles_dir;
 

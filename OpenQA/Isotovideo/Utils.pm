@@ -153,7 +153,13 @@ sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_outp
     return $cache_dir;
 }
 
-sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
+sub clone_git ($local_path, $clone_url, %args) {
+    my $clone_depth = $args{clone_depth};
+    my $branch = $args{branch};
+    my $dir = $args{dir};
+    my $dir_variable = $args{dir_variable};
+    my $direct_fetch = $args{direct_fetch};
+
     if (-e $local_path) {
         bmwqemu::diag "Skipping to clone \"$clone_url\"; $local_path already exists";
         return 1;
@@ -248,7 +254,16 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $error;
     do {
         my $status;
-        try { $status = clone_git($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) }
+        try {
+            $status = clone_git(
+                $local_path, $clone_url,
+                clone_depth => $clone_depth,
+                branch => $branch,
+                dir => $dir,
+                dir_variable => $dir_variable,
+                direct_fetch => $args{direct_fetch} // 1
+            );
+        }
         catch ($e) { $error = $e }
         return $local_abs if $status;
         bmwqemu::diag "Clone failed, retries left: $tries of $retry_count";
@@ -403,6 +418,7 @@ sub load_test_schedule (@) {
     my $main_path = path($productdir, 'main.pm');
     my $nested_main_path = $distri ? path($productdir, 'products', $distri, 'main.pm') : undef;
     try {
+        ## no critic (ControlStructures::ProhibitCascadingIfElse)
         if (-e $main_path) {
             unshift @INC, '.';
             require $main_path;

@@ -43,6 +43,7 @@ sub mean_square_error ($areas) {
 #     }
 #   ]
 # }
+## no critic (Subroutines::ProhibitExcessComplexity)
 sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
     $threshold ||= 0.0;
     $search_ratio ||= 0.0;
