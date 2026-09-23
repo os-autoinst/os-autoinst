@@ -362,6 +362,207 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
+# Indents every non-empty line of a shell snippet so it can be interpolated into a
+# surrounding script; also strips the trailing newline the here-doc would duplicate
+sub _indent ($script, $level = 0) {
+    chomp $script;
+    return $script unless $level;
+    my $indentation = '    ' x $level;
+    $script =~ s/^(?=.)/$indentation/mg;
+    return $script;
+}
+
+# The name of the temporary file an image is copied to before it is renamed into place.
+# It contains the VM name so leftovers of a crashed job are removed by the usual
+# `rm -f <datastore>/*<name>*` cleanup.
+sub _tmp_image_path ($dest, $name) { "$dest.$name.part" }
+
+# The name of the file recording which published checksum an image was verified against.
+sub _verified_record_path ($dest) { "$dest.verified" }
+
+# The digest the job expects an image to have, or undef when it published none. Follows
+# the CHECKSUM_<VAR> convention of the test distribution: the expected value for the image
+# named by the job variable <VAR> is in CHECKSUM_<VAR>, e.g. CHECKSUM_ISO for ISO.
+sub _expected_checksum ($file_basename) {
+    for my $checksum_var (sort grep { /^CHECKSUM_/ } keys %bmwqemu::vars) {
+        my $image = $bmwqemu::vars{$checksum_var =~ s/^CHECKSUM_//r};
+        next unless defined $image && basename($image) eq $file_basename;
+        my $checksum = $bmwqemu::vars{$checksum_var} // next;
+        # the value is interpolated into a shell script, so only a plain digest is usable
+        return lc $checksum if $checksum =~ /^(?:[0-9a-f]{64}|[0-9a-f]{128})$/i;
+        bmwqemu::diag "Ignoring $checksum_var, '$checksum' is not a SHA-256 or SHA-512 digest";
+    }
+    return undef;
+}
+
+# Leaves the digest of the given file in $_digest so the caller can compare it against the
+# expected one, and a description of everything computed in $_digests so a mismatch can
+# say which algorithms were tried. A published checksum is either a SHA-256, a full
+# SHA-512 or a SHA-512 truncated to its first 64 characters, and the three are
+# indistinguishable by length alone, so a 64 character checksum is first tried as SHA-256
+# - the same order the test distribution's verify_checksum() uses. That costs a second
+# read of the image whenever the checksum turns out to be a truncated SHA-512.
+sub _digest_script ($file, $checksum) {
+    return <<~"EOF" if length($checksum) == 128;
+    _digest=\$(sha512sum "$file" | awk '{print \$1}')
+    _digests="SHA-512 \$_digest"
+    EOF
+    return <<~"EOF";
+    _digest=\$(sha256sum "$file" | awk '{print \$1}')
+    _digests="SHA-256 \$_digest"
+    if [ "\$_digest" != "$checksum" ]; then
+        _digest=\$(sha512sum "$file" | awk '{print \$1}' | cut -c1-64)
+        _digests="\$_digests, SHA-512 truncated \$_digest"
+    fi
+    EOF
+}
+
+# VMFS offers no atomic copy, so images are copied to a temporary file which is renamed
+# only once the copy succeeded. A rename within a datastore is a metadata operation,
+# hence the destination is either absent or a complete image. That way a half-copied
+# image can never be picked up by a concurrent job or by a later job after this one died
+# in the middle of the copy - and it is never visible to a checksum verification either.
+# When the job published a checksum for the image, the temporary file is verified against
+# it before the rename, so a corrupt image is never published in the first place. The
+# temporary file is held by no VM, hence reading it cannot run into the VMFS lock which
+# makes verifying an image already in use impossible.
+# Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+sub _atomic_copy_script ($source, $dest, $tmp, $checksum = undef) {
+    my $copy = <<~"EOF";
+    if ! cp "$source" "$tmp"; then
+        rm -f "$tmp"
+        echo "Unable to copy $source to $dest"
+        exit 1
+    fi
+    EOF
+    my $verify = !$checksum ? '' : _digest_script($tmp, $checksum) . <<~"EOF";
+    if [ "\$_digest" != "$checksum" ]; then
+        rm -f "$tmp"
+        echo "Checksum mismatch for $source, expected $checksum but computed \$_digests"
+        exit 1
+    fi
+    echo "Verified $source against its published checksum"
+    EOF
+    return $copy . $verify . <<~"EOF" . _record_verified_script($dest, $checksum) . qq{echo "Copied $source to $dest"\n};
+    if ! mv "$tmp" "$dest"; then
+        rm -f "$tmp"
+        echo "Unable to publish $dest"
+        exit 1
+    fi
+    EOF
+}
+
+# Same as _atomic_copy_script() but decompressing the source on the fly. The decompressed
+# image inherits the checksum of the compressed asset it was produced from, as that is
+# what a later job publishes for it.
+sub _atomic_decompress_script ($source, $dest, $tmp, $checksum = undef) {
+    my $record = _indent(_record_verified_script($dest, $checksum), 1);
+    return <<~"EOF";
+    if xz --decompress --stdout "$source" > "$tmp" && mv "$tmp" "$dest"; then
+    $record
+        echo "Decompressed $source to $dest"
+    else
+        rm -f "$tmp"
+        echo "Unable to decompress $source to $dest"
+        exit 1
+    fi
+    EOF
+}
+
+# Records which published checksum a freshly published image was verified against. An
+# unverified copy instead drops the record of an earlier job, which would otherwise vouch
+# for an image it does not describe.
+sub _record_verified_script ($dest, $checksum = undef) {
+    my $record = _verified_record_path($dest);
+    return $checksum ? qq{echo "$checksum" > "$record"\n} : qq{rm -f "$record"\n};
+}
+
+# An image already in the datastore is only usable when it was verified against the
+# checksum this job publishes for it. Re-reading a multi-gigabyte image to find that out
+# is not an option - it is exactly what producing the image here avoids, and VMFS locks an
+# image exclusively while another job's VM runs from it - so the checksum it was verified
+# against is recorded next to it at publish time and only that record is read back.
+# Without it an image which an earlier job published unverified, or against a different
+# checksum, is booted on trust: the presence check alone cannot tell a good image from a
+# corrupt one which happens to be there already.
+# Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+sub _verified_script ($checksum = undef) {
+    return qq{_verified() { test -e "\$1"; }\n} unless $checksum;
+    my $record = _verified_record_path('$1');
+    return <<~"EOF";
+    _verified() {
+        test -e "\$1" || return 1
+        test "\$(cat "$record" 2>/dev/null)" = "$checksum"
+    }
+    EOF
+}
+
+# An image the datastore cannot vouch for is not silently overwritten with a fresh copy.
+# Whatever put it there - a corrupt transfer, a job killed before this change existed, an
+# asset republished under the same name - is an anomaly, and replacing it would hide it and
+# leave the next job to run into it again. Fail loudly instead and name the file to remove,
+# which is also the one-off cleanup an existing datastore needs after deploying this.
+# Only relevant for a job which publishes a checksum, as there is nothing to vouch for
+# otherwise; must run behind the copy marker, so that an image being published right now is
+# waited for rather than rejected in the moment between its rename and its record.
+# Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+sub _reject_unverified_script ($dest, $checksum = undef) {
+    return '' unless $checksum;
+    return <<~"EOF";
+    if [ -e "$dest" ]; then
+        echo "$dest is not verified against $checksum, remove it from the datastore to have it copied again"
+        exit 1
+    fi
+    EOF
+}
+
+# The name of the marker directory a job claims to announce it is copying an image.
+sub _copy_marker_path ($dest) { "$dest.copying" }
+
+# Only one job should transfer a multi-gigabyte image. The right to copy it is claimed
+# with `mkdir`, which either creates the marker or fails, so exactly one of the jobs
+# arriving together copies while the others wait for the image to appear. Watching for a
+# temporary file to grow would not be enough on its own: the scheduler dispatches the jobs
+# of a build in one batch, hence they typically all arrive before any of them wrote a
+# single byte, and every one of them would start its own copy.
+# The marker is an optimization, never a correctness requirement, as every job copies to
+# its own temporary file and publishes by rename. A marker whose owner stopped making
+# progress - a job which died in the middle of a copy - is therefore taken over rather
+# than waited on forever, and the worst case of taking it over too early is that an image
+# is transferred twice.
+# Leaves 1 in $_claimed if this job is the one which has to copy, and releases the marker
+# on exit, including the failure exits of the copy itself.
+# Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+sub _claim_copy_script ($dest, $marker, $interval = 10, $stall_timeout = 300) {
+    return <<~"EOF";
+    _claimed=''
+    trap 'test -z "\$_claimed" || rm -rf "$marker"' EXIT
+    _copied=-1
+    _stalled=0
+    until _verified "$dest"; do
+        if mkdir "$marker" 2>/dev/null; then
+            _claimed=1
+            break
+        fi
+        _size=\$(ls -l "$dest".*.part 2>/dev/null | awk '{size += \$5} END {print size + 0}')
+        if [ "\$_size" -gt "\$_copied" ]; then
+            _copied=\$_size
+            _stalled=0
+        else
+            _stalled=\$((_stalled + $interval))
+        fi
+        if [ "\$_stalled" -ge $stall_timeout ]; then
+            echo "No progress on $dest for ${stall_timeout}s, taking the copy over"
+            rm -rf "$marker"
+            _stalled=0
+            continue
+        fi
+        echo "Waiting for another job to copy $dest (\$_size bytes so far)"
+        sleep $interval
+    done
+    EOF
+}
+
 # Verifies that vmware image is present in the host datastore, otherwhise copies from input
 sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %args) {
     my $nfs_dir = ($args{backingfile}) ? 'hdd' : 'iso';
@@ -374,22 +575,41 @@ sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %a
     my $dest_image = "$vmware_openqa_datastore/${baseimage}";
     # Use the standard folder for an input file without full path
     my $file_origin = ($input_file eq $basefile) ? "$base_dir/$vmware_nfs_datastore/$nfs_dir/$basefile" : $input_file;
-    # check image is present
+    my $dest_xz = "$dest_image.xz";
+    my $name = $self->name;
+    # a checksum is published for the asset as it is named in the job, which is the
+    # compressed file on the xz path and the image itself otherwise
+    my $checksum = _expected_checksum($basefile);
+    # check image is present and was verified against that checksum; copies and the
+    # decompression are done atomically so the presence of the destination already implies
+    # it is complete. Claiming the final destination also covers the compressed file on the
+    # xz path, as only the job which has to produce the image gets that far.
     # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+    my $verified = _indent(_verified_script($checksum));
+    my $claim = _indent(_claim_copy_script($dest_image, _copy_marker_path($dest_image)));
+    my $reject_image = _indent(_reject_unverified_script($dest_image, $checksum), 1);
+    my $reject_xz = _indent(_reject_unverified_script($dest_xz, $checksum), 3);
+    my $copy_xz = _indent(_atomic_copy_script($file_origin, $dest_xz, _tmp_image_path($dest_xz, $name), $checksum), 3);
+    my $decompress = _indent(_atomic_decompress_script($dest_xz, $dest_image, _tmp_image_path($dest_image, $name), $checksum), 2);
+    my $copy_image = _indent(_atomic_copy_script($file_origin, $dest_image, _tmp_image_path($dest_image, $name), $checksum), 2);
     my $cmd = <<~"EOF";
     $debug
     input_file="$input_file"
-    if [ -e "$dest_image" ]; then
-        echo "Waiting while $input_file is loading:"
-        while ps -v | grep -F -e "$baseimage" -e "$basefile" | grep -v grep
-            do sleep 5; done
+    $verified
+    $claim
+    if _verified "$dest_image"; then
         echo "VMware image $dest_image ready"
-    elif [ "\${input_file##*.}" = "xz" ]; then
-        if [ -e "$dest_image.xz" ] || cp "$file_origin" "$vmware_openqa_datastore"; then
-            xz --decompress --keep "$dest_image.xz"
-        fi
     else
-        cp "$file_origin" "$vmware_openqa_datastore"
+    $reject_image
+        if [ "\${input_file##*.}" = "xz" ]; then
+            if ! _verified "$dest_xz"; then
+    $reject_xz
+    $copy_xz
+            fi
+    $decompress
+        else
+    $copy_image
+        fi
     fi
     echo "Done: origin:" $file_origin* " ; dest.:" $dest_image*
     EOF
@@ -405,20 +625,33 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, %args) {
     my $vmware_disk_path_thinfile = $args{vmware_disk_path_thinfile};
     my $copy_timeout = $args{copy_timeout} // 600;
 
-    # If the file exists, make sure someone else is not copying it there right now,
-    # otherwise copy image from NFS datastore.
+    # Copy the image from the NFS datastore unless it is already present. The copy is
+    # atomic, so an existing destination is always a complete image, and jobs arriving
+    # together agree on a single copier instead of guessing from a process list whether
+    # someone else is copying it there right now.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
     my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
-    my $cmd =
-      "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
-      "while lsof | grep 'cp.*$file_basename'; do " .
-      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-      'done;' .
-      'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-      'fi;';
+    my $dest_image = "$vmware_openqa_datastore$file_basename";
+    my $file_origin = "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename";
+    my $checksum = _expected_checksum($file_basename);
+    my $verified = _indent(_verified_script($checksum));
+    my $claim = _indent(_claim_copy_script($dest_image, _copy_marker_path($dest_image)));
+    my $reject_image = _indent(_reject_unverified_script($dest_image, $checksum), 1);
+    my $copy_image = _indent(_atomic_copy_script($file_origin, $dest_image, _tmp_image_path($dest_image, $name), $checksum), 1);
+    # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+    my $cmd = <<~"EOF";
+    $ds_debug
+    $verified
+    $claim
+    if _verified "$dest_image"; then
+        echo "VMware image $dest_image is already present and verified"
+    else
+    $reject_image
+    $copy_image
+    fi
+    EOF
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $copy_timeout);
     die "Can't copy VMware image $file_basename" if $retval;
     return unless $backingfile;
