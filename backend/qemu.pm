@@ -823,17 +823,18 @@ sub start_qemu ($self) {
     @tapscript = split /\s*,\s*/, $vars->{TAPSCRIPT} if $vars->{TAPSCRIPT};
     @tapdownscript = split /\s*,\s*/, $vars->{TAPDOWNSCRIPT} if $vars->{TAPDOWNSCRIPT};
 
+    my $nic_offset = $vars->{NICOFFSET} // 64;
     my $num_networks = $vars->{OFFLINE_SUT} ? 0 : max(1, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
     for (my $i = 0; $i < $num_networks; $i++) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 16384)
         my $workerid = $vars->{WORKER_ID};
-        $nicmac[$i] //= sprintf '52:54:00:12:%02x:%02x', int($workerid / 256) + $i * 64, $workerid % 256;
+        $nicmac[$i] //= sprintf '52:54:00:12:%02x:%02x', int($workerid / 256) + $i * $nic_offset, $workerid % 256;
 
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured statically
-        $tapdev[$i] = 'tap' . ($instance - 1 + $i * 64) if !defined($tapdev[$i]) || $tapdev[$i] eq 'auto';
+        $tapdev[$i] = 'tap' . ($instance - 1 + $i * $nic_offset) if !defined($tapdev[$i]) || $tapdev[$i] eq 'auto';
         my $vlan = (@nicvlan) ? $nicvlan[-1] : 0;
         $nicvlan[$i] //= $vlan;
     }
