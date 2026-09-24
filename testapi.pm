@@ -1310,10 +1310,11 @@ sub hashed_string ($string, $count = undef) {
 
 =head2 send_key
 
-  send_key($key [, wait_screen_change => $wait_screen_change]);
+  send_key($key [, hold => $seconds] [, wait_screen_change => $wait_screen_change]);
 
-Send one C<$key> to SUT keyboard input. Waits for the screen to change when
-C<$wait_screen_change> is true.
+Send one C<$key> to SUT keyboard input. If C<hold> (or C<duration>) in seconds
+is specified, the key is held for that duration before being released. Waits for
+the screen to change when C<$wait_screen_change> is true.
 
 Special characters naming:
 
@@ -1327,11 +1328,14 @@ sub send_key {    # no:style:signatures
     my ($key, %args) = @_;
     $args{wait_screen_change} //= 0;
     bmwqemu::log_call(key => $key, %args);
+    my %backend_args = (key => $key);
+    my $hold = $args{hold} // $args{duration};
+    $backend_args{hold} = $hold if defined $hold;
     if ($args{wait_screen_change}) {
-        wait_screen_change { query_isotovideo('backend_send_key', {key => $key}) };
+        wait_screen_change { query_isotovideo('backend_send_key', \%backend_args) };
     }
     else {
-        query_isotovideo('backend_send_key', {key => $key});
+        query_isotovideo('backend_send_key', \%backend_args);
     }
 }
 
@@ -1525,9 +1529,7 @@ sub mouse_click ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_CLICK_SLEEP};
     $time //= 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_dclick
@@ -1543,13 +1545,9 @@ sub mouse_dclick ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_tclick
@@ -1565,17 +1563,11 @@ sub mouse_tclick ($button = undef, $time = undef) {
     $time //= $bmwqemu::vars{DEFAULT_DCLICK_SLEEP};
     $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
     sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    query_isotovideo('backend_mouse_button', {button => $button, hold => $time});
 }
 
 =head2 mouse_hide

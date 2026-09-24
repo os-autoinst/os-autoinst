@@ -420,6 +420,8 @@ subtest 'input events' => sub {
     $console->send_key({key => 'a'});
     $console->send_key({key => 'ctrl-x'});
     $console->type_string({text => "some test\n"});
+    $console->hold_key({key => 'ctrl'});
+    $console->release_key({key => 'ctrl'});
     $console->disable;
     ok open($cmds_fh, '<', 'input-commands'), 'open input-commands';
     @cmds = <$cmds_fh>;
@@ -427,6 +429,8 @@ subtest 'input events' => sub {
         "a\n",
         "ctrl-x\n",
         "s\n", "o\n", "m\n", "e\n", "spc\n", "t\n", "e\n", "s\n", "t\n", "ret\n",
+        "hold ctrl\n",
+        "release ctrl\n",
     ], 'correct commands sent';
 
     $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL} = 'http://127.0.0.42:42000/cmd';
@@ -442,11 +446,15 @@ subtest 'input events' => sub {
     $console->send_key({key => 'a'});
     $console->send_key({key => 'ctrl-x'});
     $console->type_string({text => "some test\n"});
+    $console->hold_key({key => 'ctrl'});
+    $console->release_key({key => 'ctrl'});
     $console->disable;
     is_deeply $urls, [
         'http://127.0.0.42:42000/cmd?sendkey=a',
         'http://127.0.0.42:42000/cmd?sendkey=ctrl-x',
-        'http://127.0.0.42:42000/cmd?type=some+test%0A'
+        'http://127.0.0.42:42000/cmd?type=some+test%0A',
+        'http://127.0.0.42:42000/cmd?holdkey=ctrl',
+        'http://127.0.0.42:42000/cmd?releasekey=ctrl'
     ], 'correct kbd emu requests sent';
 
     $console->activate;

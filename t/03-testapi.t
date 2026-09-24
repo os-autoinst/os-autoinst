@@ -286,6 +286,14 @@ send_key 'ret';
 is_deeply $cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments' or always_explain $cmds;
 $cmds = [];
 
+send_key 'f12', hold => 2;
+is_deeply $cmds, [{cmd => 'backend_send_key', key => 'f12', hold => 2}], 'send_key forwards hold parameter' or always_explain $cmds;
+$cmds = [];
+
+send_key 'esc', duration => 1.5;
+is_deeply $cmds, [{cmd => 'backend_send_key', key => 'esc', hold => 1.5}], 'send_key forwards duration as hold parameter' or always_explain $cmds;
+$cmds = [];
+
 $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {
@@ -772,14 +780,9 @@ subtest 'assert_and_click' => sub {
             y => 12
         },
         {
-            bstate => 1,
             button => 'left',
-            cmd => 'backend_mouse_button'
-        },
-        {
-            bstate => 0,
-            button => 'left',
-            cmd => 'backend_mouse_button'
+            cmd => 'backend_mouse_button',
+            hold => 0.15
         },
         {
             cmd => 'backend_mouse_set',
@@ -830,22 +833,19 @@ subtest 'assert_and_click' => sub {
     is_deeply $cmds->[-1], {cmd => 'backend_mouse_hide', border_offset => 0}, 'assert_and_click succeeds and hides mouse with mousehide => 1';
 
     ok assert_and_click('foo', button => 'right');
-    is_deeply $cmds->[-2], {bstate => 0, button => 'right', cmd => 'backend_mouse_button'}, 'assert_and_click succeeds with right click';
+    is_deeply $cmds->[-2], {button => 'right', cmd => 'backend_mouse_button', hold => 0.15}, 'assert_and_click succeeds with right click';
     is_deeply $cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set';
 
     ok assert_and_click('foo', mousehide => -1);
-    is_deeply $cmds->[-1], {cmd => 'backend_mouse_button', button => 'left', bstate => 0}, 'assert_and_click succeeds and keep mouse with mousehide => -1';
+    is_deeply $cmds->[-1], {cmd => 'backend_mouse_button', button => 'left', hold => 0.15}, 'assert_and_click succeeds and keep mouse with mousehide => -1';
 };
 
 subtest 'assert_and_dclick' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
     ok assert_and_dclick('foo', mousehide => 1);
-    for (-2, -4) {
-        is_deeply $cmds->[$_], {bstate => 0, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 0';
-    }
-    for (-3, -5) {
-        is_deeply $cmds->[$_], {bstate => 1, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 1';
+    for (-2, -3) {
+        is_deeply $cmds->[$_], {button => 'left', cmd => 'backend_mouse_button', hold => 0.10}, 'assert_and_dclick succeeds with mouse_button click';
     }
     is_deeply $cmds->[-1], {cmd => 'backend_mouse_hide', border_offset => 0}, 'assert_and_dclick succeeds and hides mouse with mousehide => 1';
 };
@@ -1370,13 +1370,22 @@ subtest 'send_key_until_needlematch' => sub {
 subtest 'mouse click' => sub {
     $cmds = [];
     mouse_click();
-    is $cmds->[0]{button}, 'left', 'mouse_click called with default button' or always_explain $cmds;
+    is_deeply $cmds, [{cmd => 'backend_mouse_button', button => 'left', hold => 0.15}], 'mouse_click forwards hold parameter' or always_explain $cmds;
+
     $cmds = [];
     mouse_dclick();
-    is $cmds->[0]{button}, 'left', 'mouse_dclick called with default button' or always_explain $cmds;
+    is_deeply $cmds, [
+        {cmd => 'backend_mouse_button', button => 'left', hold => 0.10},
+        {cmd => 'backend_mouse_button', button => 'left', hold => 0.10},
+    ], 'mouse_dclick forwards hold parameters' or always_explain $cmds;
+
     $cmds = [];
     mouse_tclick();
-    is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or always_explain $cmds;
+    is_deeply $cmds, [
+        {cmd => 'backend_mouse_button', button => 'left', hold => 0.10},
+        {cmd => 'backend_mouse_button', button => 'left', hold => 0.10},
+        {cmd => 'backend_mouse_button', button => 'left', hold => 0.10},
+    ], 'mouse_tclick forwards hold parameters' or always_explain $cmds;
 };
 
 $bmwqemu::vars{CASEDIR} = 'foo';

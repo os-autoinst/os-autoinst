@@ -698,6 +698,18 @@ sub select_console ($self, $args) {
 }
 
 sub reset_consoles ($self, $args) {
+    if ($self->{held_keys}) {
+        for my $key (keys %{$self->{held_keys}}) {
+            try {
+                $self->release_key({key => $key});
+            }
+            catch ($e) {
+                bmwqemu::fctwarn "Failed to release held key $key during reset_consoles: $e";
+            }
+        }
+        $self->{held_keys} = {};
+    }
+
     # we iterate through all consoles
     for my $console (keys %{$testapi::distri->{consoles}}) {
         next if $self->console($console)->{args}->{persistent};
@@ -780,14 +792,28 @@ sub bouncer ($self, $call, $args) {
 }
 
 sub send_key ($self, $args) {
+    if (ref $args eq 'HASH' && (my $hold = $args->{hold})) {
+        return undef unless $self->{current_screen};
+        my %hold_args = (%$args, no_capture => 1);
+        $self->hold_key(\%hold_args);
+        my $guard = scope_guard sub { $self->release_key($args) };
+        $self->run_capture_loop($hold);
+        return {};
+    }
     return $self->bouncer('send_key', $args);
 }
 
 sub hold_key ($self, $args) {
+    if (ref $args eq 'HASH' && defined $args->{key}) {
+        $self->{held_keys}->{$args->{key}} = 1;
+    }
     return $self->bouncer('hold_key', $args);
 }
 
 sub release_key ($self, $args) {
+    if (ref $args eq 'HASH' && defined $args->{key}) {
+        delete $self->{held_keys}->{$args->{key}};
+    }
     return $self->bouncer('release_key', $args);
 }
 
@@ -804,6 +830,17 @@ sub mouse_hide ($self, $args) {
 }
 
 sub mouse_button ($self, $args) {
+    if (ref $args eq 'HASH' && (my $hold = $args->{hold})) {
+        return undef unless $self->{current_screen};
+        my %press_args = (%$args, bstate => 1);
+        delete $press_args{hold};
+        my %release_args = (%$args, bstate => 0);
+        delete $release_args{hold};
+        $self->bouncer('mouse_button', \%press_args);
+        my $guard = scope_guard sub { $self->bouncer('mouse_button', \%release_args) };
+        $self->run_capture_loop($hold);
+        return {};
+    }
     return $self->bouncer('mouse_button', $args);
 }
 
