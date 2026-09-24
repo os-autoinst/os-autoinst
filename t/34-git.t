@@ -116,7 +116,7 @@ subtest 'cloning with caching' => sub {
     ($orga, $repo, $rev, $suffix, $url) = ("$dir/source", $git_repo, $head, '', Mojo::URL->new("file://$git_dir"))
       unless $ENV{OS_AUTOINST_TEST_GIT_ONLINE};
 
-    my $orga_cache_dir = $git_cache_dir->child($orga);
+    my $orga_cache_dir = $git_cache_dir->child($orga =~ s{^/}{}r);
     my $repo_cache_dir = $orga_cache_dir->child("$repo$suffix");
     my @clone_args = (
         $repo, $url,
@@ -142,7 +142,7 @@ subtest 'cloning with caching' => sub {
     my $check_working_tree = sub {
         ok -f $working_tree_dir->child('README.md'), 'working tree has been created / is present';
         my $working_tree_config = $working_tree_dir->child('.git/config')->slurp;
-        ok index($working_tree_config, $repo_cache_dir), 'working tree config refers to cache dir';
+        cmp_ok index($working_tree_config, $repo_cache_dir), '>=', 0, 'working tree config refers to cache dir';
         is git_remote_url($working_tree_dir), $url, 'remote URL still computed as before';
     };
     my $handle_du = sub ($exit_status, $output) {
