@@ -9,8 +9,6 @@ preview = true
 # PL: Pylint
 extend-select =[
     "E", "F", "D", "Q", "PL",
-    "debugger", # https://docs.astral.sh/ruff/rules/#flake8-debugger-t10
-    "T2", # https://docs.astral.sh/ruff/rules/#flake8-print-t20
     "TD", # https://docs.astral.sh/ruff/rules/#flake8-todos-td
     "W",
     "I", # https://docs.astral.sh/ruff/rules/#isort-i
