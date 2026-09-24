@@ -281,7 +281,7 @@ rm t/28-signalblocker.t
 # https://progress.opensuse.org/issues/202836
 rm -f t/28-signalblocker.t
 %endif
-%ifarch aarch64 s390x
+%ifarch aarch64 s390x ppc64le
 # https://progress.opensuse.org/issues/200949
 rm -f t/26-video_stream.t
 %endif
