@@ -172,6 +172,37 @@ config should apply automatically so jobs can be cloned as-is.
   the timeout in the user menu (if you are annoyed by having to re-login all the
   time).
 
+## OVA
+
+The `ova` backend is designed to test OVA (Open Virtual Appliance) images on
+VMware ESXi. While the `svirt` backend manages standard VMs using `virsh` (via
+the libvirt `esx://` driver), `virsh` cannot import OVA images directly.
+
+The `ova` backend solves this by using VMware's `ovftool` on the linux worker
+host to deploy/import the OVA image to the ESXi host, and then uses the
+standard `svirt` / `virsh` infrastructure to configure, start, and manage the
+VM.
+
+The `ova` backend is enabled via `BACKEND=ova`.
+
+### Worker configuration
+
+Example configuration for using the `ova` backend (add to
+`$OPENQA_CONFIG/workers.ini`):
+```ini
+[4]
+BACKEND=ova
+WORKER_CLASS=svirt-vmware-ova
+VIRSH_HOSTNAME=127.0.0.1
+VIRSH_USERNAME=root
+VIRSH_PASSWORD=$THE_ROOT_PASSWORD
+VMWARE_HOST=$THE_HYPERVISOR_HOSTNAME
+VMWARE_PASSWORD=$THE_HYPERVISOR_PASSWORD
+VMWARE_DATASTORE=$THE_HYPERVISOR_DATASTORE
+VMWARE_NETWORK=$THE_VMWARE_TARGET_NETWORK
+OVA=suse-16.ova
+```
+
 ## Vagrant
 
 The vagrant backend leverages [vagrant](https://www.vagrantup.com/) to launch

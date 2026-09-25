@@ -44,6 +44,7 @@ sub add_console ($self, $testapi_console, $backend_console, $backend_args = unde
         'ssh-serial' => 'sshSerial',
         'ssh-xterm' => 'sshXtermVt',
         'ssh-virtsh' => 'sshVirtsh',
+        'ssh-virtsh-ova' => 'sshVirtshOVA',
         'ssh-virtsh-serial' => 'sshVirtshSUT',
         'vnc-base' => 'vnc_base',
         'local-Xvnc' => 'localXvnc',

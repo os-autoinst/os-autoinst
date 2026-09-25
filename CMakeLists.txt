@@ -17,6 +17,7 @@ set(PERL_FILES
     backend/generalhw.pm
     backend/ipmi.pm
     backend/null.pm
+    backend/ova.pm
     backend/pvm_hmc.pm
     backend/qemu.pm
     backend/s390x.pm
@@ -37,6 +38,7 @@ set(PERL_FILES
     consoles/ssh_screen.pm
     consoles/sshSerial.pm
     consoles/sshVirtsh.pm
+    consoles/sshVirtshOVA.pm
     consoles/sshVirtshSUT.pm
     consoles/sshX3270.pm
     consoles/sshXtermIPMI.pm

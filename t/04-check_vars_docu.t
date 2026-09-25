@@ -27,6 +27,7 @@ my %var_blocklist = (
     VAGRANT => ['QEMUCPUS', 'QEMURAM'],
     GENERALHW => ['HDD_1'],
     SVIRT => ['JOBTOKEN'],
+    OVA => [qw(NUMDISKS RAIDLEVEL VIRSH_HOSTNAME VIRSH_PASSWORD VIRSH_USERNAME)],
 );
 # in case we want to present backend under different name, place it here
 my %backend_renames = (BASECLASS => 'Common', IKVM => 'IPMI');
