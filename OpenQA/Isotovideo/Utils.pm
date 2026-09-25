@@ -141,7 +141,7 @@ sub limit_git_cache_dir ($root_cache_dir, $current_cache_dir, $current_relative_
 sub _handle_caching ($clone_url, $clone_depth, $branch, $clone_cmd, $handle_output) {
     # determine cache directory and ensure its parent directory exists
     return undef unless my $git_cache_dir = $bmwqemu::vars{GIT_CACHE_DIR};
-    my $relative_cache_dir = $clone_url->path;
+    my $relative_cache_dir = $clone_url->path->clone->leading_slash(0);
     my $cache_dir = path($git_cache_dir, $relative_cache_dir);
     path($git_cache_dir, $relative_cache_dir->to_dir)->make_path;
 

@@ -14,6 +14,7 @@ use Mojo::File qw(path tempdir);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use MIME::Base64 'encode_base64';
+use Encode 'encode_utf8';
 use cv;
 use basetest;
 
@@ -610,7 +611,21 @@ subtest record_serialresult_hiding => sub {
             name => 'Exit code is displayed when capture_name is provided',
             vars => {PRETTY_SERIAL_OUTPUT => 1},
             params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
-            expected => [qr/# Exit code: 0/, qr/command output\n\s*\n/],
+            expected => [qr/# Result:\nwait_serial\ncommand output/s, qr/# Exit code: 0/],
+            not_expected => [qr/# wait_serial expected: regex/],
+        },
+        {
+            name => 'command is truncated to MAX_TITLE_LENGTH with ellipsis when capture_name is provided',
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
+            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => 'systemctl status foo-bar-service.service'],
+            expected => [qr/# Result:\nsystemctl status fo@{[encode_utf8('…')]}\ncommand output/s, qr/# Exit code: 0/],
+            not_expected => [qr/# wait_serial expected: regex/],
+        },
+        {
+            name => 'multiline command uses only first line for title when capture_name is provided',
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
+            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => "echo 'hello'\necho 'second'"],
+            expected => [qr/# Result:\necho 'hello'\ncommand output/s, qr/# Exit code: 0/],
             not_expected => [qr/# wait_serial expected: regex/],
         },
         {

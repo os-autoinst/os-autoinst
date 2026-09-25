@@ -182,6 +182,7 @@ subtest 'cloning with caching' => sub {
         $index = decode_json($git_cache_dir->child('index.json')->slurp);
         is ref $index, 'HASH', 'index is hash' or return;
         my $repo_path = $ENV{OS_AUTOINST_TEST_GIT_ONLINE} ? "/$orga/$repo$suffix" : "$orga/$repo";
+        $repo_path =~ s{^/}{};
         my $repo_entry = $index->{$repo_path};
         is ref $repo_entry, 'HASH', "entry for '$repo_path' exists" or return;
         cmp_ok $repo_entry->{size}, '>', 0, 'valid size assigned';
