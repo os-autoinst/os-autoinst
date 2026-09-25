@@ -1310,10 +1310,11 @@ sub hashed_string ($string, $count = undef) {
 
 =head2 send_key
 
-  send_key($key [, wait_screen_change => $wait_screen_change]);
+  send_key($key [, hold_duration => $seconds] [, wait_screen_change => $wait_screen_change]);
 
-Send one C<$key> to SUT keyboard input. Waits for the screen to change when
-C<$wait_screen_change> is true.
+Send one C<$key> to SUT keyboard input. If C<hold_duration> in seconds
+is specified, the key is held for that duration before being released. Waits for
+the screen to change when C<$wait_screen_change> is true.
 
 Special characters naming:
 
@@ -1327,11 +1328,13 @@ sub send_key {    # no:style:signatures
     my ($key, %args) = @_;
     $args{wait_screen_change} //= 0;
     bmwqemu::log_call(key => $key, %args);
+    my %backend_args = (key => $key);
+    $backend_args{hold_duration} = $args{hold_duration} if defined $args{hold_duration};
     if ($args{wait_screen_change}) {
-        wait_screen_change { query_isotovideo('backend_send_key', {key => $key}) };
+        wait_screen_change { query_isotovideo('backend_send_key', \%backend_args) };
     }
     else {
-        query_isotovideo('backend_send_key', {key => $key});
+        query_isotovideo('backend_send_key', \%backend_args);
     }
 }
 
