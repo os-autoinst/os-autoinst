@@ -353,7 +353,6 @@ sub runtest ($self) {
         if (!$internal && $error_message =~ /Can't locate .+ in \@INC/) {
             my $msg = "# Test died with missing dependency: $e";
             bmwqemu::fctinfo($msg);
-            bmwqemu::update_line_number();
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $self->{fatal_failure} = 1;
             bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
@@ -366,7 +365,6 @@ sub runtest ($self) {
                 $msg .= "\n--- # stack trace\n" . (join '', map { $_->{frame} . "\n" } @$stacktrace);
             }
             bmwqemu::fctinfo($msg);
-            bmwqemu::update_line_number([reverse @$stacktrace]);
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $died = 1;
         }
