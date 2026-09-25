@@ -19,6 +19,7 @@ use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_USER_TERMINAL_DEFAULT_DEVICE SERIAL_USER_TERMINAL_DEFAULT_PORT);
 use Mojo::File qw(tempdir path);
+use Digest::SHA;
 use Mojo::Util qw(scope_guard);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -642,7 +643,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like $last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore";
+            my $tmp_file = "$vmware_openqa_datastore$filename." . $svirt->name . '.part';
+            like $last_ssh_commands[0], qr%cp\s+"/vmfs/volumes/nfs_data_store/iso/$filename"\s+"\Q$tmp_file\E"%, "Copy iso to temporary file in $vmware_openqa_datastore";
+            like $last_ssh_commands[0], qr%mv\s+"\Q$tmp_file\E"\s+"$vmware_openqa_datastore$filename"%, 'Temporary file renamed into place so the copy is atomic';
+            like $last_ssh_commands[0], qr%mkdir\s+"$vmware_openqa_datastore$filename\.copying"%, 'Right to copy claimed so jobs arriving together do not all transfer the image';
+            unlike $last_ssh_commands[0], qr/lsof/, 'No guessing from a process list whether someone else is copying needed anymore';
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -1114,6 +1119,135 @@ subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
             like $output[$i], qr{$vmware_openqa_datastore/$file_out}, 'wmv-test-2: checking image management output: ' . $input . ': ' . $i . 'b';
             $i += 1;
         }
+    };
+};
+
+subtest 'VMware images are verified against their published checksum before publishing' => sub {
+    my $my_test_basedir = tempdir($dir . '/cs_XXXX');
+    my $nfs_ds = 'openqa_checksum';
+    my $ds = 'datastore_checksum';
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
+    $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} = $my_test_basedir;
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE} = $nfs_ds;
+    my $iso = 'checksum-mock.iso';
+    my $source = path($my_test_basedir, $nfs_ds, 'iso')->make_path->child($iso);
+    $source->spew('VMware image with a published checksum');
+    my $vmware_openqa_datastore = path($my_test_basedir, $ds, 'openQA')->make_path;
+    my $dest = path($vmware_openqa_datastore, $iso);
+    my $digest = Digest::SHA->new(256)->addfile($source->to_string)->hexdigest;
+    my $svirt = consoles::sshVirtsh->new('svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $last_output;
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) {
+            # run the generated shell script on the local host
+            $last_output = qx{($cmd) 2>&1};
+            ($? >> 8);
+    });
+    set_var(ISO => "/var/lib/openqa/share/factory/iso/$iso");
+    my $provide = sub { $svirt->provide_image_vmware_in_ds($source, $vmware_openqa_datastore) };
+
+    subtest 'matching checksum publishes the image' => sub {
+        $dest->remove;
+        set_var(CHECKSUM_ISO => uc $digest);
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'published image matches the source';
+        like $last_output, qr/Verified .*against its published checksum/, 'verification is reported';
+        is_deeply [glob "$dest.*.part"], [], 'no temporary file left behind';
+    };
+
+    subtest 'mismatching checksum leaves the destination untouched' => sub {
+        $dest->remove;
+        set_var(CHECKSUM_ISO => 'b' x 64);
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails';
+        ok !-e $dest, 'a corrupt image is never published';
+        like $last_output, qr/Checksum mismatch .*expected b{64} but computed SHA-256 \Q$digest\E/, 'mismatch names both digests';
+        is_deeply [glob "$dest.*.part"], [], 'temporary file removed';
+    };
+
+    subtest 'image without a published checksum is copied unverified' => sub {
+        $dest->remove;
+        set_var(CHECKSUM_ISO => undef);
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'published image matches the source';
+        unlike $last_output, qr/Verified/, 'nothing is verified';
+    };
+
+    subtest 'an image already in the datastore which was never verified fails the job' => sub {
+        set_var(CHECKSUM_ISO => $digest);
+        $dest->spew('a corrupt image left behind by an earlier job');
+        path(consoles::sshVirtsh::_verified_record_path($dest))->remove;
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails';
+        like $last_output, qr/\Q$dest\E is not verified against \Q$digest\E, remove it/, 'the file to remove is named';
+        is $dest->slurp, 'a corrupt image left behind by an earlier job', 'nothing is overwritten behind the operator';
+    };
+
+    subtest 'an image verified against the same checksum is reused' => sub {
+        set_var(CHECKSUM_ISO => $digest);
+        $dest->spew('published earlier and verified back then');
+        path(consoles::sshVirtsh::_verified_record_path($dest))->spew($digest);
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, 'published earlier and verified back then', 'no multi-GB image is transferred twice';
+        like $last_output, qr/\Q$dest\E ready/, 'the image is reported as ready';
+    };
+
+    subtest 'an image verified against a different checksum fails the job' => sub {
+        set_var(CHECKSUM_ISO => $digest);
+        $dest->spew('a different image published under the same name');
+        path(consoles::sshVirtsh::_verified_record_path($dest))->spew('c' x 64);
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails';
+        like $last_output, qr/\Q$dest\E is not verified against \Q$digest\E/, 'a stale image of the same name is not silently replaced';
+    };
+
+    subtest 'a job without a published checksum keeps using whatever is there' => sub {
+        set_var(CHECKSUM_ISO => undef);
+        $dest->spew('published by an earlier job');
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, 'published by an earlier job', 'there is nothing to vouch for, so nothing is rejected';
+    };
+
+    subtest 'only a usable checksum of the right image is picked up' => sub {
+        set_var(CHECKSUM_ISO => $digest);
+        is consoles::sshVirtsh::_expected_checksum($iso), $digest, 'checksum found by image name';
+        is consoles::sshVirtsh::_expected_checksum('other.iso'), undef, 'no checksum for an unrelated image';
+        set_var(CHECKSUM_ISO => 'deadbeef');
+        is consoles::sshVirtsh::_expected_checksum($iso), undef, 'a value which is not a digest is ignored';
+    };
+    set_var(CHECKSUM_ISO => undef);
+    set_var(ISO => undef);
+};
+
+subtest 'Only one of the VMware jobs arriving together copies the image' => sub {
+    my $datastore = tempdir($dir . '/claim_XXXX');
+    my $dest = path($datastore, 'concurrent-mock.iso')->to_string;
+    my $marker = consoles::sshVirtsh::_copy_marker_path($dest);
+    # a one second poll interval keeps the test quick, the stall timeout is high enough
+    # for a copy which makes progress to never be taken over
+    my $verified = consoles::sshVirtsh::_verified_script;
+    my $claim = $verified . consoles::sshVirtsh::_claim_copy_script($dest, $marker, 1, 60);
+
+    subtest 'a single job copies although four of them start at the same time' => sub {
+        my $copy = qq{sleep 2; echo published > "$dest"};
+        my $output = qx{(for i in 1 2 3 4; do ( $claim test -z "\$_claimed" || { $copy; }; echo "claimed=[\$_claimed]" ) & done; wait) 2>&1};
+        is scalar(grep { $_ eq 'claimed=[1]' } split /\n/, $output), 1, 'exactly one job transfers the image';
+        like $output, qr/Waiting for another job to copy \Q$dest\E/, 'the other jobs wait for it instead';
+        ok -e $dest, 'the image is published';
+        ok !-e $marker, 'the marker is released once the copy finished';
+    };
+
+    subtest 'a marker whose owner stopped making progress is taken over' => sub {
+        path($dest)->remove;
+        path($marker)->make_path;
+        my $stalled = $verified . consoles::sshVirtsh::_claim_copy_script($dest, $marker, 1, 1);
+        my $output = qx{($stalled echo "claimed=[\$_claimed]") 2>&1};
+        like $output, qr/No progress on \Q$dest\E for 1s, taking the copy over/, 'the abandoned copy is reported';
+        like $output, qr/claimed=\[1\]/, 'a job which died in the middle of a copy does not block the others forever';
+    };
+
+    subtest 'an image which is already present is not claimed at all' => sub {
+        path($dest)->spew('published');
+        my $output = qx{($claim echo "claimed=[\$_claimed]") 2>&1};
+        like $output, qr/claimed=\[\]/, 'nothing is claimed';
+        unlike $output, qr/Waiting/, 'and nothing is waited for';
     };
 };
 
