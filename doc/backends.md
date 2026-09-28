@@ -165,6 +165,33 @@ It makes most sense to clone a VMWare test scenario so simply search the
 production instance for existing VMWare jobs. The variables from the worker
 config should apply automatically so jobs can be cloned as-is.
 
+#### Image provisioning in the datastore
+Before a VM boots, `consoles::VMWare` copies its ISO or HDD image from the NFS
+datastore (`VMWARE_NFS_DATASTORE`) into the openQA datastore of the ESXi host.
+Jobs of the same build share that copy, so the workflow ensures that no job
+ever boots from a partial or corrupt image:
+
+1. An image already in the datastore is reused only if
+   `<image>.verified` records the checksum the job publishes for it in
+   `CHECKSUM_<VAR>` (e.g. `CHECKSUM_ISO`). Without a published checksum the
+   image is reused as it is.
+2. Otherwise the job claims the copy by creating the directory
+   `<image>.copying`. Only one of the jobs arriving together succeeds, the
+   others wait for the image to appear.
+3. The claiming job copies to `<image>.<VM name>.part`, verifies it against
+   the checksum and only then renames it into place and writes the record. An
+   unverified image with the same name is replaced this way.
+4. While copying, the job writes a heartbeat into the marker. A marker without
+   a heartbeat for 5 minutes, e.g. after the job died, is taken over by a
+   waiting job.
+5. On a checksum mismatch nothing is published and the reason is left in
+   `<image>.<VM name>.failed`, so the waiting jobs fail with the same error
+   instead of copying the corrupt source again.
+
+Leftovers of a job (`*.part`, `*.failed`) contain its VM name and are removed
+by the cleanup of the test distribution. The shell scripts must stay POSIX
+compliant as ESXi uses busybox for `/bin/sh`.
+
 #### Further notes
 * Within the ESXi web interface you can monitor events and tasks which is useful
   to keep track of what's going on from VMWare's side.

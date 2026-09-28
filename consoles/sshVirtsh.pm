@@ -19,6 +19,7 @@ use Mojo::Util;
 use Time::Seconds;
 use Carp 'croak';
 use backend::svirt;
+use consoles::VMWare;
 
 has [qw(instance name vmm_family vmm_type vmm_firmware)];
 
@@ -350,7 +351,7 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
         # Power VM off, delete it's disk image, and create it again.
         # Poll the power state until the VM is *really* turned off.
         my $cmd =
-          "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+          '( set -x; ' . consoles::VMWare::vmid_script($name) . ';' .
           'if [ $vmid ]; then ' .
           'vim-cmd vmsvc/power.off $vmid;' .
           'for i in $(seq 1 10); do vim-cmd vmsvc/power.getstate $vmid | grep -q "Powered off" && break; sleep 1; done;' .
@@ -369,78 +370,8 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
-# Verifies that vmware image is present in the host datastore, otherwhise copies from input
-sub provide_image_vmware_in_ds ($self, $input_file, $vmware_openqa_datastore, %args) {
-    my $nfs_dir = ($args{backingfile}) ? 'hdd' : 'iso';
-    my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
-    my $debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
-    my $base_dir = $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} // '/vmfs/volumes';
-    my $basefile = basename($input_file);
-    # expected name of uncompressed image
-    my $baseimage = basename($input_file) =~ s/\.xz$//r;
-    my $dest_image = "$vmware_openqa_datastore/${baseimage}";
-    # Use the standard folder for an input file without full path
-    my $file_origin = ($input_file eq $basefile) ? "$base_dir/$vmware_nfs_datastore/$nfs_dir/$basefile" : $input_file;
-    # check image is present
-    # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
-    my $cmd = <<~"EOF";
-    $debug
-    input_file="$input_file"
-    if [ -e "$dest_image" ]; then
-        echo "Waiting while $input_file is loading:"
-        while ps -v | grep -F -e "$baseimage" -e "$basefile" | grep -v grep
-            do sleep 5; done
-        echo "VMware image $dest_image ready"
-    elif [ "\${input_file##*.}" = "xz" ]; then
-        if [ -e "$dest_image.xz" ] || cp "$file_origin" "$vmware_openqa_datastore"; then
-            xz --decompress --keep "$dest_image.xz"
-        fi
-    else
-        cp "$file_origin" "$vmware_openqa_datastore"
-    fi
-    echo "Done: origin:" $file_origin* " ; dest.:" $dest_image*
-    EOF
-
-    my $ret = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-    croak "Error on VMware image $input_file preparation." if $ret;
-    return $dest_image;
-}
-
-sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, %args) {
-    my $vmware_openqa_datastore = $args{vmware_openqa_datastore};
-    my $vmware_disk_path = $args{vmware_disk_path};
-    my $vmware_disk_path_thinfile = $args{vmware_disk_path_thinfile};
-    my $copy_timeout = $args{copy_timeout} // 600;
-
-    # If the file exists, make sure someone else is not copying it there right now,
-    # otherwise copy image from NFS datastore.
-    my $nfs_dir = $backingfile ? 'hdd' : 'iso';
-    my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
-    # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
-    my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
-    my $cmd =
-      "$ds_debug if test -e $vmware_openqa_datastore$file_basename; then " .
-      "while lsof | grep 'cp.*$file_basename'; do " .
-      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-      'done;' .
-      'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-      'fi;';
-    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $copy_timeout);
-    die "Can't copy VMware image $file_basename" if $retval;
-    return unless $backingfile;
-    # Power VM off, delete it's disk image, and create it again.
-    # Than wait for some time for the VM to *really* turn off.
-    $cmd =
-      "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-      'if [ $vmid ]; then ' .
-      'vim-cmd vmsvc/power.off $vmid;' .
-      'fi;' .
-      "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
-      "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
-    $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-    die q{Can't create thin VMware image} if $retval;
-}
+# Provides an image in the VMware datastore, see consoles::VMWare
+sub provide_image_vmware_in_ds ($self, @args) { consoles::VMWare::provide_image_in_datastore($self, @args) }
 
 sub _copy_nvram_vmware ($self, $name, $vmware_openqa_datastore, $vmware_disk_path) {
     # If the nvram exists in the source vmx file, then copy the source file as destination nvram.
@@ -490,8 +421,8 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, %opts) {
     my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
-            $self->_copy_image_vmware(
-                $name, $backingfile, $file_basename,
+            consoles::VMWare::copy_image_to_datastore(
+                $self, $name, $backingfile, $file_basename,
                 vmware_openqa_datastore => $vmware_openqa_datastore,
                 vmware_disk_path => $vmware_disk_path,
                 vmware_disk_path_thinfile => $vmware_disk_path_thinfile
