@@ -642,7 +642,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like $last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore";
+            my $tmp_file = "$vmware_openqa_datastore$filename." . $svirt->name . '.part';
+            like $last_ssh_commands[0], qr%cp\s+"/vmfs/volumes/nfs_data_store/iso/$filename"\s+"\Q$tmp_file\E"%, "Copy iso to temporary file in $vmware_openqa_datastore";
+            like $last_ssh_commands[0], qr%mv\s+"\Q$tmp_file\E"\s+"$vmware_openqa_datastore$filename"%, 'Temporary file renamed into place so the copy is atomic';
+            like $last_ssh_commands[0], qr%mkdir\s+"$vmware_openqa_datastore$filename\.copying"%, 'Right to copy claimed so jobs arriving together do not all transfer the image';
+            unlike $last_ssh_commands[0], qr/lsof/, 'No guessing from a process list whether someone else is copying needed anymore';
 
             svirt_xml_validate($svirt,
                 disk_device => 'cdrom',
@@ -1115,6 +1119,22 @@ subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
             $i += 1;
         }
     };
+};
+
+
+subtest 'VMware VM lookup only finds the VM of the job itself' => sub {
+    my $bin = tempdir($dir . '/vimcmd_XXXX');
+    $bin->child('vim-cmd')->spew(<<~'EOF')->chmod(0755);
+    #!/bin/sh
+    cat <<'LIST'
+    Vmid        Name                              File                                 Guest OS       Version   Annotation
+    10     openQA-SUT-10   [datastore1] openQA/openQA-SUT-10.vmx   sles15_64Guest   vmx-19    openQA WebUI: host (10): openQA-SUT-1 is not me
+    11     openQA-SUT-1    [datastore1] openQA/openQA-SUT-1.vmx    sles15_64Guest   vmx-19    openQA WebUI: host (1):
+    12     openQA-SUT-11   [datastore1] openQA/openQA-SUT-11.vmx   sles15_64Guest   vmx-19    openQA WebUI: host (11):
+    LIST
+    EOF
+    my $vmid_script = consoles::VMWare::vmid_script('openQA-SUT-1');
+    is qx{PATH="$bin:\$PATH"; $vmid_script; echo "\$vmid"}, "11\n", 'only the VM registered under exactly the name is found';
 };
 
 done_testing;

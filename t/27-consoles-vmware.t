@@ -27,6 +27,8 @@ use Mojo::Message::Response;
 use Mojo::IOLoop::Server;
 use Mojo::Server::Daemon;
 use Scalar::Util qw(blessed);
+use Mojo::File qw(tempdir path);
+use Digest::SHA;
 
 use consoles::VMWare;
 
@@ -284,6 +286,173 @@ subtest 'test against real VMWare instance' => sub {
         system "'$bmwqemu::topdir/script/dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure"; # uncoverable statement
 
     }
+};
+
+subtest 'VMware images are verified against their published checksum before publishing' => sub {
+    my $my_test_basedir = tempdir('/tmp/27-vmware-checksum-XXXX');
+    my $nfs_ds = 'openqa_checksum';
+    my $ds = 'datastore_checksum';
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
+    $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} = $my_test_basedir;
+    $bmwqemu::vars{VMWARE_NFS_DATASTORE} = $nfs_ds;
+    my $iso = 'checksum-mock.iso';
+    my $source = path($my_test_basedir, $nfs_ds, 'iso')->make_path->child($iso);
+    $source->spew('VMware image with a published checksum');
+    my $vmware_openqa_datastore = path($my_test_basedir, $ds, 'openQA')->make_path;
+    my $dest = path($vmware_openqa_datastore, $iso);
+    my $digest = Digest::SHA->new(256)->addfile($source->to_string)->hexdigest;
+    my $last_output;
+    # stands in for the sshVirtsh console, running the generated script on the local host
+    my $svirt = Test::MockObject->new->set_always(name => 'openQA-SUT-1');
+    $svirt->mock(run_cmd => sub ($self, $cmd, %args) { $last_output = qx{($cmd) 2>&1}; $? >> 8 });
+    $bmwqemu::vars{ISO} = "/var/lib/openqa/share/factory/iso/$iso";
+    my $provide = sub { consoles::VMWare::provide_image_in_datastore($svirt, $source, $vmware_openqa_datastore) };
+
+    subtest 'matching checksum publishes the image' => sub {
+        $dest->remove;
+        $bmwqemu::vars{CHECKSUM_ISO} = uc $digest;
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'published image matches the source';
+        like $last_output, qr/Verified .*against its published checksum/, 'verification is reported';
+        is_deeply [glob "$dest.*.part"], [], 'no temporary file left behind';
+    };
+
+    subtest 'mismatching checksum leaves the destination untouched' => sub {
+        $dest->remove;
+        $bmwqemu::vars{CHECKSUM_ISO} = 'b' x 64;
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails';
+        ok !-e $dest, 'a corrupt image is never published';
+        like $last_output, qr/Checksum mismatch .*expected b{64} but computed SHA-256 \Q$digest\E/, 'mismatch names both digests';
+        like path(consoles::VMWare::_failure_note_path($dest, 'openQA-SUT-1'))->slurp, qr/Checksum mismatch .*expected b{64}/, 'the mismatch is left for the jobs waiting for this one';
+        is_deeply [glob "$dest.*.part"], [], 'temporary file removed';
+    };
+
+    subtest 'image without a published checksum is copied unverified' => sub {
+        $dest->remove;
+        delete $bmwqemu::vars{CHECKSUM_ISO};
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'published image matches the source';
+        unlike $last_output, qr/Verified/, 'nothing is verified';
+    };
+
+    subtest 'an image already in the datastore which was never verified is replaced' => sub {
+        $bmwqemu::vars{CHECKSUM_ISO} = $digest;
+        $dest->spew('a corrupt image left behind by an earlier job');
+        path(consoles::VMWare::_verified_record_path($dest))->remove;
+        lives_ok { $provide->() } 'image provided';
+        like $last_output, qr/Replacing \Q$dest\E, it is not verified/, 'the replacement is announced';
+        is $dest->slurp, $source->slurp, 'the unverified image is replaced by a verified copy';
+        is path(consoles::VMWare::_verified_record_path($dest))->slurp, "$digest\n", 'the replacement is recorded as verified';
+    };
+
+    subtest 'an image verified against the same checksum is reused' => sub {
+        $bmwqemu::vars{CHECKSUM_ISO} = $digest;
+        $dest->spew('published earlier and verified back then');
+        path(consoles::VMWare::_verified_record_path($dest))->spew($digest);
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, 'published earlier and verified back then', 'no multi-GB image is transferred twice';
+        like $last_output, qr/\Q$dest\E ready/, 'the image is reported as ready';
+    };
+
+    subtest 'an image verified against a different checksum is replaced' => sub {
+        $bmwqemu::vars{CHECKSUM_ISO} = $digest;
+        $dest->spew('a different image published under the same name');
+        path(consoles::VMWare::_verified_record_path($dest))->spew('c' x 64);
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, $source->slurp, 'a stale image of the same name is replaced';
+    };
+
+    subtest 'a failed replacement leaves the existing image and its record alone' => sub {
+        $bmwqemu::vars{CHECKSUM_ISO} = 'b' x 64;
+        $dest->spew('verified against an older checksum');
+        path(consoles::VMWare::_verified_record_path($dest))->spew('c' x 64);
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails on a mismatch';
+        is $dest->slurp, 'verified against an older checksum', 'the existing image is left alone';
+        is path(consoles::VMWare::_verified_record_path($dest))->slurp, 'c' x 64, 'its record still describes it';
+        is_deeply [glob "$dest.*.part"], [], 'temporary file removed';
+    };
+
+    subtest 'a job without a published checksum keeps using whatever is there' => sub {
+        delete $bmwqemu::vars{CHECKSUM_ISO};
+        $dest->spew('published by an earlier job');
+        lives_ok { $provide->() } 'image provided';
+        is $dest->slurp, 'published by an earlier job', 'there is nothing to vouch for, so nothing is rejected';
+    };
+
+    subtest 'only a usable checksum of the right image is picked up' => sub {
+        $bmwqemu::vars{CHECKSUM_ISO} = $digest;
+        is consoles::VMWare::_expected_checksum($iso), $digest, 'checksum found by image name';
+        is consoles::VMWare::_expected_checksum('other.iso'), undef, 'no checksum for an unrelated image';
+        $bmwqemu::vars{CHECKSUM_ISO} = 'deadbeef';
+        my $checksum;
+        combined_like { $checksum = consoles::VMWare::_expected_checksum($iso) } qr/Ignoring CHECKSUM_ISO, 'deadbeef' is not a SHA-256/, 'ignoring the value is logged';
+        is $checksum, undef, 'a value which is not a digest is ignored';
+    };
+    delete $bmwqemu::vars{CHECKSUM_ISO};
+    delete $bmwqemu::vars{ISO};
+};
+
+subtest 'Only one of the VMware jobs arriving together copies the image' => sub {
+    my $datastore = tempdir('/tmp/27-vmware-claim-XXXX');
+    my $dest = path($datastore, 'concurrent-mock.iso')->to_string;
+    my $marker = consoles::VMWare::_copy_marker_path($dest);
+    my $verified = consoles::VMWare::_verified_script;
+    # a one second poll interval keeps the test quick
+    my $claim = sub ($owner, $stall_timeout = 2) { $verified . consoles::VMWare::_claim_copy_script($dest, $owner, undef, 1, $stall_timeout) };
+
+    subtest 'a single job copies although four of them start at the same time' => sub {
+        # the copy outlasts the stall timeout, only the heartbeat keeps it claimed
+        my $copy = qq{sleep 3; echo published > "$dest"};
+        my $jobs = join ' ', map { '( ' . $claim->("job$_") . qq{ test -z "\$_claimed" || { $copy; }; echo "claimed=[\$_claimed]" ) &} } 1 .. 4;
+        my $output = qx{($jobs wait) 2>&1};
+        is scalar(grep { $_ eq 'claimed=[1]' } split /\n/, $output), 1, 'exactly one job transfers the image';
+        like $output, qr/Waiting for another job to copy \Q$dest\E/, 'the other jobs wait for it instead';
+        unlike $output, qr/taking the copy over/, 'a copy which is still alive is not taken over';
+        ok -e $dest, 'the image is published';
+        ok !-e $marker, 'the marker is released once the copy finished';
+    };
+
+    subtest 'a marker whose owner died is taken over' => sub {
+        path($dest)->remove;
+        path($marker)->make_path->child('owner')->spew("job1\n");
+        my $script = $claim->('job2', 1);
+        my $output = qx{($script echo "claimed=[\$_claimed]") 2>&1};
+        like $output, qr/No heartbeat from the job copying \Q$dest\E for 1s, taking the copy over/, 'the abandoned copy is reported';
+        like $output, qr/claimed=\[1\]/, 'a job which died in the middle of a copy does not block the others forever';
+        ok !-e $marker, 'the marker taken over is released by its new owner';
+    };
+
+    subtest 'a job which lost its marker to a takeover does not release it' => sub {
+        my $script = $claim->('job1');
+        my $output = qx{($script echo job2 > "$marker/owner"; echo "claimed=[\$_claimed]") 2>&1};
+        like $output, qr/claimed=\[1\]/, 'the marker was claimed';
+        ok -e $marker, 'the marker of the job which took it over is kept';
+        path($marker)->remove_tree;
+    };
+
+    subtest 'a job does not copy again what failed verification for the job it waited for' => sub {
+        my $checksum = 'd' x 64;
+        my $verified_checksum = consoles::VMWare::_verified_script($checksum);
+        my $note = consoles::VMWare::_failure_note_path($dest, 'job1');
+        my $claim_checksum = sub ($owner) { $verified_checksum . consoles::VMWare::_claim_copy_script($dest, $owner, $checksum, 1, 2) };
+        my $failing_copy = qq{sleep 1; echo "Checksum mismatch, expected $checksum" > "$note"; exit 1};
+        my ($owner, $waiter) = map { $claim_checksum->($_) } qw(job1 job2);
+        # job2 starts shortly after job1 so it finds the marker and waits for job1
+        my $output = qx{(( $owner $failing_copy ) & sleep 0.2; ( $waiter echo "claimed=[\$_claimed]" ); wait) 2>&1};
+        like $output, qr/Not copying \Q$dest\E again, the copy of job1 failed its verification/, 'the waiting job gives up';
+        like $output, qr/Checksum mismatch, expected $checksum/, 'and names the reason';
+        unlike $output, qr/claimed=/, 'without claiming the copy itself';
+        ok !-e $marker, 'the marker is released';
+        path($note)->remove;
+    };
+
+    subtest 'an image which is already present is not claimed at all' => sub {
+        path($dest)->spew('published');
+        my $script = $claim->('job1');
+        my $output = qx{($script echo "claimed=[\$_claimed]") 2>&1};
+        like $output, qr/claimed=\[\]/, 'nothing is claimed';
+        unlike $output, qr/Waiting/, 'and nothing is waited for';
+    };
 };
 
 done_testing;
