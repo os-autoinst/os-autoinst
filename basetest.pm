@@ -293,7 +293,10 @@ sub run_post_fail ($self, $msg) {
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
         try { $self->post_fail_hook }
-        catch ($e) { bmwqemu::diag("post_fail_hook failed: $e") }    # uncoverable statement
+        catch ($e) {
+            $self->_handle_test_exception($e);
+            bmwqemu::diag("post_fail_hook failed: $e");
+        }
         $self->{post_fail_hook_running} = 0;
 
         # There might be more messages on serial now.
