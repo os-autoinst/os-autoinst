@@ -294,7 +294,7 @@ sub run_post_fail ($self, $msg) {
         $self->{post_fail_hook_running} = 1;
         try { $self->post_fail_hook }
         catch ($e) {
-            $self->_handle_test_exception($e);
+            $self->_handle_test_exception($e, 'Post fail hook');
             bmwqemu::diag("post_fail_hook failed: $e");
         }
         $self->{post_fail_hook_running} = 0;
@@ -319,7 +319,7 @@ sub compute_test_execution_time ($self) {
     bmwqemu::modstate(sprintf 'finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time});
 }
 
-sub _handle_test_exception ($self, $e, $died = undef) {
+sub _handle_test_exception ($self, $e, $what, $died = undef) {
     # copy the exception early
     my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
 
@@ -343,7 +343,7 @@ sub _handle_test_exception ($self, $e, $died = undef) {
         $self->take_screenshot();
     }
     if (!$internal && $error_message =~ /Can't locate .+ in \@INC/) {
-        my $msg = "# Test died with missing dependency: $e";
+        my $msg = "# $what died with missing dependency: $e";
         bmwqemu::fctinfo($msg);
         bmwqemu::update_line_number();
         $self->record_resultfile('Failed', $msg, result => 'fail');
@@ -353,7 +353,7 @@ sub _handle_test_exception ($self, $e, $died = undef) {
     }
     # show a text result with the die message unless the die was internally generated
     if (!$internal) {
-        my $msg = "# Test died: $error_message";
+        my $msg = "# $what died: $error_message";
         if (@$stacktrace) {
             $msg .= "\n--- # stack trace\n" . (join '', map { $_->{frame} . "\n" } @$stacktrace);
         }
@@ -378,7 +378,7 @@ sub runtest ($self) {
         $self->post_run_hook();
     }
     catch ($e) {
-        $error_message = $self->_handle_test_exception($e, \$died);
+        $error_message = $self->_handle_test_exception($e, 'Test', \$died);
     }
 
     try { $self->search_for_expected_serial_failures() }

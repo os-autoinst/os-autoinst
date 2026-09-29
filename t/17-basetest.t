@@ -122,7 +122,7 @@ subtest run_post_fail_test => sub {
         is $basetest->{details}->[1]->{result}, 'fail', 'failure during post fail hook has fail result';
         my $hook_fail_result_file = path('testresults', $basetest->{details}->[1]->{text});
         ok -e $hook_fail_result_file, 'result file for post fail hook failure created';
-        like $hook_fail_result_file->slurp, qr/# Test died: failure during post fail hook.*--- # stack trace/s,
+        like $hook_fail_result_file->slurp, qr/# Post fail hook died: failure during post fail hook.*--- # stack trace/s,
           'stack trace for post fail hook failure recorded';
         is $basetest->{post_fail_hook_running}, 0, 'post_fail_hook_running flag reset';
     };
