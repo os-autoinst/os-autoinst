@@ -2,6 +2,7 @@ Supported variables per backend
 ===============================
 
 ## COMMON backend
+| SERIAL_CONSOLE_SILENCE_TIMEOUT | integer | 300 | Configures the timeout in seconds for which a serial console SSH channel can remain silent before a warning diagnostic is emitted during wait_serial |
 
 | Variable | Values allowed | Default value | Explanation |
 | --- | --- | --- | --- |

@@ -381,14 +381,14 @@ subtest 'exceptions' => sub {
     my $stack = qr{Test died: ON PURPOSE\n.*--- \# stack trace\n.*throw.*called at tests/exception.pm line \d+\n.*exception::something at tests/exception.pm line \d+};
     subtest 'exception' => sub {
         local $ENV{THROW_EXCEPTION} = 1;
-        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stack.*$stepinfo}s, 'OpenQA::Exception::TestapiError produces step info and stack trace';
+        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stepinfo.*$stack}s, 'OpenQA::Exception::TestapiError produces step info and stack trace';
     };
     subtest 'perl die' => sub {
         $stepinfo = qr{\[step:tests,exc,2\] tests/exception.pm:\d+};
 
         $stack = qr{Test died: Illegal division by zero.*\n.*--- \# stack trace\n.*tests/exception.pm line \d+}s;
         local $ENV{PERL_DIE} = 1;
-        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stack.*$stepinfo}s, 'perl internal error produces step info and stack trace';
+        stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stepinfo.*$stack}s, 'perl internal error produces step info and stack trace';
     };
 };
 
