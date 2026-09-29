@@ -294,7 +294,7 @@ sub run_post_fail ($self, $msg) {
         $self->{post_fail_hook_running} = 1;
         try { $self->post_fail_hook }
         catch ($e) {
-            $self->_handle_test_exception($e, 'Post fail hook');
+            $self->_handle_test_exception($e, 'Post fail hook', "Failed\n(post)");
             bmwqemu::diag("post_fail_hook failed: $e");
         }
         $self->{post_fail_hook_running} = 0;
@@ -319,7 +319,7 @@ sub compute_test_execution_time ($self) {
     bmwqemu::modstate(sprintf 'finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time});
 }
 
-sub _handle_test_exception ($self, $e, $what, $died = undef) {
+sub _handle_test_exception ($self, $e, $what, $type, $died = undef) {
     # copy the exception early
     my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
 
@@ -346,7 +346,7 @@ sub _handle_test_exception ($self, $e, $what, $died = undef) {
         my $msg = "# $what died with missing dependency: $e";
         bmwqemu::fctinfo($msg);
         bmwqemu::update_line_number();
-        $self->record_resultfile('Failed', $msg, result => 'fail');
+        $self->record_resultfile($type, $msg, result => 'fail');
         $self->{fatal_failure} = 1;
         bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
         $$died = 1 if $died;
@@ -359,7 +359,7 @@ sub _handle_test_exception ($self, $e, $what, $died = undef) {
         }
         bmwqemu::fctinfo($msg);
         bmwqemu::update_line_number([reverse @$stacktrace]);
-        $self->record_resultfile('Failed', $msg, result => 'fail');
+        $self->record_resultfile($type, $msg, result => 'fail');
         $$died = 1 if $died;
     }
     return $error_message;
@@ -378,7 +378,7 @@ sub runtest ($self) {
         $self->post_run_hook();
     }
     catch ($e) {
-        $error_message = $self->_handle_test_exception($e, 'Test', \$died);
+        $error_message = $self->_handle_test_exception($e, 'Test', 'Failed', \$died);
     }
 
     try { $self->search_for_expected_serial_failures() }

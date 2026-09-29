@@ -118,7 +118,7 @@ subtest run_post_fail_test => sub {
         like $logs, qr/post_fail_hook failed: failure during post fail hook/, 'post fail hook failure logged';
         is $basetest->{result}, 'fail', 'test considered failed after post fail hook failed';
         is scalar @{$basetest->{details}}, 2, 'failures of both test and post fail hook recorded';
-        is $basetest->{details}->[1]->{title}, 'Failed', 'failure during post fail hook recorded as result';
+        is $basetest->{details}->[1]->{title}, "Failed\n(post)", 'failure during post fail hook recorded as result';
         is $basetest->{details}->[1]->{result}, 'fail', 'failure during post fail hook has fail result';
         my $hook_fail_result_file = path('testresults', $basetest->{details}->[1]->{text});
         ok -e $hook_fail_result_file, 'result file for post fail hook failure created';
