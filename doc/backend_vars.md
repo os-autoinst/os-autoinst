@@ -140,6 +140,7 @@ Supported variables per backend
 | NICTYPE | user\|tap\|vde | user | Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device |
 | NICTYPE_USER_OPTIONS | string | undef | Arbitrary options for NICTYPE, e.g when set to `hostfwd=tcp::2223-:22` would enable port forwarding. |
 | NICVLAN | integer | undef | Comma-separated list of network (vlan) numbers to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user |
+| NICOFFSET | integer | 64 | The offset between NICs used if a test configures more than one NIC. Has to be greather than the number of workers running on the same host to avoid conflicts between worker instances. Has to be in accordance with statically configured devices. |
 | NICPCIADDR | integer | undef | Assign NIC device a specific address on the PCI bus |
 | NUMDISKS | integer | 1 | Number of disks to be created and attached to VM, can be 0 to disable disks, if using RAIDLEVEL, will be set to 4 |
 | OFFLINE_SUT | boolean | 0 | Disable network for a VM |

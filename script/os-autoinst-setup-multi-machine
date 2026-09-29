@@ -1,6 +1,7 @@
 #!/bin/bash -e
 set -euo pipefail
 instances="${instances:-20}"
+nicoffset=${OS_AUTOINST_NICOFFSET:-64}
 bridge="${bridge:-"br1"}"
 ethernet="${ethernet:-""}"
 zone="${zone:-"trusted"}"
@@ -118,6 +119,17 @@ EOF
     systemctl enable --now nftables
 }
 
+compute_tap_dev_numbers() {
+    local nicoffset_1 nicoffset_2
+    nicoffset_1=$((1 * nicoffset))
+    nicoffset_2=$((2 * nicoffset))
+    tap_dev_numbers=(0 $(
+        seq 1 "$instances"
+        seq "$nicoffset_1" $(("$nicoffset_1" + instances))
+        seq "$nicoffset_2" $(("$nicoffset_2" + instances))
+    ))
+}
+
 create_gre_preup_script() {
     local location=$1
     cat > "$location" << EOF
@@ -168,11 +180,7 @@ setup_multi_machine_with_networkmanager() {
     nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
     nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
-    for i in 0 $(
-        seq 1 "$instances"
-        seq 64 $((64 + instances))
-        seq 128 $((128 + instances))
-    ); do
+    for i in "${tap_dev_numbers[@]}"; do
         nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
         nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
     done
@@ -203,11 +211,7 @@ TUNNEL='tap'
 TUNNEL_SET_GROUP='nogroup'
 TUNNEL_SET_OWNER='_openqa-worker'
 EOF
-    for i in $(
-        seq 1 "$instances"
-        seq 64 $((64 + instances))
-        seq 128 $((128 + instances))
-    ); do ln -sf ifcfg-tap0 "/etc/sysconfig/network/ifcfg-tap$i" && echo "OVS_BRIDGE_PORT_DEVICE_$i='tap$i'" >> "/etc/sysconfig/network/ifcfg-$bridge"; done
+    for i in "${tap_dev_numbers[@]}"; do ln -sf ifcfg-tap0 "/etc/sysconfig/network/ifcfg-tap$i" && echo "OVS_BRIDGE_PORT_DEVICE_$i='tap$i'" >> "/etc/sysconfig/network/ifcfg-$bridge"; done
     create_gre_preup_script /etc/wicked/scripts/gre_tunnel_preup.sh
 
     # ensure the zone of the uplink/ethernet device is set in accordance as well
@@ -248,6 +252,7 @@ main() {
         echo "This script only works with wicked network daemon or NetworkManager"
         exit 1
     }
+    compute_tap_dev_numbers
     ensure_ip_forwarding
     install_packages
     determine_ethernet_interface
