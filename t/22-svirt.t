@@ -651,9 +651,9 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
             my $tmp_file = "$vmware_openqa_datastore$filename." . $svirt->name . '.part';
-            like $last_ssh_commands[0], qr%cp\s+"/vmfs/volumes/nfs_data_store/iso/$filename"\s+"\Q$tmp_file\E"%, "Copy iso to temporary file in $vmware_openqa_datastore";
-            like $last_ssh_commands[0], qr%mv\s+"\Q$tmp_file\E"\s+"$vmware_openqa_datastore$filename"%, 'Temporary file renamed into place so the copy is atomic';
-            like $last_ssh_commands[0], qr%mkdir\s+"$vmware_openqa_datastore$filename\.copying"%, 'Right to copy claimed so jobs arriving together do not all transfer the image';
+            like $last_ssh_commands[0], qr%dd if="\$src" of="\$dest\.\Q${\$svirt->name}\E\.part"\s+bs=1M%, "Copy iso to temporary file in $vmware_openqa_datastore";
+            like $last_ssh_commands[0], qr%mv "\$dest\.\Q${\$svirt->name}\E\.part"\s+"\$dest"%, 'Temporary file renamed into place so the copy is atomic';
+            like $last_ssh_commands[0], qr%mkdir "\$dest\.copying"%, 'Right to copy claimed so jobs arriving together do not all transfer the image';
             unlike $last_ssh_commands[0], qr/lsof/, 'No guessing from a process list whether someone else is copying needed anymore';
 
             svirt_xml_validate($svirt,
@@ -1066,8 +1066,8 @@ subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
         ) {
             my ($inp, $qry, $qry_xz, $backf_trig) = @$tuple;
             $svirt->provide_image_vmware_in_ds($inp, $vmware_openqa_datastore, backingfile => $backf_trig);
-            like $last_run_commands[$n], qr{cp\s.*$qry\"\s\"$vmware_openqa_datastore}, 'vmw-test-1: checking image management script, file origin:' . $n . 'a';
-            like $last_run_commands[$n], qr{xz\s.*$vmware_openqa_datastore/$qry_xz}, 'vmw-test-1: checking image management script, file destination: ' . $n . 'b';
+            like $last_run_commands[$n], qr{dd\s+if="\$src"\s+of="\$dest(?:_xz)?\.openQA-SUT-1\.part"\s+bs=1M}, 'vmw-test-1: checking image management script, file origin:' . $n . 'a';
+            like $last_run_commands[$n], qr{xz\s+--decompress\s+"\$dest(?:_xz)?\.openQA-SUT-1\.part\.xz"}, 'vmw-test-1: checking image management script, file destination: ' . $n . 'b';
             $n += 1;
         }
     };

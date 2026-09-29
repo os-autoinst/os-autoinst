@@ -173,6 +173,10 @@ sub _expected_checksum ($file_basename) {
     for my $checksum_var (sort grep { /^CHECKSUM_/ } keys %bmwqemu::vars) {
         my $image = $bmwqemu::vars{$checksum_var =~ s/^CHECKSUM_//r};
         next unless defined $image && basename($image) eq $file_basename;
+        # Only return the checksum if the file extension is exactly the same!
+        # For example, if the expected image name has .xz but we are checking a raw .vmdk,
+        # then the checksum belongs to the .xz file, not the .vmdk file!
+        next if $image =~ /\.xz$/ && $file_basename !~ /\.xz$/;
         my $checksum = $bmwqemu::vars{$checksum_var} // next;
         # only a plain digest is safe to interpolate into the shell script
         return lc $checksum if $checksum =~ /^(?:[0-9a-f]{64}|[0-9a-f]{128})$/i;
@@ -185,15 +189,18 @@ sub _expected_checksum ($file_basename) {
 # A 64 character checksum is either SHA-256 or SHA-512 truncated, so try SHA-256 first
 # and then the other, in the same order as verify_checksum() of the test distribution.
 sub _digest_script ($file, $checksum) {
-    return <<~"EOF" if length($checksum) == 128;
-    _digest=\$(sha512sum "$file" | awk '{print \$1}')
-    _digests="SHA-512 \$_digest"
-    EOF
+    if (length($checksum) == 128) {
+        return <<~"EOF";
+        _digest=\$(openssl dgst -sha512 "$file" 2>/dev/null | awk '{print \$NF}')
+        _digests="SHA-512 \$_digest"
+        EOF
+    }
+
     return <<~"EOF";
-    _digest=\$(sha256sum "$file" | awk '{print \$1}')
+    _digest=\$(openssl dgst -sha256 "$file" 2>/dev/null | awk '{print \$NF}')
     _digests="SHA-256 \$_digest"
     if [ "\$_digest" != "$checksum" ]; then
-        _digest=\$(sha512sum "$file" | awk '{print \$1}' | cut -c1-64)
+        _digest=\$(openssl dgst -sha512 "$file" 2>/dev/null | awk '{print \$NF}' | cut -c1-64)
         _digests="\$_digests, SHA-512 truncated \$_digest"
     fi
     EOF
@@ -205,7 +212,7 @@ sub _digest_script ($file, $checksum) {
 # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
 sub _atomic_copy_script ($source, $dest, $tmp, $checksum = undef, $failure_note = undef) {
     my $copy = _replace_notice_script($dest) . <<~"EOF";
-    if ! cp "$source" "$tmp"; then
+    if ! dd if="$source" of="$tmp" bs=1M 2>/dev/null; then
         rm -f "$tmp"
         echo "Unable to copy $source to $dest"
         exit 1
@@ -242,11 +249,11 @@ sub _atomic_decompress_script ($source, $dest, $tmp, $checksum = undef) {
     my $old_record = _verified_record_path($dest);
     return <<~"EOF";
     $notice
-    if xz --decompress --stdout "$source" > "$tmp" && rm -f "$old_record" && mv "$tmp" "$dest"; then
+    if dd if="$source" of="$tmp.xz" bs=1M 2>/dev/null && xz --decompress "$tmp.xz" && rm -f "$old_record" && mv "$tmp" "$dest"; then
     $record
         echo "Decompressed $source to $dest"
     else
-        rm -f "$tmp"
+        rm -f "$tmp" "$tmp.xz"
         echo "Unable to decompress $source to $dest"
         exit 1
     fi
@@ -321,11 +328,12 @@ sub _claim_copy_script ($dest, $owner, $checksum = undef, $interval = 10, $stall
     }
     _release_claim() {
         if [ -n "\$_heartbeat_pid" ]; then
-            { kill "\$_heartbeat_pid"; wait "\$_heartbeat_pid"; } 2>/dev/null
+            kill "\$_heartbeat_pid" 2>/dev/null
         fi
         if [ -n "\$_claimed" ] && _owns_marker; then
             rm -rf "$marker"
         fi
+        true
     }
     trap _release_claim EXIT
     _seen=''
@@ -370,6 +378,7 @@ sub provide_image_in_datastore ($svirt, $input_file, $vmware_openqa_datastore, %
     # expected name of uncompressed image
     my $baseimage = basename($input_file) =~ s/\.xz$//r;
     my $dest_image = "$vmware_openqa_datastore/${baseimage}";
+    $dest_image =~ s{//+}{/}g;
     # Use the standard folder for an input file without full path
     my $file_origin = ($input_file eq $basefile) ? "$base_dir/$vmware_nfs_datastore/$nfs_dir/$basefile" : $input_file;
     my $dest_xz = "$dest_image.xz";
@@ -380,21 +389,24 @@ sub provide_image_in_datastore ($svirt, $input_file, $vmware_openqa_datastore, %
     # final image also covers the .xz copy, as only the job producing the image needs it.
     # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
     my $verified = _indent(_verified_script($checksum));
-    my $claim = _indent(_claim_copy_script($dest_image, $name, $checksum));
-    my $failure_note = _failure_note_path($dest_image, $name);
-    my $copy_xz = _indent(_atomic_copy_script($file_origin, $dest_xz, _tmp_image_path($dest_xz, $name), $checksum, $failure_note), 3);
-    my $decompress = _indent(_atomic_decompress_script($dest_xz, $dest_image, _tmp_image_path($dest_image, $name), $checksum), 2);
-    my $copy_image = _indent(_atomic_copy_script($file_origin, $dest_image, _tmp_image_path($dest_image, $name), $checksum, $failure_note), 2);
+    my $claim = _indent(_claim_copy_script('$dest', $name, $checksum));
+    my $failure_note = _failure_note_path('$dest', $name);
+    my $copy_xz = _indent(_atomic_copy_script('$src', '$dest_xz', _tmp_image_path('$dest_xz', $name), $checksum, $failure_note), 3);
+    my $decompress = _indent(_atomic_decompress_script('$dest_xz', '$dest', _tmp_image_path('$dest', $name), $checksum), 2);
+    my $copy_image = _indent(_atomic_copy_script('$src', '$dest', _tmp_image_path('$dest', $name), $checksum, $failure_note), 2);
     my $cmd = <<~"EOF";
     $debug
     input_file="$input_file"
+    dest="$dest_image"
+    dest_xz="$dest_xz"
+    src="$file_origin"
     $verified
     $claim
-    if _verified "$dest_image"; then
-        echo "VMware image $dest_image ready"
+    if _verified "\$dest"; then
+        echo "VMware image \$dest ready"
     else
-        if [ "\${input_file##*.}" = "xz" ]; then
-            if ! _verified "$dest_xz"; then
+        if [ "\\\${input_file##*.}" = "xz" ]; then
+            if ! _verified "\$dest_xz"; then
     $copy_xz
             fi
     $decompress
@@ -402,11 +414,17 @@ sub provide_image_in_datastore ($svirt, $input_file, $vmware_openqa_datastore, %
     $copy_image
         fi
     fi
-    echo "Done: origin:" $file_origin* " ; dest.:" $dest_image*
+    echo "Done: origin: \$src ; dest.: \$dest"
+    exit 0
     EOF
 
-    my $ret = $svirt->run_cmd($cmd, domain => 'sshVMwareServer');
-    croak "Error on VMware image $input_file preparation." if $ret;
+    my ($ret, $stdout, $stderr) = $svirt->run_cmd($cmd, domain => 'sshVMwareServer', wantarray => 1);
+    if ($ret) {
+        $stdout //= '';    # uncoverable statement
+        $stderr //= '';    # uncoverable statement
+        bmwqemu::diag "Error on VMware image preparation command. Exit code: $ret\nStdout:\n$stdout\nStderr:\n$stderr" if $stdout || $stderr; # uncoverable statement
+        croak "Error on VMware image $input_file preparation.";    # uncoverable statement
+    }
     return $dest_image;
 }
 
@@ -421,25 +439,34 @@ sub copy_image_to_datastore ($svirt, $name, $backingfile, $file_basename, %args)
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     # cmd debugging activable by setting VMWARE_NFS_DATASTORE_DEBUG=1
     my $ds_debug = ($bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} // 0) ? 'set -x;' : '';
-    my $dest_image = "$vmware_openqa_datastore$file_basename";
+    my $dest_image = "$vmware_openqa_datastore/$file_basename";
+    $dest_image =~ s{//+}{/}g;
     my $file_origin = "/vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename";
     my $checksum = _expected_checksum($file_basename);
     my $verified = _indent(_verified_script($checksum));
-    my $claim = _indent(_claim_copy_script($dest_image, $name, $checksum));
-    my $copy_image = _indent(_atomic_copy_script($file_origin, $dest_image, _tmp_image_path($dest_image, $name), $checksum, _failure_note_path($dest_image, $name)), 1);
+    my $claim = _indent(_claim_copy_script('$dest', $name, $checksum));
+    my $copy_image = _indent(_atomic_copy_script('$src', '$dest', _tmp_image_path('$dest', $name), $checksum, _failure_note_path('$dest', $name)), 1);
     # Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
     my $cmd = <<~"EOF";
     $ds_debug
+    dest="$dest_image"
+    src="$file_origin"
     $verified
     $claim
-    if _verified "$dest_image"; then
-        echo "VMware image $dest_image is already present and verified"
+    if _verified "\$dest"; then
+        echo "VMware image \$dest is already present and verified"
     else
     $copy_image
     fi
+    exit 0
     EOF
-    my $retval = $svirt->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $copy_timeout);
-    die "Can't copy VMware image $file_basename" if $retval;
+    my ($retval, $stdout, $stderr) = $svirt->run_cmd($cmd, domain => 'sshVMwareServer', timeout => $copy_timeout, wantarray => 1);
+    if ($retval) {
+        $stdout //= '';    # uncoverable statement
+        $stderr //= '';    # uncoverable statement
+        bmwqemu::diag "Can't copy VMware image. Exit code: $retval\nStdout:\n$stdout\nStderr:\n$stderr" if $stdout || $stderr;    # uncoverable statement
+        die "Can't copy VMware image $file_basename";    # uncoverable statement
+    }
     return unless $backingfile;
     # Power VM off, delete its disk image, and create it again.
     # Then wait for some time for the VM to *really* turn off.
