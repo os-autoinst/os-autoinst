@@ -405,6 +405,39 @@ openqa-clone-job --skip-chained-deps --within-instance <target_job_url> \
   ISOTOVIDEO="c=/var/lib/openqa/cache/podman_storage && p=\$(pwd)/podman_tmp && mkdir -p \$c \$p/run && env HOME=\$p XDG_RUNTIME_DIR=\$p/run podman --root \$c --runroot \$p/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
 ```
 
+## Local and remote verification
+
+When developing and verifying modifications to `os-autoinst` or the test
+distributions, you can verify changes locally on your development machine or
+remotely by patching active openQA workers:
+
+### 1. Local verification
+To run `isotovideo` locally against a cloned test-distribution, execute the local
+`isotovideo` script from a dedicated local test run directory (where temporary
+state files will be written) instead of running directly inside your cloned
+test-distribution. This prevents polluting your test-distribution repository with
+test execution artifacts:
+
+```sh
+# Run from your dedicated local test run directory:
+/path/to/os-autoinst/isotovideo --debug CASEDIR=/path/to/test-distribution [VARIABLES]
+```
+
+### 2. Remote verification by patching workers
+To verify changes on an active, remote openQA worker without waiting
+for a package update, copy your modified local Perl modules directly to the
+corresponding path on the worker. Since a new `isotovideo` process is spawned
+for each job, the next job run will automatically load the newly-patched
+modules:
+
+```sh
+# Copy your local modified module to the remote worker:
+rsync -v --rsync-path="sudo rsync" consoles/VMWare.pm worker_host:/usr/lib/os-autoinst/consoles/VMWare.pm
+
+# Or if a jump host (e.g., o3) is required to reach the worker:
+rsync -v -e 'ssh -J o3' --rsync-path="sudo rsync" consoles/VMWare.pm worker_host:/usr/lib/os-autoinst/consoles/VMWare.pm
+```
+
 # Running isotovideo as CI check
 
 We provide a container to run `isotovideo` which can be used to run

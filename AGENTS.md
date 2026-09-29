@@ -21,6 +21,9 @@ test scripts.
   reusing existing failing test modules (e.g. from `t/data/tests`) for
   integration tests. Prefer self-explanatory test description strings rather
   than in-file comments.
+- **Verification**: See the "Local and remote verification" section in
+  `README.md` for standard procedures on local execution and remote worker
+  verification of your changes.
 - Dependencies: Update `dependencies.yaml` and run `make update-deps`.
 
 ## Constraints
