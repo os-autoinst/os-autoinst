@@ -294,7 +294,10 @@ sub run_post_fail ($self, $msg) {
         $self->{post_fail_hook_running} = 1;
         $self->record_resultfile('Post-fail', 'Entering post fail hook', result => 'unk');
         try { $self->post_fail_hook }
-        catch ($e) { bmwqemu::diag("post_fail_hook failed: $e") }    # uncoverable statement
+        catch ($e) {
+            $self->_handle_test_exception($e, 'Post fail hook', "Failed\n(post)");
+            bmwqemu::diag("post_fail_hook failed: $e");
+        }
         $self->{post_fail_hook_running} = 0;
 
         # There might be more messages on serial now.
@@ -317,6 +320,52 @@ sub compute_test_execution_time ($self) {
     bmwqemu::modstate(sprintf 'finished %s %s (runtime: %d s)', $self->{name}, $self->{category}, $self->{execution_time});
 }
 
+sub _handle_test_exception ($self, $e, $what, $type, $died = undef) {
+    # copy the exception early
+    my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
+
+    my $stacktrace = [];
+    my $error_message = "$e";
+    if ((ref $e) =~ 'OpenQA::Exception::(?:TestapiError|FailedNeedle)') {
+        my $s = $e->error;
+        while (my $frame = $e->trace->next_frame) {
+            push @$stacktrace, {filename => $frame->filename, line => $frame->line, sub => $frame->subroutine, frame => $frame->as_string};
+        }
+        $stacktrace = bmwqemu::filter_stack_trace($stacktrace);
+    }
+    elsif ($error_message =~ m/ at ((\S+) line (\d+))/) {
+        $stacktrace = bmwqemu::filter_stack_trace([{filename => $2, line => $3, frame => $1}]);
+    }
+
+    $self->{result} = 'fail';
+    # add a fail screenshot in case there is none
+    if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
+        bmwqemu::update_line_number([reverse @$stacktrace]);
+        $self->take_screenshot();
+    }
+    if (!$internal && $error_message =~ /Can't locate .+ in \@INC/) {
+        my $msg = "# $what died with missing dependency: $e";
+        bmwqemu::fctinfo($msg);
+        bmwqemu::update_line_number();
+        $self->record_resultfile($type, $msg, result => 'fail');
+        $self->{fatal_failure} = 1;
+        bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
+        $$died = 1 if $died;
+    }
+    # show a text result with the die message unless the die was internally generated
+    if (!$internal) {
+        my $msg = "# $what died: $error_message";
+        if (@$stacktrace) {
+            $msg .= "\n--- # stack trace\n" . (join '', map { $_->{frame} . "\n" } @$stacktrace);
+        }
+        bmwqemu::fctinfo($msg);
+        bmwqemu::update_line_number([reverse @$stacktrace]);
+        $self->record_resultfile($type, $msg, result => 'fail');
+        $$died = 1 if $died;
+    }
+    return $error_message;
+}
+
 sub runtest ($self) {
     $self->{test_start_time} = time;
 
@@ -330,50 +379,7 @@ sub runtest ($self) {
         $self->post_run_hook();
     }
     catch ($e) {
-        # copy the exception early
-        my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
-
-        my $stacktrace = [];
-        $error_message = "$e";
-        if ((ref $e) =~ 'OpenQA::Exception::(?:TestapiError|FailedNeedle)') {
-            my $s = $e->error;
-            while (my $frame = $e->trace->next_frame) {
-                push @$stacktrace, {filename => $frame->filename, line => $frame->line, sub => $frame->subroutine, frame => $frame->as_string};
-            }
-            $stacktrace = bmwqemu::filter_stack_trace($stacktrace);
-        }
-        else {
-            if ($error_message =~ m/ at ((\S+) line (\d+))/) {
-                $stacktrace = bmwqemu::filter_stack_trace([{filename => $2, line => $3, frame => $1}]);
-            }
-        }
-
-        $self->{result} = 'fail';
-        # add a fail screenshot in case there is none
-        if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
-            bmwqemu::update_line_number([reverse @$stacktrace]);
-            $self->take_screenshot();
-        }
-        if (!$internal && $error_message =~ /Can't locate .+ in \@INC/) {
-            my $msg = "# Test died with missing dependency: $e";
-            bmwqemu::fctinfo($msg);
-            bmwqemu::update_line_number();
-            $self->record_resultfile('Failed', $msg, result => 'fail');
-            $self->{fatal_failure} = 1;
-            bmwqemu::serialize_state(component => 'tests', msg => "Missing Perl module: $e", result => 'incomplete');
-            $died = 1;
-        }
-        # show a text result with the die message unless the die was internally generated
-        if (!$internal) {
-            my $msg = "# Test died: $error_message";
-            if (@$stacktrace) {
-                $msg .= "\n--- # stack trace\n" . (join '', map { $_->{frame} . "\n" } @$stacktrace);
-            }
-            bmwqemu::fctinfo($msg);
-            bmwqemu::update_line_number([reverse @$stacktrace]);
-            $self->record_resultfile('Failed', $msg, result => 'fail');
-            $died = 1;
-        }
+        $error_message = $self->_handle_test_exception($e, 'Test', 'Failed', \$died);
     }
 
     try { $self->search_for_expected_serial_failures() }

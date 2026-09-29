@@ -110,6 +110,26 @@ subtest run_post_fail_test => sub {
     combined_like { dies_ok { $basetest->runtest } 'run_post_fail ends up with die (2)' } qr/finished foo.*post fail hook/s,
       'finished module and ran post fail hook';
     is $basetest->{result}, 'softfail', 'test considered softfailed after forcing softfailure in post fail hook';
+
+    my $test_post_failhook_error_handling = sub () {
+        local $bmwqemu::vars{CASEDIR} = 't';
+        $basetest = bless {details => [], name => 'foo', category => 'category1', execute_time => 42}, $basetest_class;
+        $logs = combined_from { dies_ok { $basetest->runtest } 'run_post_fail ends up with die' };
+        like $logs, qr/post_fail_hook failed: failure during post fail hook/, 'post fail hook failure logged';
+        is $basetest->{result}, 'fail', 'test considered failed after post fail hook failed';
+        is scalar @{$basetest->{details}}, 2, 'failures of both test and post fail hook recorded';
+        is $basetest->{details}->[1]->{title}, "Failed\n(post)", 'failure during post fail hook recorded as result';
+        is $basetest->{details}->[1]->{result}, 'fail', 'failure during post fail hook has fail result';
+        my $hook_fail_result_file = path('testresults', $basetest->{details}->[1]->{text});
+        ok -e $hook_fail_result_file, 'result file for post fail hook failure created';
+        like $hook_fail_result_file->slurp, qr/# Post fail hook died: failure during post fail hook.*--- # stack trace/s,
+          'stack trace for post fail hook failure recorded';
+        is $basetest->{post_fail_hook_running}, 0, 'post_fail_hook_running flag reset';
+    };
+    $mock_basetest->mock(post_fail_hook => sub ($self) { die 'failure during post fail hook' });
+    subtest 'post fail hook dies' => $test_post_failhook_error_handling;
+    $mock_basetest->mock(post_fail_hook => sub ($self) { OpenQA::Exception::TestapiError->throw(error => 'failure during post fail hook') });
+    subtest 'test API failure in post fail hook' => $test_post_failhook_error_handling;
 };
 
 subtest modules_test => sub {
