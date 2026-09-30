@@ -30,6 +30,12 @@ use Scalar::Util qw(blessed);
 use Mojo::File qw(tempdir path);
 use Digest::SHA;
 
+# Maximum safe byte limit for shell scripts executed over SSH on ESXi.
+# ESXi's minimal BusyBox ash interpreter fails with a "/bin/sh: File too large"
+# kernel error (EFBIG) when parsing command strings via `sh -c` that exceed
+# roughly 8 KB (8192 bytes). We limit to 7000 as a conservative safety net.
+use constant MAX_ESXI_SHELL_SCRIPT_SIZE => 7000;
+
 use consoles::VMWare;
 
 $bmwqemu::topdir = "$Bin/..";
@@ -290,21 +296,22 @@ subtest 'test against real VMWare instance' => sub {
 
 subtest 'VMware images are verified against their published checksum before publishing' => sub {
     my $my_test_basedir = tempdir('/tmp/27-vmware-checksum-XXXX');
-    my $nfs_ds = 'openqa_checksum';
-    my $ds = 'datastore_checksum';
+    my $nfs_ds = 'openqa datastore space';
+    my $ds = 'datastore checksum space';
     $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
     $bmwqemu::vars{VIRSH_OPENQA_BASEDIR} = $my_test_basedir;
     $bmwqemu::vars{VMWARE_NFS_DATASTORE} = $nfs_ds;
-    my $iso = 'checksum-mock.iso';
+    my $iso = 'checksum mock.iso';
     my $source = path($my_test_basedir, $nfs_ds, 'iso')->make_path->child($iso);
     $source->spew('VMware image with a published checksum');
     my $vmware_openqa_datastore = path($my_test_basedir, $ds, 'openQA')->make_path;
     my $dest = path($vmware_openqa_datastore, $iso);
     my $digest = Digest::SHA->new(256)->addfile($source->to_string)->hexdigest;
     my $last_output;
+    my $last_cmd;
     # stands in for the sshVirtsh console, running the generated script on the local host
     my $svirt = Test::MockObject->new->set_always(name => 'openQA-SUT-1');
-    $svirt->mock(run_cmd => sub ($self, $cmd, %args) { $last_output = qx{($cmd) 2>&1}; $? >> 8 });
+    $svirt->mock(run_cmd => sub ($self, $cmd, %args) { $last_cmd = $cmd; $last_output = qx{($cmd) 2>&1}; $? >> 8 });
     $bmwqemu::vars{ISO} = "/var/lib/openqa/share/factory/iso/$iso";
     my $provide = sub { consoles::VMWare::provide_image_in_datastore($svirt, $source, $vmware_openqa_datastore) };
 
@@ -314,7 +321,12 @@ subtest 'VMware images are verified against their published checksum before publ
         lives_ok { $provide->() } 'image provided';
         is $dest->slurp, $source->slurp, 'published image matches the source';
         like $last_output, qr/Verified .*against its published checksum/, 'verification is reported';
-        is_deeply [glob "$dest.*.part"], [], 'no temporary file left behind';
+        is_deeply $vmware_openqa_datastore->list->grep(qr/\.part$/)->to_array, [], 'no temporary file left behind';
+
+        ok length($last_cmd) <= MAX_ESXI_SHELL_SCRIPT_SIZE, 'generated shell script stays under conservative limit ' . MAX_ESXI_SHELL_SCRIPT_SIZE;
+        unlike $last_cmd, qr/\becho "Done: origin:.*?\*/, 'unsafe shell globbing is avoided in output messages';
+        my $path_occurrences = () = $last_cmd =~ /\Q$vmware_openqa_datastore\E/g;
+        ok $path_occurrences <= 3, 'path interpolation is minimized in favor of shell variables';
     };
 
     subtest 'mismatching checksum leaves the destination untouched' => sub {
@@ -324,7 +336,16 @@ subtest 'VMware images are verified against their published checksum before publ
         ok !-e $dest, 'a corrupt image is never published';
         like $last_output, qr/Checksum mismatch .*expected b{64} but computed SHA-256 \Q$digest\E/, 'mismatch names both digests';
         like path(consoles::VMWare::_failure_note_path($dest, 'openQA-SUT-1'))->slurp, qr/Checksum mismatch .*expected b{64}/, 'the mismatch is left for the jobs waiting for this one';
-        is_deeply [glob "$dest.*.part"], [], 'temporary file removed';
+        is_deeply $vmware_openqa_datastore->list->grep(qr/\.part$/)->to_array, [], 'temporary file removed';
+    };
+
+    subtest 'mismatching 128 character SHA-512 checksum leaves the destination untouched' => sub {
+        $dest->remove;
+        $bmwqemu::vars{CHECKSUM_ISO} = 'b' x 128;
+        throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails with SHA-512';
+        ok !-e $dest, 'a corrupt image is never published for SHA-512 mismatch';
+        like $last_output, qr/Checksum mismatch .*expected b{128} but computed SHA-512 /, 'mismatch names SHA-512 digest';
+        is_deeply $vmware_openqa_datastore->list->grep(qr/\.part$/)->to_array, [], 'temporary file removed';
     };
 
     subtest 'image without a published checksum is copied unverified' => sub {
@@ -369,7 +390,7 @@ subtest 'VMware images are verified against their published checksum before publ
         throws_ok { $provide->() } qr/Error on VMware image .* preparation/, 'image preparation fails on a mismatch';
         is $dest->slurp, 'verified against an older checksum', 'the existing image is left alone';
         is path(consoles::VMWare::_verified_record_path($dest))->slurp, 'c' x 64, 'its record still describes it';
-        is_deeply [glob "$dest.*.part"], [], 'temporary file removed';
+        is_deeply $vmware_openqa_datastore->list->grep(qr/\.part$/)->to_array, [], 'temporary file removed';
     };
 
     subtest 'a job without a published checksum keeps using whatever is there' => sub {
