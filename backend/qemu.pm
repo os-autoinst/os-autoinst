@@ -828,8 +828,8 @@ sub start_qemu ($self) {
     for (my $i = 0; $i < $num_networks; $i++) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 16384)
-        my $workerid = $vars->{WORKER_ID};
-        $nicmac[$i] //= sprintf '52:54:00:12:%02x:%02x', int($workerid / 256) + $i * $nic_offset, $workerid % 256;
+        my $workerid = $vars->{WORKER_ID} // 0;
+        $nicmac[$i] //= sprintf '52:54:00:12:%02x:%02x', (int($workerid / 256) + $i * 64) % 256, $workerid % 256;
 
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};

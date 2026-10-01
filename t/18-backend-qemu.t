@@ -770,6 +770,21 @@ subtest 'special cases when starting QEMU' => sub {
         $process_mock->called_args_pos_is(3, 2, 'cleanup', 'cleanup event emitted');
     }
 
+    @qemu_params = ();
+    $bmwqemu::vars{WORKER_ID} = 4090;
+    $bmwqemu::vars{TAPDEV} = 'auto,auto';
+    $bmwqemu::vars{NICOFFSET} = 1000;
+    delete $bmwqemu::vars{NICMAC};
+    combined_like { $backend->start_qemu } qr{.*}s, 'invoked with multiple tap devices and NICOFFSET=1000';
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{tap id=qanet0 ifname=tap2 script=no downscript=no}, 'qanet0 tapdev correct';
+    like $qemu_params, qr{tap id=qanet1 ifname=tap1002 script=no downscript=no}, 'qanet1 tapdev offset by NICOFFSET';
+    like $qemu_params, qr{netdev=qanet0 mac=52:54:00:12:0f:fa}, 'qanet0 MAC address correct';
+    like $qemu_params, qr{netdev=qanet1 mac=52:54:00:12:4f:fa}, 'qanet1 MAC address valid and not overflowed by NICOFFSET';
+    delete $bmwqemu::vars{TAPDEV};
+    delete $bmwqemu::vars{NICOFFSET};
+    $bmwqemu::vars{WORKER_ID} = 42;
+
     $bmwqemu::vars{NICPCIADDR} = 19;
     $bmwqemu::vars{NICTYPE} = 'user';
     combined_like { $backend->start_qemu } qr{.*}s, 'invoked with NICPCIADDR';
