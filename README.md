@@ -488,3 +488,4 @@ chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
 useradd -m USERNAME -G kvm
 passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
 ```
+
