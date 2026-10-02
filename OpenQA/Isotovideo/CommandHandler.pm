@@ -5,6 +5,7 @@ package OpenQA::Isotovideo::CommandHandler;
 use Mojo::Base 'Mojo::EventEmitter', -signatures;
 
 use bmwqemu;
+use Feature::Compat::Try;
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::NeedleDownloader;
@@ -118,9 +119,15 @@ sub _postpone_backend_command_until_resumed ($self, $response) {
     return 1;
 }
 
-sub _send_to_cmd_srv ($self, $data) { myjsonrpc::send_json($self->cmd_srv_fd, $data) }
+sub _send_to_cmd_srv ($self, $data) {
+    return undef unless defined $self->cmd_srv_fd;
+    myjsonrpc::send_json($self->cmd_srv_fd, $data);
+}
 
-sub _send_to_backend ($self, $data) { myjsonrpc::send_json($self->backend_fd, $data) }
+sub _send_to_backend ($self, $data) {
+    return undef unless defined $self->backend_fd;
+    myjsonrpc::send_json($self->backend_fd, $data);
+}
 
 sub send_to_backend_requester ($self, $data) {
     return unless $self->backend_requester;
@@ -151,7 +158,9 @@ sub _respond_ok_or_postpone_if_paused ($self) {
 }
 
 sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
-    return if $self->_postpone_backend_command_until_resumed($response);
+    return undef if $self->_postpone_backend_command_until_resumed($response);
+
+    return $self->_respond({ret => {}}) unless defined $self->backend_fd;
 
     die 'isotovideo: we need to implement a backend queue' if $self->backend_requester;
     $self->backend_requester($self->answer_fd);
@@ -288,7 +297,11 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
 
 sub _handle_command_set_current_test ($self, $response, @) {
     # Note: It is unclear why we call set_serial_offset here
-    $bmwqemu::backend->_send_json({cmd => 'clear_serial_buffer'});
+    try { $bmwqemu::backend->_send_json({cmd => 'clear_serial_buffer'}) }
+    catch ($e) {
+        die $e unless $e =~ /remote end terminated|no backend running/;
+        diag('isotovideo: backend already gone during shutdown, skipping clear_serial_buffer');
+    }
 
     my ($test_name, $full_test_name) = ($response->{name}, $response->{full_name});
     my $pause_test_name = $self->pause_test_name;
@@ -392,6 +405,11 @@ sub _handle_command_send_clients ($self, $response, @) {
     delete $response->{cmd};
     delete $response->{json_cmd_token};
     $self->_send_to_cmd_srv($response);
+    $self->_respond_ok();
+}
+
+sub _handle_command_set_component_state ($self, $response, @) {
+    bmwqemu::serialize_state(component => $response->{component}, msg => $response->{msg});
     $self->_respond_ok();
 }
 
