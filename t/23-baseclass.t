@@ -338,10 +338,15 @@ subtest 'SSH utilities' => sub {
         is $baseclass->check_ssh_serial(42), 0, 'Return 0 when called with wrong socket';
         is $baseclass->check_ssh_serial($ssh->sock, 1), 1, 'early return if $write is set';
 
+        my $base_state = path(bmwqemu::STATE_FILE);
+        $base_state->remove if -e $base_state;
         @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
-        stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on ERROR only';
-        is $exit_value, 1, 'Check return value on EAGAIN';
-        is $baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR';
+        throws_ok { $baseclass->check_ssh_serial($ssh->sock()) } qr/backend died: Lost SSH serial connection: OHA \(error code: 666\)/,
+          'dies with backend error when SSH serial read fails with fatal error';
+        is $baseclass->{serial}, undef, 'SSH serial is disconnected on fatal read error';
+        my $state = decode_json($base_state->slurp);
+        is $state->{result}, 'incomplete', 'state file records incomplete result on fatal serial error';
+        $base_state->remove;
 
         is $baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected';
     };
