@@ -172,7 +172,7 @@ sub load_snapshot ($self, $args) {
             sleep 10;
             last
               unless $self->run_ssh_cmd(
-                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
+                'pgrep --full --list-full xfreerdp.*$(cat xfreerdp_' . $vmname . '_stop.bkp)',
                 $self->get_ssh_credentials('hyperv'));
             $self->die('xfreerdp did not start') if ($i eq 5);
         }
