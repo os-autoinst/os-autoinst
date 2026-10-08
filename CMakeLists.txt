@@ -158,6 +158,11 @@ add_custom_target(
     ${OUT_OF_SOURCE_TREE_BUILD_COMMANDS}
 )
 add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
+add_custom_target(
+    prepare-dev-environment
+    COMMENT "Preparing development environment (symlinks)"
+)
+add_dependencies(prepare-dev-environment symlinks)
 
 # create installable versions of isotovideo and cv.pm
 set(OS_AUTOINST_VERSION "" CACHE STRING "os-autoinst version to set for the installation")
