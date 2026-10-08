@@ -149,6 +149,11 @@ if (NOT SRC_DIR STREQUAL BIN_DIR)
     endforeach ()
 endif ()
 add_custom_target(
+    setup-fonts
+    COMMENT "Ensuring X11/Fontconfig fonts required by localXvnc (icewm, xterm) are available in container builds"
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/setup-fonts"
+)
+add_custom_target(
     symlinks
     COMMENT "Symlinking created executables into source directory"
     COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv"
@@ -160,9 +165,9 @@ add_custom_target(
 add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
 add_custom_target(
     prepare-dev-environment
-    COMMENT "Preparing development environment (symlinks)"
+    COMMENT "Preparing development environment (symlinks and container fonts)"
 )
-add_dependencies(prepare-dev-environment symlinks)
+add_dependencies(prepare-dev-environment symlinks setup-fonts)
 
 # create installable versions of isotovideo and cv.pm
 set(OS_AUTOINST_VERSION "" CACHE STRING "os-autoinst version to set for the installation")
