@@ -338,16 +338,19 @@ sub mydie ($cause_of_death) {
 
 # store the obj as json into the given filename
 sub save_json_file ($result, $fn) {
-    open my $fd, '>', "$fn.new";
     my $json;
     try { $json = Cpanel::JSON::XS->new->utf8->pretty->canonical->encode($result) }
     catch ($e) {
         my $dump = Data::Dumper->Dump([$result], ['result']);
         croak "Cannot encode input: $e\n$dump";
     }
-    print $fd $json;
-    close $fd;
-    return rename "$fn.new", $fn;
+
+    my $target = path($fn);
+    my $tmp = path("$fn.$$.tmp");
+
+    # write to temp file then rename atomically
+    $tmp->spew($json);
+    return $tmp->move_to($target);
 }
 
 sub scale_timeout ($timeout) {
