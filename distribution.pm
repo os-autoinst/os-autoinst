@@ -209,7 +209,7 @@ sub script_run ($self, $cmd, @args) {
             testapi::type_string "export _OAM=$str; $cmd\n", max_interval => $args{max_interval};
         }
         else {
-            my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+            my $marker = "; echo $str-" . '$?-' . ($args{output} ? "Comment: $args{output}" : '');
             my $final_cmd = _no_marker_prefix($cmd, $skip_pretty);
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
@@ -258,7 +258,7 @@ sub background_script_run ($self, $cmd, %args) {
     $cmd = _no_marker_prefix("( $cmd )");
     testapi::type_string $cmd;
     my $str = testapi::hashed_string('SR' . $cmd);
-    my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
+    my $marker = "& echo $str-" . '$!-' . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string $marker;
         testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => 1, internal_marker => 1) or _handle_cmd_typing_error($cmd, \%args);
@@ -336,9 +336,9 @@ sub script_output ($self, $script, @args) {
 
     if (testapi::is_serial_terminal) {
         my $heretag = 'EOT_' . $marker;
-        my $cat = "cat > $script_path << '$heretag'; echo $marker-\$?-";
+        my $cat = "cat > $script_path << '$heretag'; echo $marker-" . '$?-';
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
-        bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
+        bmwqemu::log_call(qq{Content of $script_path :\n "$cat" \n});
         testapi::type_string $cat . "\n";
         testapi::wait_serial("$cat", no_regex => 1, quiet => 1);
         # Wait for input prompt of here tag before typing $script. This avoids
@@ -370,7 +370,7 @@ sub script_output ($self, $script, @args) {
     # might encounter on the serial device depending on how it is used in the
     # SUT
     my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
-    my $run_script = _no_marker_prefix("echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-");
+    my $run_script = _no_marker_prefix("echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-" . '$?-');
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => 1);
         testapi::type_string "$run_script\n";
@@ -660,7 +660,7 @@ sub detect_serial_marker_capability ($self) {
         return $self->{_serial_marker_level}->{$console} = $level;
     }
 
-    testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
+    testapi::type_string('echo "BASH:$BASH_VERSION:" > /dev/' . $testapi::serialdev . "\n");
     my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
     if ($out && $out =~ /BASH:(?:[3-9]|\d{2,})/) {
         $level = 3;

@@ -293,7 +293,7 @@ sub do_capture ($self, $buckets, $timeout = undef, $starttime = undef) {
                 my $name = $self->{select_read}->get_name($fh);
                 my $msg = "The file descriptor $fd_nr ($name) hit the read attempts threshold of $hits_limit/${wait_time_limit}s by $cnt. ";
                 $msg .= "Active console '$console' is not responding, it could be a half-open socket or you need to increase _CHKSEL_RATE_HITS value. ";
-                $msg .= "Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown.";
+                $msg .= q{Make sure the console is reachable or disable stall detection on expected disconnects with '$console->disable_vnc_stalls', for example in case of intended machine shutdown.};
                 OpenQA::Exception::ConsoleReadError->throw(error => $msg);
             }
         }

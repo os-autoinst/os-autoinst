@@ -315,7 +315,7 @@ subtest 'missing Perl module triggers incomplete' => sub {
     my $mock = Test::MockModule->new('basetest');
     $mock->noop('take_screenshot');
     $mock->mock(run => sub {
-            die "Can't locate HTTP/Request/Common.pm in \@INC (you may need to install the HTTP::Request::Common module)\n";
+            die q{Can't locate HTTP/Request/Common.pm in @INC (you may need to install the HTTP::Request::Common module)} . "\n";
     });
     local $bmwqemu::vars{MAX_TEST_STEPS} = 100;
     my $basetest = bless {details => [], name => 'foo', fullname => 'foo', category => 'category1'}, 'basetest';
