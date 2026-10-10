@@ -184,6 +184,9 @@ sub check_socket ($self, $fh, $write = undef) {
     return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
+# bare-metal: the SSH serial is the SUT, so a disconnect during reboot is expected
+sub ssh_serial_fatal ($self) { 0 }
+
 # serial grab
 
 sub start_serial_grab ($self) {
