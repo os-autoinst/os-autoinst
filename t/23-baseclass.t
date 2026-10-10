@@ -348,6 +348,16 @@ subtest 'SSH utilities' => sub {
         is $state->{result}, 'incomplete', 'state file records incomplete result on fatal serial error';
         $base_state->remove;
 
+        ($ssh, $chan) = $baseclass->start_ssh_serial(username => 'serial', password => 'XXX', hostname => 'serial.host');
+        $chan->mock(read => sub { return });
+        my $mock_fatal = Test::MockModule->new('backend::baseclass');
+        $mock_fatal->redefine(ssh_serial_fatal => sub { 0 });
+        @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
+        my $graceful_ret = $baseclass->check_ssh_serial($ssh->sock());
+        is $graceful_ret, 1, 'Bare-metal backend returns 1 on fatal read error so the test keeps running';
+        is $baseclass->{serial}, undef, 'SSH serial is disconnected on graceful read error';
+        ok !-e $base_state, 'No incomplete state file written on graceful disconnect';
+
         is $baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected';
     };
 
