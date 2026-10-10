@@ -3,8 +3,8 @@
 
 build := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))build
 .PHONY: all
-all: build/build.ninja ## Build all and create symlinks
-	ninja -C ${build} symlinks
+all: build/build.ninja ## Build all and prepare development environment
+	ninja -C ${build} prepare-dev-environment
 
 .PHONY: help
 help: build/build.ninja ## Display this help
