@@ -1304,10 +1304,8 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
     return 1 if $error_code == LIBSSH2_ERROR_EAGAIN;
 
     bmwqemu::fctwarn "ssh serial: unable to read: $error_string (error code: $error_code) - closing connection";
-    my $msg = "Lost SSH serial connection: $error_string (error code: $error_code)";
-    bmwqemu::serialize_state(component => 'backend', msg => $msg, result => 'incomplete');
     $self->stop_ssh_serial();
-    die "backend died: $msg\n";
+    return 1;
 }
 
 =head2 run_ssh_cmd
