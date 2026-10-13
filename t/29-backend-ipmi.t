@@ -24,6 +24,7 @@ ok my $backend = backend::ipmi->new(), 'backend can be created';
 $bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
 my @ipmi_cmdline = $backend->ipmi_cmdline;
 is_deeply \@ipmi_cmdline, [qw(ipmitool -I lanplus -H fake_HOSTNAME -U fake_USER -P fake_PASSWORD)], 'valid ipmi_cmdline';
+is $backend->ssh_serial_fatal, 0, 'loss of the SSH serial connection is not treated as fatal';
 
 my $ipmi = Test::MockModule->new('backend::ipmi');
 throws_ok { $backend->ipmitool('foo') } qr/[masked]/, 'ipmi password masked in error output';

@@ -44,6 +44,7 @@ $bmwqemu::vars{HDDSIZEGB_1} = 5;
 # initialize distribution and backend
 my $distri = $testapi::distri = distribution->new;
 my $backend = backend::generalhw->new;
+is $backend->ssh_serial_fatal, 0, 'loss of the SSH serial connection is not treated as fatal';
 
 # mock backend::generalhw::_system() and the VNC console
 my $cmd_mock = Test::MockModule->new('backend::generalhw');
