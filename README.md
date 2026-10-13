@@ -438,6 +438,28 @@ rsync -v --rsync-path="sudo rsync" consoles/VMWare.pm worker_host:/usr/lib/os-au
 rsync -v -e 'ssh -J o3' --rsync-path="sudo rsync" consoles/VMWare.pm worker_host:/usr/lib/os-autoinst/consoles/VMWare.pm
 ```
 
+### 3. Running isotovideo against a SUT behind a jump host
+To run `isotovideo` locally against a SUT that is only reachable through a jump
+host (e.g. `o3`), forward the required ports to localhost and point the
+variables to the tunnel endpoints. Regular users cannot bind privileged ports
+such as 22, hence the SSH console port is configurable via `SUT_PORT`.
+
+- IPMI (UDP 623): run a local UDP listener that relays datagrams over SSH and
+  point `ipmitool` to it:
+  ```sh
+  socat UDP4-LISTEN:6230,fork,reuseaddr EXEC:"ssh -q jump_host socat STDIO UDP4:sut_ipmi_ip:623"
+  IPMI_HOSTNAME=127.0.0.1 IPMI_OPTIONS="-I lanplus -p 6230"
+  ```
+- Serial console / SSH (TCP 22): forward a high local port to the SUT and use
+  it via `SUT_IP` and `SUT_PORT`:
+  ```sh
+  ssh -N -L 10022:sut_ip:22 jump_host
+  SUT_IP=127.0.0.1 SUT_PORT=10022
+  ```
+
+`SUT_PORT` applies to the `sshXtermVt`, `sshIucvconn` and `localXvnc` consoles
+and defaults to 22.
+
 # Running isotovideo as CI check
 
 We provide a container to run `isotovideo` which can be used to run
