@@ -12,11 +12,12 @@ use autodie ':all';
 
 sub connect_remote ($self, $args) {
     my $hostname = $args->{hostname};
+    my $port = $args->{port} || $bmwqemu::vars{SUT_PORT} || 22;
     my $zvmguest = $bmwqemu::vars{ZVM_GUEST};
     ($zvmguest) = $zvmguest =~ /(.*?)\..*$/;
 
     # ssh connection to SUT for agetty
-    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');
+    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root', port => $port);
 
     # start agetty to ensure that iucvconn is not killed
     my $chan = $ttyconn->channel() || $ttyconn->die_with_error();
@@ -31,7 +32,7 @@ sub connect_remote ($self, $args) {
     $self->{ttyconn} = $ttyconn;
 
     # ssh connection to SUT for iucvconn
-    my ($ssh, $serialchan) = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
+    my ($ssh, $serialchan) = $self->backend->start_ssh_serial(hostname => $hostname, password => $args->{password}, username => 'root', port => $port);
     # start iucvconn
     diag("ssh iucvconn: grabbing serial console for guest: $zvmguest");
     $ssh->blocking(1);
