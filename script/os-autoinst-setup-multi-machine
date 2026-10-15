@@ -249,15 +249,20 @@ setup_multi_machine_with_networkmanager() {
     # Restart NM to load ovs plugin
     systemctl start NetworkManager
     # Create bridge, port and interface connection
-    nmcli con add type ovs-bridge con.int "$bridge" ipv4.dad-timeout 0
-    nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
+    nmcli con add type ovs-bridge con-name "ovs-bridge-$bridge" con.int "$bridge" ipv4.dad-timeout 0
+    nmcli con add type ovs-port con-name "ovs-port-$bridge" con.int "$bridge" con.master "$bridge"
+    nmcli con add type ovs-interface con-name "ovs-interface-$bridge" con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
+    local worker_uid nogroup_gid
+    worker_uid=$(id -u _openqa-worker)
+    nogroup_gid=$(getent group nogroup | cut -f3 -d:)
     for i in "${tap_dev_numbers[@]}"; do
-        nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
-        nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
+        nmcli con add type ovs-port con-name "ovs-port-tap$i" con.int "tap$i" con.master "$bridge"
+        nmcli con add type tun con-name "tap$i" mode tap owner "$worker_uid" group "$nogroup_gid" con.int "tap$i" master "tap$i"
     done
     create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
+    nmcli con up "ovs-bridge-$bridge" || true
+    nmcli con up "ovs-interface-$bridge" || true
 }
 
 setup_multi_machine_with_wicked() {
