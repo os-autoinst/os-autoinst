@@ -176,6 +176,11 @@ compute_tap_dev_numbers() {
 
 create_gre_preup_script() {
     local location=$1
+    if [[ -f "$location" ]]; then
+        echo "Dispatcher script $location already exists, keeping existing configuration."
+        chmod +x "$location"
+        return 0
+    fi
     cat > "$location" << EOF
 #!/bin/sh
 OVS_CMD=\$(command -v ovs-vsctl)
