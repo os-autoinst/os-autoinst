@@ -272,7 +272,6 @@ cleanup_openvswitch_db() {
     systemctl stop openvswitch os-autoinst-openvswitch
     [[ -d /var/lib/openvswitch/ ]] && rm -f /var/lib/openvswitch/{conf.db,.conf.db.~lock~}
     systemctl is-enabled openvswitch && systemctl start openvswitch
-    systemctl is-enabled os-autoinst-openvswitch && systemctl start os-autoinst-openvswitch
 }
 
 configure_openvswitch() {
