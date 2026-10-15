@@ -267,8 +267,8 @@ setup_multi_machine_with_networkmanager() {
         nmcli con add type tun con-name "tap$i" mode tap owner "$worker_uid" group "$nogroup_gid" con.int "tap$i" master "tap$i"
     done
     create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
-    nmcli con up "ovs-bridge-$bridge" || true
-    nmcli con up "ovs-interface-$bridge" || true
+    nmcli con up "ovs-bridge-$bridge"
+    nmcli con up "ovs-interface-$bridge"
 }
 
 setup_multi_machine_with_wicked() {
