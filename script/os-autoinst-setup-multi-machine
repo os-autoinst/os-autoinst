@@ -1,6 +1,6 @@
 #!/bin/bash -e
 set -euo pipefail
-instances="${instances:-20}"
+instances=${instances:-}
 nicoffset=${OS_AUTOINST_NICOFFSET:-64}
 bridge="${bridge:-"br1"}"
 ethernet="${ethernet:-""}"
@@ -15,18 +15,53 @@ mtu=${mtu:-1460}
 
 usage() {
     cat << EOF
-Usage: os-autoinst-setup-multi-machine
+Usage: os-autoinst-setup-multi-machine [OPTIONS]
 
 Options:
- -h, --help         display this help
+ -i, --instances NUM    number of worker instances to configure (auto-detected if omitted)
+ -o, --nic-offset NUM   offset for NIC devices (default: 64)
+ -b, --bridge NAME      bridge name (default: br1)
+ -e, --ethernet DEV     uplink ethernet interface (auto-detected if omitted)
+ -z, --zone ZONE        firewall zone (default: trusted)
+ -f, --firewall FW      firewall backend: nftables or firewalld (default: nftables)
+ -m, --mtu NUM          MTU of the bridge interface (default: 1460)
+ -h, --help             display this help
 EOF
     exit "$1"
 }
 
-opts=$(getopt -o h -l help -n "$0" -- "$@") || usage 1
+opts=$(getopt -o hi:o:b:e:z:f:m: -l help,instances:,nic-offset:,bridge:,ethernet:,zone:,firewall:,mtu: -n "$0" -- "$@") || usage 1
 eval set -- "$opts"
 while true; do
     case "$1" in
+        -i | --instances)
+            instances="$2"
+            shift 2
+            ;;
+        -o | --nic-offset)
+            nicoffset="$2"
+            shift 2
+            ;;
+        -b | --bridge)
+            bridge="$2"
+            shift 2
+            ;;
+        -e | --ethernet)
+            ethernet="$2"
+            shift 2
+            ;;
+        -z | --zone)
+            zone="$2"
+            shift 2
+            ;;
+        -f | --firewall)
+            firewall="$2"
+            shift 2
+            ;;
+        -m | --mtu)
+            mtu="$2"
+            shift 2
+            ;;
         -h | --help) usage 0 ;;
         --)
             shift
@@ -35,6 +70,14 @@ while true; do
         *) break ;;
     esac
 done
+
+detect_instances() {
+    instances=$(systemctl 2> /dev/null | grep --perl-regexp --count 'openqa-worker.*@\d+\.service' || true)
+    if [[ -z "$instances" || "$instances" -lt 1 ]]; then
+        echo 'Unable to detect the number of instances; specify the number of instances manually via "--instances".' 1>&2
+        exit 1
+    fi
+}
 
 ensure_ip_forwarding() {
     grep -q 1 /proc/sys/net/ipv4/ip_forward || echo -e 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1' > /etc/sysctl.d/ip_forward.conf
@@ -243,6 +286,16 @@ determine_ethernet_interface() {
 }
 
 main() {
+    if [[ -z "${instances}" ]]; then
+        detect_instances
+        echo "Auto-detected $instances worker instances"
+    else
+        echo "Assuming $instances worker instances as specified"
+    fi
+    if [[ "$instances" -ge "$nicoffset" ]]; then
+        echo "The NIC offset must be greater than the number of instances."
+        exit 2
+    fi
     network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
     if [[ -z "${network}" ]]; then
         systemctl is-enabled NetworkManager.service && network=NetworkManager
