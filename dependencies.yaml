@@ -112,6 +112,7 @@ docker_requires:
   sudo:
   which:
   diffutils:
+  dejavu-fonts:
 
 spellcheck_requires:
   aspell-spell:
