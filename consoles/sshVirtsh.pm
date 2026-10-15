@@ -66,12 +66,7 @@ sub _init_ssh ($self, $args) {
         }
     };
     if ($self->vmm_family eq 'vmware') {
-        $self->{ssh_credentials}->{sshVMwareServer} =
-          {
-            hostname => $bmwqemu::vars{VMWARE_HOST} || die('Need variable VMWARE_HOST'),
-            password => $bmwqemu::vars{VMWARE_PASSWORD} || die('Need variable VMWARE_PASSWORD'),
-            username => 'root',
-          };
+        $self->{ssh_credentials}->{sshVMwareServer} = consoles::VMWare::ssh_credentials();
     }
 }
 
@@ -348,17 +343,9 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     my $size = $args->{size} || '20G';
     if ($self->vmm_family eq 'vmware') {
         my $vmware_disk_path = $vmware_openqa_datastore . $file;
-        # Power VM off, delete it's disk image, and create it again.
-        # Poll the power state until the VM is *really* turned off.
+        # Release a leftover VM, delete its disk image, and create it again
         my $cmd =
-          '( set -x; ' . consoles::VMWare::vmid_script($name) . ';' .
-          'if [ $vmid ]; then ' .
-          'vim-cmd vmsvc/power.off $vmid;' .
-          'for i in $(seq 1 10); do vim-cmd vmsvc/power.getstate $vmid | grep -q "Powered off" && break; sleep 1; done;' .
-          'vim-cmd vmsvc/destroy $vmid;' .
-          "else rm -f $name*;" .
-          'fi;' .
-          "vmkfstools -v1 -U $vmware_disk_path;" .
+          "( set -x\n" . $self->release_vm_script . consoles::VMWare::remove_disk_script($vmware_disk_path) .
           "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
         my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
         die "Can't create VMware image $vmware_disk_path" if $retval;
@@ -486,8 +473,8 @@ sub add_disk ($self, $args) {
     my $name = $self->name;
     my $file = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
     my $basedir = '/var/lib/libvirt/images/';
-    my $vmware_datastore = $bmwqemu::vars{VMWARE_DATASTORE} // '';
-    my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
+    my $vmware_datastore = consoles::VMWare::datastore();
+    my $vmware_openqa_datastore = consoles::VMWare::openqa_datastore_dir();
     if ($args->{create}) {
         $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
     }
@@ -588,7 +575,7 @@ __END'
     $chan->close();
 
     # shut down possibly running previous test (just to be sure)
-    $self->backend->do_stop_vm_svirt() if $args{pre_cleanup};
+    $self->stop_vm if $args{pre_cleanup};
 
     # define the new domain
     my ($stdout, $stderr);
@@ -597,14 +584,15 @@ __END'
         $stderr =~ s/\s+$// if $stderr;
         die 'virsh define failed: ' . ($stderr || "exit code $ret");
     }
+    $self->{vm_released} = 0;
     if ($self->vmm_family eq 'vmware') {
-        my $vmx = sprintf '/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name;
+        my $vmx = consoles::VMWare::openqa_datastore_dir() . $self->name . '.vmx';
 
         # set default boot delay
         $self->run_cmd(qq{echo 'bios.bootDelay = "10000"' >> $vmx}, domain => 'sshVMwareServer');
         # set default nvram
         my $nvram = $self->name . '.nvram';
-        my $nvram_path = sprintf '/vmfs/volumes/%s/openQA/%s', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $nvram;
+        my $nvram_path = consoles::VMWare::openqa_datastore_dir() . $nvram;
         $ret = $self->run_cmd("test -e $nvram_path", domain => 'sshVMwareServer');
         $self->run_cmd(qq{echo 'nvram = "$nvram"' >> $vmx}, domain => 'sshVMwareServer') unless ($ret);
         # set virtual hardware version if specified
@@ -656,8 +644,23 @@ __END'
     return;
 }
 
+# Returns the script releasing a leftover VM on the ESXi host unless it has already been released
+# since the VM was last defined, so the VM is not looked up again for each of its disks.
+# The first time, it also removes the files left behind by a job which could not clean up after
+# itself, e.g. when it was killed; no disks of the current job exist yet at that point.
+sub release_vm_script ($self) {
+    return '' if $self->{vm_released};
+    $self->{vm_released} = 1;
+    my $script = consoles::VMWare::release_vm_script($self->name);
+    $script .= consoles::VMWare::remove_vm_files_script($self->name, consoles::VMWare::openqa_datastore_dir()) unless $self->{vm_files_removed}++;
+    return $script;
+}
+
 sub stop_vm ($self) {
-    $self->backend->do_stop_vm_svirt();
+    return $self->backend->do_stop_vm_svirt unless $self->vmm_family eq 'vmware';
+    # keep the VM files as the VM might be defined again with its disks
+    $self->backend->do_stop_vm_vmware unless $self->{vm_released};
+    $self->{vm_released} = 1;
 }
 
 sub attach_to_running ($self, $args = undef) {
