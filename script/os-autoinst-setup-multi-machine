@@ -87,7 +87,7 @@ install_packages() {
     command -v retry > /dev/null || zypper -n in retry
     pkgs=(openvswitch os-autoinst-openvswitch firewalld libcap-progs)
     [[ $network == NetworkManager ]] && pkgs+=(NetworkManager-ovs)
-    rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
+    rpm -q "${pkgs[@]}" > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
     systemctl enable --now openvswitch os-autoinst-openvswitch
 }
 
@@ -166,11 +166,12 @@ compute_tap_dev_numbers() {
     local nicoffset_1 nicoffset_2
     nicoffset_1=$((1 * nicoffset))
     nicoffset_2=$((2 * nicoffset))
-    tap_dev_numbers=(0 $(
+    mapfile -t tap_dev_numbers < <(
+        echo 0
         seq 1 "$instances"
         seq "$nicoffset_1" $(("$nicoffset_1" + instances))
         seq "$nicoffset_2" $(("$nicoffset_2" + instances))
-    ))
+    )
 }
 
 create_gre_preup_script() {
