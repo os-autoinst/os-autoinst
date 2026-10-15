@@ -293,8 +293,13 @@ EOF
 }
 
 delete_tap_ifaces() {
-    ifaces=($(ls /sys/class/net/ | xargs -I {} sh -c 'if [ -f /sys/class/net/{}/tun_flags ]; then echo {}; fi' | sort -V))
-    for iface in "${ifaces[@]}"; do ip link delete $iface; done
+    for dev in /sys/class/net/tap*; do
+        [[ -e "$dev" ]] || continue
+        local iface="${dev##*/}"
+        if [[ -f "$dev/tun_flags" ]]; then
+            ip link delete "$iface" 2> /dev/null || true
+        fi
+    done
 }
 
 cleanup_openvswitch_db() {
