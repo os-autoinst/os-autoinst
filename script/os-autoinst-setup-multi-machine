@@ -241,8 +241,14 @@ cleanup_networkmanager_connections() {
     fi
 }
 
+cleanup_ovs_bridge() {
+    systemctl start openvswitch
+    ovs-vsctl --if-exists del-br "$bridge"
+}
+
 setup_multi_machine_with_networkmanager() {
     cleanup_networkmanager_connections
+    cleanup_ovs_bridge
     # Clear NM state and timestamps
     systemctl stop NetworkManager
     [[ -d /var/lib/NetworkManager ]] && rm -vf /var/lib/NetworkManager/{timestamps,NetworkManager.state}
@@ -266,7 +272,7 @@ setup_multi_machine_with_networkmanager() {
 }
 
 setup_multi_machine_with_wicked() {
-    ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
+    cleanup_ovs_bridge
     ovs-vsctl add-br "$bridge"
     ovs-vsctl set int "$bridge" mtu_request="$mtu"
     cat > "/etc/sysconfig/network/ifcfg-$bridge" << EOF
@@ -311,7 +317,6 @@ cleanup_openvswitch_db() {
     # Delete existing ovs db and its lock but do not delete any ovs db backup
     systemctl stop openvswitch os-autoinst-openvswitch
     [[ -d /var/lib/openvswitch/ ]] && rm -f /var/lib/openvswitch/{conf.db,.conf.db.~lock~}
-    systemctl is-enabled openvswitch && systemctl start openvswitch
 }
 
 configure_openvswitch() {
