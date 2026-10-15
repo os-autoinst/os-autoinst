@@ -330,10 +330,16 @@ main() {
         echo "The NIC offset must be greater than the number of instances."
         exit 2
     fi
-    network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
+    network=
+    if [[ -L /etc/systemd/system/network.service ]]; then
+        network=$(basename -s .service "$(readlink /etc/systemd/system/network.service)")
+    fi
     if [[ -z "${network}" ]]; then
-        systemctl is-enabled NetworkManager.service && network=NetworkManager
-        systemctl is-enabled wicked.service && network=wicked
+        if systemctl is-enabled NetworkManager.service &> /dev/null; then
+            network=NetworkManager
+        elif systemctl is-enabled wicked.service &> /dev/null; then
+            network=wicked
+        fi
     fi
     test "$network" = wicked -o "$network" = NetworkManager || {
         echo "This script only works with wicked network daemon or NetworkManager"
