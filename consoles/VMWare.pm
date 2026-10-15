@@ -405,7 +405,7 @@ sub provide_image_in_datastore ($svirt, $input_file, $vmware_openqa_datastore, %
     if _verified "\$dest"; then
         echo "VMware image \$dest ready"
     else
-        if [ "\\\${input_file##*.}" = "xz" ]; then
+        if [ "\${input_file##*.}" = "xz" ]; then
             if ! _verified "\$dest_xz"; then
     $copy_xz
             fi
