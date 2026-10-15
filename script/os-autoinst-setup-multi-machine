@@ -87,7 +87,7 @@ install_packages() {
     command -v retry > /dev/null || zypper -n in retry
     pkgs=(openvswitch os-autoinst-openvswitch firewalld libcap-progs)
     [[ $network == NetworkManager ]] && pkgs+=(NetworkManager-ovs)
-    rpm -q ${pkgs[*]} > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
+    rpm -q "${pkgs[@]}" > /dev/null || retry -e -s 30 -r 7 -- sh -c "zypper ref && zypper -n in ${pkgs[*]}"
     systemctl enable --now openvswitch os-autoinst-openvswitch
 }
 
@@ -166,15 +166,21 @@ compute_tap_dev_numbers() {
     local nicoffset_1 nicoffset_2
     nicoffset_1=$((1 * nicoffset))
     nicoffset_2=$((2 * nicoffset))
-    tap_dev_numbers=(0 $(
+    mapfile -t tap_dev_numbers < <(
+        echo 0
         seq 1 "$instances"
         seq "$nicoffset_1" $(("$nicoffset_1" + instances))
         seq "$nicoffset_2" $(("$nicoffset_2" + instances))
-    ))
+    )
 }
 
 create_gre_preup_script() {
     local location=$1
+    if [[ -f "$location" ]]; then
+        echo "Dispatcher script $location already exists, keeping existing configuration."
+        chmod +x "$location"
+        return 0
+    fi
     cat > "$location" << EOF
 #!/bin/sh
 OVS_CMD=\$(command -v ovs-vsctl)
@@ -210,28 +216,63 @@ EOF
     chmod +x "$location"
 }
 
+cleanup_networkmanager_connections() {
+    local prev_conns=()
+    while IFS=: read -r uuid type device name; do
+        [[ -z "$uuid" ]] && continue
+        if [[ "$type" =~ ^ovs-(bridge|port|interface|slave)$ || "$name" =~ ^ovs-(bridge|port|interface|slave) ]]; then
+            prev_conns+=("$uuid")
+        elif [[ "$type" == "tun" ]]; then
+            if [[ "$device" =~ ^tap[0-9]+$ || "$name" =~ ^tap[0-9]+$ || "$name" =~ ^tun(-tap[0-9]+)?$ || "$name" =~ ^tun-[0-9]+$ ]]; then
+                prev_conns+=("$uuid")
+            else
+                local iface
+                iface=$(nmcli -g connection.interface-name con show "$uuid" 2> /dev/null || true)
+                if [[ "$iface" =~ ^tap[0-9]+$ ]]; then
+                    prev_conns+=("$uuid")
+                fi
+            fi
+        fi
+    done < <(nmcli -g UUID,TYPE,DEVICE,NAME con show 2> /dev/null || true)
+
+    if [[ ${#prev_conns[@]} -gt 0 ]]; then
+        echo "Deleting ${#prev_conns[@]} previous NetworkManager connections..."
+        printf '%s\n' "${prev_conns[@]}" | xargs -r nmcli con del || true
+    fi
+}
+
+cleanup_ovs_bridge() {
+    systemctl start openvswitch
+    ovs-vsctl --if-exists del-br "$bridge"
+}
+
 setup_multi_machine_with_networkmanager() {
-    # Delete any previous connections
-    nmcli con | grep -oP 'ovs-(interface|port|bridge|slave)-[\w-]+' | xargs -r nmcli con del || true
+    cleanup_networkmanager_connections
+    cleanup_ovs_bridge
     # Clear NM state and timestamps
     systemctl stop NetworkManager
     [[ -d /var/lib/NetworkManager ]] && rm -vf /var/lib/NetworkManager/{timestamps,NetworkManager.state}
     # Restart NM to load ovs plugin
     systemctl start NetworkManager
     # Create bridge, port and interface connection
-    nmcli con add type ovs-bridge con.int "$bridge" ipv4.dad-timeout 0
-    nmcli con add type ovs-port con.int "$bridge" con.master "$bridge"
-    nmcli con add type ovs-interface con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
+    nmcli con add type ovs-bridge con-name "ovs-bridge-$bridge" con.int "$bridge" ipv4.dad-timeout 0
+    nmcli con add type ovs-port con-name "ovs-port-$bridge" con.int "$bridge" con.master "$bridge"
+    nmcli con add type ovs-interface con-name "ovs-interface-$bridge" con.int "$bridge" con.master "$bridge" ipv4.method manual ipv4.address 10.0.2.2/15 ipv4.dad-timeout 0 ipv6.method manual ipv6.address fec0::2/63 ethernet.mtu "$mtu" con.zone "$zone"
     # Create tap interfaces
+    local worker_uid nogroup_gid
+    worker_uid=$(id -u _openqa-worker)
+    nogroup_gid=$(getent group nogroup | cut -f3 -d:)
     for i in "${tap_dev_numbers[@]}"; do
-        nmcli con add type ovs-port con.int "tap$i" con.master "$bridge"
-        nmcli con add type tun mode tap owner "$(id -u _openqa-worker)" group "$(getent group nogroup | cut -f3 -d:)" con.int "tap$i" master "tap$i"
+        nmcli con add type ovs-port con-name "ovs-port-tap$i" con.int "tap$i" con.master "$bridge"
+        nmcli con add type tun con-name "tap$i" mode tap owner "$worker_uid" group "$nogroup_gid" con.int "tap$i" master "tap$i"
     done
     create_gre_preup_script /etc/NetworkManager/dispatcher.d/gre_tunnel_preup.sh
+    nmcli con up "ovs-bridge-$bridge"
+    nmcli con up "ovs-interface-$bridge"
 }
 
 setup_multi_machine_with_wicked() {
-    ovs-vsctl list-br | grep -q "$bridge" && ovs-vsctl del-br "$bridge"
+    cleanup_ovs_bridge
     ovs-vsctl add-br "$bridge"
     ovs-vsctl set int "$bridge" mtu_request="$mtu"
     cat > "/etc/sysconfig/network/ifcfg-$bridge" << EOF
@@ -263,16 +304,19 @@ EOF
 }
 
 delete_tap_ifaces() {
-    ifaces=($(ls /sys/class/net/ | xargs -I {} sh -c 'if [ -f /sys/class/net/{}/tun_flags ]; then echo {}; fi' | sort -V))
-    for iface in "${ifaces[@]}"; do ip link delete $iface; done
+    for dev in /sys/class/net/tap*; do
+        [[ -e "$dev" ]] || continue
+        local iface="${dev##*/}"
+        if [[ -f "$dev/tun_flags" ]]; then
+            ip link delete "$iface" 2> /dev/null || true
+        fi
+    done
 }
 
 cleanup_openvswitch_db() {
     # Delete existing ovs db and its lock but do not delete any ovs db backup
     systemctl stop openvswitch os-autoinst-openvswitch
     [[ -d /var/lib/openvswitch/ ]] && rm -f /var/lib/openvswitch/{conf.db,.conf.db.~lock~}
-    systemctl is-enabled openvswitch && systemctl start openvswitch
-    systemctl is-enabled os-autoinst-openvswitch && systemctl start os-autoinst-openvswitch
 }
 
 configure_openvswitch() {
@@ -296,10 +340,16 @@ main() {
         echo "The NIC offset must be greater than the number of instances."
         exit 2
     fi
-    network=$(basename -s.service "$(readlink /etc/systemd/system/network.service)")
+    network=
+    if [[ -L /etc/systemd/system/network.service ]]; then
+        network=$(basename -s .service "$(readlink /etc/systemd/system/network.service)")
+    fi
     if [[ -z "${network}" ]]; then
-        systemctl is-enabled NetworkManager.service && network=NetworkManager
-        systemctl is-enabled wicked.service && network=wicked
+        if systemctl is-enabled NetworkManager.service &> /dev/null; then
+            network=NetworkManager
+        elif systemctl is-enabled wicked.service &> /dev/null; then
+            network=wicked
+        fi
     fi
     test "$network" = wicked -o "$network" = NetworkManager || {
         echo "This script only works with wicked network daemon or NetworkManager"
