@@ -19,10 +19,11 @@ use Time::Seconds;
 # ssh disconnect and console switching. Ssh console may not display returned result of
 # long-time run test without these options. TCPKeepAlive ensures that if network goes down
 # or the remote host dies, machines will be properly noticed
-sub sshCommand ($self, $username, $host, $gui = undef) {
+sub sshCommand ($self, $username, $host, $port = undef, $gui = undef) {
     my $server_alive_count_max = $bmwqemu::vars{_SSH_SERVER_ALIVE_COUNT_MAX} // 480;
     my $server_alive_interval = $bmwqemu::vars{_SSH_SERVER_ALIVE_INTERVAL} // ONE_MINUTE;
-    my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
+    my $port_opt = ($port && $port != 22) ? "-p $port " : '';
+    my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no ${port_opt}$username\@$host";
     $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";
 }
