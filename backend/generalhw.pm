@@ -13,6 +13,7 @@ use bmwqemu;
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
+use File::Path 'mkpath';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 sub new ($class) {
@@ -169,13 +170,13 @@ sub do_start_vm ($self, @) {
     $self->restart_host;
     $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
     $self->reconnect_video_stream if ($bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL});
-    $self->start_serial_grab if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
+    $self->start_serial_grab if $self->_use_serial || $self->_use_hardware_console_log;
     return {};
 }
 
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
-    $self->stop_serial_grab() if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
+    $self->stop_serial_grab() if $self->_use_serial || $self->_use_hardware_console_log;
     $self->disable_consoles;
     return {};
 }
@@ -186,14 +187,32 @@ sub check_socket ($self, $fh, $write = undef) {
 
 # serial grab
 
+sub _use_serial ($self) {
+    return ($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL};
+}
+
+sub _use_hardware_console_log ($self) {
+    return $bmwqemu::vars{HARDWARE_CONSOLE_LOG} && $bmwqemu::vars{GENERAL_HW_SOL_CMD};
+}
+
+sub _serial_grab_cmd ($self) {
+    my $cmd = $self->get_cmd('GENERAL_HW_SOL_CMD');
+    return $cmd unless $self->_use_hardware_console_log;
+    # duplicate the serial output into a log file uploaded as part of the job results
+    mkpath 'ulogs';
+    return "$cmd 2>&1 | tee -a ulogs/hardware-console-log.txt";
+}
+
 sub start_serial_grab ($self) {
+    my $output = $self->_use_serial ? $self->{serialfile} : '/dev/null';
     $self->{serialpid} = fork;
     return unless $self->{serialpid} == 0;
     setpgrp 0, 0;    # uncoverable statement
-    open my $serial, '>', $self->{serialfile};    # uncoverable statement
+    my $cmd = $self->_serial_grab_cmd;    # uncoverable statement
+    open my $serial, '>', $output;    # uncoverable statement
     open STDOUT, '>&', $serial;    # uncoverable statement
     open STDERR, '>&', $serial;    # uncoverable statement
-    exec $self->get_cmd('GENERAL_HW_SOL_CMD');    # uncoverable statement
+    exec $cmd;    # uncoverable statement
     die "exec failed $!";    # uncoverable statement
 }
 
