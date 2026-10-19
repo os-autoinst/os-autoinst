@@ -97,6 +97,18 @@ subtest 'start VM with video' => sub {
     is_deeply \@video_connects, [['udp://@:5004']], 'tried to connect to video stream' or always_explain \@vnc_logins;
 };
 
+subtest 'start VM with hardware console log only' => sub {
+    $bmwqemu::vars{GENERAL_HW_NO_SERIAL} = 1;
+    @invoked_cmds = ();
+    $backend->do_start_vm;
+    ok !grep({ $_ eq 'start_serial_grab' } @invoked_cmds), 'serial grab not started with GENERAL_HW_NO_SERIAL';
+    $bmwqemu::vars{HARDWARE_CONSOLE_LOG} = 1;
+    @invoked_cmds = ();
+    $backend->do_start_vm;
+    ok grep({ $_ eq 'start_serial_grab' } @invoked_cmds), 'serial grab started for HARDWARE_CONSOLE_LOG';
+    delete @bmwqemu::vars{qw(HARDWARE_CONSOLE_LOG GENERAL_HW_NO_SERIAL)};
+};
+
 subtest 'hdd args' => sub {
     # more complex disks setup
     $bmwqemu::vars{NUMDISKS} = '2';
@@ -205,6 +217,31 @@ subtest 'serial grab' => sub {
         $backend->stop_serial_grab;
         is waitpid($backend->{serialpid}, WNOHANG), -1, 'process terminated via stop_serial_grab';
         is $backend->stop_serial_grab, -1, 'returns -1 if process does not exist (but does not die)';
+    };
+    subtest 'hardware console log' => sub {
+        my $cwd = Mojo::File->new->to_abs;
+        my $dir = tempdir;
+        chdir $dir;
+        my $log = $dir->child(qw(ulogs hardware-console-log.txt));
+        $bmwqemu::vars{GENERAL_HW_SOL_CMD} = 'echo -n foo';
+        is $backend->_serial_grab_cmd, '/usr/bin/echo -n foo infinity', 'plain command without HARDWARE_CONSOLE_LOG';
+        $bmwqemu::vars{HARDWARE_CONSOLE_LOG} = 1;
+        is $backend->_serial_grab_cmd, '/usr/bin/echo -n foo infinity 2>&1 | tee -a ulogs/hardware-console-log.txt',
+          'output duplicated with HARDWARE_CONSOLE_LOG';
+        $backend->start_serial_grab;
+        waitpid $backend->{serialpid}, 0;
+        is $serialfile->slurp, 'foo infinity', 'serial output captured';
+        is $log->slurp, 'foo infinity', 'serial output also captured in hardware console log';
+
+        $bmwqemu::vars{GENERAL_HW_NO_SERIAL} = 1;
+        $serialfile->spew('');
+        $backend->start_serial_grab;
+        waitpid $backend->{serialpid}, 0;
+        is $serialfile->slurp, '', 'serial output not captured with GENERAL_HW_NO_SERIAL';
+        is $log->slurp, 'foo infinityfoo infinity', 'hardware console log appended with GENERAL_HW_NO_SERIAL';
+
+        delete @bmwqemu::vars{qw(HARDWARE_CONSOLE_LOG GENERAL_HW_NO_SERIAL)};
+        chdir $cwd;
     };
 
     $serialfile->remove;

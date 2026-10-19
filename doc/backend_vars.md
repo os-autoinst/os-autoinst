@@ -327,6 +327,7 @@ Supported variables per backend
 | GENERAL_HW_VNC_DEPTH | integer | 16 | Color depth for VNC server |
 | GENERAL_HW_VNC_JPEG | integer | 0 | Advertise support for Tight JPEG encoding |
 | GENERAL_HW_NO_SERIAL | boolean |  | Don't use serial |
+| HARDWARE_CONSOLE_LOG | boolean | undef | Enable direct log capture of the GENERAL_HW_SOL_CMD output (e.g. firmware and kernel messages) into hardware-console-log.txt, disabled by default. Works also with GENERAL_HW_NO_SERIAL. |
 | GENERAL_HW_VIDEO_STREAM_URL | string |  | Video stream URL (in ffmpeg's syntax) to receive, for example 'udp://@:5004' or '/dev/video0'. Using 'ustreamer:///dev/videoN' will use ustreamer from PiKVM instead of ffmpeg to read '/dev/videoN'. The URL can have '?fps=..' appended to specify desired FPS to capture with. The URL can also have 'format=' parameter to specify ustream format (default is UYVY, can be also set to BGR24, RGB24, RGB24swap). The URL can also have 'mediadev=...' and 'mediaentity=' parameters, necessary on Raspberry Pi 5. Ustreamer support requires pack("D") working, which rules out openSUSE 15.5's perl. |
 | GENERAL_HW_VIDEO_CMD_PREFIX | string |  | Prefix to prepend to 'ffmpeg' and 'v4l2-ctl' commands, can be used to run them on a different host via SSH. Example: 'ssh root@pikvm'. Note: the value is tokenized on spaces, so avoid their use in command name or any of the parameters. |
 | VIDEO_STREAM_PIPE_BUFFER_SIZE | integer | 1680*1050*3+20 | Buffer containing at least a single PPM frame for video capturing |
