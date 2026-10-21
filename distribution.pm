@@ -18,6 +18,7 @@ sub new ($class, @) {
     $self->{_serial_marker_level} = {};
     $self->{_serial_marker_hook_installed} = {};
     $self->{_serial_marker_hook_persistent} = {};
+    $self->{_serial_marker_hook_dev} = {};
     $self->{_pretty_serial_marker} = undef;
 
 =head2 serial_term_prompt
@@ -476,11 +477,25 @@ markers to serial.
 B<Persistence implications:> the hook is appended to the SUT's C<~/.bashrc> and
 C<~/.profile> and therefore persists across shells and across jobs that boot the
 same qcow image. Once installed, every prompt of every shell sourcing those
-files emits C<OA:DONE>/C<OA:START> to C</dev/$testapi::serialdev> (i.e.
-C<serial0.txt>), including login/C<exec $SHELL>/C<su> shells and non-serial
-terminal (VNC/tty) consoles. This is by design (C<serial0.txt> is the control
-channel for these markers) but means C<serial0.txt> cannot be kept completely
-clean by patching individual command invocations. To fully suppress the hook,
+files emits C<OA:DONE>/C<OA:START> to the serial device (i.e. C<serial0.txt>),
+including login/C<exec $SHELL>/C<su> shells and non-serial terminal (VNC/tty)
+consoles. This is by design (C<serial0.txt> is the control channel for these
+markers) but means C<serial0.txt> cannot be kept completely clean by patching
+individual command invocations.
+
+The target device is resolved at prompt time, not at install time: the current
+session gets C<_OASD=/dev/$testapi::serialdev> exported, and the hook writes to
+C<$_OASD> if set. Shells without C<_OASD> (e.g. a fresh login on another
+console or a shell after C<su ->) fall back to the device that was current
+when the hook was persisted, if it is a character device or a FIFO.
+
+With C<_OASD> set the device is opened write-only, as os-autoinst reads it.
+Without C<_OASD> a FIFO (e.g. C</dev/sshserial> on ipmi ssh consoles) is opened
+read-write. A write-only open of a FIFO blocks the shell forever when no
+reader exists, e.g. after switching C<$testapi::serialdev> and
+C<reset_consoles>. A read-write open does not block: if a reader exists, it
+gets the markers, if not, the markers are discarded. To fully suppress the
+hook,
 disable the feature via C<PRETTY_SERIAL_MARKER=0> for the whole cluster,
 including the parent job that creates the qcow so no hook is ever baked in. See
 also L</detect_serial_marker_capability> and C<doc/backend_vars.md>.
@@ -492,9 +507,18 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     # Shell hook tokens: _oap=prompt hook, _OANM=skip-done-marker, _OAM=custom
     # marker (grepped in ~/.bashrc below to detect an already-installed hook).
+    # _OASD=serial device exported by os-autoinst; without it fall back to the
+    # persisted device if it is a character device or a FIFO.
+    # _oaw=writes the markers. With _OASD set os-autoinst reads the device, so
+    # it opens it write-only as before. Without _OASD it opens a FIFO read-write
+    # because a write-only open blocks the prompt forever when the FIFO has no
+    # reader. d is local to _oap (and visible in _oaw) to not overwrite a
+    # variable of the user.
+    my $sel = qq{local d=\${_OASD:-$dev};[ -n "\$_OASD" ]||[ -c "\$d" ]||[ -p "\$d" ]||return 0;};
+    my $writer = qq{_oaw(){ if [ -z "\$_OASD" ]&&[ -p "\$d" ];then printf "\$@" 1<>"\$d";else printf "\$@">"\$d";fi;}};
     my $func = {
-        3 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};printf "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t">$dev;fi;}},
-        2 => qq{_oap(){ r=\$?;if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then echo "\$_OAM-\$r-">$dev;unset _OAM;fi;echo "OA:START">$dev;}},
+        3 => qq{_oap(){ r=\$?;${sel}if [ -n "\$_OANM" ];then unset _OANM;else c=\$(HISTTIMEFORMAT= history 1);c=\${c#*[0-9]  };c=\${c#\${c%%[![:space:]]*}};c=\${c%\${c##*[![:space:]]}};l=\${#c};t=\$c;[ \$l -ge 4 ]&&t=\${c: -4};_oaw "OA:DONE-%04x-%d-OA:%s%d%s\\nOA:START\\n" \$RANDOM \$r "\${c:0:4}" \$l "\$t";fi;};$writer},
+        2 => qq{_oap(){ r=\$?;${sel}if [ -n "\$_OANM" ];then unset _OANM;elif [ -n "\$_OAM" ];then _oaw "%s\\n" "\$_OAM-\$r-";unset _OAM;fi;_oaw "OA:START\\n";};$writer},
     }->{$level};
     my $pc = 'PROMPT_COMMAND=_oap';
 
@@ -502,17 +526,19 @@ sub install_serial_marker_hook ($self, $level) {
     # hook persisted in ~/.bashrc by an older os-autoinst is replaced instead of
     # kept (a presence-only `grep _oap` guard would re-source the old format and
     # emit markers the current wait_serial regex never matches).
-    my $tag = '_OAPV=3';
+    my $tag = '_OAPV=4';
 
     # Consolidate installation and persistence into a single typed line to minimize VNC overhead.
     # We append to both ~/.bashrc and ~/.profile to cover both interactive and login shells.
     # If the current version tag is absent, strip any stale hook lines first, then
     # (re)install. Sourcing ~/.bashrc then activates the hook in the current session.
-    testapi::type_string "grep -q '$tag' ~/.bashrc 2>/dev/null||{ sed -i '/_oap/d;/$tag/d' ~/.bashrc ~/.profile 2>/dev/null;echo '$tag;$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
+    # _OASD is only exported, never persisted, so it always matches the current serialdev.
+    testapi::type_string "export _OASD=$dev;grep -q '$tag' ~/.bashrc 2>/dev/null||{ sed -i '/_oap/d;/$tag/d' ~/.bashrc ~/.profile 2>/dev/null;echo '$tag;$func;$pc'|tee -a ~/.bashrc ~/.profile>/dev/null;};. ~/.bashrc\n";
 
     my $console = testapi::current_console() // 'sut';
     $self->{_serial_marker_hook_installed}->{$console} = 1;
     $self->{_serial_marker_hook_persistent}->{$console} = 1;
+    $self->{_serial_marker_hook_dev}->{$console} = $dev;
 }
 
 =head2 reset_serial_marker
@@ -646,7 +672,10 @@ cluster-wide with C<PRETTY_SERIAL_MARKER=0>; see L</install_serial_marker_hook>.
 sub detect_serial_marker_capability ($self) {
     my $console = testapi::current_console() // 'sut';
     if (my $level = $self->{_serial_marker_level}->{$console}) {
-        return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
+        # Re-install when $testapi::serialdev changed so _OASD is exported again
+        my $hook_dev = $self->{_serial_marker_hook_dev}->{$console};
+        my $dev_changed = defined $hook_dev && $hook_dev ne "/dev/$testapi::serialdev";
+        return $level if $level < 2 || ($self->{_serial_marker_hook_installed}->{$console} && !$dev_changed);
 
         $self->install_serial_marker_hook($level);
         return $level;
