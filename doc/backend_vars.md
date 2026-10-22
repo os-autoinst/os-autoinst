@@ -29,6 +29,7 @@ Supported variables per backend
 | SSH_COMMAND_TIMEOUT_S | integer | 300 | Timeout in seconds for any SSH based command in SSH based consoles, disabled for a value of 0. It can be overriden by particular run_ssh_cmd() calls. Check out the documentation of this function for details. |
 | SSH_CONNECT_RETRY | integer | 5 | Maximum retries to connect to SSH based console targets |
 | SSH_CONNECT_RETRY_INTERVAL | float | 10 | Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY |
+| SUT_SSH_PORT | integer | 22 | SSH port used by the SUT SSH consoles (`sshXtermVt`, `sshIucvconn`). Set to a forwarded high port (e.g. 10022) when reaching the SUT through a local SSH tunnel. Does not affect hypervisor SSH (e.g. `sshVirtsh`). |
 | VNC_STALL_THRESHOLD | integer | 4 | Time after which is VNC considered stalled |
 | VNC_TYPING_LIMIT | integer | 30 | Maximum number of keys per second |
 | VNC_CONNECT_TIMEOUT_LOCAL | integer | 10 | Timeout for local VNC connections in seconds |
