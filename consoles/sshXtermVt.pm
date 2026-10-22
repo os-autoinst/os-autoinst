@@ -20,11 +20,12 @@ sub activate ($self) {
     my $hostname = $ssh_args->{hostname} || die 'we need a hostname to ssh to';
     my $password = $ssh_args->{password} || $testapi::password;
     my $username = $ssh_args->{username} || 'root';
-    my $sshcommand = $self->sshCommand($username, $hostname, $gui);
+    my $port = $ssh_args->{port} || $bmwqemu::vars{SUT_PORT} || 22;
+    my $sshcommand = $self->sshCommand($username, $hostname, $port, $gui);
     my $serial = $self->{args}->{serial};
 
     # Wait that ssh server on SUT is live on network
-    if (!$self->wait_for_ssh_port($hostname, timeout => ($bmwqemu::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} // 120))) {
+    if (!$self->wait_for_ssh_port($hostname, timeout => ($bmwqemu::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} // 120), port => $port)) {
         bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
     }
     $self->callxterm($sshcommand, "ssh:$testapi_console");
@@ -35,7 +36,8 @@ sub activate ($self) {
         my ($ssh, $serialchan) = $self->backend->start_ssh_serial(
             hostname => $hostname,
             password => $password,
-            username => 'root'
+            username => 'root',
+            port => $port,
         );
 
         # start iucvconn
