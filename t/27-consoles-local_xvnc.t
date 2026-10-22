@@ -9,7 +9,7 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::MockObject;
 use Test::MockModule;
 use Test::Output qw(stderr_like);
-use Mojo::File qw(tempdir);
+use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use POSIX qw(_exit);
 use Socket;
@@ -50,5 +50,26 @@ $c->{args}->{log} = 1;
 stderr_like { ok $c->callxterm('true', 'window1'), 'can call callxterm'; } qr/Xterm PID: \d+/, 'PID is logged';
 is $c->fullscreen({window_name => 'foo'}), 1, 'can call fullscreen';
 is $c->disable, undef, 'can call disable';
+
+subtest '_ensure_font_dir populates a writable, unindexed font dir' => sub {
+    my $fontdir = tempdir '/tmp/fontdir-XXXX';
+    consoles::localXvnc::_ensure_font_dir($fontdir);
+    is path("$fontdir/fonts.dir")->slurp,
+      "3\n6x13.pcf.gz fixed\n6x13.pcf.gz -misc-fixed-medium-r-normal--13-120-75-75-c-70-iso8859-1\neurlatgr.pcf.gz eurlatgr\n",
+      'fonts.dir written verbatim';
+};
+
+subtest '_ensure_font_dir skips a missing dir' => sub {
+    my $missing = "$dir/no-such-font-dir";
+    consoles::localXvnc::_ensure_font_dir($missing);
+    ok !-e "$missing/fonts.dir", 'nothing written for a missing dir';
+};
+
+subtest '_ensure_font_dir leaves a populated fonts.dir untouched' => sub {
+    my $fontdir = tempdir '/tmp/fontdir-XXXX';
+    path("$fontdir/fonts.dir")->spew("already indexed content\n");
+    consoles::localXvnc::_ensure_font_dir($fontdir);
+    is path("$fontdir/fonts.dir")->slurp, "already indexed content\n", 'existing fonts.dir preserved';
+};
 
 done_testing;
