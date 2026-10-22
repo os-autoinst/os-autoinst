@@ -199,7 +199,7 @@ subtest 'test always_rollback flag' => sub {
         stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/, 'reason logged (TESTDEBUG)';
         delete $bmwqemu::vars{TESTDEBUG};
     };
-    snapshot_subtest 'always_run flag ensures execution after fatal failure' => sub {
+    my $test_always_run = sub ($trigger_fatal_callback, $tests_to_load, $check_output_callback) {
         local %autotest::tests = ();
         local @autotest::testorder = ();
         local %autotest::scheduled_basenames = ();
@@ -207,9 +207,11 @@ subtest 'test always_rollback flag' => sub {
         local $autotest::last_milestone_active_consoles = [];
         local $autotest::activated_consoles = [];
         local $autotest::last_milestone_console = undef;
+        local $autotest::fatal_reason = undef;
 
-        loadtest $_ for qw(fatal start next);
-        my ($fatal_test, $normal_test, $cleanup_test) = @autotest::testorder;
+        loadtest $_ for @$tests_to_load;
+        my @tests = @autotest::testorder;
+
         $mock_autotest->redefine(query_isotovideo => sub ($command, $arguments) {
                 return 1 if $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots';
                 return {snapshot_done => 1} if $command eq 'backend_make_snapshot';
@@ -217,25 +219,46 @@ subtest 'test always_rollback flag' => sub {
         });
 
         $mock_basetest->redefine(test_flags => sub ($self) {
-                return {fatal => 1} if $self == $fatal_test;
-                return {always_run => 1} if $self == $cleanup_test;
+                return {fatal => 1} if $self == $tests[0];
+                return {always_run => 1} if $self == $tests[-1];
                 return {};
         });
-        $mock_basetest->redefine(runtest => sub ($self) {
-                die "fatal failure\n" if $self == $fatal_test;
-                return 1;
-        });
+        $mock_basetest->redefine(runtest => $trigger_fatal_callback);
 
         $vm_stopped = 0;
         my $output = combined_from { autotest::run_all };
-        like $output, qr/skipping tests-start#?[0-9]* \(after fatal failure\)/, 'skipped normal test';
+        $check_output_callback->($output);
         like $output, qr{starting next tests/next\.pm}, 'executed always_run cleanup test';
         ($died, $completed) = get_tests_done;
         is $died, 0, 'tests not considered died';
         is $completed, 0, 'tests did not complete successfully';
         ok $vm_stopped, 'VM was stopped eventually';
+    };
+    snapshot_subtest 'always_run flag ensures execution after fatal failure' => sub {
+        $test_always_run->(
+            sub ($self) {
+                die "fatal failure\n" if $self == $autotest::testorder[0];
+                return 1;
+            },
+            [qw(fatal start next)],
+            sub ($output) {
+                like $output, qr/scheduled stop of overall test execution after a fatal test failure/, 'fatal reason logged';
+            }
+        );
         is $reverts_done, 0, 'no snapshots loaded after fatal failure';
         is $snapshots_made, 0, 'no snapshots made after fatal failure';
+    };
+    snapshot_subtest 'SIGTERM cancellation allows always_run modules to execute' => sub {
+        $test_always_run->(
+            sub ($self) {
+                autotest::handle_sigterm('TERM') if $self == $autotest::testorder[0];
+                return 1;
+            },
+            [qw(start next)],
+            sub ($output) {
+                like $output, qr/scheduled stop of overall test execution after test cancellation/, 'cancellation reason logged';
+            }
+        );
     };
     snapshot_subtest 'fails by default if snapshots are not supported and always_rollback is requested' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1});
