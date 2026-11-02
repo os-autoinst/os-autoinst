@@ -47,4 +47,16 @@ my $captured_output = stderr_from { $c->activate() };
 like $captured_output, qr/Wait for SSH on host testhost/, 'Captured expected debug log';
 ok $c->kill_ssh(), 'kill_ssh executed successfully';
 
+subtest 'activate uses SUT_PORT for SSH command and readiness check' => sub {
+    local $bmwqemu::vars{SUT_PORT} = 10022;
+    my $sshxterm_mock = Test::MockModule->new('consoles::sshXtermVt');
+    my (@ssh_command_args, @wait_args);
+    $sshxterm_mock->redefine(sshCommand => sub ($self, @args) { @ssh_command_args = @args; 'ssh-cmd' });
+    $sshxterm_mock->redefine(wait_for_ssh_port => sub ($self, @args) { @wait_args = @args; 1 });
+    stderr_from { consoles::sshXtermVt->new('sut', {hostname => 'testhost'})->activate };
+    my %wait_opts = @wait_args[1 .. $#wait_args];
+    is $ssh_command_args[2], 10022, 'SSH command is built with SUT_PORT';
+    is $wait_opts{port}, 10022, 'SSH readiness check uses SUT_PORT';
+};
+
 done_testing();

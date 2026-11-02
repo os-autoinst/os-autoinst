@@ -33,6 +33,20 @@ plan skip_all => 'No network support found' unless getprotobyname 'tcp';
 
 my $c = consoles::localXvnc->new('sut', {});
 like $c->sshCommand('user', 'localhost'), qr/^ssh/, 'can call sshCommand';
+subtest 'sshCommand port handling' => sub {
+    my @cases = (
+        {desc => 'no port given', args => [], like => qr/ssh .*user\@localhost; read$/, unlike => qr/-p /},
+        {desc => 'default port 22 omits -p', args => [22], like => qr/ssh .*user\@localhost; read$/, unlike => qr/-p /},
+        {desc => 'custom port adds -p before destination', args => [10022], like => qr/ssh .*-p 10022 user\@localhost; read$/},
+        {desc => 'custom port combined with gui forwarding', args => [10022, 1], like => qr/^ssh -X .*-p 10022 user\@localhost; read$/},
+    );
+    for my $case (@cases) {
+        my ($port, $gui) = @{$case->{args}};
+        my $cmd = $c->sshCommand('user', 'localhost', $port, $gui);
+        like $cmd, $case->{like}, "sshCommand: $case->{desc}";
+        unlike $cmd, $case->{unlike}, "sshCommand: $case->{desc} (negative)" if $case->{unlike};
+    }
+};
 my $socket_mock = Test::MockModule->new('Socket');
 my $vnc_base_mock = Test::MockModule->new('consoles::vnc_base');
 my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
