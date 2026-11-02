@@ -6,6 +6,7 @@ package distribution;
 use Mojo::Base -strict, -signatures;
 use Mojo::Util 'scope_guard';
 
+use OpenQA::Exceptions;
 use testapi ();
 use log 'fctwarn';
 use Carp 'croak';
@@ -383,12 +384,12 @@ sub script_output ($self, $script, @args) {
       || croak "script timeout: $script";
 
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {
-        my $log_message = 'script failed with : ' . $output;
+        my $log_message = 'script failed with: ' . $output;
         if ($args{proceed_on_failure}) {
             bmwqemu::log_call($log_message);
         }
         else {
-            croak($log_message);
+            OpenQA::Exception::TestapiError->throw(error => $log_message);
         }
     }
 
