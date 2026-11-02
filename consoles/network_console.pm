@@ -23,4 +23,6 @@ sub activate ($self) {
 # to be overwritten
 sub connect_remote ($self, $args) { }
 
+sub ssh_port ($self, $args) { $args->{port} // $bmwqemu::vars{SUT_SSH_PORT} // 22 }
+
 1;

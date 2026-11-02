@@ -23,6 +23,9 @@ use consoles::VMWare;
 
 has [qw(instance name vmm_family vmm_type vmm_firmware)];
 
+# the hypervisor SSH target is not the SUT, so the SUT_SSH_PORT fallback must not apply
+sub ssh_port ($self, $args) { $args->{port} // 22 }
+
 sub new ($class, $testapi_console = undef, $args = {}) {
     my $self = $class->SUPER::new($testapi_console, $args);
 
