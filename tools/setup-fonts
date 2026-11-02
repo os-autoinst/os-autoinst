@@ -1,0 +1,28 @@
+#!/bin/bash
+# Setup required X11 and fontconfig fonts for localXvnc in container environments
+
+set -euo pipefail
+
+# Font root prefix, overridable via FONTS_ROOT (default /usr/share/fonts)
+fonts_root="${FONTS_ROOT:-/usr/share/fonts}"
+misc_dir="$fonts_root/misc"
+fonts_dir="$misc_dir/fonts.dir"
+
+# Populate minimal fonts.dir if the misc dir is present, writable, and unindexed
+if [[ -d "$misc_dir" && -w "$misc_dir" ]]; then
+    if [[ ! -s "$fonts_dir" || $(wc -c < "$fonts_dir") -le 2 ]]; then
+        cat << 'EOF' > "$fonts_dir"
+3
+6x13.pcf.gz fixed
+6x13.pcf.gz -misc-fixed-medium-r-normal--13-120-75-75-c-70-iso8859-1
+eurlatgr.pcf.gz eurlatgr
+EOF
+    fi
+fi
+
+# Ensure basic sans font is installed for icewm in container environments
+if command -v zypper > /dev/null 2>&1 && command -v fc-list > /dev/null 2>&1 && [[ -w "$fonts_root" ]]; then
+    if ! fc-list : family 2> /dev/null | grep -qi "sans"; then
+        zypper -n in --no-recommends dejavu-fonts 2> /dev/null || true
+    fi
+fi

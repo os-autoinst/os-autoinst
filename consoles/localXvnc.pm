@@ -5,6 +5,7 @@
 package consoles::localXvnc;
 
 use Mojo::Base 'consoles::vnc_base', -signatures;
+use Mojo::File 'path';
 use autodie ':all';
 use IPC::Run ();
 require IPC::System::Simple;
@@ -62,10 +63,13 @@ sub fullscreen ($self, $args) {
     system "DISPLAY=$display $xdotool windowmove $window_id 0 0";
 }
 
-# uncoverable statement count:1
-# uncoverable statement count:2
-# uncoverable statement count:3
-# uncoverable statement count:4
+sub _ensure_font_dir ($dir = '/usr/share/fonts/misc') {
+    return unless -d $dir && -w $dir;
+    my $fonts_dir = "$dir/fonts.dir";
+    return if (-s $fonts_dir // 0) > 2;
+    path($fonts_dir)->spew("3\n6x13.pcf.gz fixed\n6x13.pcf.gz -misc-fixed-medium-r-normal--13-120-75-75-c-70-iso8859-1\neurlatgr.pcf.gz eurlatgr\n");
+}
+
 sub start_xvnc ($s, $display) {
     listen $s, 1;    # uncoverable statement
     my $peer;    # uncoverable statement
@@ -74,7 +78,9 @@ sub start_xvnc ($s, $display) {
     open STDIN, '<&', $peer;    # uncoverable statement
     open STDOUT, '>&', $peer;    # uncoverable statement
     close $peer;    # uncoverable statement
-    exec "Xvnc -depth 16 -inetd -SecurityTypes None -ac $display";    # uncoverable statement
+    _ensure_font_dir();    # uncoverable statement
+    my $fp = -d '/usr/share/fonts/misc' ? ' -fp /usr/share/fonts/misc' : '';    # uncoverable statement
+    exec "Xvnc -depth 16 -inetd -SecurityTypes None -ac$fp $display";    # uncoverable statement
 }
 
 sub activate ($self) {
@@ -103,7 +109,7 @@ sub activate ($self) {
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    system qq{DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo "icewm PID is \$!"};
+    system qq{DISPLAY=$display icewm --replace -c $bmwqemu::topdir/consoles/icewm.cfg & echo "icewm PID is \$!"};
     return;
 }
 
