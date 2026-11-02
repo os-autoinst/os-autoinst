@@ -329,6 +329,30 @@ subtest 'VMware images are verified against their published checksum before publ
         ok $path_occurrences <= 3, 'path interpolation is minimized in favor of shell variables';
     };
 
+    subtest 'an xz-compressed image is decompressed before publishing' => sub {
+        my $xz_name = 'disk.vmdk.xz';
+        my $payload = 'vmdk payload that xz-compresses well';
+        my $raw = path($my_test_basedir, "$xz_name.raw");
+        $raw->spew($payload);
+        my $xz_source = path($my_test_basedir, $nfs_ds, 'iso')->make_path->child($xz_name);
+        is system(qq{xz -c "$raw" > "$xz_source"}), 0, 'the compressed asset is created';
+        my $xz_digest = Digest::SHA->new(256)->addfile($xz_source->to_string)->hexdigest;
+        my $dest_uncompressed = path("$vmware_openqa_datastore/disk.vmdk");
+        my $dest_xz = path("$vmware_openqa_datastore/$xz_name");
+        $dest_uncompressed->remove;
+        $dest_xz->remove;
+        $bmwqemu::vars{CHECKSUM_ISO} = uc $xz_digest;
+        $bmwqemu::vars{ISO} = "/var/lib/openqa/share/factory/iso/$xz_name";
+        lives_ok { consoles::VMWare::provide_image_in_datastore($svirt, $xz_source, $vmware_openqa_datastore) } 'the xz image is provided';
+        like $last_cmd, qr/"\$\{input_file##\*\.\}"/, 'the xz branch is chosen via unescaped shell parameter expansion';
+        like $last_output, qr/Verified .* against its published checksum/, 'the compressed asset is verified';
+        like $last_output, qr/Decompressed .* to /, 'the compressed asset is decompressed into place';
+        is $dest_uncompressed->slurp, $payload, 'the published image is the decompressed payload, not the raw xz';
+        ok -e $dest_xz, 'the compressed asset stays in the datastore';
+        is_deeply $vmware_openqa_datastore->list->grep(qr/\.part$/)->to_array, [], 'no temporary file left behind';
+        $bmwqemu::vars{ISO} = "/var/lib/openqa/share/factory/iso/$iso";
+    };
+
     subtest 'mismatching checksum leaves the destination untouched' => sub {
         $dest->remove;
         $bmwqemu::vars{CHECKSUM_ISO} = 'b' x 64;
