@@ -244,6 +244,19 @@ sub wait_output ($self, $timeout = 0) {
 
 sub sequence_3270 ($self, @commands) { $self->send_3270($_) for @commands }
 
+# A stopped z/VM guest shows CP READ. VM READ and RUNNING mean the guest is
+# still alive. A kernel panic can also stop the guest (on_panic=stop), so
+# report it separately; that is a best-effort check of the current screen.
+sub shutdown_state ($self) {
+    $self->send_3270('Snap');
+    my $r = $self->send_3270('Snap(Ascii)');
+    my @screen = @{$r->{command_output}};
+    my $status = pop @screen // '';
+    return 'panicked' if grep { /Kernel panic/ } @screen;
+    return 'stopped' if $status =~ /CP READ/;
+    return 'running';
+}
+
 # map the terminal status of x3270 to a hash
 sub nice_3270_status ($self, $status_string) {
     my (@raw_status) = split ' ', $status_string;
