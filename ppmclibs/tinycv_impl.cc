@@ -62,13 +62,13 @@ struct Image {
   (scene area and object) ignoring slight colour changes */
 double enhancedMSE(const Mat& _I1, const Mat& _I2)
 {
-    Mat I1 = _I1;
-    I1.convertTo(I1, CV_8UC1);
-    Mat I2 = _I2;
-    I2.convertTo(I2, CV_8UC1);
+    const Mat& I1 = _I1;
+    const Mat& I2 = _I2;
 
     assert(I1.channels() == 1);
     assert(I2.channels() == 1);
+    assert(I1.depth() == CV_8U);
+    assert(I2.depth() == CV_8U);
 
     double sse = 0;
 
@@ -212,7 +212,7 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
         return outvec;
     }
 
-    Mat result = Mat::zeros(result_height, result_width, CV_32FC1);
+    Mat result(result_height, result_width, CV_32FC1);
 
     // Perform the matching. Info about algorithm:
     // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
@@ -514,8 +514,9 @@ Image* image_scale(Image* a, int width, int height)
         n->img = Mat(height, width, a->img.type());
         resize(a->img, n->img, n->img.size());
     } else if (n->img.rows < height || n->img.cols < width) {
-        n->img = Mat::zeros(height, width, a->img.type());
-        n->img = Scalar(120, 120, 120);
+        n->img = Mat(height, width, a->img.type());
+        if (a->img.rows < height || a->img.cols < width)
+            n->img = Scalar(120, 120, 120);
         a->img.copyTo(n->img(Rect(0, 0, a->img.cols, a->img.rows)));
     } else
         n->img = a->img;
