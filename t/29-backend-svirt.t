@@ -74,6 +74,7 @@ subtest 'Generic svirt backend' => sub {
 subtest 'VMWARE backend' => sub {
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
     $bmwqemu::vars{VMWARE_HOST} = 'foobar';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'password';
     $bmwqemu::vars{VMWARE_SERIAL_PORT} = '222';
 
     my $backend = backend::svirt->new;
@@ -92,6 +93,28 @@ subtest 'VMWARE backend' => sub {
     ok $backend->do_stop_vm, 'can stop vm';
     redefine_ssh 'Power OFF';
     is $backend->is_shutdown, 'Power OFF', 'can call is_shutdown';
+};
+
+subtest 'do_stop_vm_vmware' => sub {
+    local $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
+    local $bmwqemu::vars{VMWARE_DATASTORE} = 'datastore1';
+    my $backend = backend::svirt->new;
+    my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
+    $bmwqemu_mock->noop('diag');
+    $bmwqemu_mock->noop('log_call');
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    $backend_mock->redefine(vmname => 'openQA-SUT-1');
+    my @calls;
+    $run_ssh_cmd_mock->redefine(run_ssh_cmd => sub ($self, $cmd, %args) { push @calls, [$cmd, \%args]; 0 });
+
+    $backend->do_stop_vm;
+    my ($cmd, $args) = @{$calls[-1]};
+    like $cmd, qr{rm -f /vmfs/volumes/datastore1/openQA/openQA-SUT-1\.\* }, 'VM files removed at the end of the job';
+    is $args->{hostname}, 'foobar', 'commands run on the ESXi host';
+
+    @calls = ();
+    $backend->do_stop_vm_vmware;
+    unlike $calls[-1]->[0], qr{rm -f}, 'VM files kept when stopping the VM to define it again';
 };
 
 subtest 'HyperV backend' => sub {

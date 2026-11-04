@@ -156,8 +156,73 @@ sub _indent ($script, $level = 0) {
     return $script;
 }
 
-# Sets $vmid to the VM named exactly $name, so openQA-SUT-1 does not match openQA-SUT-10
-sub vmid_script ($name) { qq{vmid=\$(vim-cmd vmsvc/getallvms | awk '\$2 == "$name" { print \$1 }')} }
+# Name of the datastore holding the VMs, see VMWARE_DATASTORE
+sub datastore () { $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1' }
+
+# Directory of the VMs in the datastore
+sub openqa_datastore_dir () { '/vmfs/volumes/' . datastore() . '/openQA/' }
+
+# SSH credentials of the ESXi host running the VMs
+sub ssh_credentials () {
+    return {
+        hostname => $bmwqemu::vars{VMWARE_HOST} || die('Need variable VMWARE_HOST'),
+        password => $bmwqemu::vars{VMWARE_PASSWORD} || die('Need variable VMWARE_PASSWORD'),
+        username => 'root',
+    };
+}
+
+# Inventory of all VMs registered on the ESXi host, including invalid ones
+use constant VM_INVENTORY => '/etc/vmware/hostd/vmInventory.xml';
+
+# Sets $vmids to the VMs registered for exactly $name, so openQA-SUT-1 does not match openQA-SUT-10.
+# `vim-cmd vmsvc/getallvms` lists invalid VMs (e.g. left behind when their files were removed while
+# they were still registered) only by ID, so those are looked up by their vmx path in the inventory.
+# The inventory is split into records per XML tag so the lookup does not depend on its line breaks.
+sub vmids_script ($name, $inventory = VM_INVENTORY) {
+    return <<~"EOF";
+    vmids=\$({
+        vim-cmd vmsvc/getallvms 2>/dev/null | awk '\$2 == "$name" { print \$1 }'
+        awk -v RS='<' -F '>' -v vmx='/openQA/$name.vmx' '
+            \$1 ~ /^ConfigEntry/ { id = ""; path = "" }
+            \$1 == "objID" { id = \$2 }
+            \$1 == "vmxCfgPath" { path = \$2 }
+            \$1 == "/ConfigEntry" && id != "" && length(path) >= length(vmx) && substr(path, length(path) - length(vmx) + 1) == vmx { print id }
+        ' $inventory 2>/dev/null
+    } | sort -u)
+    EOF
+}
+
+# Powers off and unregisters the VMs registered for $name. Their files are kept so the disks
+# already created for the next VM are not removed. Invalid VMs can only be unregistered after
+# reloading them.
+# Note: This script must be in POSIX shell as ESXi uses busybox for /bin/sh
+sub release_vm_script ($name) {
+    my $vmids = _indent(vmids_script($name));
+    return <<~"EOF";
+    $vmids
+    for vmid in \$vmids; do
+        echo "Releasing VM \$vmid ($name)"
+        if vim-cmd vmsvc/power.getstate \$vmid 2>/dev/null | grep -q 'Powered on'; then
+            vim-cmd vmsvc/power.off \$vmid
+            for i in \$(seq 1 10); do vim-cmd vmsvc/power.getstate \$vmid | grep -q 'Powered off' && break; sleep 1; done
+        fi
+        vim-cmd vmsvc/unregister \$vmid || { vim-cmd vmsvc/reload \$vmid; vim-cmd vmsvc/unregister \$vmid; }
+    done
+    EOF
+}
+
+# Deletes the disk $disk; its flat file is removed as well as vmkfstools skips it when the
+# descriptor is missing and creating the disk again would fail with "The file already exists"
+sub remove_disk_script ($disk) {
+    my $flat = $disk =~ s/\.vmdk$/-flat.vmdk/r;
+    return "vmkfstools -v1 -U $disk; rm -f $disk $flat\n";
+}
+
+# Removes the files of the VM $name from the datastore directory $dir: its configuration, disks,
+# thin clones and interrupted image copies, but not the files of e.g. openQA-SUT-10 for openQA-SUT-1
+sub remove_vm_files_script ($name, $dir) {
+    return "rm -f $dir$name.* $dir$name-* $dir${name}[a-z]*.vmdk $dir*_${name}_thinfile*.vmdk $dir*.$name.part\n";
+}
 
 # Path of the temporary copy; contains the VM name so the job's leftover cleanup removes it
 sub _tmp_image_path ($dest, $name) { "$dest.$name.part" }
@@ -468,14 +533,9 @@ sub copy_image_to_datastore ($svirt, $name, $backingfile, $file_basename, %args)
         die "Can't copy VMware image $file_basename";    # uncoverable statement
     }
     return unless $backingfile;
-    # Power VM off, delete its disk image, and create it again.
-    # Then wait for some time for the VM to *really* turn off.
+    # Release a leftover VM, delete its thin clone, and create it again
     $cmd =
-      '( set -x; ' . vmid_script($name) . ';' .
-      'if [ $vmid ]; then ' .
-      'vim-cmd vmsvc/power.off $vmid;' .
-      'fi;' .
-      "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
+      "( set -x\n" . $svirt->release_vm_script . remove_disk_script($vmware_disk_path_thinfile) .
       "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
     $retval = $svirt->run_cmd($cmd, domain => 'sshVMwareServer');
     die q{Can't create thin VMware image} if $retval;
