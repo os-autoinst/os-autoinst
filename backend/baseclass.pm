@@ -1305,8 +1305,17 @@ sub check_ssh_serial ($self, $fh = undef, $write = undef) {
 
     bmwqemu::fctwarn "ssh serial: unable to read: $error_string (error code: $error_code) - closing connection";
     $self->stop_ssh_serial();
-    return 1;
+    return 1 unless $self->ssh_serial_fatal;
+    my $msg = "Lost SSH serial connection: $error_string (error code: $error_code)";
+    bmwqemu::serialize_state(component => 'backend', msg => $msg, result => 'incomplete');
+    die "backend died: $msg\n";
 }
+
+# A dropped SSH serial connection is only an infrastructure failure when the
+# socket points at a persistent remote host (hypervisor/HMC). Bare-metal backends
+# override this: their SSH serial is the SUT itself, which legitimately goes
+# quiet during reboots and is reconnected afterwards.
+sub ssh_serial_fatal ($self) { 1 }
 
 =head2 run_ssh_cmd
 
