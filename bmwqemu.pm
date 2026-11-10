@@ -52,10 +52,17 @@ our @ovmf_locations = (    ## no critic (Variables::ProhibitPackageVars)
     '/usr/share/OVMF/OVMF_CODE.fd',    # Debian's ovmf package
 );
 
+our @seabios_locations = (    ## no critic (Variables::ProhibitPackageVars)
+    '/usr/share/seabios',    # Fedora's seabios package
+    '/usr/share/qemu',    # openSUSE qemu package
+);
+
 our %vars;    ## no critic (Variables::ProhibitPackageVars)
 tie %vars, 'bmwqemu::tiedvars', %vars;
 
 sub ovmf_locations () { ($vars{UEFI_SECURE_BOOT} // 1) ? \@ovmf_locations : \@ovmf_locations_no_secure_boot }
+
+sub seabios_locations () { \@seabios_locations }
 
 sub result_dir () { 'testresults' }
 

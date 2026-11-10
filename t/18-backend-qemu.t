@@ -685,6 +685,9 @@ subtest 'special cases when starting QEMU' => sub {
     # set certain variables to test special handling for them that is not otherwise tested
     $bmwqemu::topdir = "$Bin/..";    # for dmi data
     $bmwqemu::vars{ARCH} = 'x86_64';
+    my $seabios_dir = tempdir;
+    $seabios_dir->child('bios.bin')->spew('');
+    @bmwqemu::seabios_locations = ($seabios_dir->to_string);
     $bmwqemu::vars{BIOS} = 'bios.bin';
     $bmwqemu::vars{LAPTOP} = '1';
     $bmwqemu::vars{BOOT_HDD_IMAGE} = 1;
@@ -713,7 +716,7 @@ subtest 'special cases when starting QEMU' => sub {
     my @invoked_cmds;
     $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join ' ', @cmd });
     combined_like { $backend->start_qemu } qr{.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s, 'slirpvde started, DELAYED_START logged';
-    like $bmwqemu::vars{BIOS}, qr{/.*/bios\.bin}, 'BIOS set to absolute location';
+    is $bmwqemu::vars{BIOS}, $seabios_dir->child('bios.bin')->to_string, 'BIOS resolved to file in SeaBIOS location';
     is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
     is $bmwqemu::vars{BOOTFROM}, 'c', 'BOOTFROM defaults to "c" for BOOT_HDD_IMAGE=1';
     is $bmwqemu::vars{HDDMODEL}, 'scsi-hd', 'HDDMODEL set for MULTIPATH=1';
@@ -805,7 +808,18 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{BIOS} = 'bios.bin';
     combined_like { $backend->start_qemu } qr{.+}s, 'invoked with legacy BIOS';
     $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
-    like $qemu_params, qr{bios /usr/share/qemu/bios\.bin}, 'bios parameter correctly configured';
+    like $qemu_params, qr{bios \Q$seabios_dir\E/bios\.bin}, 'bios parameter correctly configured';
+    @bmwqemu::seabios_locations = ('does not exist', $seabios_dir->child('later')->make_path->to_string);
+    $seabios_dir->child('later', 'bios.bin')->spew('');
+    $bmwqemu::vars{BIOS} = 'bios.bin';
+    combined_like { $backend->start_qemu } qr{.+}s, 'invoked with BIOS found in a later SeaBIOS location';
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{bios \Q$seabios_dir\E/later/bios\.bin}, 'BIOS resolved to later SeaBIOS location';
+    @bmwqemu::seabios_locations = ($seabios_dir->to_string);
+    $bmwqemu::vars{BIOS} = 'does-not-exist.bin';
+    combined_like { throws_ok { $backend->start_qemu } qr{'does-not-exist\.bin' not found in any of: \Q$seabios_dir\E/does-not-exist\.bin, check BIOS}, 'dies on BIOS not found in any SeaBIOS location' }
+      qr/qemu version/si, 'expected logs until exception thrown (BIOS)';
+    delete $bmwqemu::vars{BIOS};
 
     subtest 'various error cases' => sub {
         my %initial_vars = %bmwqemu::vars;

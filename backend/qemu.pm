@@ -732,8 +732,13 @@ sub start_qemu ($self) {
         die 'No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package' unless $vars->{UEFI_PFLASH_CODE};
     }
 
-    # A non-absolute path is relative to /usr/share/qemu
-    $vars->{BIOS} = '/usr/share/qemu/' . $vars->{BIOS} if $vars->{BIOS} && $vars->{BIOS} !~ /^\//;
+    # A bare BIOS file name is searched in the known SeaBIOS locations of the distributions
+    if ($vars->{BIOS} && $vars->{BIOS} !~ /\//) {
+        my @candidates = map { "$_/$vars->{BIOS}" } @{bmwqemu::seabios_locations()};
+        my $found = first { -e } @candidates;
+        die "'$vars->{BIOS}' not found in any of: @candidates, check BIOS\n" unless $found;
+        $vars->{BIOS} = $found;
+    }
 
     # Convert those vars to absolute paths and check for existence
     foreach my $attribute (qw(KERNEL INITRD BIOS)) {
