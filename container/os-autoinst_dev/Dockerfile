@@ -42,6 +42,7 @@ RUN zypper in -y -C \
        jq \
        ninja \
        openssh-clients \
+       openssl \
        perl-base \
        pkg-config \
        procps \
