@@ -113,7 +113,7 @@ Supported variables per backend
 | ARCH | x86_64\|i686\|aarch64\|... | depends on tested medium | Architecture of VM. |
 | APPEND | string |  | Kernel options to pass when using the KERNEL variable, see https://qemu-project.gitlab.io/qemu/system/linuxboot.html |
 | ATACONTROLLER | see qemu -device ?, e. g. for SATA: ich9-ahci |  | Controller for ATA devices, needed for connecting disks as SATA. |
-| BIOS | string |  | Set the filename for the BIOS. Relative paths are assumed to be relative to `/usr/share/qemu/`. |
+| BIOS | string |  | Set the filename or path for the BIOS. A bare file name is searched in `/usr/share/seabios` and `/usr/share/qemu`, the first existing match is used. |
 | BOOT_HDD_IMAGE | boolean |  | enables boot from HDD_1 (BOOTFROM has higher priority) |
 | BOOT_MENU | boolean | undef | enables boot menu for selection of boot device |
 | BOOT_MENU_TIMEOUT | integer | 5000 | boot menu timeout in ms. Needs BOOT_MENU |
