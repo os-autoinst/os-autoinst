@@ -236,7 +236,7 @@ subtest 'level3_marker_correlation' => sub {
     $d->install_serial_marker_hook(3);
     like $typed, qr'c=\$\(HISTTIMEFORMAT= history 1\);c=\$\{c#\*\[0-9\]  \}',
       'level-3 shell hook captures the just-run command via in-memory history (no fc off-by-one)';
-    like $typed, qr'l=\$\{#c\};t=\$c;\[ \$l -ge 4 \]&&t=\$\{c: -4\};printf.*OA:DONE',
+    like $typed, qr'l=\$\{#c\};t=\$c;\[ \$l -ge 4 \]&&t=\$\{c: -4\};_oaw "OA:DONE',
       'level-3 shell hook emits the compact head4+len+tail4 command fingerprinting script';
     unlike $typed, qr'fc -ln -1',
       'level-3 shell hook no longer uses fc -ln -1 (off-by-one lag emitting the previous command marker one prompt late)';
@@ -381,6 +381,50 @@ subtest 'serial_marker_hook_version_migration' => sub {
     like $typed, qr/echo '_OAPV=\d+;_oap\(\)/, 'The version tag is persisted together with the hook definition';
 };
 
+subtest 'serial_marker_hook_device_resolution' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $testapi::serialdev = 'sshserial';
+
+    for my $level (2, 3) {
+        $typed = '';
+        $d->install_serial_marker_hook($level);
+        like $typed, qr/^export _OASD=\/dev\/sshserial;grep -q /, "level $level: current serial device is exported for this session";
+        my ($persisted) = $typed =~ /echo '([^']*)'\|tee/;
+        unlike $persisted, qr/_OASD=\//, "level $level: _OASD is not persisted into ~/.bashrc";
+        like $persisted, qr/;local d=\$\{_OASD:-\/dev\/sshserial\};\[ -n "\$_OASD" \]\|\|\[ -c "\$d" \]\|\|\[ -p "\$d" \]\|\|return 0;/,
+          "level $level: without _OASD a character device or a FIFO is used as fallback";
+        unlike $persisted, qr/>\/dev\//, "level $level: hook does not write to a hardcoded device";
+        like $persisted, qr/_oaw\(\)\{ if \[ -z "\$_OASD" \]&&\[ -p "\$d" \];then printf "\$\x40" 1<>"\$d";else printf "\$\x40">"\$d";fi;\}/,
+          "level $level: FIFO is opened read-write without _OASD so the prompt cannot block, else write-only";
+        like $persisted, qr/^_OAPV=\d+;_oap\(\)\{.*\};_oaw\(\)\{.*\};PROMPT_COMMAND=_oap$/, "level $level: writer is persisted together with the hook";
+        (my $hook = $persisted) =~ s/_oaw\(\)\{.*?fi;\}//;
+        unlike $hook, qr/>"\$d"/, "level $level: hook writes markers only through _oaw";
+    }
+};
+
+subtest 'serial_marker_hook_reinstalled_on_serialdev_change' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $testapi::serialdev = 'sshserial';
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+
+    $d->detect_serial_marker_capability;
+    like $typed, qr/export _OASD=\/dev\/sshserial;/, 'hook installed for initial serial device';
+    $typed = '';
+    $d->detect_serial_marker_capability;
+    is $typed, '', 'no re-install while serial device is unchanged';
+    $testapi::serialdev = 'virtsshserial';
+    $d->detect_serial_marker_capability;
+    like $typed, qr/export _OASD=\/dev\/virtsshserial;/, 'hook re-installed after serial device changed';
+};
+
 subtest 'serial markers are skipped for manual redirections and multiline commands' => sub {
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
@@ -439,7 +483,7 @@ subtest 'serial markers are skipped for manual redirections and multiline comman
     delete $d->{_serial_marker_hook_persistent}->{'test-console'};
     $d->{_serial_marker_level}->{'test-console'} = 3;
     $d->install_serial_marker_hook(3);
-    like $typed, qr/_oap\(\)\{ r=\$\?;if \[ -n "\$_OANM" \]/, '_oap must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
+    like $typed, qr/_oap\(\)\{ r=\$\?;local d=/, '_oap must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
 };
 
 subtest 'terminal_session_boundary' => sub {
