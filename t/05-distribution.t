@@ -277,6 +277,18 @@ subtest 'level3_marker_correlation' => sub {
     is $exit_code, undef, 'Anchored match miss fails closed with undef instead of an unreliable generic fallback';
     is scalar(@regexes_seen), 1, 'No second generic wait_serial is issued, preventing stale-marker mismatch and doubled timeout';
     like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-OA(?:\\:|:)curl11logs/, 'The single wait_serial call uses the anchored fingerprint';
+
+    # poo#210042: Commands containing tabs fall back to legacy markers
+    @regexes_seen = ();
+    $mock_bmwqemu->redefine(diag => sub { });
+    $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
+            push @regexes_seen, $regexp;
+            my $hash = testapi::hashed_string("SRecho\tfoo" . $bmwqemu::default_timeout);
+            return "$hash-0-";
+    });
+    $exit_code = $d->script_run("echo\tfoo");
+    is $exit_code, 0, 'script_run handles commands containing tab characters by falling back to legacy markers';
+    unlike $regexes_seen[0], qr/OA:DONE-/, 'Level 3 pretty marker regex was bypassed for command with tabs';
 };
 
 subtest 'set expected serial and autoinst failures' => sub {
@@ -424,12 +436,12 @@ subtest 'serial markers are skipped for manual redirections and multiline comman
         }
         elsif ($case->{guard} == 2) {
             like $typed, qr/_OANM=1; /, $case->{msg};
-            like $diag_msg, qr/Temporarily disabling.*newline characters/, 'info message shown';
+            like $diag_msg, qr/Temporarily disabling.*newline/, 'info message shown';
         }
         else {
             unlike $typed, qr/_OANM=1; /, $case->{msg};
             unlike $diag_msg, qr/Manual redirection to \/dev\/ttyS0 is deprecated/, 'no deprecation warning for normal command';
-            unlike $diag_msg, qr/Temporarily disabling.*newline characters/, 'no newline info shown';
+            unlike $diag_msg, qr/Temporarily disabling.*newline/, 'no newline info shown';
         }
         is $vars{PRETTY_SERIAL_MARKER}, 1, "PRETTY_SERIAL_MARKER is active again after '$case->{cmd}'";
     }
