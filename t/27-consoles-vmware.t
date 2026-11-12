@@ -311,7 +311,7 @@ subtest 'VMware images are verified against their published checksum before publ
     my $last_cmd;
     # stands in for the sshVirtsh console, running the generated script on the local host
     my $svirt = Test::MockObject->new->set_always(name => 'openQA-SUT-1');
-    $svirt->mock(run_cmd => sub ($self, $cmd, %args) { $last_cmd = $cmd; $last_output = qx{($cmd) 2>&1}; $? >> 8 });
+    $svirt->mock(run_cmd => sub ($self, $cmd, %args) { $last_cmd = $cmd; $last_output = qx{($cmd) 2>&1}; return ($? >> 8, $last_output, ''); });
     $bmwqemu::vars{ISO} = "/var/lib/openqa/share/factory/iso/$iso";
     my $provide = sub { consoles::VMWare::provide_image_in_datastore($svirt, $source, $vmware_openqa_datastore) };
 
