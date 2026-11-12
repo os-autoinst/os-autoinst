@@ -43,6 +43,28 @@ subtest 'starting VM' => sub {
     is $x3270_console->backend, $backend, 'backend assignes itself to console';
 };
 
+subtest 'is_shutdown' => sub {
+    my $x3270 = $testapi::distri->{consoles}->{x3270};
+    my $console = Test::MockObject->new;
+    $testapi::distri->{consoles}->{x3270} = $console;
+
+    $console->set_always(shutdown_state => 'stopped');
+    ok $backend->is_shutdown, 'CP READ is a shutdown';
+
+    $console->set_always(shutdown_state => 'running');
+    ok !$backend->is_shutdown, 'RUNNING is not a shutdown';
+
+    $console->set_always(shutdown_state => 'panicked');
+    my @panic_warnings = warnings { ok !$backend->is_shutdown, 'a kernel panic is not a shutdown' };
+    like join('', @panic_warnings), qr/panicked during shutdown/, 'a kernel panic is logged';
+
+    $testapi::distri->{consoles}->{x3270} = undef;
+    my @warnings = warnings { ok !$backend->is_shutdown, 'a missing console is not a shutdown' };
+    like join('', @warnings), qr/console x3270 does not exist/, 'a missing console warns';
+
+    $testapi::distri->{consoles}->{x3270} = $x3270;
+};
+
 subtest 'stopping VM' => sub {
     my $dummy_console = $backend->{current_console} = $testapi::distri->{consoles}->{x3270} = Test::MockObject->new->set_always(disable => 1);
     $backend->{consoles} = {x3270 => $dummy_console};
