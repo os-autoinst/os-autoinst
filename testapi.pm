@@ -1706,15 +1706,29 @@ Example:
 Select the named console for further C<testapi> interaction (send_text,
 send_key, wait_screen_change, ...)
 
-If this the first time, a test selects this console, the distribution
-will get a call into activate_console('root-console', $console_obj, @args) to
-make sure to actually log in root. For the backend it's just a C<tty>
-object (in this example) - so it will ensure the console is active,
-but to setup the root shell on this console, the distribution needs
-to run test code.
+If this is the first time a test selects this console, the distribution
+will get a call into C<activate_console('root-console', $console_obj, @args)> to
+make sure to actually log in root. For the backend it is just a C<tty>
+object (in this example) - so it will trigger the console selection (e.g. by
+sending C<ctrl-alt-f<n>> key events to the system under test), but to set up the
+root shell on this console, the distribution needs to run test code.
 
-After the console selection the distribution callback
-C<$distri->console_selected> is called with C<@args>.
+Note that C<select_console> does B<not> synchronize with the guest operating
+system out of the box. For consoles like C<tty-console>, the guest OS / display
+server switches virtual terminals asynchronously, and C<select_console> returns
+immediately after dispatching the switching key events. If actions such as
+C<enter_cmd> or C<type_string> are run immediately without synchronization,
+keystrokes might be lost or sent to the previous console while the switch is
+still in progress.
+
+After console selection, the distribution callback C<$distri->console_selected>
+is called with C<@args>. By default, this callback does nothing. Synchronization
+can be achieved either by explicitly verifying readiness in the test (e.g. with
+C<assert_screen>), or by overriding C<console_selected> in the distribution. For
+example, in C<os-autoinst-distri-opensuse>,
+C<susedistribution::console_selected> automatically calls C<assert_screen> with
+the console's tag to ensure that the console is visible and ready before test
+execution continues.
 
 =cut
 
