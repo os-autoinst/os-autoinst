@@ -9,6 +9,7 @@ use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';
 use bmwqemu;
+use consoles::VMWare;
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
@@ -91,13 +92,22 @@ sub do_stop_vm_svirt ($self) {
     }
 }
 
+# Powers off and unregisters the VM on the ESXi host directly as `virsh undefine` leaves invalid
+# VMs behind, e.g. when their files are gone. Removes the files of the VM with $args{remove_files}.
+sub do_stop_vm_vmware ($self, %args) {
+    my $vmname = $self->vmname;
+    my $script = consoles::VMWare::release_vm_script($vmname);
+    $script .= consoles::VMWare::remove_vm_files_script($vmname, consoles::VMWare::openqa_datastore_dir()) if $args{remove_files};
+    $self->run_ssh_cmd("( set -x\n$script) 2>&1", $self->get_ssh_credentials('sshVMwareServer'));
+}
+
 sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
     unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
         my $vmname = $self->vmname;
         bmwqemu::diag "Destroying $vmname virtual machine";
-        _is_hyperv ? $self->do_stop_vm_hyperv : $self->do_stop_vm_svirt;
+        _is_hyperv ? $self->do_stop_vm_hyperv : _is_vmware ? $self->do_stop_vm_vmware(remove_files => 1) : $self->do_stop_vm_svirt;
     }
 
     # TODO: stream serial_terminal.txt with scp on the fly instead
@@ -203,6 +213,8 @@ sub get_ssh_credentials ($self, $domain = 'default') {
             username => 'root',
         } if _is_hyperv;
     }
+    # read/require credentials for the ESXi host running VMware VMs, same domain as in consoles::sshVirtsh
+    $ssh_credentials->{sshVMwareServer} //= consoles::VMWare::ssh_credentials() if $domain eq 'sshVMwareServer';
     die "Missing ssh credentials domain '$domain'" unless my $c = $ssh_credentials->{$domain};
     return %$c;
 }
