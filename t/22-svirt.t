@@ -125,10 +125,7 @@ sub _check_vmware_cmds ($cmds, $extra_cmds = []) {
     like shift @$cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     my @expected = (
-        $s . ' dominfo openQA-SUT-1 2>/dev/null',
-        $s . ' destroy openQA-SUT-1',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1',
-        $s . ' dominfo openQA-SUT-1 2>/dev/null',
+        "( set -x\n" . consoles::VMWare::release_vm_script('openQA-SUT-1') . ') 2>&1',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         'test -e /vmfs/volumes/datastore1/openQA/openQA-SUT-1.nvram',
@@ -619,6 +616,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             is defined($cmd), 1, 'Command was triggered';
 
             like $cmd, qr/vmkfstools -v1 -U $exp_fullpath;/, 'Check name';
+            my $exp_flat = $exp_fullpath =~ s/\.vmdk$/-flat.vmdk/r;
+            like $cmd, qr/rm -f \Q$exp_fullpath $exp_flat\E\n/, 'Orphaned flat file removed';
             like $cmd, qr/vmkfstools -v1 -c 66G --diskformat thin $exp_fullpath;/, 'Check size';
 
             svirt_xml_validate($svirt,
@@ -1130,19 +1129,90 @@ subtest 'Test routine consoles::sshVirtsh::provide_image_vmware_in_ds' => sub {
 };
 
 
-subtest 'VMware VM lookup only finds the VM of the job itself' => sub {
+subtest 'VMware VM lookup only finds the VMs of the job itself' => sub {
     my $bin = tempdir($dir . '/vimcmd_XXXX');
     $bin->child('vim-cmd')->spew(<<~'EOF')->chmod(0755);
     #!/bin/sh
-    cat <<'LIST'
+    echo "$*" >> "${0%/*}/calls"
+    case "$1" in
+    vmsvc/getallvms)
+        echo "Skipping invalid VM '42'" >&2
+        echo "Skipping invalid VM '43'" >&2
+        cat <<'LIST'
     Vmid        Name                              File                                 Guest OS       Version   Annotation
     10     openQA-SUT-10   [datastore1] openQA/openQA-SUT-10.vmx   sles15_64Guest   vmx-19    openQA WebUI: host (10): openQA-SUT-1 is not me
     11     openQA-SUT-1    [datastore1] openQA/openQA-SUT-1.vmx    sles15_64Guest   vmx-19    openQA WebUI: host (1):
     12     openQA-SUT-11   [datastore1] openQA/openQA-SUT-11.vmx   sles15_64Guest   vmx-19    openQA WebUI: host (11):
     LIST
+        ;;
+    vmsvc/power.getstate)
+        echo 'Retrieved runtime info'
+        if [ "$2" = 11 ] && [ ! -e "${0%/*}/off" ]; then echo 'Powered on'; else echo 'Powered off'; fi
+        ;;
+    vmsvc/power.off) touch "${0%/*}/off" ;;
+    # invalid VMs can only be unregistered after reloading them
+    vmsvc/unregister) [ "$2" != 42 ] || [ -e "${0%/*}/reloaded" ] ;;
+    vmsvc/reload) touch "${0%/*}/reloaded" ;;
+    esac
     EOF
-    my $vmid_script = consoles::VMWare::vmid_script('openQA-SUT-1');
-    is qx{PATH="$bin:\$PATH"; $vmid_script; echo "\$vmid"}, "11\n", 'only the VM registered under exactly the name is found';
+    my $inventory = $bin->child('vmInventory.xml')->spew(<<~'EOF');
+    <ConfigRoot>
+      <ConfigEntry id="0001">
+        <objID>42</objID>
+        <vmxCfgPath>/vmfs/volumes/5f3a/openQA/openQA-SUT-1.vmx</vmxCfgPath>
+      </ConfigEntry>
+      <ConfigEntry id="0002">
+        <objID>43</objID>
+        <vmxCfgPath>/vmfs/volumes/5f3a/openQA/openQA-SUT-11.vmx</vmxCfgPath>
+      </ConfigEntry>
+    </ConfigRoot>
+    EOF
+
+    my $vmids_script = consoles::VMWare::vmids_script('openQA-SUT-1', $inventory);
+    is qx{PATH="$bin:\$PATH"; $vmids_script\necho \$vmids}, "11 42\n", 'only the VMs registered for exactly the name are found, including invalid ones';
+    my $single_line = $bin->child('vmInventory-single-line.xml')->spew(join '', map { s/^\s+//r } split /\n/, $inventory->slurp);
+    $vmids_script = consoles::VMWare::vmids_script('openQA-SUT-1', $single_line);
+    is qx{PATH="$bin:\$PATH"; $vmids_script\necho \$vmids}, "11 42\n", 'VMs found in an inventory without line breaks';
+
+    my $release_script = consoles::VMWare::release_vm_script('openQA-SUT-1');
+    $release_script =~ s{\Q@{[consoles::VMWare::VM_INVENTORY]}\E}{$inventory};
+    qx{PATH="$bin:\$PATH"; $release_script};
+    my @calls = grep { !/getallvms|getstate/ } split /\n/, $bin->child('calls')->slurp;
+    is_deeply \@calls, [
+        'vmsvc/power.off 11', 'vmsvc/unregister 11',
+        'vmsvc/unregister 42', 'vmsvc/reload 42', 'vmsvc/unregister 42',
+      ], 'powered on VM is powered off and unregistered, invalid VM is reloaded to unregister it'
+      or always_explain \@calls;
+};
+
+subtest 'VMware VM released only once until it is defined again' => sub {
+    local $bmwqemu::vars{GUESTINFO_CONFIG};
+    local $bmwqemu::vars{VMWARE_DATASTORE} = 'datastore1';
+    my (@cmds, @ssh_cmds);
+    my $mocks = _mock_svirt_vmware(\@cmds, \@ssh_cmds);
+    my $console = consoles::sshVirtsh->new('svirt');
+    $console->vmm_family('vmware');
+    $console->backend(backend::svirt->new);
+    $console->_init_xml;
+    my $release = consoles::VMWare::release_vm_script('openQA-SUT-1');
+    my $remove_files = consoles::VMWare::remove_vm_files_script('openQA-SUT-1', '/vmfs/volumes/datastore1/openQA/');
+    is $console->release_vm_script, $release . $remove_files, 'leftover VM released and its files removed before creating the first disk';
+    is $console->release_vm_script, '', 'VM not released again for further disks';
+    $console->define_and_start;
+    unlike "@cmds", qr{vmsvc/unregister}, 'VM not released again before defining it';
+    is $console->release_vm_script, $release, 'defined VM released again for further disks, but the files of the job kept';
+};
+
+subtest 'VMware VM files removal only removes the files of the VM itself' => sub {
+    my $datastore = tempdir($dir . '/datastore_XXXX');
+    my @own = qw(openQA-SUT-1.vmx openQA-SUT-1.nvram openQA-SUT-1-5d2a.vswp openQA-SUT-1a.vmdk openQA-SUT-1a-flat.vmdk
+      SLES_openQA-SUT-1_thinfile.vmdk SLES_openQA-SUT-1_thinfile-flat.vmdk SLES.vmdk.openQA-SUT-1.part);
+    my @others = qw(openQA-SUT-10.vmx openQA-SUT-10a.vmdk openQA-SUT-11-flat.vmdk SLES_openQA-SUT-10_thinfile.vmdk
+      SLES.vmdk SLES.vmdk.openQA-SUT-10.part SLES.vmdk.openQA-SUT-1.failed);
+    $datastore->child($_)->touch for @own, @others;
+    my $script = consoles::VMWare::remove_vm_files_script('openQA-SUT-1', "$datastore/");
+    qx{$script};
+    is_deeply [sort map { $_->basename } $datastore->list->each], [sort @others], 'files of other VMs and shared images kept';
 };
 
 done_testing;
