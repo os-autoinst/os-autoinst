@@ -113,6 +113,9 @@ sub is_shutdown ($self, @) {
 
 sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write) }
 
+# bare-metal: the SSH serial is the SUT, so a disconnect during reboot is expected
+sub ssh_serial_fatal ($self) { 0 }
+
 sub get_mc_status ($self) {
     $self->ipmitool('mc guid');
     $self->ipmitool('mc info');
