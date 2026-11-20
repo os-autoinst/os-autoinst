@@ -34,6 +34,9 @@ has [qw(backend command_handler)];
 # the loop status
 has loop => 1;
 
+# track if we're in graceful shutdown (waiting for always_run modules)
+has graceful_shutdown => 0;
+
 use constant {
     EXIT_STATUS_OK => 0,
     EXIT_STATUS_ERR_NO_TESTS => 100,
@@ -57,7 +60,7 @@ sub run ($self) {
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
             my $rsp = myjsonrpc::read_json($readable);
-            $self->_read_response($rsp, $readable);
+            $self->_read_response($rsp, $readable, $io_select);
             last unless defined $rsp;
         }
         $self->_read_response(@$_) for splice @interleaved_cmds;
@@ -67,8 +70,22 @@ sub run ($self) {
     return 0;
 }
 
-sub _read_response ($self, $rsp, $fd) {
+sub _read_response ($self, $rsp, $fd, $io_select = undef) {
     if (!defined $rsp) {
+        if ($self->graceful_shutdown && $io_select && defined $self->testfd && $fd != $self->testfd) {
+            $io_select->remove($fd);
+            my $ch = $self->command_handler;
+            if (defined $self->cmd_srv_fd && $fd == $self->cmd_srv_fd) {
+                $ch->cmd_srv_fd(undef);
+            }
+            elsif (defined $ch->backend_out_fd && $fd == $ch->backend_out_fd) {
+                $ch->send_to_backend_requester({ret => {}}) if $ch->backend_requester;
+                $ch->backend_fd(undef);
+                $ch->backend_out_fd(undef);
+            }
+            diag('isotovideo: a helper connection closed during graceful shutdown, continuing to run remaining always_run modules');
+            return;
+        }
         fctwarn sprintf 'THERE IS NOTHING TO READ %d %d %d', fileno($fd), fileno($self->testfd), fileno $self->cmd_srv_fd;
         $self->loop(0);
     } elsif ($fd == $self->command_handler->backend_out_fd) {
@@ -120,9 +137,10 @@ sub handle_commands ($self) {
     my $command_handler;
     # stop main loop as soon as one of the child processes terminates
     my $stop_loop = sub (@) { $self->loop(0) if $self->loop; };
+    my $stop_loop_unless_graceful = sub (@) { $self->loop(0) if $self->loop && !$self->graceful_shutdown; };
     $self->testprocess->once(collected => $stop_loop);
-    $self->backend->process->once(collected => $stop_loop);
-    $self->cmd_srv_process->once(collected => $stop_loop);
+    $self->backend->process->once(collected => $stop_loop_unless_graceful);
+    $self->cmd_srv_process->once(collected => $stop_loop_unless_graceful);
 
     $command_handler = OpenQA::Isotovideo::CommandHandler->new(
         cmd_srv_fd => $self->cmd_srv_fd,
@@ -135,16 +153,18 @@ sub handle_commands ($self) {
             $self->testfd(undef);
             $self->loop(0);
             $self->stop_autotest();
+            # if shutdown mode than stop the backend
+            if ($self->graceful_shutdown) {    # uncoverable statement
+                bmwqemu::diag('isotovideo: stopping backend');    # uncoverable statement
+                $self->backend->stop if defined $self->backend;    # uncoverable statement
+                $self->stop_commands('graceful shutdown');    # uncoverable statement
+            }
     });
     # uncoverable statement count:1
     # uncoverable statement count:2
-    # uncoverable statement count:3
-    # uncoverable statement count:4
     $command_handler->on(signal => sub ($event, $sig) {
-            $self->backend->stop if defined $self->backend;    # uncoverable statement
-            $self->stop_commands("received signal $sig");    # uncoverable statement
-            $self->stop_autotest();    # uncoverable statement
-            _exit(1);    # uncoverable statement
+            $self->graceful_shutdown(1);    # uncoverable statement
+            bmwqemu::diag('isotovideo: backend shutdown');    # uncoverable statement
     });
     $self->setup_signal_handler;
 
@@ -160,7 +180,8 @@ sub setup_signal_handler ($self) {
 
 sub _signal_handler ($self, $sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
-    return $self->loop(0) if $self->loop;
+    return $self->loop(0) if $self->graceful_shutdown || !$self->loop;
+    $self->graceful_shutdown(1);
     $self->command_handler->emit(signal => $sig);
 }
 
