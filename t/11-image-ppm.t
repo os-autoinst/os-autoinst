@@ -31,4 +31,21 @@ throws_ok { $img1->write_with_thumbnail('/tmp/does-not-exist/test.png') } qr/Una
 
 throws_ok { $img1->write_with_thumbnail('/tmp/does-not-exist/test') } qr/Could not write.*test/, 'dies when OpenCV error occurs';
 
+subtest 'scale' => sub {
+    my $exact = $img1->scale(1024, 768);
+    is $exact->xres, 1024, 'exact-size scale keeps width';
+    is $exact->yres, 768, 'exact-size scale keeps height';
+    is $exact->similarity($img1), 1_000_000, 'exact-size scale is pixel-identical';
+
+    my $padded = $img1->scale(1200, 900);
+    is $padded->xres, 1200, 'padded scale has requested width';
+    is $padded->yres, 900, 'padded scale has requested height';
+    is_deeply [$padded->get_pixel(0, 0)], [$img1->get_pixel(0, 0)], 'padded scale preserves original pixel';
+    is_deeply [$padded->get_pixel(1100, 850)], [120, 120, 120], 'padded scale pads with gray';
+
+    my $down = $img1->scale(512, 384);
+    is $down->xres, 512, 'scaled-down width';
+    is $down->yres, 384, 'scaled-down height';
+};
+
 done_testing();
