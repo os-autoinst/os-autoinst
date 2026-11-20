@@ -10,6 +10,7 @@ use autodie ':all';
 require IPC::System::Simple;
 use Feature::Compat::Try;
 use Socket;
+use IO::Select;
 use POSIX '_exit', 'strftime';
 use Mojo::JSON 'to_json';
 use Mojo::File 'path';
@@ -198,7 +199,14 @@ sub get_temp_file ($self) {
     return $self->reply->not_found;
 }
 
-sub run_daemon ($port, $isotovideo) {
+sub run_daemon ($port, $isotovideo, $status_fh = undef) {
+    my $report_status = sub ($ok, $msg = '') {
+        return unless $status_fh;
+        print {$status_fh} $ok ? "ok\n" : "error: $msg\n";
+        CORE::close($status_fh);
+        undef $status_fh;
+    };
+
     # allow up to 20 GiB for uploads of big hdd images
     $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 0) * 1024**3;
     $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
@@ -279,12 +287,17 @@ sub run_daemon ($port, $isotovideo) {
             }
     })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
-    app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
-    try { $daemon->run }
+    try {
+        $daemon->start;
+        app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
+        $report_status->(1);
+        $daemon->run;
+    }
     catch ($e) {
-        print "cmdsrv: failed to run daemon on port $port: $e\n";    # uncoverable statement
-        print port_details($port) if $e =~ /already in use/i;    # uncoverable statement
-        _exit(1);    # uncoverable statement
+        print "cmdsrv: failed to run daemon on port $port: $e\n";
+        print port_details($port) if $e =~ /already in use/i;
+        $report_status->(0, $e);
+        _exit(1);
     }
 }
 
@@ -292,6 +305,7 @@ sub start_server ($port) {
     my ($child, $isotovideo);
     socketpair $child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC
       or die "cmdsrv: socketpair: $!";
+    pipe my $status_reader, my $status_writer or die "cmdsrv: pipe: $!";
 
     $child->autoflush(1);
     $isotovideo->autoflush(1);
@@ -303,8 +317,9 @@ sub start_server ($port) {
             $SIG{CHLD} = 'DEFAULT';
 
             close $child;
+            close $status_reader;
             $0 = "$0: commands";
-            run_daemon($port, $isotovideo);
+            run_daemon($port, $isotovideo, $status_writer);
             Devel::Cover::report() if Devel::Cover->can('report');
             _exit(0);    # uncoverable statement
         },
@@ -315,6 +330,28 @@ sub start_server ($port) {
         set_pipes => 0)->start;
 
     close $isotovideo;
+    close $status_writer;
+
+    my $status = '';
+    my $select = IO::Select->new($status_reader);
+    if ($select->can_read(30)) {
+        $status = <$status_reader> // '';
+    }
+    else {
+        $process->stop;
+        $status = "error: timed out waiting for the command server to start\n";    # uncoverable statement
+    }
+    close $status_reader;
+
+    unless ($status =~ /^ok\n?$/) {
+        my ($reason) = $status =~ /^error: (.*)/;
+        $reason //= 'command server process exited before reporting startup status';
+        chomp $reason;
+        $process->stop if $process->is_running;
+        close $child;
+        die "cmdsrv: failed to start command server on port $port: $reason\n";
+    }
+
     $process->on(collected => sub { bmwqemu::diag('commands process exited: ' . shift->exit_status); });
     return ($process, $child);
 }
