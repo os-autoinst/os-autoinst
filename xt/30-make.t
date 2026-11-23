@@ -13,7 +13,7 @@ use OpenQA::Test::TimeLimit '20';
 
 BEGIN { $ENV{LANG} = 'C.utf8' }
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $srcdir = path("$Bin/..")->realpath;
 # some git variables might be set if this test is
 # run during a `git rebase -x 'make test'`

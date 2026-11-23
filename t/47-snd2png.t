@@ -18,7 +18,7 @@ my $snd2png = path('snd2png/snd2png');
 ok -x $snd2png, 'snd2png exists and is executable' or BAIL_OUT 'snd2png not found, call "make"';
 my $wav = path('snd2png/aplay-captured.wav');
 my $original_md5_file = path('snd2png/test.png.md5.original');
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $test_pnm = path($dir, 'test.pnm');
 ok !-e $test_pnm, 'test.pnm does not exist before';
 ok qx{$snd2png $wav $test_pnm 2>&1}, 'snd2png executed with some output';

@@ -15,7 +15,7 @@ use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
 use Mojo::Util qw(scope_guard);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data";
 my $pool_dir = "$dir/pool";
