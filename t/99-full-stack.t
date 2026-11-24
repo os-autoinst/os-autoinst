@@ -16,7 +16,7 @@ use Mojo::JSON 'decode_json';
 use Mojo::File qw(path tempdir);
 use Mojo::Util qw(scope_guard);
 
-my $dir = $ENV{OS_AUTOINST_FULL_STACK_TEST_DIR} // tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = $ENV{OS_AUTOINST_FULL_STACK_TEST_DIR} // tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data/";
 my $pool_dir = "$dir/pool/";

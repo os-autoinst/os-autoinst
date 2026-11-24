@@ -27,7 +27,7 @@ use log();
 cv::init;
 require tinycv;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';

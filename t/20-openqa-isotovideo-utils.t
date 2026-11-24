@@ -17,7 +17,7 @@ use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec
   git_remote_url load_test_schedule);
 use OpenQA::Isotovideo::CommandHandler;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };

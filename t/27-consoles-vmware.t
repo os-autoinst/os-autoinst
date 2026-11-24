@@ -295,7 +295,7 @@ subtest 'test against real VMWare instance' => sub {
 };
 
 subtest 'VMware images are verified against their published checksum before publishing' => sub {
-    my $my_test_basedir = tempdir('/tmp/27-vmware-checksum-XXXX');
+    my $my_test_basedir = tempdir('27-vmware-checksum-XXXX', TMPDIR => 1);
     my $nfs_ds = 'openqa datastore space';
     my $ds = 'datastore checksum space';
     $bmwqemu::vars{VMWARE_NFS_DATASTORE_DEBUG} = '0';
@@ -438,7 +438,7 @@ subtest 'VMware images are verified against their published checksum before publ
 };
 
 subtest 'Only one of the VMware jobs arriving together copies the image' => sub {
-    my $datastore = tempdir('/tmp/27-vmware-claim-XXXX');
+    my $datastore = tempdir('27-vmware-claim-XXXX', TMPDIR => 1);
     my $dest = path($datastore, 'concurrent-mock.iso')->to_string;
     my $marker = consoles::VMWare::_copy_marker_path($dest);
     my $verified = consoles::VMWare::_verified_script;

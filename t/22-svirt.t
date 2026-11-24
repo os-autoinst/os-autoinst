@@ -21,7 +21,7 @@ use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';

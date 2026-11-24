@@ -19,7 +19,7 @@ use Test::Warnings ':report_warnings';
 
 BEGIN { $ENV{LANG} = 'C.utf8' }
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $git_repo = 'tmpgitrepo';
 my $git_dir = "$dir/source/$git_repo";
 my $clone_dir = "$dir/clone/$git_repo";

@@ -22,7 +22,7 @@ use Mojo::Util qw(scope_guard);
 use OpenQA::Isotovideo::Utils qw(checkout_wheels handle_generated_assets load_test_schedule);
 use OpenQA::Isotovideo::CommandHandler;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("$FindBin::Script-XXXX", TMPDIR => 1);
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir = "$toplevel_dir/t/data";
 my $pool_dir = "$dir/pool";
