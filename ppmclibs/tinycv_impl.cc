@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <byteswap.h>
+#include <cerrno>
 #include <condition_variable>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <iostream>
@@ -328,14 +331,12 @@ private:
  *
  * \remarks
  * - This should be generally at least one thread and we generally just use OpenCV's default.
- * - To avoid running into TBB's soft limit which seems to be one thread less than the number
- *   of physical CPU threads (see TBB function `calc_workers_soft_limit`) we also limit ourselves
- *   to that. Otherwise we might run into a deadlock with "The number of workers is currently
- *   limited to 7. The request for 8 workers is ignored.".
+ * - We cap OpenCV's thread count by the number of CPUs to avoid requesting more threads
+ *   than can be concurrently scheduled, which would deadlock the barrier in create_opencv_threads().
  */
 int opencv_default_thread_count()
 {
-    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs() - 1));
+    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs()));
 }
 
 /*!
@@ -370,10 +371,26 @@ void create_opencv_threads(int thread_count)
     parallel_for_(Range(0, thread_count), RunFunctionInParallel([&](const Range&) {
         // keep the thread idling until the expected number of threads has been spawned
         std::unique_lock<std::mutex> lock(m);
+
         if (++threads_spawned >= thread_count) {
             cv.notify_all(); // note: The last thread releases all previously spawned threads.
         } else {
             cv.wait(lock);
+        }
+
+        // check whether the signal mask is set as expected
+        auto current_set = sigset_t();
+        sigemptyset(&current_set);
+        auto sigmask_get = pthread_sigmask(SIG_BLOCK, nullptr, &current_set);
+
+        // exit with an error if the signal mask does not contain at least SIGCHLD and SIGTERM
+        if (sigmask_get != 0) {
+            std::cerr << "Unable to get sigprocmask of OpenCV thread: " << std::strerror(sigmask_get) << '\n';
+            std::exit(EXIT_FAILURE);
+        }
+        if (sigismember(&current_set, SIGCHLD) != 1 || sigismember(&current_set, SIGTERM) != 1) {
+            std::cerr << "Not all signals are blocked in OpenCV thread.\n";
+            std::exit(EXIT_FAILURE);
         }
     }));
 }
