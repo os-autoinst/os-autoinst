@@ -680,6 +680,14 @@ sub check_socket ($self, $fh, $write = undef) {
 # }
 #-> select
 
+sub add_console ($self, $args) {
+    my $testapi_console = $args->{testapi_console};
+    return {error => "Console $testapi_console already exists"} if exists $testapi::distri->{consoles}->{$testapi_console};
+    my $console = $testapi::distri->add_console($args->{testapi_console}, $args->{backend_console}, $args->{backend_args});
+    $console->backend($self);
+    return {result => 1};
+}
+
 sub select_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
 

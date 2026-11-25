@@ -58,7 +58,7 @@ our @EXPORT = qw(
 
   start_audiocapture assert_recorded_sound check_recorded_sound
 
-  select_console console reset_consoles current_console
+  add_console select_console console reset_consoles current_console
 
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
@@ -1682,8 +1682,8 @@ tests to select
 
   add_console("console", "console type" [, optional console parameters...])
 
-You need to do this in your distribution and not in tests. It will not trigger
-any action on the system under test, but only store the parameters.
+It will not trigger any action on the system under test, but only store
+the parameters.
 
 The console parameters are console specific. Parameter C<persistent> skips
 console reset and console is persistent during the test execution.
@@ -1691,6 +1691,16 @@ console reset and console is persistent during the test execution.
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
+sub add_console ($testapi_console, $backend_console, $backend_args) {
+    my $ret = query_isotovideo('backend_add_console', {
+            testapi_console => $testapi_console,
+            backend_console => $backend_console,
+            backend_args => $backend_args
+    });
+    OpenQA::Exception::TestapiError->throw(error => $ret->{error}) if $ret->{error};
+    return;
+}
 
 require backend::console_proxy;
 our %testapi_console_proxies;    ## no critic (Variables::ProhibitPackageVars)
