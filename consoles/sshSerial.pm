@@ -25,21 +25,27 @@ sub disable ($self) {
 
 sub activate ($self) {
     my $hostname = $self->{args}->{hostname} || die 'we need a hostname to ssh to';
-    my $password = $self->{args}->{password} // $testapi::password;
-    my $username = $self->{args}->{username} // 'root';
-    my $use_ssh_agent = $self->{args}->{use_ssh_agent} // 0;
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
     my $port = $self->ssh_port($self->{args});
+    my %sshargs = (hostname => $hostname, port => $port);
+    my %defargs = (
+        password => $testapi::password,
+        username => 'root',
+        use_ssh_agent => 0,
+        publickey => undef,
+        privatekey => undef,
+        passphrase => undef,
+    );
 
+    for my $key (keys %defargs) {
+        my $val = $self->{args}->{$key} // $defargs{$key};
+        $sshargs{$key} = $val if defined $val;
+    }
+
+    my $username = $sshargs{username};
     bmwqemu::diag("Connecting SSH serial console for $username\@$hostname port $port");
 
-    my $ssh = $self->backend->new_ssh_connection(
-        hostname => $hostname,
-        password => $password,
-        username => $username,
-        use_ssh_agent => $use_ssh_agent,
-        port => $port,
-    );
+    my $ssh = $self->backend->new_ssh_connection(%sshargs);
     my $chan = $ssh->channel()
       or $ssh->die_with_error('Cannot open SSH channel');
 
