@@ -450,6 +450,9 @@ such as 22, hence the SSH console port is configurable via `SUT_SSH_PORT`.
   socat UDP4-LISTEN:6230,fork,reuseaddr EXEC:"ssh -q jump_host socat STDIO UDP4:sut_ipmi_ip:623"
   IPMI_HOSTNAME=127.0.0.1 IPMI_OPTIONS="-I lanplus -p 6230"
   ```
+  The IPMI serial console (`ipmiSol`) calls `ipmiconsole` with only
+  `IPMI_HOSTNAME` and does not honor `IPMI_OPTIONS`, so it still needs direct
+  IPMI reachability.
 - Serial console / SSH (TCP 22): forward a high local port to the SUT and point
   the console target and port at the tunnel:
   ```sh
@@ -457,10 +460,11 @@ such as 22, hence the SSH console port is configurable via `SUT_SSH_PORT`.
   SUT_IP=127.0.0.1 SUT_SSH_PORT=10022
   ```
   The distribution passes `SUT_IP` as the console `hostname`, so it has to name
-  the tunnel endpoint.
+  the tunnel endpoint. On s390x the target comes from the parml `Hostname`
+  instead, so `sshX3270` only takes the port from here.
 
-`SUT_SSH_PORT` applies to the `sshXtermVt`, `sshIucvconn` and `localXvnc` consoles
-and defaults to 22.
+`SUT_SSH_PORT` applies to the SUT SSH consoles (`sshXtermVt`, `sshIucvconn`,
+`sshX3270`) and defaults to 22. Hypervisor SSH (`sshVirtsh`) is unaffected.
 
 # Running isotovideo as CI check
 
