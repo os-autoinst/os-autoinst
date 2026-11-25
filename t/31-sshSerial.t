@@ -202,6 +202,24 @@ subtest 'Write test' => sub {
     is $mock_channel->{write_buffer}, 'A slightly longer test string.', 'larger write buffer written in loop';
 };
 
+subtest 'activate passes SSH port resolved from console args and SUT_SSH_PORT' => sub {
+    my $port;
+    $mock_backend->mock(new_ssh_connection => sub ($self, %args) { $port = $args{port}; $mock_ssh });
+    my @cases = (
+        {desc => 'port defaults to 22', vars => undef, args => {}, port => 22},
+        {desc => 'SUT_SSH_PORT used when no args port', vars => 10022, args => {}, port => 10022},
+        {desc => 'args port wins over SUT_SSH_PORT', vars => 10022, args => {port => 2222}, port => 2222},
+    );
+    for my $case (@cases) {
+        local $bmwqemu::vars{SUT_SSH_PORT} = $case->{vars};
+        $port = undef;
+        my $console = consoles::sshSerial->new(undef, {hostname => 'localhost', %{$case->{args}}});
+        $console->backend($mock_backend);
+        $console->activate;
+        is $port, $case->{port}, $case->{desc};
+    }
+};
+
 done_testing;
 
 END {

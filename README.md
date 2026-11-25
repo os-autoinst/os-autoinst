@@ -463,8 +463,9 @@ such as 22, hence the SSH console port is configurable via `SUT_SSH_PORT`.
   the tunnel endpoint. On s390x the target comes from the parml `Hostname`
   instead, so `sshX3270` only takes the port from here.
 
-`SUT_SSH_PORT` applies to the SUT SSH consoles (`sshXtermVt`, `sshIucvconn`,
-`sshX3270`) and defaults to 22. Hypervisor SSH (`sshVirtsh`) is unaffected.
+`SUT_SSH_PORT` applies to the SUT SSH consoles (`sshSerial`, `sshXtermVt`,
+`sshIucvconn`, `sshX3270`) and defaults to 22. Hypervisor SSH (`sshVirtsh`) is
+unaffected.
 
 # Running isotovideo as CI check
 

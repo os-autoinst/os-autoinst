@@ -6,7 +6,7 @@
 
 package consoles::sshSerial;
 
-use Mojo::Base 'consoles::console', -signatures;
+use Mojo::Base 'consoles::network_console', -signatures;
 use consoles::ssh_screen;
 
 sub new ($class, $testapi_console, $args) {
@@ -29,7 +29,7 @@ sub activate ($self) {
     my $username = $self->{args}->{username} // 'root';
     my $use_ssh_agent = $self->{args}->{use_ssh_agent} // 0;
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
-    my $port = $self->{args}->{port} // 22;
+    my $port = $self->ssh_port($self->{args});
 
     bmwqemu::diag("Connecting SSH serial console for $username\@$hostname port $port");
 
