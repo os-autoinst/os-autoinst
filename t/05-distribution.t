@@ -229,6 +229,8 @@ subtest 'level3_marker_correlation' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     $mock_bmwqemu->noop('log_call');
+    my $diag_msg = '';
+    $mock_bmwqemu->redefine(diag => sub { $diag_msg .= $_[0] });
     $testapi::serialdev = 'ttyS0';
 
     my $typed = '';
@@ -289,6 +291,18 @@ subtest 'level3_marker_correlation' => sub {
     $exit_code = $d->script_run("echo\tfoo");
     is $exit_code, 0, 'script_run handles commands containing tab characters by falling back to legacy markers';
     unlike $regexes_seen[0], qr/OA:DONE-/, 'Level 3 pretty marker regex was bypassed for command with tabs';
+
+    $typed = '';
+    $diag_msg = '';
+    $mock_bmwqemu->redefine(diag => sub { $diag_msg .= $_[0] });
+    @regexes_seen = ();
+    my $fallback_str = testapi::hashed_string('SR' . ' ! ssh host' . 9);
+    $mock_testapi->redefine(wait_serial => sub ($regexp, @) { push @regexes_seen, $regexp; return "$fallback_str-0-" });
+    is $d->script_run(' ! ssh host', timeout => 9), 0, 'leading-space command falls back to explicit marker and returns exit code';
+    unlike $typed, qr/HISTTIMEFORMAT|OA:DONE/, 'leading-space command does not use history-based level-3 marker';
+    like $typed, qr/_OANM=1;.*echo .* > \/dev\/ttyS0/, 'leading-space command uses level-1 explicit marker';
+    like $regexes_seen[0], qr/-\(\\d\+\)-/, 'wait_serial matches explicit marker';
+    like $diag_msg, qr/Leading-space command bypasses bash history/, 'diagnostic message logged for leading-space command';
 };
 
 subtest 'set expected serial and autoinst failures' => sub {
