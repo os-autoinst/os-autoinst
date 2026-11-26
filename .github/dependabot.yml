@@ -10,3 +10,10 @@ updates:
       all-actions:
         patterns:
           - "*"
+  - package-ecosystem: "cargo"
+    directory: "/rust/spice-bridge"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "rust"

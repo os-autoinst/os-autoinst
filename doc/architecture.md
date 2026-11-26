@@ -9,7 +9,7 @@ Once everything is running, the process tree looks like this:
                   `OpenQA/Isotovideo/CommandHandler.pm`, `needle.pm` (initial needle scan)
 
     * **backend**: spawns and handles backend (eg. qemu), receives commands from isotovideo IO-loop,
-                   handles the VNC connections, makes regular screenshots  
+                   handles the VNC and SPICE connections, makes regular screenshots  
       relevant files: `baseclass.pm` and derived, `console.pm` and derived, `needle.pm` (reloading,
                       matching), `cv.pm`, `ppmclibs/*`
 
@@ -17,6 +17,9 @@ Once everything is running, the process tree looks like this:
 
         * **videoencoder**: encodes the Ogg Theora file  
           relevant files: `videoencoder.cpp`
+
+        * **spice-bridge**: (only if SPICE is enabled) external Rust daemon that connects to QEMU via SPICE and provides a fast, lightweight bridge to the Perl backend via Unix domain sockets. This separation allows handling the complex, GLib-based SPICE event loop concurrently in a memory-safe language without blocking the single-threaded backend process.  
+          relevant files: `rust/spice-bridge/*`
 
     * **autotest**: determines test order, runs test code and thus testapi functions, sends
                     commands to isotovideo IO-loop (via `query_isotovideo`)  
