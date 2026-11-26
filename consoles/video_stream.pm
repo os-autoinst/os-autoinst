@@ -416,26 +416,19 @@ sub _receive_frame_ustreamer ($self) {
             bmwqemu::diag "Invalid ustreamer magic: $magic";
             return undef;
         }
-        my ($client_clock_offset, $meta_offset, $data_offset);
-        if ($version == 4) {
-            $client_clock_offset = 112;
-            $data_offset = 129;
-            $meta_offset = 32;
-        } elsif ($version == 7 or $version == 8) {
-            $client_clock_offset = 32;
-            $data_offset = 128;
-            $meta_offset = 52;
-        } elsif ($version == 10) {
-            $client_clock_offset = 32;
-            $data_offset = 160;
-            $meta_offset = 68;
-        } elsif ($version == 11) {
-            $client_clock_offset = 48;
-            $data_offset = 176;
-            $meta_offset = 84;
-        } else {
-            die "Unsupported ustreamer version '$version' (only versions 4, 7, 8, 10 and 11 are supported)";
-        }
+
+        my %supported_offsets = (
+            # client_clock, meta, data
+            4 => [112, 32, 129],
+            7 => [32, 52, 128],
+            8 => [32, 52, 128],
+            10 => [32, 68, 160],
+            11 => [48, 84, 176],
+        );
+
+        my $offsets = $supported_offsets{$version}
+          or die "Unsupported ustreamer version '$version' (only versions 4, 7, 8, 10 and 11 are supported)";
+        my ($client_clock_offset, $meta_offset, $data_offset) = @$offsets;
 
         # tell ustreamer we are reading, otherwise it won't write new frames
         my $clock = clock_gettime(CLOCK_MONOTONIC);
