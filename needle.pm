@@ -150,7 +150,9 @@ sub _load_image ($self, $image_path) {
     my $image = tinycv::read($image_path);
     $watch->stop();
 
-    bmwqemu::diag(sprintf "load of $image_path took %.2f seconds", $watch->as_data()->{total_time}) if ($watch->as_data()->{total_time} > 0.1);
+    my $scale_factor = 1;
+    $scale_factor = $ENV{OPENQA_TEST_TIMEOUT_SCALE_CI} // 2 if $ENV{CI};
+    bmwqemu::diag(sprintf "load of $image_path took %.2f seconds", $watch->as_data()->{total_time}) if ($watch->as_data()->{total_time} > 0.1 * $scale_factor);
 
     return undef unless $image;
 
