@@ -680,6 +680,14 @@ sub check_socket ($self, $fh, $write = undef) {
 # }
 #-> select
 
+sub add_console ($self, $args) {
+    my $testapi_console = $args->{testapi_console};
+    return {error => "Console $testapi_console already exists"} if exists $testapi::distri->{consoles}->{$testapi_console};
+    my $console = $testapi::distri->add_console($args->{testapi_console}, $args->{backend_console}, $args->{backend_args});
+    $console->backend($self);
+    return {result => 1};
+}
+
 sub select_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
 
@@ -1244,7 +1252,16 @@ sub new_ssh_connection ($self, %args) {
             $counter--;
             next;
         }
-        if (!$args{use_ssh_agent} && defined $args{password}) {
+        if (!$args{use_ssh_agent} && $args{publickey}) {
+            my %auth = (
+                username => $args{username},
+                publickey_blob => $args{publickey},
+                privatekey_blob => $args{privatekey},
+            );
+            $auth{passphrase} = $args{passphrase} if defined $args{passphrase};
+            $ssh->auth_publickey_frommemory(%auth);
+        }
+        elsif (!$args{use_ssh_agent} && defined $args{password}) {
             $ssh->auth(username => $args{username}, password => $args{password});
         }
         else {
@@ -1392,7 +1409,9 @@ sub stop_ssh_serial ($self) {
 }
 
 sub hide_password ($self, %args) {
-    $args{password} = 'SECRET' if $args{password};
+    for my $key (qw(password passphrase privatekey publickey)) {
+        $args{$key} = 'SECRET' if exists $args{$key};
+    }
     return \%args;
 }
 
