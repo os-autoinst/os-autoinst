@@ -223,6 +223,25 @@ subtest 'current_script test' => sub {
     $t->get_ok("$base_url/$job/current_script")->status_is(200)->content_type_is('application/octet-stream');
 };
 
+subtest 'startup failure is reported when port is already in use' => sub {
+    my $started = eval { commands::start_server($mojoport); 1 };
+    my $error = $@;
+    ok !$started, 'start server failed';
+    like $error, qr/^cmdsrv: failed to start command server on port \Q$mojoport\E/, 'startup failure reported';
+    like $error, qr/already in use/i, 'actual bind error included in the reason';
+};
+
+subtest 'startup timeout is reported when the daemon does not report readiness' => sub {
+    my $select = Test::MockModule->new('IO::Select');
+    $select->redefine(can_read => 0);
+    my $port = Mojo::IOLoop::Server->generate_port;
+    my $started = eval { commands::start_server($port); 1 };
+    my $error = $@;
+    $select->unmock_all;
+    ok !$started, 'start server timed out';
+    like $error, qr/^cmdsrv: failed to start command server on port \Q$port\E: timed out waiting for the command server to start/, 'timeout reported';
+};
+
 kill TERM => $spid;
 waitpid $spid, 0;
 combined_like { $cserver->stop() } qr/commands process exited/, 'commands server stopped';
