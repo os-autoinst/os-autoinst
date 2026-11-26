@@ -143,6 +143,31 @@ subtest 'expect_3270 tests' => sub {
     } qr/expect_3270: timed out.*\n.*/, 'time out' };
 };
 
+subtest 'shutdown_state test' => sub {
+    my (@commands, $output);
+    my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
+    $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
+            push @commands, $command;
+            return {'command_output' => $output};
+    });
+
+    $output = ['screen', 'input', 'RUNNING'];
+    is $s3270_console->shutdown_state, 'running', 'RUNNING means running';
+    is_deeply \@commands, ['Snap', 'Snap(Ascii)'], 'the snapshot is refreshed before it is read';
+
+    @commands = ();
+    $output = ['screen', 'input', 'CP READ'];
+    is $s3270_console->shutdown_state, 'stopped', 'CP READ means stopped';
+
+    @commands = ();
+    $output = ['screen', 'input', 'VM READ'];
+    is $s3270_console->shutdown_state, 'running', 'VM READ means the guest is still running';
+
+    @commands = ();
+    $output = ['Kernel panic - not syncing', 'input', 'CP READ'];
+    is $s3270_console->shutdown_state, 'panicked', 'a kernel panic is reported separately';
+};
+
 subtest 'wait_output test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
     $s3270_console_mock->redefine(send_3270 => {'command_status' => 'ok'});

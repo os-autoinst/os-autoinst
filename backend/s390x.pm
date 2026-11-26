@@ -17,6 +17,7 @@ sub new ($class) {
 
 ###################################################################
 sub do_start_vm ($self, @) {
+    delete @{$self}{qw(_panic_reported _missing_console_reported)};
     $self->truncate_serial_file;
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
@@ -36,6 +37,22 @@ sub do_stop_vm ($self, @) {
     }
 
     return;
+}
+
+sub is_shutdown ($self, @) {
+    my $console = $testapi::distri->{consoles}->{x3270};
+    unless ($console) {
+        carp 'console x3270 does not exist' unless $self->{_missing_console_reported};
+        $self->{_missing_console_reported} = 1;
+        return 0;
+    }
+    my $state = $console->shutdown_state;
+    if ($state eq 'panicked') {
+        carp 'z/VM guest panicked during shutdown' unless $self->{_panic_reported};
+        $self->{_panic_reported} = 1;
+        return 0;
+    }
+    return $state eq 'stopped' ? 1 : 0;
 }
 
 sub check_socket ($self, $fh, $write = undef) {
