@@ -316,6 +316,16 @@ subtest 'frame parsing - ustreamer' => sub {
     ok $received_img, 'current screen available to read for JPEG v10 frame' or return;
     is $received_img->similarity($img), 1_000_000, 'received correct JPEG v10 frame';
     $console->disable_video;
+
+    # ustreamer v11 frame, BGR3
+    copy($data_dir . 'ustreamer11-shared-full-frame-bgr3', '/dev/shm/raw-sink-dev-video0.raw');
+    $console->connect_remote({url => 'ustreamer:///dev/video0?format=BGR3'});
+
+    $img = tinycv::read($data_dir . 'ustreamer11-shared-full-frame-bgr3.png');
+    $received_img = $console->current_screen();
+    ok $received_img, 'current screen available to read for BGR3 v11 frame' or return;
+    is $received_img->similarity($img), 1_000_000, 'received correct BGR3 v11 frame';
+    $console->disable_video;
 };
 
 subtest 'v4l2 resolution' => sub {

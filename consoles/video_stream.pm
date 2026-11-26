@@ -370,6 +370,45 @@ sub _receive_frame_ustreamer ($self) {
         #     // 160
         #     ... data
         # } us_memsink_shared_s;
+        #
+        # #define US_MEMSINK_VERSION  ((u32)11)
+        # typedef struct {
+        #     uint    width;
+        #     uint    height;
+        #     uint    format;
+        #     uint    fps;
+        #     bool    key;
+        # } us_memsink_wants_s;
+        #
+        # typedef struct {
+        #     uint64_t     magic;
+        #     uint32_t     version;
+        #     // pad
+        #     uint64_t     id;
+        #     size_t      used;
+        #     // 32
+        #     uint64_t    client_magic;
+        #     long double     last_client_ts;
+        #     us_memsink_wants_s  wants;
+        #
+        #     unsigned    width;
+        #     unsigned    height;
+        #     unsigned    format;
+        #     unsigned    stride;
+        #     /* Stride is a bytesperline in V4L2 */ \
+        #     /* https://www.kernel.org/doc/html/v4.14/media/uapi/v4l/pixfmt-v4l2.html */ \
+        #     /* https://medium.com/@oleg.shipitko/what-does-stride-mean-in-image-processing-bba158a72bcd */ \
+        #     bool    online;
+        #     bool    key;
+        #     unsigned    gop;
+        #
+        #     long double     grab_begin_ts;
+        #     long double     grab_end_ts;
+        #     long double     encode_begin_ts;
+        #     long double     encode_end_ts;
+        #     // 176
+        #     ... data
+        # } us_memsink_shared_s;
 
         my ($magic, $version, $id, $used) = unpack 'QLx4QQ', $ustreamer_map;
         # This is US_MEMSINK_MAGIC, but perl considers hex literals over 32bits non-portable
@@ -390,8 +429,12 @@ sub _receive_frame_ustreamer ($self) {
             $client_clock_offset = 32;
             $data_offset = 160;
             $meta_offset = 68;
+        } elsif ($version == 11) {
+            $client_clock_offset = 48;
+            $data_offset = 176;
+            $meta_offset = 84;
         } else {
-            die "Unsupported ustreamer version '$version' (only versions 4, 7 and 8 are supported)";
+            die "Unsupported ustreamer version '$version' (only versions 4, 7, 8, 10 and 11 are supported)";
         }
 
         # tell ustreamer we are reading, otherwise it won't write new frames
