@@ -1134,7 +1134,7 @@ subtest 'send_key with hold_duration' => sub {
     local $baseclass->{current_screen} = $mock_screen;
     is_deeply $baseclass->send_key({key => 'ctrl', hold_duration => 2}), {}, 'send_key with hold_duration returns empty hashref';
     is_deeply \@calls, [
-        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['hold', {key => 'ctrl', hold_duration => 2, no_capture => 1}],
         ['capture', 2],
         ['release', {key => 'ctrl', hold_duration => 2}],
     ], 'send_key with hold_duration executes hold_key, run_capture_loop, and release_key in order';
@@ -1146,13 +1146,75 @@ subtest 'send_key with hold_duration' => sub {
     });
     throws_ok { $baseclass->send_key({key => 'ctrl', hold_duration => 2}) } qr/capture loop failed/, 'dies if capture loop fails';
     is_deeply \@calls, [
-        ['hold', {key => 'ctrl', hold_duration => 2}],
+        ['hold', {key => 'ctrl', hold_duration => 2, no_capture => 1}],
         ['capture', 2],
         ['release', {key => 'ctrl', hold_duration => 2}],
     ], 'release_key called even when run_capture_loop dies';
 
     local $baseclass->{current_screen} = undef;
     is $baseclass->send_key({key => 'ctrl', hold_duration => 2}), undef, 'returns undef when current_screen is undefined';
+};
+
+subtest 'mouse_button with hold' => sub {
+    my $mock_screen = Test::MockObject->new;
+    my @calls;
+    $mock_screen->mock(mouse_button => sub { push @calls, ['mouse_button', $_[1]] });
+    my $mock_base = Test::MockModule->new('backend::baseclass');
+    $mock_base->redefine(run_capture_loop => sub ($self, $timeout = undef) {
+            push @calls, ['capture', $timeout];
+    });
+
+    local $baseclass->{current_screen} = $mock_screen;
+    is_deeply $baseclass->mouse_button({button => 'left', hold => 0.15}), {}, 'mouse_button with hold returns empty hashref';
+    is_deeply \@calls, [
+        ['mouse_button', {button => 'left', bstate => 1}],
+        ['capture', 0.15],
+        ['mouse_button', {button => 'left', bstate => 0}],
+    ], 'mouse_button with hold executes press, capture, and release in order';
+
+    @calls = ();
+    $mock_base->redefine(run_capture_loop => sub ($self, $timeout = undef) {
+            push @calls, ['capture', $timeout];
+            die "capture loop failed\n";
+    });
+    throws_ok { $baseclass->mouse_button({button => 'left', hold => 0.15}) } qr/capture loop failed/, 'dies if capture loop fails';
+    is_deeply \@calls, [
+        ['mouse_button', {button => 'left', bstate => 1}],
+        ['capture', 0.15],
+        ['mouse_button', {button => 'left', bstate => 0}],
+    ], 'release called even when run_capture_loop dies';
+
+    local $baseclass->{current_screen} = undef;
+    is $baseclass->mouse_button({button => 'left', hold => 0.15}), undef, 'returns undef when current_screen is undefined';
+};
+
+subtest 'held keys tracking and auto-release' => sub {
+    my $mock_screen = Test::MockObject->new;
+    my @released;
+    $mock_screen->set_true('hold_key');
+    $mock_screen->mock(release_key => sub { push @released, $_[1]->{key} });
+    local $baseclass->{current_screen} = $mock_screen;
+
+    # Track on hold_key
+    $baseclass->hold_key({key => 'alt'});
+    is_deeply $baseclass->{held_keys}, {alt => 1}, 'key is tracked on hold';
+
+    # Untrack on release_key
+    $baseclass->release_key({key => 'alt'});
+    is_deeply $baseclass->{held_keys}, {}, 'key is untracked on release';
+    is_deeply \@released, ['alt'], 'release forwarded';
+
+    # Auto-release on reset_consoles
+    @released = ();
+    $baseclass->hold_key({key => 'ctrl'});
+    $baseclass->hold_key({key => 'shift'});
+    is_deeply $baseclass->{held_keys}, {ctrl => 1, shift => 1}, 'keys are tracked';
+
+    my $mock_base = Test::MockModule->new('backend::baseclass');
+    $mock_base->redefine(reset_console => sub { });
+    $baseclass->reset_consoles({});
+    is_deeply [sort @released], ['ctrl', 'shift'], 'all held keys were automatically released';
+    is_deeply $baseclass->{held_keys}, {}, 'held_keys was cleared';
 };
 
 subtest 'reload_needles' => sub {

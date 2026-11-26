@@ -18,6 +18,7 @@ package consoles::console;
 
 use Mojo::Base -base, -signatures;
 use autodie ':all';
+use Carp 'croak';
 
 require IPC::System::Simple;
 
@@ -65,6 +66,14 @@ sub select ($self) {
 sub activate ($self) { }
 
 sub is_serial_terminal ($self) { 0 }
+
+sub hold_key ($self, $args) {
+    croak 'Console ' . $self->{class} . ' does not support hold_key';
+}
+
+sub release_key ($self, $args) {
+    croak 'Console ' . $self->{class} . ' does not support release_key';
+}
 
 sub set_args ($self, %args) {
     my $my_args = $self->{args};
