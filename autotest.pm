@@ -358,6 +358,7 @@ sub loadtest ($script, %args) {
 }
 
 our $current_test;    ## no critic (Variables::ProhibitPackageVars)
+our $fatal_reason;    ## no critic (Variables::ProhibitPackageVars)
 our $selected_console;    ## no critic (Variables::ProhibitPackageVars)
 our $last_milestone;    ## no critic (Variables::ProhibitPackageVars)
 our $last_milestone_active_consoles = [];    ## no critic (Variables::ProhibitPackageVars)
@@ -452,7 +453,10 @@ sub handle_sigterm ($sig) {    # uncoverable statement
         $current_test->result('canceled');    # uncoverable statement
         $current_test->save_test_result();    # uncoverable statement
     }
-    _exit(1);    # uncoverable statement
+    $fatal_reason = 'after test cancellation';    # uncoverable statement
+    bmwqemu::diag("scheduled stop of overall test execution $fatal_reason");    # uncoverable statement
+                                                                                # notify isotovideo to defer backend shutdown until complete
+    query_isotovideo('set_component_state', {component => 'autotest', msg => 'running modules after cancellation'}) if $isotovideo;    # uncoverable statement
 }
 
 sub start_process () {
@@ -548,7 +552,7 @@ sub runalltests () {
     bmwqemu::diag 'Snapshots are ' . ($snapshots_supported ? '' : 'not ') . 'supported';
 
     write_test_order();
-    my $fatal_reason;
+    $fatal_reason = undef;
 
     for (my $testindex = 0; $testindex <= $#testorder; $testindex++) {
         my $t = $testorder[$testindex];
@@ -629,6 +633,7 @@ sub runalltests () {
     if ($fatal_reason) {
         bmwqemu::diag "stopping overall test execution $fatal_reason";
         bmwqemu::stop_vm();
+        $fatal_reason = undef;
         return 0;
     }
     return 1;
