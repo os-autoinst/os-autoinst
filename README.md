@@ -391,6 +391,13 @@ present in the default container image (e.g., custom dependencies like
 inside a restricted environment, you can bypass the default worker container
 wrap by manually overriding the `ISOTOVIDEO` command setting.
 
+The image storage (`--root`) must stay shared between jobs to keep the image
+cache, and Podman records the run root inside that storage, so `--runroot` has
+to be shared with it. Only `HOME` and `XDG_RUNTIME_DIR` are isolated per job:
+a run root that differs between worker slots makes Podman abort with `database
+run root ... does not match our run root ...: database configuration mismatch`,
+locking the host to whichever slot used the storage first.
+
 For example, to run tests inside a rootless container while dynamically
 installing missing distribution dependencies and compiling your custom
 `os-autoinst` branch:
@@ -402,8 +409,13 @@ openqa-clone-job --skip-chained-deps --within-instance <target_job_url> \
   TEST+=-custom_suffix \
   CASEDIR=https://github.com/<your_username>/os-autoinst-distri-opensuse.git#<your_test_branch> \
   WORKER_CLASS=<suitable_worker_class> \
-  ISOTOVIDEO="c=/var/lib/openqa/cache/podman_storage && p=\$(pwd)/podman_tmp && mkdir -p \$c \$p/run && env HOME=\$p XDG_RUNTIME_DIR=\$p/run podman --root \$c --runroot \$p/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
+  ISOTOVIDEO="c=/var/lib/openqa/cache/podman_storage && p=\$(pwd)/podman_tmp && mkdir -p \$c/run \$p/run && env HOME=\$p XDG_RUNTIME_DIR=\$p/run podman --root \$c --runroot \$c/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
 ```
+
+Delete the run root `/var/lib/openqa/cache/podman_storage/run` if Podman reports
+stale runtime state after a host reboot. The openQA worker package clears its
+equivalent `/var/lib/openqa/cache/podman/run` with a systemd tmpfiles entry on
+boot.
 
 ## Local and remote verification
 
