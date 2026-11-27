@@ -10,8 +10,10 @@ use Mojo::Base -signatures;
 use Test::Warnings ':report_warnings';
 use Feature::Compat::Try;
 use FindBin;
+use lib "$FindBin::Bin/../external/os-autoinst-common/lib", "$FindBin::Bin/../tools/lib";
+use OpenQA::Test::Isolation qw(setup_isolated_workdir);
 use File::Find;
-use Mojo::File 'path';
+use Mojo::File qw(path);
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -21,6 +23,7 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.md';
 
+my $isolation_guard = setup_isolated_workdir();
 # blocklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blocklist = (
     QEMU => ['WORKER_ID', 'WORKER_INSTANCE', 'NAME'],
@@ -112,6 +115,7 @@ read_doc;
 find(\&read_backend_pm, (BACKEND_DIR));
 # check if vars are properly documented and update data
 write_doc;
+path(VARS_DOC . '.newvars')->remove;
 $error_found = $ignore_errors ? 0 : $error_found;
 ok $error_found ? 0 : 1, 'No errors found';
 done_testing;
