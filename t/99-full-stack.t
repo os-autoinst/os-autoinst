@@ -16,7 +16,7 @@ use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
 use Mojo::File qw(path);
 
-my ($isolation_guard, $dir) = setup_isolated_workdir();
+my ($isolation_guard, $dir) = setup_isolated_workdir($ENV{OS_AUTOINST_FULL_STACK_TEST_DIR});
 my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data/";
 my $pool_dir = "$dir/pool/";
