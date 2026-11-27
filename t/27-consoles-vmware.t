@@ -45,6 +45,30 @@ $bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE} = 1;
 
 sub mk_res ($code, @text) { map { Mojo::Message::Response->new->code($code)->body($_) } @text }
 
+sub start_dewebsockify_robustly ($ws_url, $capture_log, $vmware_instance = undef, $log_level = undef) {
+    for my $attempt (1 .. 10) {
+        my $tcp_port = Mojo::IOLoop::Server->generate_port;
+        my ($pid, $pipe);
+        if ($capture_log) {
+            $pid = open $pipe, '-|', "$bmwqemu::topdir/script/dewebsockify --listenport $tcp_port --websocketurl $ws_url 2>&1" or die "Unable to start dewebsockify: $!";
+        } else {
+            $vmware_instance->_start_dewebsockify_process($tcp_port, $ws_url, 'session', $log_level);
+            $pid = $vmware_instance->dewebsockify_pid;
+        }
+        select undef, undef, undef, 0.1;    ## no critic (ProhibitSleepViaSelect)
+        my $res = waitpid $pid, WNOHANG;
+        if ($res == 0) {
+            return ($pid, $tcp_port, $pipe);
+        }
+        if ($pipe) {    # uncoverable statement
+            close $pipe;    # uncoverable statement
+        }
+        $vmware_instance->dewebsockify_pid(undef) if $vmware_instance;    # uncoverable statement
+        note "dewebsockify died immediately on port $tcp_port (res=$res, pid=$pid, err=$!), retrying ($attempt/10).";    # uncoverable statement
+    }
+    die 'Failed to start dewebsockify after 10 attempts';    # uncoverable statement
+}
+
 subtest 'test configuration with fake URL' => sub {
     my $vmware_mock = Test::MockModule->new('consoles::VMWare');
     my @dewebsockify_args;
@@ -189,33 +213,9 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     combined_like { $daemon->start } qr/Web application available at/, 'could start test WebSocket server' or BAIL_OUT 'cannot proceed without test server';
     my $ws_port = $daemon->ports->[0];
 
-    my $_start_dewebsockify_robustly = sub ($ws_url, $capture_log, $vmware_instance = undef, $log_level = undef) {
-        for my $attempt (1 .. 10) {
-            my $tcp_port = Mojo::IOLoop::Server->generate_port;
-            my ($pid, $pipe);
-            if ($capture_log) {
-                $pid = open $pipe, '-|', "$bmwqemu::topdir/script/dewebsockify --listenport $tcp_port --websocketurl $ws_url 2>&1" or die "Unable to start dewebsockify: $!";
-            } else {
-                $vmware_instance->_start_dewebsockify_process($tcp_port, $ws_url, 'session', $log_level);
-                $pid = $vmware_instance->dewebsockify_pid;
-            }
-            select undef, undef, undef, 0.1;    ## no critic (ProhibitSleepViaSelect)
-            my $res = waitpid $pid, WNOHANG;
-            if ($res == 0) {
-                return ($pid, $tcp_port, $pipe);
-            }
-            if ($pipe) {    # uncoverable statement
-                close $pipe;    # uncoverable statement
-            }
-            $vmware_instance->dewebsockify_pid(undef) if $vmware_instance;    # uncoverable statement
-            note "dewebsockify died immediately on port $tcp_port (res=$res, pid=$pid, err=$!), retrying ($attempt/10).";    # uncoverable statement
-        }
-        die 'Failed to start dewebsockify after 10 attempts';    # uncoverable statement
-    };
-
     # start dewebsockify
     my $vmware = consoles::VMWare->new;
-    my ($tcp_pid, $tcp_port) = $_start_dewebsockify_robustly->("ws://127.0.0.1:$ws_port/test", 0, $vmware, $log_level);
+    my ($tcp_pid, $tcp_port) = start_dewebsockify_robustly("ws://127.0.0.1:$ws_port/test", 0, $vmware, $log_level);
     ok $vmware->dewebsockify_pid, 'dewebsockify PID tracked: ' . ($vmware->dewebsockify_pid // '?');
 
     # connect to dewebsockify and let everything run
@@ -291,12 +291,12 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     };
 
     subtest 'handle error when WebSocket server is not reachable' => sub {
-        my ($dewebsockify_pid, $tcp_port_for_errors1, $dewebsockify_pipe) = $_start_dewebsockify_robustly->('ws://127.0.0.:4', 1);
+        my ($dewebsockify_pid, $tcp_port_for_errors1, $dewebsockify_pipe) = start_dewebsockify_robustly('ws://127.0.0.:4', 1);
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 1, wait_pid => $dewebsockify_pid, port => $tcp_port_for_errors1);
         $assert_log->($dewebsockify_pipe, qr/WebSocket connection error:/);
     };
     subtest 'handle error when HTTP server is not upgrading to WebSockets' => sub {
-        my ($dewebsockify_pid, $tcp_port_for_errors2, $dewebsockify_pipe) = $_start_dewebsockify_robustly->("ws://127.0.0.1:$ws_port/foo", 1);
+        my ($dewebsockify_pid, $tcp_port_for_errors2, $dewebsockify_pipe) = start_dewebsockify_robustly("ws://127.0.0.1:$ws_port/foo", 1);
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 0, wait_pid => $dewebsockify_pid, port => $tcp_port_for_errors2, stop_on_close => 1);
         $assert_log->($dewebsockify_pipe, qr/WebSocket 404 response: Not Found/);
     };
