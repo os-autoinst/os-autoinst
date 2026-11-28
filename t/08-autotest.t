@@ -118,6 +118,28 @@ subtest 'load_test && run_all' => sub {
 my ($reverts_done, $snapshots_made) = (0, 0);
 sub snapshot_subtest ($name, $sub) { subtest $name, $sub; $reverts_done = $snapshots_made = 0; @sent = () }
 
+sub retry_subtest ($mock_autotest, $name, $tests, $sub) {
+    snapshot_subtest $name, sub {
+        local %autotest::tests = ();
+        local @autotest::testorder = ();
+        local %autotest::scheduled_basenames = ();
+        local $autotest::last_milestone = undef;
+        local $autotest::last_milestone_active_consoles = [];
+        local $autotest::activated_consoles = [];
+        local $autotest::last_milestone_console = undef;
+
+        loadtest $_ for @$tests;
+
+        $mock_autotest->redefine(query_isotovideo => sub ($command, $arguments) {
+                return 1 if $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots';
+                return {snapshot_done => 1} if $command eq 'backend_make_snapshot';
+                return {};
+        });
+
+        $sub->(@autotest::testorder);
+    };
+}
+
 subtest 'test always_rollback flag' => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     $mock_basetest->noop('_result_add_screenshot');
@@ -199,23 +221,7 @@ subtest 'test always_rollback flag' => sub {
         stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/, 'reason logged (TESTDEBUG)';
         delete $bmwqemu::vars{TESTDEBUG};
     };
-    snapshot_subtest 'always_run flag ensures execution after fatal failure' => sub {
-        local %autotest::tests = ();
-        local @autotest::testorder = ();
-        local %autotest::scheduled_basenames = ();
-        local $autotest::last_milestone = undef;
-        local $autotest::last_milestone_active_consoles = [];
-        local $autotest::activated_consoles = [];
-        local $autotest::last_milestone_console = undef;
-
-        loadtest $_ for qw(fatal start next);
-        my ($fatal_test, $normal_test, $cleanup_test) = @autotest::testorder;
-        $mock_autotest->redefine(query_isotovideo => sub ($command, $arguments) {
-                return 1 if $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots';
-                return {snapshot_done => 1} if $command eq 'backend_make_snapshot';
-                return {};
-        });
-
+    retry_subtest $mock_autotest, 'always_run flag ensures execution after fatal failure', [qw(fatal start next)], sub ($fatal_test, $normal_test, $cleanup_test) {
         $mock_basetest->redefine(test_flags => sub ($self) {
                 return {fatal => 1} if $self == $fatal_test;
                 return {always_run => 1} if $self == $cleanup_test;
@@ -243,6 +249,56 @@ subtest 'test always_rollback flag' => sub {
         my $w;
         stderr_like { $w = warning { autotest::run_all } } qr/Snapshots are not supported/, 'run_all outputs on stderr';
         like $w, qr/always_rollback requested but snapshots are not supported by the backend/, 'fails with explicit error message';
+    };
+    retry_subtest $mock_autotest, 'test retry flag', [qw(start next)], sub ($milestone_test, $retry_test) {
+        $mock_basetest->redefine(test_flags => sub ($self) {
+                return {milestone => 1} if $self == $milestone_test;
+                return {retry => 2} if $self == $retry_test;
+                return {};
+        });
+
+        my $retry_runs = 0;
+        $mock_basetest->redefine(runtest => sub ($self) {
+                if ($self == $retry_test) {
+                    $retry_runs++;
+                    die "retryable failure\n" if $retry_runs < 3;
+                }
+                return 1;
+        });
+
+        my $rollbacks = 0;
+        $mock_autotest->redefine(load_snapshot => sub { $rollbacks++ });
+
+        stderr_like { autotest::run_all } qr/Retrying next after failure \(attempt 1\/2\)/, 'logged first retry';
+        is $retry_runs, 3, 'test run total of 3 times (initial + 2 retries)';
+        is $rollbacks, 2, 'two rollbacks triggered';
+        ($died, $completed) = get_tests_done;
+        is $died, 0, 'tests not considered died';
+        is $completed, 1, 'tests completed after successful retry';
+    };
+    retry_subtest $mock_autotest, 'test retry flag with all attempts failing', [qw(start next)], sub ($milestone_test, $retry_test) {
+        $mock_basetest->redefine(test_flags => sub ($self) {
+                return {milestone => 1} if $self == $milestone_test;
+                return {retry => 1} if $self == $retry_test;
+        });
+
+        my $retry_runs = 0;
+        $mock_basetest->redefine(runtest => sub ($self) {
+                if ($self == $retry_test) {
+                    $retry_runs++;
+                    die "permanent failure\n";
+                }
+                return 1;
+        });
+
+        my $rollbacks = 0;
+        $mock_autotest->redefine(load_snapshot => sub { $rollbacks++ });
+
+        stderr_like { autotest::run_all } qr/Retrying next after failure \(attempt 1\/1\)/, 'logged retry';
+        is $retry_runs, 2, 'test run total of 2 times (initial + 1 retry)';
+        is $rollbacks, 1, 'one rollback triggered';
+        ($died, $completed) = get_tests_done;
+        is $completed, 1, 'tests completed (even if one module failed, as it was not fatal)';
     };
     undef $mock_autotest;
     undef $mock_basetest;
@@ -372,8 +428,9 @@ subtest 'failing tests' => sub {
 };
 
 subtest 'exceptions' => sub {
-    my $mock_autotest = Test::MockModule->new('autotest');
+    my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
     $mock_autotest->noop('_terminate');
+    $mock_autotest->redefine(query_isotovideo => sub { {} });
     %autotest::tests = ();
     @autotest::testorder = ();
     %autotest::scheduled_basenames = ();
@@ -384,7 +441,7 @@ subtest 'exceptions' => sub {
         stderr_like { autotest::loadtest('tests/exception.pm', name => 'exc'); autotest::run_all } qr{$stack.*$stepinfo}s, 'OpenQA::Exception::TestapiError produces step info and stack trace';
     };
     subtest 'perl die' => sub {
-        $stepinfo = qr{\[step:tests,exc,2\] tests/exception.pm:\d+};
+        $stepinfo = qr{\[step:tests,exc,1\] tests/exception.pm:\d+};
 
         $stack = qr{Test died: Illegal division by zero.*\n.*--- \# stack trace\n.*tests/exception.pm line \d+}s;
         local $ENV{PERL_DIE} = 1;
