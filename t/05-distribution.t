@@ -227,6 +227,7 @@ subtest 'sut_marker' => sub {
 subtest 'level3_marker_correlation' => sub {
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_autotest = Test::MockModule->new('autotest');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     $mock_bmwqemu->noop('log_call');
     $testapi::serialdev = 'ttyS0';
@@ -245,6 +246,7 @@ subtest 'level3_marker_correlation' => sub {
     $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(query_isotovideo => sub { });
+    $mock_autotest->redefine(query_isotovideo => sub { });
 
     my @regexes_seen;
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) {

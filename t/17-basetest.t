@@ -592,7 +592,6 @@ subtest record_serialresult_hiding => sub {
     $basetest->{name} = 'test_hiding';
     my $recorded_output;
     my $mock_basetest_local = Test::MockModule->new('basetest');
-    my $mock_testapi = Test::MockModule->new('testapi');
     $mock_basetest_local->redefine(record_resultfile => sub ($self, $title, $output, %nargs) { $recorded_output = $output });
 
     my @test_cases = (
@@ -676,7 +675,7 @@ subtest record_serialresult_hiding => sub {
     );
 
     foreach my $case (@test_cases) {
-        $mock_testapi->mock(get_var => sub ($var, $default = undef) { return exists $case->{vars}->{$var} ? $case->{vars}->{$var} : $default });
+        local %bmwqemu::vars = %{$case->{vars}};
         $basetest->record_serialresult(@{$case->{params}});
         like $recorded_output, $_, "$case->{name} (contains expected)" for @{$case->{expected}};
         unlike $recorded_output, $_, "$case->{name} (does not contain unexpected)" for @{$case->{not_expected}};
